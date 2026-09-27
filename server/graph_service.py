@@ -1268,7 +1268,7 @@ class GraphService:
         payload = {"model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"), "store": False,
             "input": [
                 {"role": "system", "content": (
-                    "You draft changes for a data logic graph. Return one NEW node and its dependency edges. "
+                    "You draft changes for a SignalStudio design graph. Return one NEW node and its dependency edges. "
                     "Use exactly the existing node names supplied for upstream_names and downstream_names. "
                     "An upstream node is a dependency of the new node. A downstream node depends on the new node. "
                     "Never invent existing nodes. Keep definition, rationale, caveats, formula, and notes distinct. "

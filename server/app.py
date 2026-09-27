@@ -13,7 +13,7 @@ from source_contract_store import SourceContractStore
 from signal_contract_store import SignalContractStore
 
 ROOT = Path(__file__).resolve().parent.parent
-service = GraphService(os.environ.get("DATA_LOGIC_DB"))
+service = GraphService(os.environ.get("SIGNALSTUDIO_DB"))
 source_contracts = SourceContractStore()
 signal_contracts = SignalContractStore(source_contracts)
 service.ensure_system_tables()
@@ -195,5 +195,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8787"))
-    print(f"Data Logic API: http://127.0.0.1:{port}", flush=True)
+    print(f"SignalStudio API: http://127.0.0.1:{port}", flush=True)
     HTTPServer(("127.0.0.1", port), Handler).serve_forever()

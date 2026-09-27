@@ -21,7 +21,7 @@ def main():
     args = parser.parse_args()
     sources = SourceContractStore()
     signals = SignalContractStore(sources)
-    graph = GraphService(os.environ.get("DATA_LOGIC_DB"))
+    graph = GraphService(os.environ.get("SIGNALSTUDIO_DB"))
     try:
         package = signals.package(graph, args.signal_key)
     finally:

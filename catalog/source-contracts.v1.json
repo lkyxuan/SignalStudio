@@ -1,7 +1,7 @@
 {
   "catalog_version": "source-contracts.v1",
-  "owner": "Data Logic IDE",
-  "direction": "Data Logic IDE defines desired upstream inputs; Few Understand implements and reports evidence.",
+  "owner": "SignalStudio",
+  "direction": "SignalStudio defines desired upstream inputs; Few Understand implements and reports evidence.",
   "source_count": 8,
   "operation_count": 36,
   "resource_count": 2,
@@ -4015,5 +4015,5 @@
       "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server"
     }
   ],
-  "revision": "sha256:88bcc7ca5353521113d194270dbee6255a0261c9c7a714e06c30a5ea3ffcd51f"
+  "revision": "sha256:ed3c962725f79b87b29c6cc5c493799df872b3793ed669f7bbe353ae21f2671f"
 }

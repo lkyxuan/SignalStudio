@@ -13,7 +13,7 @@ class SourceContractStore:
     def __init__(self, path=DEFAULT_CONTRACT):
         self.contract = json.loads(Path(path).read_text(encoding="utf-8"))
         contract = self.contract
-        if contract.get("catalog_version") != "source-contracts.v1" or contract.get("owner") != "Data Logic IDE":
+        if contract.get("catalog_version") != "source-contracts.v1" or contract.get("owner") != "SignalStudio":
             raise GraphError("Unsupported source contract")
         body = {key: value for key, value in contract.items() if key != "revision"}
         encoded = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()

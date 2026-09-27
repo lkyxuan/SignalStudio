@@ -76,7 +76,7 @@ def seed(graph, source_contracts, signal_contracts):
 if __name__ == "__main__":
     source_contracts = SourceContractStore()
     signal_contracts = SignalContractStore(source_contracts)
-    graph = GraphService(os.environ.get("DATA_LOGIC_DB"))
+    graph = GraphService(os.environ.get("SIGNALSTUDIO_DB"))
     node = seed(graph, source_contracts, signal_contracts)
     package = signal_contracts.package(graph, node["id"])
     print(node["id"], node["name"], package["implementation_readiness"])

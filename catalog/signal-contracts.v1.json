@@ -1,6 +1,6 @@
 {
   "catalog_version": "signal-contracts.v1",
-  "owner": "Data Logic IDE",
+  "owner": "SignalStudio",
   "signals": [
     {
       "signal_key": "coingecko_market_turnover_candidate",

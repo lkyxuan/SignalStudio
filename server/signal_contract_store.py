@@ -20,7 +20,7 @@ class SignalContractStore:
         self.source_contracts = source_contracts
         self.contract = json.loads(Path(path).read_text(encoding="utf-8"))
         if (self.contract.get("catalog_version") != "signal-contracts.v1"
-                or self.contract.get("owner") != "Data Logic IDE"
+                or self.contract.get("owner") != "SignalStudio"
                 or not isinstance(self.contract.get("signals"), list)):
             raise GraphError("Unsupported signal contract")
         self.revision = revision_of(self.contract)

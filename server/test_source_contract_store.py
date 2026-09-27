@@ -11,7 +11,7 @@ from graph_service import GraphService
 class SourceContractStoreTest(unittest.TestCase):
     def test_upstream_contract_is_independent_of_few_understand_v2(self):
         contract = SourceContractStore()
-        self.assertEqual(contract.meta()["owner"], "Data Logic IDE")
+        self.assertEqual(contract.meta()["owner"], "SignalStudio")
         self.assertEqual(contract.meta()["source_count"], 8)
         self.assertEqual(contract.meta()["operation_count"], 36)
         self.assertEqual(contract.meta()["resource_count"], 2)

@@ -159,7 +159,7 @@ def main():
     args = parser.parse_args()
     client = McpClient(api_key())
     client.rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
-                              "clientInfo": {"name": "DataLogicIDE-Kaito-probe", "version": "0.1.0"}})
+                              "clientInfo": {"name": "SignalStudio-Kaito-probe", "version": "0.1.0"}})
     tools = client.rpc("tools/list").get("tools", [])
     report = {
         "observed_at": datetime.now(timezone.utc).isoformat(),

@@ -2,8 +2,6 @@
 
 A local-first design workspace for the definitions, formulas, reasons, caveats and dependencies behind a data product.
 
-Versioned source and signal contracts retain the legacy `Data Logic IDE` owner identifier for compatibility with existing handoffs.
-
 ## Run
 
 Requires Node.js 22+ and Python 3.9+.
@@ -13,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API runs on port 8787. The SQLite file is created at `data/logic.db`. Startup removes unused V2 record-type nodes and keeps the app-owned upstream operations as the source baseline. A one-time migration closes gaps left by that retirement; later deletions do not reuse reference numbers.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API runs on port 8787. The SQLite file is created at `data/logic.db`; set `SIGNALSTUDIO_DB` to use a different path. Startup removes unused V2 record-type nodes and keeps the app-owned upstream operations as the source baseline. A one-time migration closes gaps left by that retirement; later deletions do not reuse reference numbers.
 
 Vite also listens on network interfaces. To open the development site from another device in the same Tailscale network, run `tailscale ip -4` on this machine and visit `http://<that-ip>:5173` on the other device. The API continues to run locally behind Vite's `/api` proxy.
 

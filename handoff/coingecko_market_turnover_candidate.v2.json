@@ -2,8 +2,8 @@
   "package_version": "signal-package.v2",
   "signal_key": "coingecko_market_turnover_candidate",
   "signal_version": 2,
-  "signal_contract_revision": "sha256:2ef85366653781d4876d9537d3898ec01391cc56e8b29b96f8f3ed2089161963",
-  "source_contract_revision": "sha256:88bcc7ca5353521113d194270dbee6255a0261c9c7a714e06c30a5ea3ffcd51f",
+  "signal_contract_revision": "sha256:6b6ab1ca3f7ef79144b9b2700a0cb8b02c74ec28589c094c23c5bf4e868785d2",
+  "source_contract_revision": "sha256:ed3c962725f79b87b29c6cc5c493799df872b3793ed669f7bbe353ae21f2671f",
   "definition": {
     "signal_key": "coingecko_market_turnover_candidate",
     "version": 2,
@@ -707,7 +707,7 @@
       ],
       "input_source_url": "https://docs.coingecko.com/reference/coins-markets"
     },
-    "revision": "sha256:88bcc7ca5353521113d194270dbee6255a0261c9c7a714e06c30a5ea3ffcd51f"
+    "revision": "sha256:ed3c962725f79b87b29c6cc5c493799df872b3793ed669f7bbe353ae21f2671f"
   },
   "connection_contracts": [
     {
@@ -1381,7 +1381,7 @@
     "status": "ready",
     "issues": []
   },
-  "revision": "sha256:5f49a018ae35605263647b4e86dbbb82fdc39476d95a8d3b8c0bf7f3affa3ad2",
+  "revision": "sha256:fcb4169e065820bc3b2a85fe9beacdfdb90bf22641ab552d3d0dc286f5735a4b",
   "runtime_evidence": {
     "status": "not_provided",
     "latest_report_id": null,

@@ -295,8 +295,8 @@ def build():
     for item, group in [(item, "operations") for item in operations] + [(item, "resources") for item in resources]:
         item.update(input_contract[group][item["id"]])
 
-    payload = {"catalog_version": "source-contracts.v1", "owner": "Data Logic IDE",
-               "direction": "Data Logic IDE defines desired upstream inputs; Few Understand implements and reports evidence.",
+    payload = {"catalog_version": "source-contracts.v1", "owner": "SignalStudio",
+               "direction": "SignalStudio defines desired upstream inputs; Few Understand implements and reports evidence.",
                "source_count": len(source_rows), "operation_count": len(operations),
                "resource_count": len(resources), "sources": source_rows,
                "operations": operations, "resources": resources}

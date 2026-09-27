@@ -139,7 +139,7 @@ function IconButton({ children, title, onClick, active, className = '' }) {
 }
 
 function App() {
-  const [language, setLanguage] = useState(() => localStorage.getItem('data-logic-language') === 'en' ? 'en' : 'zh-CN');
+  const [language, setLanguage] = useState(() => localStorage.getItem('signalstudio-language') === 'en' ? 'en' : 'zh-CN');
   const t = text => translate(language, text);
   const displayName = name => language === 'zh-CN' ? catalogEntityInfo[name]?.label_cn || displayNodeName(language, name) : displayNodeName(language, name);
   const [graph, setGraph] = useState({ nodes: [], edges: [], fields: [], field_usages: [], requirements: [] });
@@ -166,7 +166,7 @@ function App() {
   useEffect(() => {
     document.documentElement.lang = language;
     document.title = language === 'zh-CN' ? 'SignalStudio · 数据逻辑设计工作台' : 'SignalStudio';
-    localStorage.setItem('data-logic-language', language);
+    localStorage.setItem('signalstudio-language', language);
   }, [language]);
 
   const flash = (message, error = false) => { setNotice({ message, error }); setTimeout(() => setNotice(null), 4200); };
@@ -295,9 +295,9 @@ function App() {
   };
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark"><Network size={22} strokeWidth={2.2} /></div><div><strong>{t('Data Logic')}</strong><span>{t('DESIGN STUDIO')}</span></div></div>
+      <div className="brand"><div className="brand-mark"><Network size={22} strokeWidth={2.2} /></div><div><strong>{t('SignalStudio')}</strong><span>{t('DESIGN STUDIO')}</span></div></div>
       <div className="sidebar-section-label">{t('WORKSPACE')}</div>
-      <button className="sidebar-link selected" onClick={() => { setView('graph'); setSelectedId(null); }}><Layers3 size={17} /> {t('Data Logic Graph')} <ChevronDown size={15} className="sidebar-chevron" /></button>
+      <button className="sidebar-link selected" onClick={() => { setView('graph'); setSelectedId(null); }}><Layers3 size={17} /> {t('Signal design graph')} <ChevronDown size={15} className="sidebar-chevron" /></button>
       <div className="sidebar-section-label nav-label">{t('VIEWS')}</div>
       <button className={`sidebar-link ${view === 'graph' ? 'view-active' : ''}`} onClick={() => setView('graph')}><GitBranch size={17} /> {t('Graph View')} <span className="side-shortcut">⌘1</span></button>
       <button className={`sidebar-link ${view === 'table' ? 'view-active' : ''}`} onClick={() => setView('table')}><List size={17} /> {t('Table View')} <span className="side-shortcut">⌘2</span></button>
@@ -309,9 +309,9 @@ function App() {
     </aside>
 
     <main className="main-pane">
-      <header className="topbar"><div className="breadcrumb">{t('Workspace')} <span>/</span> {t('Data Logic Graph')} <span>/</span> <strong>{view === 'translations' ? language === 'zh-CN' ? '字段用途与案例' : 'Field guide and examples' : t(view === 'graph' ? 'Graph' : 'Table')}</strong></div><div className="top-actions"><span className="top-meta">{t('LOCAL PROJECT')}</span>{view !== 'translations' && <button className="button-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> {t('New node')}</button>}</div></header>
+      <header className="topbar"><div className="breadcrumb">{t('Workspace')} <span>/</span> {t('Signal design graph')} <span>/</span> <strong>{view === 'translations' ? language === 'zh-CN' ? '字段用途与案例' : 'Field guide and examples' : t(view === 'graph' ? 'Graph' : 'Table')}</strong></div><div className="top-actions"><span className="top-meta">{t('LOCAL PROJECT')}</span>{view !== 'translations' && <button className="button-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> {t('New node')}</button>}</div></header>
       {view === 'translations' ? <CatalogTranslationTable language={language} /> : <>
-      <section className="workspace-head"><div><div className="eyebrow"><span className="eyebrow-line" /> {t('DESIGN STUDIO')}</div><h1>{t('Data Logic Graph')}</h1><p>{language === 'zh-CN' ? '总览显示上游操作、MCP 参考资源、规划业务表和设计节点。' : 'Overview shows upstream operations, MCP reference resources, planned business tables, and design nodes.'}</p></div><div className="workspace-stats"><div><strong>{contractSummary?.entries ?? '—'}</strong><span>{language === 'zh-CN' ? '上游入口' : 'UPSTREAM ENTRIES'}</span></div><i /><div><strong>{contractSummary?.fields ?? '—'}</strong><span title={language === 'zh-CN' ? '当前已列出的样本字段和文档计划字段；并非完整返回字段总数' : 'Sample paths and planned documented fields; not a complete output schema'}>{language === 'zh-CN' ? '已列字段定义' : 'LISTED FIELD DEFINITIONS'}</span></div><i /><div><strong>{graph.edges.length}</strong><span>{t('CONNECTIONS')}</span></div></div></section>
+      <section className="workspace-head"><div><div className="eyebrow"><span className="eyebrow-line" /> {t('DESIGN STUDIO')}</div><h1>{t('Signal design graph')}</h1><p>{language === 'zh-CN' ? '总览显示上游操作、MCP 参考资源、规划业务表和设计节点。' : 'Overview shows upstream operations, MCP reference resources, planned business tables, and design nodes.'}</p></div><div className="workspace-stats"><div><strong>{contractSummary?.entries ?? '—'}</strong><span>{language === 'zh-CN' ? '上游入口' : 'UPSTREAM ENTRIES'}</span></div><i /><div><strong>{contractSummary?.fields ?? '—'}</strong><span title={language === 'zh-CN' ? '当前已列出的样本字段和文档计划字段；并非完整返回字段总数' : 'Sample paths and planned documented fields; not a complete output schema'}>{language === 'zh-CN' ? '已列字段定义' : 'LISTED FIELD DEFINITIONS'}</span></div><i /><div><strong>{graph.edges.length}</strong><span>{t('CONNECTIONS')}</span></div></div></section>
       <section className="work-card">
         <div className="workflow-tabs" role="tablist" aria-label={t('Workflow paths')}>{WORKFLOW_VIEWS.map(item => <button key={item.id} role="tab" aria-selected={laneView === item.id} className={laneView === item.id ? 'active' : ''} onClick={() => { setLaneView(item.id); setTypeFilter('All types'); setSelectedId(null); setSelectedEdgeId(null); }}>{t(item.name)}</button>)}<p>{language === 'zh-CN' ? '总览和两条路径使用同一张设计图' : 'Overview and both paths use the same design graph'}</p></div>
         <div className="view-toolbar"><div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right"><div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '搜索名称、#节点、L连线或R关系' : 'Search name, # node, L line, or R relation'} value={filter} onChange={e => setFilter(e.target.value)} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{t(type)}</option>)}</select>{view === 'graph' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Group unconnected nodes; arrange dependencies left to right') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}<IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton></div></div>
