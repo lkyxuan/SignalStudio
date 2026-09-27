@@ -46,7 +46,7 @@ For model-backed drafts, start the app with `OPENAI_API_KEY` in the server envir
 
 The architectural decisions and staged implementation plan are in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
-For asynchronous development, use the dedicated Hermes Kanban workflow in [docs/DEVELOPMENT_BOARD.md](docs/DEVELOPMENT_BOARD.md). The versioned Hermes profile identity and Mac setup steps are in [ops/hermes/](ops/hermes/README.md); repository instructions are in [AGENTS.md](AGENTS.md).
+Development happens directly in Codex. See [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) for the workflow and [AGENTS.md](AGENTS.md) for repository instructions.
 
 The app-owned source contract is the product baseline for desired upstream inputs, not proof of crawled business records. Open supplier objects may contain more keys than the saved samples show. Few Understand should implement this contract and report actual run evidence separately. On startup, unused V2 record-type nodes are retired; the migration refuses to discard a node with a design connection or matched data need. Once those nodes are retired, a one-time migration makes surviving node references consecutive while preserving their internal IDs and graph data. Later deletions do not reuse numbers. When changing the upstream contract, regenerate and review its revision before providing it to Few Understand.
 

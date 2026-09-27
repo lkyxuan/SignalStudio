@@ -9,9 +9,9 @@ Read `docs/PRODUCT_WORKFLOW.md` when discussing or changing the product's signal
 - `catalog/raw-materials.v1.json` contains declared crawler fields. It does not establish that real crawled records are available. Do not invent records or describe illustrative values as observations.
 - For a future in-product assistant, load its behavior from application-owned instructions and persisted project state. `AGENTS.md` guides Codex work in this repository; it is not automatically loaded by the product's web page.
 
-## Development board
+## Development workflow
 
-Use the Hermes Kanban board `signalstudio` as the development task record. See `docs/DEVELOPMENT_BOARD.md` for the workflow. For asynchronous work, find or create one card with an outcome and acceptance checks before implementation. Check existing cards before creating another; update the relevant card when the user changes scope or priority. When the outcome is clear and the user wants implementation, assign the card to `signalstudio` and set it to `ready`. If a necessary product decision or access is missing, record the exact question and leave the card in `triage` or `blocked`. A `ready` card assigned to the `signalstudio` profile authorizes its worker to start. At the start of a worker run, read the assigned card and active cards for overlapping work. Edit only the card's isolated Git worktree. Do not absorb unfinished changes from another checkout. Report changed files, verification commands and results, and any remaining question in the card. Hand code changes to `review`; do not merge, publish, or close the card on the user's behalf.
+Work directly with the user in the current Codex chat. See `docs/DEVELOPMENT_WORKFLOW.md` for the workflow. Inspect the current Git state and relevant code or contracts before editing, then make a small, reviewable change. Use an isolated worktree when the current checkout has unrelated unfinished work or parallel work needs separation. Do not absorb unfinished changes from another checkout. Report changed files, verification commands and results, and any remaining question in the chat. Do not merge or publish on the user's behalf without authorization. Hermes Kanban is no longer the development queue for this project; use it only if the user explicitly asks to resume it.
 
 ## Implementation checks
 
