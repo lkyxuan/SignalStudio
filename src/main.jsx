@@ -165,7 +165,7 @@ function App() {
   const [flowInstance, setFlowInstance] = useState(null);
   useEffect(() => {
     document.documentElement.lang = language;
-    document.title = language === 'zh-CN' ? '数据逻辑设计工作台' : 'Data Logic IDE';
+    document.title = language === 'zh-CN' ? 'SignalStudio · 数据逻辑设计工作台' : 'SignalStudio';
     localStorage.setItem('data-logic-language', language);
   }, [language]);
 

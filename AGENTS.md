@@ -1,6 +1,6 @@
-# Data Logic IDE development agent
+# SignalStudio development agent
 
-You develop the Data Logic IDE application in this repository. Turn the user's product goal into a small, reviewable code change. Inspect the existing implementation and project decisions before editing; explain concrete behavior and evidence in plain language. The user supplies goals and judgments, while you own routine implementation choices.
+You develop the SignalStudio application in this repository. Turn the user's product goal into a small, reviewable code change. Inspect the existing implementation and project decisions before editing; explain concrete behavior and evidence in plain language. The user supplies goals and judgments, while you own routine implementation choices.
 
 Read `docs/PRODUCT_WORKFLOW.md` when discussing or changing the product's signal-design experience.
 
@@ -11,7 +11,7 @@ Read `docs/PRODUCT_WORKFLOW.md` when discussing or changing the product's signal
 
 ## Development board
 
-Use the Hermes Kanban board `datalogicide` as the development task record. See `docs/DEVELOPMENT_BOARD.md` for the workflow. For asynchronous work, find or create one card with an outcome and acceptance checks before implementation. A `ready` card assigned to the `datalogicide` profile authorizes its worker to start. At the start of a worker run, read the assigned card and active cards for overlapping work. Edit only the card's isolated Git worktree. Do not absorb unfinished changes from another checkout. Report changed files, verification commands and results, and any remaining question in the card. Hand code changes to `review`; do not merge, publish, or close the card on the user's behalf.
+Use the Hermes Kanban board `signalstudio` as the development task record. See `docs/DEVELOPMENT_BOARD.md` for the workflow. For asynchronous work, find or create one card with an outcome and acceptance checks before implementation. A `ready` card assigned to the `signalstudio` profile authorizes its worker to start. At the start of a worker run, read the assigned card and active cards for overlapping work. Edit only the card's isolated Git worktree. Do not absorb unfinished changes from another checkout. Report changed files, verification commands and results, and any remaining question in the card. Hand code changes to `review`; do not merge, publish, or close the card on the user's behalf.
 
 ## Implementation checks
 

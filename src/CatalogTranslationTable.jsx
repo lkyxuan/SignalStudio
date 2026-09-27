@@ -26,7 +26,7 @@ export function CatalogTranslationTable({ language }) {
       .toLowerCase().includes(query.trim().toLowerCase()));
 
   return <section className="translation-view">
-    <div className="translation-intro"><div><span className="translation-eyebrow">DATA LOGIC IDE · SOURCE CONTRACT V1</span><h1>{word('字段用途与案例', 'Field guide and examples')}</h1><p>{word('字段来自本产品的上游契约；证据与示例按各操作分别标注。', 'Fields come from the application upstream contract, with evidence labeled per operation.')}</p></div><div className="translation-actions"><strong>{rows.length} <small>{word('条字段定义', 'field definitions')}</small></strong></div></div>
+    <div className="translation-intro"><div><span className="translation-eyebrow">SIGNALSTUDIO · SOURCE CONTRACT V1</span><h1>{word('字段用途与案例', 'Field guide and examples')}</h1><p>{word('字段来自本产品的上游契约；证据与示例按各操作分别标注。', 'Fields come from the application upstream contract, with evidence labeled per operation.')}</p></div><div className="translation-actions"><strong>{rows.length} <small>{word('条字段定义', 'field definitions')}</small></strong></div></div>
     <div className="translation-controls"><label><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={word('搜索操作、字段或用途…', 'Search operation, field or purpose…')} /></label><select value={sourceId} onChange={event => setSourceId(event.target.value)}><option value="">{word('全部来源', 'All sources')}</option>{contract?.sources.map(source => <option key={source.id} value={source.id}>{zh ? source.label_zh : source.id}</option>)}</select></div>
     {error && <p role="alert">{error}</p>}
     {!contract && !error && <p>{word('正在读取上游契约…', 'Loading upstream contract…')}</p>}

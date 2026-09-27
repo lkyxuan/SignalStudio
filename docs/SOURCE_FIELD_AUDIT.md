@@ -32,4 +32,4 @@ Binance 爬虫实际调用的九个路径为 `/fapi/v1/exchangeInfo`（发现交
 - **Taoli**：若有官方接口或结构化数据文档，应替换页面位置推断；目前以爬虫代码作为准确依据。
 - **CoinGecko**：界面已标出四个被爬虫删除的上游字段及新增的 `collected_at`。要设计这些被删字段的指标，需先改爬虫并验证产出。
 
-本次在 Data Logic IDE 定义了上游契约与本地读取 API；Few Understand 的爬虫尚未按这份契约改造或核验。其 V2 不再是本产品的上游字段权威来源。
+本次在 SignalStudio 定义了上游契约与本地读取 API；Few Understand 的爬虫尚未按这份契约改造或核验。其 V2 不再是本产品的上游字段权威来源。

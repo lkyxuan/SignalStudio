@@ -27,7 +27,7 @@ Taoli Tools 是一个跨 CEX、Perp DEX 和现货 DEX 的对冲交易工具。�
 
 Few Understand 的 `spider/binance-futures/spider.py` 已设计读取 Binance USDⓈ-M 的 `exchangeInfo`、K 线、当前及历史未平仓量、`premiumIndex`、多空账户/仓位比和主动买卖比。现有 `taoli-spider` 通过页面行的 `span` 位置抓取 8 个显示字符串，另加 `collected_at`。前者目前未覆盖跨所套利最关键的买卖盘、深度和已结算资金费历史；后者没有直接连接交易所，而且继承 Taoli 首页默认的未平仓额与日成交额各不低于 100 万美元筛选。
 
-2026-09-28 对 Binance `premiumIndex?symbol=BTCUSDT`、Bybit `tickers?category=linear&symbol=BTCUSDT` 和 Kraken Futures `/derivatives/api/v3/tickers` 的公开接口做过一次只读请求，均返回了结构化数据；这仅证明当时可访问，**不证明爬虫或 Redpanda 中已有对应记录**。同次环境中 OKX 官网 API 连接失败，原因尚未验证，不应推断 OKX 不提供该数据。当前 [Data Logic IDE 来源契约](../catalog/source-contracts.v1.json)也只把 Taoli 首页列为“未取得稳定字段契约”的页面来源。
+2026-09-28 对 Binance `premiumIndex?symbol=BTCUSDT`、Bybit `tickers?category=linear&symbol=BTCUSDT` 和 Kraken Futures `/derivatives/api/v3/tickers` 的公开接口做过一次只读请求，均返回了结构化数据；这仅证明当时可访问，**不证明爬虫或 Redpanda 中已有对应记录**。同次环境中 OKX 官网 API 连接失败，原因尚未验证，不应推断 OKX 不提供该数据。当前 [SignalStudio 来源契约](../catalog/source-contracts.v1.json)也只把 Taoli 首页列为“未取得稳定字段契约”的页面来源。
 
 ### 2026-09-28 仓库状态核对
 

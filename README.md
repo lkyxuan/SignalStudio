@@ -1,6 +1,8 @@
-# Data Logic IDE
+# SignalStudio
 
 A local-first design workspace for the definitions, formulas, reasons, caveats and dependencies behind a data product.
+
+Versioned source and signal contracts retain the legacy `Data Logic IDE` owner identifier for compatibility with existing handoffs.
 
 ## Run
 

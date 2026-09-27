@@ -59,7 +59,7 @@ export function GraphFieldPicker({ language, graph, availableTargets, targetNode
       : word('API 响应样本', 'API response sample');
 
   return <aside className="graph-field-picker" aria-label={word('选择上游字段', 'Choose upstream fields')}>
-    <div className="picker-head"><div><span>{word('本产品上游契约', 'DATA LOGIC IDE CONTRACT')}</span><h2>{word('选择上游字段', 'Choose upstream fields')}</h2></div><button onClick={onClose} aria-label={word('关闭字段选择', 'Close field picker')}><X size={17} /></button></div>
+    <div className="picker-head"><div><span>{word('本产品上游契约', 'SIGNALSTUDIO CONTRACT')}</span><h2>{word('选择上游字段', 'Choose upstream fields')}</h2></div><button onClick={onClose} aria-label={word('关闭字段选择', 'Close field picker')}><X size={17} /></button></div>
     <div className="picker-target"><label>{word('要连接的处理节点', 'Processing node to connect')}<select value={target?.id || ''} onChange={event => onSelectTarget(event.target.value || null)}><option value="">{word('暂不连接，只加入画布', 'Add without connecting')}</option>{availableTargets.filter(node => node.type !== 'Source').map(node => <option key={node.id} value={node.id}>{displayNodeName(language, node.name)}</option>)}</select></label>
       {targetRequirements.length > 0 && <label>{word('对应哪项数据需求', 'Data need')}<select value={requirementId} onChange={event => onSelectRequirement(event.target.value || null)}><option value="">{word('暂不匹配需求', 'No match yet')}</option>{targetRequirements.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}</div>
     <div className="picker-controls"><label>{word('上游来源与操作', 'Upstream operation')}<select value={operationId} onChange={event => { setOperationId(event.target.value); setQuery(''); }}>

@@ -1,4 +1,4 @@
-# Data Logic IDE: MVP plan
+# SignalStudio: MVP plan
 
 ## Core abstraction
 

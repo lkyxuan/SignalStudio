@@ -1,6 +1,6 @@
-# Data Logic IDE → Few Understand 来源契约
+# SignalStudio → Few Understand 来源契约
 
-Data Logic IDE 维护希望采集的上游来源和字段。Few Understand 读取这份契约来实现爬虫，并单独回报实现、产出和运行证据。旧 `raw-materials.v2.json` 只用于比较现有爬虫，不决定本产品要采什么。
+SignalStudio 维护希望采集的上游来源和字段。Few Understand 读取这份契约来实现爬虫，并单独回报实现、产出和运行证据。版本化契约的 `owner` 暂时沿用 `Data Logic IDE`，避免仅因产品改名而改变交接格式。旧 `raw-materials.v2.json` 只用于比较现有爬虫，不决定本产品要采什么。
 
 一条具体信号如何使用这些来源、怎样计算和输出，见[信号执行包](SIGNAL_EXECUTION_CONTRACT.md)。来源契约与信号执行包有独立修订号，Few Understand 实现时需同时记录。
 

@@ -1,4 +1,4 @@
-# Hermes profile for Data Logic IDE
+# Hermes profile for SignalStudio
 
 Hermes loads two instruction layers for this project:
 
@@ -12,22 +12,22 @@ Keep the board and dispatcher on one machine. The Mac mini can host the authorit
 Clone this repository and run the following commands from its root. Replace `codex` with the installed executable path if it is not on `PATH`.
 
 ```bash
-hermes profile create datalogicide --no-alias --description "Develops Data Logic IDE cards in isolated Git worktrees and hands changes to human review."
-cp ops/hermes/SOUL.md ~/.hermes/profiles/datalogicide/SOUL.md
-hermes -p datalogicide config set terminal.cwd "$PWD"
-hermes -p datalogicide config set model.provider openai-codex
-hermes -p datalogicide config set model.default gpt-5.4
-hermes -p datalogicide config set model.openai_runtime codex_app_server
-hermes -p datalogicide config set model.codex_bin "$(command -v codex)"
-hermes kanban boards create datalogicide --name "Data Logic IDE" --default-workdir "$PWD"
+hermes profile create signalstudio --no-alias --description "Develops SignalStudio cards in isolated Git worktrees and hands changes to human review."
+cp ops/hermes/SOUL.md ~/.hermes/profiles/signalstudio/SOUL.md
+hermes -p signalstudio config set terminal.cwd "$PWD"
+hermes -p signalstudio config set model.provider openai-codex
+hermes -p signalstudio config set model.default gpt-5.4
+hermes -p signalstudio config set model.openai_runtime codex_app_server
+hermes -p signalstudio config set model.codex_bin "$(command -v codex)"
+hermes kanban boards create signalstudio --name "SignalStudio" --default-workdir "$PWD"
 ```
 
 Sign in to both Codex and Hermes on that Mac. Their OAuth sessions are separate:
 
 ```bash
 codex login
-hermes -p datalogicide auth add openai-codex --type oauth
-hermes -p datalogicide codex-runtime migrate
+hermes -p signalstudio auth add openai-codex --type oauth
+hermes -p signalstudio codex-runtime migrate
 ```
 
 For human review, set `kanban.review_dispatch` to `false` on the profile that runs the gateway. Start one Hermes gateway on the board host so its dispatcher can claim `ready` cards. If this Mac has no existing gateway, the default profile can host it:
@@ -36,7 +36,7 @@ For human review, set `kanban.review_dispatch` to `false` on the profile that ru
 hermes config set kanban.review_dispatch false
 hermes gateway install --start-now --start-on-login
 hermes gateway status
-hermes kanban --board datalogicide stats
+hermes kanban --board signalstudio stats
 ```
 
 Open `hermes dashboard` on the worker Mac to inspect the Kanban tab. For remote access, keep the dashboard bound to localhost and use an SSH tunnel, or configure Hermes Desktop's remote gateway with authentication. The board database stays on the worker Mac; GitHub carries reviewed code, not queue state.

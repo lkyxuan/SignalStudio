@@ -1,4 +1,4 @@
-"""Build Data Logic IDE's upstream-first source contract without reading Few Understand V2.
+"""Build SignalStudio's upstream-first source contract without reading Few Understand V2.
 
 Saved API/MCP samples supply observed paths. Official documentation supplies the
 reference and any deliberately planned fields. Sample paths are never promoted
