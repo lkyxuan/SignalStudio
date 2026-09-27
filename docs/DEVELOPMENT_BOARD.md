@@ -6,7 +6,7 @@ Hermes Kanban is the task queue for development work in this repository. GitHub 
 
 - Board: `datalogicide` in Hermes, displayed as **Data Logic IDE**.
 - Worker profile: `datalogicide`, configured for the Codex app-server runtime.
-- Project directory: `/Users/lkyx/Documents/DataLogicIDE`.
+- Project directory: the checkout of this repository on the machine running the Hermes dispatcher, configured as the board's default workdir.
 - Each coding card runs in a preserved Git worktree. The current checkout may contain other unfinished work; a worker must not edit it.
 - The Hermes gateway hosts the dispatcher. The dashboard's Kanban tab shows queue state and worker logs.
 
@@ -24,4 +24,4 @@ hermes kanban --board datalogicide dispatch
 hermes dashboard
 ```
 
-The gateway must be running for automatic dispatch. The board and its task history are local to this machine. Worktrees keep changes visible locally; approved changes can be brought into the main checkout or pushed to GitHub separately.
+The gateway must be running for automatic dispatch. The board and its task history are local to its host. Run only one authoritative `datalogicide` board, preferably on the Mac mini if it is the always-on worker. Worktrees keep changes visible on that host; approved changes can be brought into the main checkout or pushed to GitHub separately. See `ops/hermes/README.md` to install the profile and board on a new host.
