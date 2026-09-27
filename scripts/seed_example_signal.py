@@ -63,8 +63,8 @@ def seed(graph, source_contracts, signal_contracts):
     edge = graph.get_edge(mapped["edge_id"])
     transport = spec["transport"]["input"]
     graph.update_edge(edge["id"], {
-        "rationale": "采集 CoinGecko 市场列表，计算交易活跃候选。",
-        "transformation": "按 CoinGecko ID 与 last_updated 去重；计算成交额/市值并判断阈值。",
+        "rationale": "把 CoinGecko 市场列表中每个币种的完整来源记录送入 Redpanda，供下游节点读取。",
+        "transformation": "每个币种一条消息；data 保留上游完整记录，meta 记录采集运行与观察 ID。",
         "transport_kind": transport["kind"],
         "transport_topic": transport["topic"],
         "transport_key": transport["message_key"],

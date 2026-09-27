@@ -83,6 +83,7 @@ class SignalContractStore:
                 or message.get("payload_record_path") != "data"
                 or message.get("metadata_path") != "meta"
                 or not isinstance(metadata, list)
+                or len(metadata) != 4
                 or {item.get("path") for item in metadata if isinstance(item, dict)} != {
                     "meta.operation_id", "meta.source_run_id",
                     "meta.source_observation_id", "meta.collected_at"}
@@ -267,18 +268,26 @@ class SignalContractStore:
                 "transport": spec["transport"]["input"],
                 "payload": spec["input_message"],
                 "declared_upstream_field_inventory": [
-                    pick(field, ("path", "type", "evidence", "condition_zh"))
+                    {**pick(field, ("path", "type", "evidence", "condition_zh")),
+                     "message_path": "data." + field["path"]}
                     for field in operation["fields"]],
-                "consumer": {"node_id": node["id"], "node_name": node["name"],
-                             "role": "planned_signal_calculator"},
-                "consumed_fields": consumed_fields,
-                "consumer_output": {"transport": spec["transport"]["output"],
-                                    "record_type": spec["output"]["record_type"],
-                                    "fields": spec["output"]["fields"]},
+                "downstream_node": {"node_id": node["id"], "node_name": node["name"]},
                 "evidence_status": "design_only_no_emitted_message_verified",
             })
+        processor_contract = {
+            "node_id": node["id"],
+            "node_name": node["name"],
+            "input_line_reference": f"L{source_edge['reference_number']:03d}" if source_edge else None,
+            "input_topic": spec["transport"]["input"]["topic"],
+            "consumed_fields": consumed_fields,
+            "processing": spec["processing"],
+            "output": {"transport": spec["transport"]["output"],
+                       "record_type": spec["output"]["record_type"],
+                       "fields": spec["output"]["fields"]},
+            "evidence_status": "design_only_no_calculation_verified",
+        }
         body = {
-            "package_version": "signal-package.v1",
+            "package_version": "signal-package.v2",
             "signal_key": key,
             "signal_version": spec["version"],
             "signal_contract_revision": self.revision,
@@ -286,6 +295,7 @@ class SignalContractStore:
             "definition": spec,
             "source_contract": self.source_contracts.get_operation(operation["id"]),
             "connection_contracts": connection_contracts,
+            "processor_contract": processor_contract,
             "design_graph": {"signal_node": next(item for item in exported_nodes
                                                   if item["id"] == node["id"]),
                              "nodes": exported_nodes, "edges": exported_edges,
@@ -324,3 +334,12 @@ class SignalContractStore:
         return {"package_revision": package["revision"],
                 "implementation_readiness": package["implementation_readiness"],
                 "connection": connection}
+
+    def processor(self, graph, node_id):
+        node = graph.get_node(node_id)
+        if not node["signal_key"]:
+            raise GraphError("Node has no versioned signal contract")
+        package = self.package(graph, node_id)
+        return {"package_revision": package["revision"],
+                "implementation_readiness": package["implementation_readiness"],
+                "processor": package["processor_contract"]}

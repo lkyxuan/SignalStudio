@@ -36,6 +36,7 @@ export function SignalDesignGuide({ node, graph, fields, language }) {
   ];
   const complete = checks.filter(([, done]) => done).length;
   const guidance = packageInfo?.data?.definition?.implementation_guidance;
+  const processor = packageInfo?.data?.processor_contract;
   const computeProduct = guidance?.stages.find(stage => stage.stage === 'calculation')?.product;
   const stageNames = { collection: word('采集', 'Collection'), transport: word('传输', 'Transport'), calculation: word('计算', 'Calculation'), signal_delivery: word('产出', 'Delivery') };
   return <><section className="signal-design-guide" aria-label={word('信号设计要素', 'Signal design essentials')}>
@@ -44,6 +45,14 @@ export function SignalDesignGuide({ node, graph, fields, language }) {
     <div className="signal-design-checks">{checks.map(([label, done]) => <span key={label} className={done ? 'done' : ''}>{done ? <Check size={12} /> : <Circle size={12} />}{label}</span>)}</div>
     <small>{hasText(node.validation_evidence) ? word('已记录验证观察；仍需根据样本和方法判断效果。', 'Validation observations recorded; assess results against the method and sample.') : word('尚无实际验证记录。设计填齐不代表信号有效。', 'No validation results recorded. A complete design does not establish effectiveness.')}</small>
   </section>
+  {processor && <section className="signal-processor-contract" aria-label={word('节点字段使用与计算', 'Node field usage and calculation')}>
+    <div className="signal-processor-head"><strong>{word('此节点读取与计算', 'THIS NODE READS AND CALCULATES')}</strong><span>{word('规划，未验证运行', 'Planned, unverified run')}</span></div>
+    <p>{word(`从 ${processor.input_line_reference} 的 ${processor.input_topic} 消息读取 ${processor.consumed_fields.length} 个字段。`, `Reads ${processor.consumed_fields.length} fields from ${processor.input_line_reference} on ${processor.input_topic}.`)}</p>
+    <div className="signal-processor-inputs">{processor.consumed_fields.map(field => <div key={field.message_path}><span>{field.usage_reference || '—'}</span><code>{field.message_path}</code><span>→</span><code>{field.consumer_field}</code></div>)}</div>
+    <div className="signal-processor-calculation"><small>{word('新计算字段', 'NEW CALCULATED FIELD')}</small><strong><code>{processor.processing.calculation.output}</code> = <code>{processor.processing.calculation.numerator}</code> ÷ <code>{processor.processing.calculation.denominator}</code></strong><p>{word('缺少输入或分母不大于 0 时不生成结果；触发阈值仍是未验证的设计假设。', 'Missing inputs or a nonpositive denominator produce no result; trigger thresholds remain an unvalidated hypothesis.')}</p></div>
+    <p>{word(`满足触发条件后，规划向 ${processor.output.transport.topic} 产出 ${processor.output.fields.length} 个字段；运行 ID 与观察 ID 来自消息元信息。`, `When the trigger is met, plans to emit ${processor.output.fields.length} fields to ${processor.output.transport.topic}; run and observation IDs come from message metadata.`)}</p>
+    <details><summary>{word('查看产出字段', 'View output fields')}</summary><div className="signal-processor-output-fields">{processor.output.fields.map(field => <code key={field.name}>{field.name}</code>)}</div></details>
+  </section>}
   {node.signal_key && <section className="signal-implementation-guide" aria-label={word('实施建议', 'Implementation guidance')}>
     <div className="signal-implementation-head"><strong>{word('实施建议', 'IMPLEMENTATION GUIDANCE')}</strong>{packageInfo?.data && <span>{packageInfo.data.implementation_readiness.status === 'ready' ? word('配置齐全', 'Ready to design') : word('有待补项', 'Incomplete')}</span>}</div>
     {guidance ? <><p>{word('目标平台', 'Target platform')}：{guidance.target_platform} · {word('推荐技术栈，具体组件由实施方选择。', 'Preferred stack; the implementing team selects components.')}</p>

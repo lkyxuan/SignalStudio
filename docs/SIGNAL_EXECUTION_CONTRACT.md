@@ -10,11 +10,28 @@
 
 - `GET /api/signals`：列出产品拥有的信号及其图节点 ID。
 - `GET /api/signals/coingecko_market_turnover_candidate/package`：返回一条信号的完整执行包；也可用图节点 UUID。
-- 不方便访问本地 API 时，读取本次导出的 [`handoff/coingecko_market_turnover_candidate.v1.json`](../handoff/coingecko_market_turnover_candidate.v1.json)。项目图变更后可运行 `python3 scripts/export_signal_package.py coingecko_market_turnover_candidate handoff/coingecko_market_turnover_candidate.v1.json` 刷新快照；脚本拒绝导出未就绪的配置。
+- 不方便访问本地 API 时，读取本次导出的 [`handoff/coingecko_market_turnover_candidate.v2.json`](../handoff/coingecko_market_turnover_candidate.v2.json)。项目图变更后可运行 `python3 scripts/export_signal_package.py coingecko_market_turnover_candidate handoff/coingecko_market_turnover_candidate.v2.json` 刷新快照；脚本拒绝导出未就绪的配置。旧的 v1 文件保留作历史对照，不包含本次 L001 消息契约。
 - 返回内容包括版本化定义、CoinGecko 上游操作契约及其修订号、该信号的上游设计子图、输入/输出字段映射、实施就绪检查和运行证据状态。
 - `revision` 是执行定义与来源契约修订号的规范 JSON SHA-256；设计图快照、画布位置及运行回报不进入该哈希，因此同一配置在不同项目数据库中仍有相同修订号。设计图仅用于核对输入映射及可读说明。Few Understand 应保存 `signal_key`、`signal_version`、包 `revision`、`source_contract_revision`，按这些值定位所实现的配置。包修订变化时重新比对。
 - `implementation_readiness.status=ready` 只表示本产品的规划配置、字段映射和图连接完整，**不表示**上游 API 凭据可用、消息主题已创建、爬虫已运行或信号有效。`transport.*.deployment_status=planned` 明确标出消息主题尚未部署。
 - `definition.implementation_guidance` 标出目标平台、各阶段涉及的产品和推荐技术栈。本信号推荐 Few Understand 使用 Python + Polars 计算，并把现有 `consumer/polars_engine` 标为待评估组件。技术与组件是实施建议；`collection`、`inputs`、`processing`、`output` 和证据要求是目标行为。Few Understand 可以选用已有 scorer、Polars Engine 或新组件；对采集频率、消息通道等目标配置的改动也应回报差异，供本产品审核。
+
+## L001：爬虫消息到信号计算
+
+点击设计图的 `L001`，连接面板展示爬虫规划写入 Redpanda 主题 `source.coingecko.coins_markets.v1` 的**全部已声明消息字段路径**、元信息和消息键，不在连线详情中解释信号计算。`GET /api/edges/4b587316-ebcc-4754-af3a-0b4e0e628e40/contract` 返回同一消息契约；完整执行包的 `connection_contracts` 也包含它。信号版本 2 指定每个 CoinGecko 币种一条 JSON 消息，消息键取 `data.id`：
+
+```json
+{
+  "data": {"id": "<来源币种 ID>", "last_updated": "<来源时间>", "total_volume": "<来源数值>", "market_cap": "<来源数值>", "...": "<保留该来源记录的其他字段>"},
+  "meta": {"operation_id": "coingecko.coins_markets", "source_run_id": "<运行 ID>", "source_observation_id": "<观察 ID>", "collected_at": "<采集 UTC 时间>"}
+}
+```
+
+这是**目标消息结构示意**，占位符不是观测值。`data` 规划保留每条上游记录的全部字段，新增而未声明的上游字段也透传。来源契约目前列出 34 个字段路径；这是已声明字段的下界，不是爬虫实际发出字段的证据。
+
+点击下游的“市场交易活跃候选”节点，才查看它如何消费 L001：`R001–R004` 分别表示 `data.id → coin_id`、`data.last_updated → last_updated`、`data.total_volume → total_volume_usd_24h`、`data.market_cap → market_cap_usd`。节点计算新字段 `turnover_ratio_24h = total_volume_usd_24h / market_cap_usd`，满足触发规则后计划把 9 个输出字段送往 `signals.coingecko_market_turnover_candidate.v1`。`GET /api/nodes/bea1d62d-395f-4bf8-bfe2-0fec37d874aa/contract` 返回此节点契约；执行包将它放在顶层 `processor_contract`，与 `connection_contracts` 分开。
+
+当前只有设计连接，没有真实 Redpanda 消息或逐条记录链路。Few Understand 实现后须回报实际发出消息的样本引用、字段映射、topic/键和来源运行 ID；若实际爬虫仍写 `market.snapshot` 或裁剪字段，应把差异明确报回，不能把设计契约标作运行事实。
 
 本地开发 API 只绑定 `127.0.0.1:8787`；跨机器接入前还需要由部署环境提供可访问地址与鉴权。也可把版本文件和包 JSON 交给 Few Understand，在它的工作区按修订号读取。
 
@@ -34,7 +51,7 @@ Few Understand 按包里的 `collection` 实现请求、分页、节奏、时间
 ```json
 {
   "signal_key": "coingecko_market_turnover_candidate",
-  "signal_version": 1,
+  "signal_version": 2,
   "package_revision": "sha256:<从执行包读取>",
   "source_contract_revision": "sha256:<从执行包读取>",
   "implementation_status": "in_progress",

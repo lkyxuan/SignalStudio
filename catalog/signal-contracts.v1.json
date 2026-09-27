@@ -4,7 +4,7 @@
   "signals": [
     {
       "signal_key": "coingecko_market_turnover_candidate",
-      "version": 1,
+      "version": 2,
       "graph_node_name": "市场交易活跃候选",
       "design_status": "hypothesis",
       "question_zh": "哪些币种的最近 24 小时成交额相对其市值偏高，值得进一步调查？",

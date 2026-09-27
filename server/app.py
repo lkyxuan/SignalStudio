@@ -110,6 +110,8 @@ class Handler(BaseHTTPRequestHandler):
             return service.create_field(parts[2], self.body())
         if len(parts) == 4 and parts[:2] == ["api", "nodes"] and parts[3] == "requirements" and method == "POST":
             return service.create_requirement(parts[2], self.body())
+        if len(parts) == 4 and parts[:2] == ["api", "nodes"] and parts[3] == "contract" and method == "GET":
+            return signal_contracts.processor(service, parts[2])
         if len(parts) == 3 and parts[:2] == ["api", "requirements"]:
             if method == "PATCH":
                 return service.update_requirement(parts[2], self.body())
