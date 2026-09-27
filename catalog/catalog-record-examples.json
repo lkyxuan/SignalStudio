@@ -1,0 +1,1254 @@
+{
+  "source_revision": "23a854c2a02e6b52e424844648d4026737361caa",
+  "examples": [
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_reference",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_reference",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": "Pendle",
+            "coingecko_slug": "pendle"
+          },
+          "window": null,
+          "metrics": {},
+          "request": {
+            "tool": "kaito_entities",
+            "params_hash": "59676b023081bf7f",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "name": "Pendle",
+            "coingecko_id": "pendle"
+          }
+        },
+        "lineage": {
+          "event_id": "evt:2d53c3f7873776bdf5063e01d34a9fd6",
+          "trace_id": "evt:2d53c3f7873776bdf5063e01d34a9fd6",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_reference",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_narrative_reference",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_narrative_reference",
+          "entity": {
+            "kaito_id": "defi",
+            "symbol": null,
+            "name": "DeFi",
+            "coingecko_slug": null
+          },
+          "window": null,
+          "metrics": {
+            "score": 0.9
+          },
+          "request": {
+            "tool": "kaito_narratives",
+            "params_hash": "59676b023081bf7f",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "id": "defi",
+            "name": "DeFi",
+            "score": 0.9
+          }
+        },
+        "lineage": {
+          "event_id": "evt:111559ade994c84ee0c900bbe5f8aa76",
+          "trace_id": "evt:111559ade994c84ee0c900bbe5f8aa76",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_narrative_reference",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_feed_item",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_feed_item",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": null,
+          "metrics": {
+            "score": 88
+          },
+          "request": {
+            "tool": "kaito_feeds",
+            "params_hash": "59676b023081bf7f",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "score": 88,
+            "url": "https://example.com/feed"
+          }
+        },
+        "url": "https://example.com/feed",
+        "lineage": {
+          "event_id": "evt:6be6f73b60c4cd707a250b2e927f3262",
+          "trace_id": "evt:6be6f73b60c4cd707a250b2e927f3262",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_feed_item",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_mindshare_delta",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_mindshare_delta",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": "Pendle",
+            "coingecko_slug": null
+          },
+          "window": "24h",
+          "metrics": {
+            "mindshare": 0.012,
+            "delta": 0.004,
+            "rank": 21,
+            "rank_change": 12,
+            "direction": "gainers",
+            "mindshare_current": 0.012,
+            "mindshare_delta": 0.004
+          },
+          "request": {
+            "tool": "kaito_mindshare_entity_delta",
+            "params_hash": "54c4b0ba997730b6",
+            "window_start": null,
+            "window_end": null,
+            "window": "24h"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "name": "Pendle",
+            "mindshare": 0.012,
+            "delta": 0.004,
+            "rank": 21,
+            "rank_change": 12,
+            "direction": "gainers"
+          }
+        },
+        "lineage": {
+          "event_id": "evt:a43289d8e39ddbc6f434747de242f63d",
+          "trace_id": "evt:a43289d8e39ddbc6f434747de242f63d",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_mindshare_delta",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_mindshare_ranking",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_mindshare_ranking",
+          "entity": {
+            "kaito_id": "bitcoin",
+            "symbol": "BTC",
+            "name": "Bitcoin",
+            "coingecko_slug": null
+          },
+          "window": "7d",
+          "metrics": {
+            "mindshare": 0.18,
+            "rank": 1,
+            "mindshare_current": 0.18
+          },
+          "request": {
+            "tool": "kaito_mindshare_entity_arena",
+            "params_hash": "f5e95aa0855eb289",
+            "window_start": null,
+            "window_end": null,
+            "window": "7d"
+          },
+          "raw": {
+            "entity_id": "bitcoin",
+            "symbol": "BTC",
+            "name": "Bitcoin",
+            "mindshare": 0.18,
+            "rank": 1
+          }
+        },
+        "lineage": {
+          "event_id": "evt:18eb62b7ad2676ea4338f82fbf7907d3",
+          "trace_id": "evt:18eb62b7ad2676ea4338f82fbf7907d3",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_mindshare_ranking",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_mindshare_timeseries",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_mindshare_timeseries",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": "30d",
+          "metrics": {
+            "timestamp": "2026-07-19T00:00:00Z",
+            "value": 0.012,
+            "mindshare_current": 0.012,
+            "engagement": 0.012
+          },
+          "request": {
+            "tool": "kaito_mindshare_entity",
+            "params_hash": "222c409f6e54f754",
+            "window_start": null,
+            "window_end": null,
+            "window": "30d"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "timestamp": "2026-07-19T00:00:00Z",
+            "value": 0.012
+          }
+        },
+        "lineage": {
+          "event_id": "evt:3bfad320ced7b61bc47f5a3db3b558bb",
+          "trace_id": "evt:3bfad320ced7b61bc47f5a3db3b558bb",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_mindshare_timeseries",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_narrative_mindshare_timeseries",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_narrative_mindshare_timeseries",
+          "entity": {
+            "kaito_id": "defi",
+            "symbol": null,
+            "name": "DeFi",
+            "coingecko_slug": null
+          },
+          "window": "30d",
+          "metrics": {
+            "timestamp": "2026-07-19T00:00:00Z",
+            "value": 0.07,
+            "mindshare_current": 0.07,
+            "engagement": 0.07
+          },
+          "request": {
+            "tool": "kaito_mindshare_narrative",
+            "params_hash": "e203a6535760a4a7",
+            "window_start": null,
+            "window_end": null,
+            "window": "30d"
+          },
+          "raw": {
+            "id": "defi",
+            "name": "DeFi",
+            "timestamp": "2026-07-19T00:00:00Z",
+            "value": 0.07
+          }
+        },
+        "lineage": {
+          "event_id": "evt:3a6ab286febb49fcb8cf23672c495cca",
+          "trace_id": "evt:3a6ab286febb49fcb8cf23672c495cca",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_narrative_mindshare_timeseries",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_mentions_timeseries",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_mentions_timeseries",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": "30d",
+          "metrics": {
+            "timestamp": "2026-07-19T00:00:00Z",
+            "mention_count": 120,
+            "mentions": 120
+          },
+          "request": {
+            "tool": "kaito_mentions",
+            "params_hash": "3271fb414be1166c",
+            "window_start": null,
+            "window_end": null,
+            "window": "30d"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "timestamp": "2026-07-19T00:00:00Z",
+            "mention_count": 120
+          }
+        },
+        "lineage": {
+          "event_id": "evt:fc4ea144704c9be77b396a67f003ad90",
+          "trace_id": "evt:fc4ea144704c9be77b396a67f003ad90",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_mentions_timeseries",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_engagement_timeseries",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_engagement_timeseries",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": "30d",
+          "metrics": {
+            "timestamp": "2026-07-19T00:00:00Z",
+            "total_engagement": 5000,
+            "smart_engagement": 900,
+            "engagement": 5000
+          },
+          "request": {
+            "tool": "kaito_engagement",
+            "params_hash": "222c409f6e54f754",
+            "window_start": null,
+            "window_end": null,
+            "window": "30d"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "timestamp": "2026-07-19T00:00:00Z",
+            "total_engagement": 5000,
+            "smart_engagement": 900
+          }
+        },
+        "lineage": {
+          "event_id": "evt:255dc9f47e19b52e351c5c2cc69825a2",
+          "trace_id": "evt:255dc9f47e19b52e351c5c2cc69825a2",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_engagement_timeseries",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_sentiment_timeseries",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_sentiment_timeseries",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": "30d",
+          "metrics": {
+            "timestamp": "2026-07-19T00:00:00Z",
+            "bullish": 0.7,
+            "bearish": 0.2,
+            "sentiment": 0.62
+          },
+          "request": {
+            "tool": "kaito_sentiment_entity",
+            "params_hash": "222c409f6e54f754",
+            "window_start": null,
+            "window_end": null,
+            "window": "30d"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "timestamp": "2026-07-19T00:00:00Z",
+            "sentiment": 0.62,
+            "bullish": 0.7,
+            "bearish": 0.2
+          }
+        },
+        "lineage": {
+          "event_id": "evt:b8921aa0d76b9717882c07a61038a728",
+          "trace_id": "evt:b8921aa0d76b9717882c07a61038a728",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_sentiment_timeseries",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_search_result",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_search_result",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": "24h",
+          "metrics": {
+            "smart_engagement": 42
+          },
+          "request": {
+            "tool": "kaito_advanced_search",
+            "params_hash": "bb904b4123bc776a",
+            "window_start": null,
+            "window_end": null,
+            "window": "24h"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "author": "smart_kol",
+            "url": "https://x.com/example/status/1",
+            "smart_engagement": 42,
+            "text": "Pendle discussion"
+          }
+        },
+        "text": "Pendle discussion",
+        "raw_text": "Pendle discussion",
+        "url": "https://x.com/example/status/1",
+        "author": "smart_kol",
+        "lineage": {
+          "event_id": "evt:ad6489c0f7510c23347f3b799c9b9d8b",
+          "trace_id": "evt:ad6489c0f7510c23347f3b799c9b9d8b",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_search_result",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_entity_account_mindshare",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_entity_account_mindshare",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": "7d",
+          "metrics": {
+            "mindshare": 0.003,
+            "rank": 1,
+            "mindshare_current": 0.003
+          },
+          "request": {
+            "tool": "kaito_mindshare_entity_by_account",
+            "params_hash": "526611bf2ae66512",
+            "window_start": null,
+            "window_end": null,
+            "window": "7d"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "username": "smart_kol",
+            "mindshare": 0.003,
+            "rank": 1
+          }
+        },
+        "author": "smart_kol",
+        "lineage": {
+          "event_id": "evt:e136968aa1a9a474a6949cdb252308dd",
+          "trace_id": "evt:e136968aa1a9a474a6949cdb252308dd",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_entity_account_mindshare",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_event",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-25T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_event",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": "Pendle",
+            "coingecko_slug": null
+          },
+          "window": "next_14d",
+          "metrics": {
+            "timestamp": "2026-07-25T00:00:00Z"
+          },
+          "request": {
+            "tool": "kaito_events",
+            "params_hash": "22ab6f88a2be5419",
+            "window_start": null,
+            "window_end": null,
+            "window": "next_14d"
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "name": "Pendle",
+            "timestamp": "2026-07-25T00:00:00Z",
+            "event_type": "unlock",
+            "title": "Example catalyst"
+          }
+        },
+        "title": "Example catalyst",
+        "lineage": {
+          "event_id": "evt:c66d96e880b4940b22904f8c10070f14",
+          "trace_id": "evt:c66d96e880b4940b22904f8c10070f14",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_event",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-25T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_tweet_engagement_snapshot",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_tweet_engagement_snapshot",
+          "entity": {
+            "kaito_id": null,
+            "symbol": null,
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": null,
+          "metrics": {
+            "views": 1000,
+            "likes": 10,
+            "retweets": 2,
+            "replies": 1
+          },
+          "request": {
+            "tool": "kaito_tweet_engagement_info",
+            "params_hash": "bf7bbe36d4e54b02",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "tweet_id": "1",
+            "likes": 10,
+            "retweets": 2,
+            "replies": 1,
+            "views": 1000
+          }
+        },
+        "lineage": {
+          "event_id": "evt:10a7ed24d4b4667a94ae3107f0fdc01d",
+          "trace_id": "evt:10a7ed24d4b4667a94ae3107f0fdc01d",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_tweet_engagement_snapshot",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_smart_following_market",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_smart_following_market",
+          "entity": {
+            "kaito_id": "pendle",
+            "symbol": "PENDLE",
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": null,
+          "metrics": {
+            "followers": 12
+          },
+          "request": {
+            "tool": "kaito_smart_following_market",
+            "params_hash": "59676b023081bf7f",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "entity_id": "pendle",
+            "symbol": "PENDLE",
+            "followers": 12
+          }
+        },
+        "lineage": {
+          "event_id": "evt:d8bcc119a29da61bd8d5a18a692405be",
+          "trace_id": "evt:d8bcc119a29da61bd8d5a18a692405be",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_smart_following_market",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_smart_followers_snapshot",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_smart_followers_snapshot",
+          "entity": {
+            "kaito_id": null,
+            "symbol": null,
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": null,
+          "metrics": {
+            "smart_followers": 123
+          },
+          "request": {
+            "tool": "kaito_smart_followers",
+            "params_hash": "3a0b9442a1a5e7d2",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "username": "smart_kol",
+            "smart_followers": 123
+          }
+        },
+        "author": "smart_kol",
+        "lineage": {
+          "event_id": "evt:ef58ab3a7bc29033cfbef19127526b59",
+          "trace_id": "evt:ef58ab3a7bc29033cfbef19127526b59",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_smart_followers_snapshot",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_smart_following_snapshot",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_smart_following_snapshot",
+          "entity": {
+            "kaito_id": null,
+            "symbol": null,
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": null,
+          "metrics": {},
+          "request": {
+            "tool": "kaito_smart_following",
+            "params_hash": "3a0b9442a1a5e7d2",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "username": "smart_kol",
+            "following": "pendle"
+          }
+        },
+        "author": "smart_kol",
+        "lineage": {
+          "event_id": "evt:10bc58316016b2f045f20033adfab465",
+          "trace_id": "evt:10bc58316016b2f045f20033adfab465",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_smart_following_snapshot",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "kaito-social-spider.kaito_twitter_user_metadata",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/tests/fixtures/kaito_p0_raw.json",
+      "message": {
+        "source": "kaito",
+        "timestamp": "2026-07-19T00:00:00Z",
+        "data": {
+          "platform": "kaito",
+          "content_type": "social_intelligence",
+          "record_type": "kaito_twitter_user_metadata",
+          "entity": {
+            "kaito_id": null,
+            "symbol": null,
+            "name": null,
+            "coingecko_slug": null
+          },
+          "window": null,
+          "metrics": {
+            "followers": 10000
+          },
+          "request": {
+            "tool": "kaito_twitter_user_metadata",
+            "params_hash": "3a0b9442a1a5e7d2",
+            "window_start": null,
+            "window_end": null
+          },
+          "raw": {
+            "username": "smart_kol",
+            "followers": 10000,
+            "category": "kol"
+          }
+        },
+        "author": "smart_kol",
+        "lineage": {
+          "event_id": "evt:099389725bbbbec9cab99af39c65ba10",
+          "trace_id": "evt:099389725bbbbec9cab99af39c65ba10",
+          "parent_event_ids": [],
+          "source_event_id": null,
+          "record_type": "kaito_twitter_user_metadata",
+          "schema_version": "pipeline-lineage/v1",
+          "producer": "kaito-social-spider",
+          "processing_stage": "ingest",
+          "observed_at": "2026-07-19T00:00:00Z",
+          "processed_at": "2026-07-19T00:00:00Z",
+          "source_topic": null,
+          "source_partition": null,
+          "source_offset": null,
+          "asset_id": null
+        }
+      }
+    },
+    {
+      "entity_id": "binance-futures.open_interest",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "open_interest",
+        "period": null,
+        "timestamp": "2020-05-14T06:25:30.011000Z",
+        "event_time_ms": 1589437530011,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:open_interest:BTCUSDT:snapshot:1589437530011",
+        "data": {
+          "open_interest": "10659.509"
+        },
+        "raw": {
+          "openInterest": "10659.509",
+          "symbol": "BTCUSDT",
+          "time": 1589437530011
+        }
+      }
+    },
+    {
+      "entity_id": "binance-futures.open_interest_hist",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "open_interest_hist",
+        "period": "5m",
+        "timestamp": "2020-03-02T05:45:00Z",
+        "event_time_ms": 1583127900000,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:open_interest_hist:BTCUSDT:5m:1583127900000",
+        "data": {
+          "sum_open_interest": "20403.63700000",
+          "sum_open_interest_value": "150570784.07809979"
+        },
+        "raw": {
+          "symbol": "BTCUSDT",
+          "sumOpenInterest": "20403.63700000",
+          "sumOpenInterestValue": "150570784.07809979",
+          "timestamp": 1583127900000
+        }
+      }
+    },
+    {
+      "entity_id": "binance-futures.kline",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "kline",
+        "period": "5m",
+        "timestamp": "2020-12-08T16:25:00Z",
+        "event_time_ms": 1607444700000,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:kline:BTCUSDT:5m:1607444700000",
+        "data": {
+          "open_time": 1607444700000,
+          "close_time": 1607444999999,
+          "open": "18879.99",
+          "high": "18900.00",
+          "low": "18878.98",
+          "close": "18896.13",
+          "volume": "492.363",
+          "quote_volume": "9302145.66080000",
+          "trade_count": 1607,
+          "taker_buy_base_volume": "264.114",
+          "taker_buy_quote_volume": "4990775.28790000"
+        },
+        "raw": [
+          1607444700000,
+          "18879.99",
+          "18900.00",
+          "18878.98",
+          "18896.13",
+          "492.363",
+          1607444999999,
+          "9302145.66080000",
+          1607,
+          "264.114",
+          "4990775.28790000",
+          "0"
+        ]
+      }
+    },
+    {
+      "entity_id": "binance-futures.premium_index",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "premium_index",
+        "period": null,
+        "timestamp": "2020-08-14T02:01:35.002000Z",
+        "event_time_ms": 1597370495002,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:premium_index:BTCUSDT:snapshot:1597370495002",
+        "data": {
+          "mark_price": "11793.63104562",
+          "index_price": "11781.80495970",
+          "estimated_settle_price": "11781.16138815",
+          "last_funding_rate": "0.00038246",
+          "interest_rate": "0.00010000",
+          "next_funding_time": 1597392000000,
+          "next_funding_time_iso": "2020-08-14T08:00:00Z"
+        },
+        "raw": {
+          "symbol": "BTCUSDT",
+          "markPrice": "11793.63104562",
+          "indexPrice": "11781.80495970",
+          "estimatedSettlePrice": "11781.16138815",
+          "lastFundingRate": "0.00038246",
+          "interestRate": "0.00010000",
+          "nextFundingTime": 1597392000000,
+          "time": 1597370495002
+        }
+      }
+    },
+    {
+      "entity_id": "binance-futures.global_long_short_account_ratio",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "global_long_short_account_ratio",
+        "period": "5m",
+        "timestamp": "2020-03-02T09:00:00Z",
+        "event_time_ms": 1583139600000,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:global_long_short_account_ratio:BTCUSDT:5m:1583139600000",
+        "data": {
+          "long_short_ratio": "0.1960",
+          "long_proportion": "0.9613",
+          "short_proportion": "0.0387"
+        },
+        "raw": {
+          "symbol": "BTCUSDT",
+          "longShortRatio": "0.1960",
+          "longAccount": "0.9613",
+          "shortAccount": "0.0387",
+          "timestamp": 1583139600000
+        }
+      }
+    },
+    {
+      "entity_id": "binance-futures.top_long_short_account_ratio",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "top_long_short_account_ratio",
+        "period": "5m",
+        "timestamp": "2020-03-02T09:00:00Z",
+        "event_time_ms": 1583139600000,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:top_long_short_account_ratio:BTCUSDT:5m:1583139600000",
+        "data": {
+          "long_short_ratio": "1.8105",
+          "long_proportion": "0.6442",
+          "short_proportion": "0.3558"
+        },
+        "raw": {
+          "symbol": "BTCUSDT",
+          "longShortRatio": "1.8105",
+          "longAccount": "0.6442",
+          "shortAccount": "0.3558",
+          "timestamp": 1583139600000
+        }
+      }
+    },
+    {
+      "entity_id": "binance-futures.top_long_short_position_ratio",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "top_long_short_position_ratio",
+        "period": "5m",
+        "timestamp": "2020-03-02T09:00:00Z",
+        "event_time_ms": 1583139600000,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:top_long_short_position_ratio:BTCUSDT:5m:1583139600000",
+        "data": {
+          "long_short_ratio": "1.4342",
+          "long_proportion": "0.5891",
+          "short_proportion": "0.4109"
+        },
+        "raw": {
+          "symbol": "BTCUSDT",
+          "longShortRatio": "1.4342",
+          "longAccount": "0.5891",
+          "shortAccount": "0.4109",
+          "timestamp": 1583139600000
+        }
+      }
+    },
+    {
+      "entity_id": "binance-futures.taker_long_short_ratio",
+      "status": "transformed_test_fixture",
+      "source_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/tests/fixtures/raw_records.json",
+      "message": {
+        "source": "binance_futures",
+        "exchange": "binance",
+        "market_type": "usdt_m_futures",
+        "symbol": "BTCUSDT",
+        "base_asset": "BTC",
+        "quote_asset": "USDT",
+        "metric_type": "taker_long_short_ratio",
+        "period": "5m",
+        "timestamp": "2020-03-31T00:35:00Z",
+        "event_time_ms": 1585614900000,
+        "ingested_at": "2024-01-01T00:00:00Z",
+        "dedupe_key": "binance_futures:taker_long_short_ratio:BTCUSDT:5m:1585614900000",
+        "data": {
+          "buy_sell_ratio": "1.5586",
+          "buy_volume": "387.3300",
+          "sell_volume": "248.5030"
+        },
+        "raw": {
+          "buySellRatio": "1.5586",
+          "buyVol": "387.3300",
+          "sellVol": "248.5030",
+          "timestamp": 1585614900000
+        }
+      }
+    }
+  ]
+}

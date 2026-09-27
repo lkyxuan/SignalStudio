@@ -1,0 +1,66 @@
+{
+  "source": "DEX Screener upstream API response; not crawler emission",
+  "retrieved_at": "2026-09-27T10:39:11Z",
+  "url": "https://api.dexscreener.com/latest/dex/tokens/0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+  "schemaVersion": "1.0.0",
+  "returned_pair_count": 30,
+  "pair": {
+    "chainId": "pulsechain",
+    "dexId": "pulsex",
+    "url": "https://dexscreener.com/pulsechain/0xc636bfe0bae34824380b4e26bc34e4614e55e483",
+    "pairAddress": "0xC636bfE0bAe34824380B4E26Bc34e4614e55e483",
+    "labels": [
+      "v1"
+    ],
+    "baseToken": {
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "name": "USD Coin",
+      "symbol": "USDC"
+    },
+    "quoteToken": {
+      "address": "0xCc78A0acDF847A2C1714D2A925bB4477df5d48a6",
+      "name": "Atropa",
+      "symbol": "ATROPA"
+    },
+    "priceNative": "0.02162",
+    "priceUsd": "0.0009780",
+    "txns": {
+      "m5": {
+        "buys": 0,
+        "sells": 5
+      },
+      "h1": {
+        "buys": 0,
+        "sells": 16
+      },
+      "h6": {
+        "buys": 0,
+        "sells": 43
+      },
+      "h24": {
+        "buys": 43,
+        "sells": 54
+      }
+    },
+    "volume": {
+      "h24": 1310.05,
+      "h6": 342.92,
+      "h1": 94.89,
+      "m5": 40.75
+    },
+    "priceChange": {
+      "m5": -0.08,
+      "h1": -0.19,
+      "h6": -0.58,
+      "h24": 0.84
+    },
+    "liquidity": {
+      "usd": 7906493.51,
+      "base": 4041948254,
+      "quote": 87412236
+    },
+    "fdv": 27852647,
+    "marketCap": 59564728,
+    "pairCreatedAt": 1685325445000
+  }
+}

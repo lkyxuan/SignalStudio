@@ -1,0 +1,22 @@
+.signal-design-guide{border:1px solid #d7e9e5;background:#f8fcfa;border-radius:8px;padding:12px;margin:0 0 22px}
+.signal-design-head{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#327d70;font-size:11px;letter-spacing:.2px}
+.signal-design-head span{background:#e4f4ef;color:#267b6d;border-radius:4px;padding:3px 6px;font:700 10px 'IBM Plex Mono',monospace}
+.signal-design-guide p{font-size:10px;line-height:1.5;color:#74918c;margin:8px 0 10px}
+.signal-design-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 4px}
+.signal-design-checks span{display:flex;align-items:center;gap:5px;font-size:10px;color:#9baaa8;white-space:nowrap}
+.signal-design-checks span.done{color:#2c8d79}
+.signal-design-guide small{display:block;border-top:1px solid #e5efec;color:#829691;font-size:9px;line-height:1.45;margin-top:12px;padding-top:9px}
+.signal-stage-heading{border-top:1px solid #e8eef0;padding-top:15px;margin:4px 0 13px;color:#437e73;font-size:11px;font-weight:700}
+.signal-package-link { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 16px; }
+.signal-package-link a { color: #8fd7ed; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.signal-package-link small { color: var(--text-muted, #94a3b8); }
+.signal-implementation-guide{border:1px solid #dce4ef;background:#f8faff;border-radius:8px;padding:12px;margin:-11px 0 20px}
+.signal-implementation-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#476a9d;font-size:11px}
+.signal-implementation-head span{background:#e7efff;border-radius:4px;padding:3px 6px;font-size:10px}
+.signal-implementation-guide p{font-size:10px;line-height:1.5;color:#697b96;margin:8px 0}
+.signal-implementation-stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.signal-implementation-stages>div{display:flex;flex-direction:column;gap:3px;min-width:0;border:1px solid #e5ebf4;border-radius:5px;padding:7px;background:#fff}
+.signal-implementation-stages small{font-size:9px;color:#7189a6}
+.signal-implementation-stages strong{font-size:11px;color:#405a7d}
+.signal-implementation-stages span{font-size:9px;line-height:1.4;color:#718096;overflow-wrap:anywhere}
+.signal-implementation-guide .signal-implementation-note{border-top:1px solid #e5ebf4;padding-top:8px;margin-bottom:0}

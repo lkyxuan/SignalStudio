@@ -1,0 +1,4019 @@
+{
+  "catalog_version": "source-contracts.v1",
+  "owner": "Data Logic IDE",
+  "direction": "Data Logic IDE defines desired upstream inputs; Few Understand implements and reports evidence.",
+  "source_count": 8,
+  "operation_count": 36,
+  "resource_count": 2,
+  "sources": [
+    {
+      "id": "binance-futures",
+      "label_zh": "Binance U 本位合约",
+      "authority_kind": "official_api",
+      "authority_url": "https://developers.binance.com/en/docs/catalog",
+      "schema_status": "source_reference"
+    },
+    {
+      "id": "coingecko",
+      "label_zh": "CoinGecko 市场数据",
+      "authority_kind": "official_api",
+      "authority_url": "https://docs.coingecko.com/reference/coins-markets",
+      "schema_status": "source_reference"
+    },
+    {
+      "id": "dexscreener",
+      "label_zh": "DEX Screener 交易对",
+      "authority_kind": "official_api",
+      "authority_url": "https://docs.dexscreener.com/api/reference",
+      "schema_status": "source_reference"
+    },
+    {
+      "id": "kaito",
+      "label_zh": "Kaito 社交数据",
+      "authority_kind": "official_mcp",
+      "authority_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "schema_status": "source_reference"
+    },
+    {
+      "id": "rss",
+      "label_zh": "RSS 新闻",
+      "authority_kind": "official_format",
+      "authority_url": "https://www.rssboard.org/rss-specification",
+      "schema_status": "source_reference"
+    },
+    {
+      "id": "taoli",
+      "label_zh": "Taoli 资金费率页面",
+      "authority_kind": "first_party_page_no_schema",
+      "authority_url": "https://taoli.tools/",
+      "schema_status": "unavailable"
+    },
+    {
+      "id": "telegram-bot",
+      "label_zh": "Telegram Bot 消息",
+      "authority_kind": "official_api",
+      "authority_url": "https://core.telegram.org/bots/api#message",
+      "schema_status": "source_reference"
+    },
+    {
+      "id": "telegram-telethon",
+      "label_zh": "Telegram Telethon 消息",
+      "authority_kind": "official_library",
+      "authority_url": "https://docs.telethon.dev/en/stable/quick-references/objects-reference.html#message",
+      "schema_status": "source_reference"
+    }
+  ],
+  "operations": [
+    {
+      "id": "binance.usdm.exchangeInfo",
+      "source_id": "binance-futures",
+      "label_zh": "发现可交易合约",
+      "endpoint": "/fapi/v1/exchangeInfo",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "not_inventoried",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "这是交易对发现接口；尚未把大对象响应定义为指标字段。",
+      "fields": [],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "官方接口无查询参数；调用可直接取得当前合约目录。",
+      "inputs": [],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.globalLongShortAccountRatio",
+      "source_id": "binance-futures",
+      "label_zh": "全市场账户多空比",
+      "endpoint": "/futures/data/globalLongShortAccountRatio",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "BTCUSDT"
+        },
+        {
+          "path": "longAccount",
+          "label_zh": "多头账户比例",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.5581"
+        },
+        {
+          "path": "longShortRatio",
+          "label_zh": "多空比",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1.2630"
+        },
+        {
+          "path": "shortAccount",
+          "label_zh": "空头账户比例",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.4419"
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "统计时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790503200000
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": true
+        },
+        {
+          "name": "period",
+          "label_zh": "统计周期",
+          "required": true,
+          "accepted_values": "5m、15m、30m、1h、2h、4h、6h、12h、1d"
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "default": "30"
+        },
+        {
+          "name": "startTime",
+          "label_zh": "开始时间",
+          "required": false
+        },
+        {
+          "name": "endTime",
+          "label_zh": "结束时间",
+          "required": false
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.klines",
+      "source_id": "binance-futures",
+      "label_zh": "K 线行情",
+      "endpoint": "/fapi/v1/klines",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=1",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "[0]",
+          "label_zh": "开盘时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790503200000
+        },
+        {
+          "path": "[1]",
+          "label_zh": "开盘价",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "84910.30"
+        },
+        {
+          "path": "[2]",
+          "label_zh": "最高价",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "85095.00"
+        },
+        {
+          "path": "[3]",
+          "label_zh": "最低价",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "84811.40"
+        },
+        {
+          "path": "[4]",
+          "label_zh": "收盘价",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "84811.40"
+        },
+        {
+          "path": "[5]",
+          "label_zh": "成交量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "3287.163"
+        },
+        {
+          "path": "[6]",
+          "label_zh": "收盘时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790506799999
+        },
+        {
+          "path": "[7]",
+          "label_zh": "计价资产成交量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "279219587.25190"
+        },
+        {
+          "path": "[8]",
+          "label_zh": "成交笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 80633
+        },
+        {
+          "path": "[9]",
+          "label_zh": "主动买入基础资产量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1654.984"
+        },
+        {
+          "path": "[10]",
+          "label_zh": "主动买入计价资产量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "140602415.16430"
+        },
+        {
+          "path": "[11]",
+          "label_zh": "忽略位",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0"
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": true
+        },
+        {
+          "name": "interval",
+          "label_zh": "K 线周期",
+          "required": true,
+          "accepted_values": "1m、3m、5m、15m、30m、1h、2h、4h、6h、8h、12h、1d、3d、1w、1M"
+        },
+        {
+          "name": "startTime",
+          "label_zh": "开始时间",
+          "required": false
+        },
+        {
+          "name": "endTime",
+          "label_zh": "结束时间",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "default": "500"
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.openInterest",
+      "source_id": "binance-futures",
+      "label_zh": "当前未平仓量",
+      "endpoint": "/fapi/v1/openInterest",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "BTCUSDT"
+        },
+        {
+          "path": "openInterest",
+          "label_zh": "未平仓量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "94812.224"
+        },
+        {
+          "path": "time",
+          "label_zh": "响应时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790505877641
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": true
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.openInterestHist",
+      "source_id": "binance-futures",
+      "label_zh": "未平仓量历史",
+      "endpoint": "/futures/data/openInterestHist",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1h&limit=1",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "BTCUSDT"
+        },
+        {
+          "path": "sumOpenInterest",
+          "label_zh": "未平仓合约总量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "94875.18900000"
+        },
+        {
+          "path": "sumOpenInterestValue",
+          "label_zh": "未平仓合约价值",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "8055890248.06560000"
+        },
+        {
+          "path": "CMCCirculatingSupply",
+          "label_zh": "流通供应量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "20089846.00000000"
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "统计时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790503200000
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": true
+        },
+        {
+          "name": "period",
+          "label_zh": "统计周期",
+          "required": true,
+          "accepted_values": "5m、15m、30m、1h、2h、4h、6h、12h、1d"
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "default": "30"
+        },
+        {
+          "name": "startTime",
+          "label_zh": "开始时间",
+          "required": false
+        },
+        {
+          "name": "endTime",
+          "label_zh": "结束时间",
+          "required": false
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.premiumIndex",
+      "source_id": "binance-futures",
+      "label_zh": "标记价格与资金费率",
+      "endpoint": "/fapi/v1/premiumIndex",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "BTCUSDT"
+        },
+        {
+          "path": "markPrice",
+          "label_zh": "标记价格",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "84811.40000000"
+        },
+        {
+          "path": "indexPrice",
+          "label_zh": "指数价格",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "84854.79326087"
+        },
+        {
+          "path": "estimatedSettlePrice",
+          "label_zh": "预估结算价",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "84945.30347186"
+        },
+        {
+          "path": "lastFundingRate",
+          "label_zh": "最近资金费率",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.00003876"
+        },
+        {
+          "path": "interestRate",
+          "label_zh": "利率",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.00010000"
+        },
+        {
+          "path": "nextFundingTime",
+          "label_zh": "下次资金费率时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790524800000
+        },
+        {
+          "path": "time",
+          "label_zh": "响应时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790505881002
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "不填 symbol 可返回所有交易对。",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": false
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.takerlongshortRatio",
+      "source_id": "binance-futures",
+      "label_zh": "主动买卖量比",
+      "endpoint": "/futures/data/takerlongshortRatio",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=BTCUSDT&period=1h&limit=1",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "buySellRatio",
+          "label_zh": "主动买卖比",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1.2241"
+        },
+        {
+          "path": "sellVol",
+          "label_zh": "主动卖出量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1358.5060"
+        },
+        {
+          "path": "buyVol",
+          "label_zh": "主动买入量",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1663.0020"
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "统计时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790499600000
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": true
+        },
+        {
+          "name": "period",
+          "label_zh": "统计周期",
+          "required": true,
+          "accepted_values": "5m、15m、30m、1h、2h、4h、6h、12h、1d"
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "default": "30"
+        },
+        {
+          "name": "startTime",
+          "label_zh": "开始时间",
+          "required": false
+        },
+        {
+          "name": "endTime",
+          "label_zh": "结束时间",
+          "required": false
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.topLongShortAccountRatio",
+      "source_id": "binance-futures",
+      "label_zh": "头部账户多空比",
+      "endpoint": "/futures/data/topLongShortAccountRatio",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "BTCUSDT"
+        },
+        {
+          "path": "longAccount",
+          "label_zh": "多头账户比例",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.5752"
+        },
+        {
+          "path": "longShortRatio",
+          "label_zh": "多空比",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1.3540"
+        },
+        {
+          "path": "shortAccount",
+          "label_zh": "空头账户比例",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.4248"
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "统计时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790503200000
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": true
+        },
+        {
+          "name": "period",
+          "label_zh": "统计周期",
+          "required": true,
+          "accepted_values": "5m、15m、30m、1h、2h、4h、6h、12h、1d"
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "default": "30"
+        },
+        {
+          "name": "startTime",
+          "label_zh": "开始时间",
+          "required": false
+        },
+        {
+          "name": "endTime",
+          "label_zh": "结束时间",
+          "required": false
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "binance.usdm.topLongShortPositionRatio",
+      "source_id": "binance-futures",
+      "label_zh": "头部持仓多空比",
+      "endpoint": "/futures/data/topLongShortPositionRatio",
+      "documentation_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=BTCUSDT&period=1h&limit=1",
+      "note_zh": "字段来自该官方 API 的一次响应；官方文档和不同参数仍需逐项复核。",
+      "fields": [
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "BTCUSDT"
+        },
+        {
+          "path": "longAccount",
+          "label_zh": "多头账户比例",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.6555"
+        },
+        {
+          "path": "longShortRatio",
+          "label_zh": "多空比",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1.9025"
+        },
+        {
+          "path": "shortAccount",
+          "label_zh": "空头账户比例",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0.3445"
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "统计时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1790503200000
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "",
+      "inputs": [
+        {
+          "name": "symbol",
+          "label_zh": "交易对",
+          "required": true
+        },
+        {
+          "name": "period",
+          "label_zh": "统计周期",
+          "required": true,
+          "accepted_values": "5m、15m、30m、1h、2h、4h、6h、12h、1d"
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "default": "30"
+        },
+        {
+          "name": "startTime",
+          "label_zh": "开始时间",
+          "required": false
+        },
+        {
+          "name": "endTime",
+          "label_zh": "结束时间",
+          "required": false
+        }
+      ],
+      "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+    },
+    {
+      "id": "coingecko.coins_markets",
+      "source_id": "coingecko",
+      "label_zh": "市场数据列表",
+      "endpoint": "/api/v3/coins/markets",
+      "documentation_url": "https://docs.coingecko.com/reference/coins-markets",
+      "response_coverage": "api_sample_plus_documented_optionals",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=1&page=1",
+      "note_zh": "本次请求未开启 sparkline 或额外涨跌幅窗口；可选字段按官方文档条件标注。",
+      "fields": [
+        {
+          "path": "id",
+          "label_zh": "币种 ID",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "bitcoin"
+        },
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "btc"
+        },
+        {
+          "path": "name",
+          "label_zh": "名称",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "Bitcoin"
+        },
+        {
+          "path": "image",
+          "label_zh": "图标链接",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "https://coin-images.coingecko.com/coins/images/1/large/bitcoin.png?1696501400"
+        },
+        {
+          "path": "current_price",
+          "label_zh": "当前价格",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 84816
+        },
+        {
+          "path": "market_cap",
+          "label_zh": "市值",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1703952687832
+        },
+        {
+          "path": "market_cap_rank",
+          "label_zh": "市值排名",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1
+        },
+        {
+          "path": "fully_diluted_valuation",
+          "label_zh": "完全稀释估值",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1703954808239
+        },
+        {
+          "path": "total_volume",
+          "label_zh": "成交额",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 18550945549
+        },
+        {
+          "path": "high_24h",
+          "label_zh": "24 小时最高价",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 84748
+        },
+        {
+          "path": "low_24h",
+          "label_zh": "24 小时最低价",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 83835
+        },
+        {
+          "path": "price_change_24h",
+          "label_zh": "24 小时价格变化",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 777.0
+        },
+        {
+          "path": "price_change_percentage_24h",
+          "label_zh": "24h 涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 0.92372
+        },
+        {
+          "path": "market_cap_change_24h",
+          "label_zh": "24 小时市值变化",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 15652625498
+        },
+        {
+          "path": "market_cap_change_percentage_24h",
+          "label_zh": "24 小时市值涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 0.92712
+        },
+        {
+          "path": "circulating_supply",
+          "label_zh": "流通供应量",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 20089918.0
+        },
+        {
+          "path": "total_supply",
+          "label_zh": "总供应量",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 20089965.0
+        },
+        {
+          "path": "max_supply",
+          "label_zh": "最大供应量",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 21000000.0
+        },
+        {
+          "path": "ath",
+          "label_zh": "历史最高价",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 126080
+        },
+        {
+          "path": "ath_change_percentage",
+          "label_zh": "距历史最高价涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": -32.72812
+        },
+        {
+          "path": "ath_date",
+          "label_zh": "历史最高价日期",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "2025-10-06T10:57:42.000Z"
+        },
+        {
+          "path": "atl",
+          "label_zh": "历史最低价",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 67.81
+        },
+        {
+          "path": "atl_change_percentage",
+          "label_zh": "距历史最低价涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 124981.19682
+        },
+        {
+          "path": "atl_date",
+          "label_zh": "历史最低价日期",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "2013-07-05T16:00:00.000Z"
+        },
+        {
+          "path": "roi",
+          "label_zh": "投资回报信息",
+          "type": "null",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "last_updated",
+          "label_zh": "上游更新时间",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "2026-09-27T08:17:30.000Z"
+        },
+        {
+          "path": "sparkline_in_7d.price",
+          "label_zh": "7 日价格序列",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "sparkline=true 时的七日价格序列",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_1h_in_currency",
+          "label_zh": "1h 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 1h 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_24h_in_currency",
+          "label_zh": "24h 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 24h 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_7d_in_currency",
+          "label_zh": "7d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 7d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_14d_in_currency",
+          "label_zh": "14d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 14d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_30d_in_currency",
+          "label_zh": "30d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 30d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_200d_in_currency",
+          "label_zh": "200d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 200d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_1y_in_currency",
+          "label_zh": "1y 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 1y 时的涨跌幅",
+          "example_value": null
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "ids、names、symbols、category 是可选筛选；都不填时查询市场列表。API key 属于认证，不计业务输入。",
+      "inputs": [
+        {
+          "name": "vs_currency",
+          "label_zh": "计价货币",
+          "required": true,
+          "default": "usd（文档示例；仍须显式传入）"
+        },
+        {
+          "name": "ids",
+          "label_zh": "币种 ID 列表",
+          "required": false
+        },
+        {
+          "name": "names",
+          "label_zh": "币种名称列表",
+          "required": false
+        },
+        {
+          "name": "symbols",
+          "label_zh": "交易符号列表",
+          "required": false
+        },
+        {
+          "name": "include_tokens",
+          "label_zh": "同符号代币范围",
+          "required": false,
+          "default": "top",
+          "condition_zh": "仅用于 symbols 查询"
+        },
+        {
+          "name": "category",
+          "label_zh": "类别",
+          "required": false
+        },
+        {
+          "name": "order",
+          "label_zh": "排序方式",
+          "required": false,
+          "default": "market_cap_desc"
+        },
+        {
+          "name": "per_page",
+          "label_zh": "每页条数",
+          "required": false,
+          "default": "100"
+        },
+        {
+          "name": "page",
+          "label_zh": "页码",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "sparkline",
+          "label_zh": "是否包含 7 日价格序列",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "price_change_percentage",
+          "label_zh": "涨跌幅统计窗口",
+          "required": false,
+          "condition_zh": "可指定 1h、24h、7d、14d、30d、200d、1y"
+        },
+        {
+          "name": "locale",
+          "label_zh": "显示语言",
+          "required": false,
+          "default": "en"
+        },
+        {
+          "name": "precision",
+          "label_zh": "价格精度",
+          "required": false
+        },
+        {
+          "name": "include_rehypothecated",
+          "label_zh": "是否包含再抵押代币",
+          "required": false,
+          "default": "false"
+        }
+      ],
+      "input_source_url": "https://docs.coingecko.com/reference/coins-markets"
+    },
+    {
+      "id": "dexscreener.token_pairs_by_address",
+      "source_id": "dexscreener",
+      "label_zh": "按链和代币地址查询交易对",
+      "endpoint": "/token-pairs/v1/{chainId}/{tokenAddress}",
+      "documentation_url": "https://docs.dexscreener.com/api/reference",
+      "response_coverage": "api_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://api.dexscreener.com/token-pairs/v1/ethereum/0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "note_zh": "这是本产品规划使用的公开文档接口；Few Understand 当前使用的旧路径和 WebSocket 应改造或单独证明。",
+      "fields": [
+        {
+          "path": "chainId",
+          "label_zh": "链 ID",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "ethereum"
+        },
+        {
+          "path": "dexId",
+          "label_zh": "交易平台",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "uniswap"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "https://dexscreener.com/ethereum/0x0fb0e40cec3bb23e13abc585958a93c796fbea56955e19a23727a716a0423239"
+        },
+        {
+          "path": "pairAddress",
+          "label_zh": "交易对地址",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0x0fb0e40cec3bb23e13abc585958a93c796fbea56955e19a23727a716a0423239"
+        },
+        {
+          "path": "labels",
+          "label_zh": "交易对标签",
+          "type": "array",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": [
+            "v4"
+          ]
+        },
+        {
+          "path": "baseToken.address",
+          "label_zh": "基础代币地址",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        },
+        {
+          "path": "baseToken.name",
+          "label_zh": "基础代币名称",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "USD Coin"
+        },
+        {
+          "path": "baseToken.symbol",
+          "label_zh": "基础代币代码",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "USDC"
+        },
+        {
+          "path": "quoteToken.address",
+          "label_zh": "报价代币地址",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+        },
+        {
+          "path": "quoteToken.name",
+          "label_zh": "报价代币名称",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "Tether USD"
+        },
+        {
+          "path": "quoteToken.symbol",
+          "label_zh": "报价代币代码",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "USDT"
+        },
+        {
+          "path": "priceNative",
+          "label_zh": "原生计价价格",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1.0001310"
+        },
+        {
+          "path": "priceUsd",
+          "label_zh": "美元价格",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "1.00013"
+        },
+        {
+          "path": "txns.m5.buys",
+          "label_zh": "5 分钟买入笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1
+        },
+        {
+          "path": "txns.m5.sells",
+          "label_zh": "5 分钟卖出笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 6
+        },
+        {
+          "path": "txns.h1.buys",
+          "label_zh": "1 小时买入笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 50
+        },
+        {
+          "path": "txns.h1.sells",
+          "label_zh": "1 小时卖出笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 75
+        },
+        {
+          "path": "txns.h6.buys",
+          "label_zh": "6 小时买入笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 368
+        },
+        {
+          "path": "txns.h6.sells",
+          "label_zh": "6 小时卖出笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 321
+        },
+        {
+          "path": "txns.h24.buys",
+          "label_zh": "24 小时买入笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1218
+        },
+        {
+          "path": "txns.h24.sells",
+          "label_zh": "24 小时卖出笔数",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1323
+        },
+        {
+          "path": "volume.h24",
+          "label_zh": "24 小时成交额",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 51563617.39
+        },
+        {
+          "path": "volume.h6",
+          "label_zh": "6 小时成交额",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 5945309.57
+        },
+        {
+          "path": "volume.h1",
+          "label_zh": "1 小时成交额",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 697108
+        },
+        {
+          "path": "volume.m5",
+          "label_zh": "5 分钟成交额",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 106711.61
+        },
+        {
+          "path": "priceChange.h6",
+          "label_zh": "6 小时价格变化",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": -0.01
+        },
+        {
+          "path": "liquidity.usd",
+          "label_zh": "美元流动性",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 3464726.33
+        },
+        {
+          "path": "liquidity.base",
+          "label_zh": "基础代币流动性",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 2394418
+        },
+        {
+          "path": "liquidity.quote",
+          "label_zh": "报价代币流动性",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1069994
+        },
+        {
+          "path": "fdv",
+          "label_zh": "完全稀释估值",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 50249885895
+        },
+        {
+          "path": "marketCap",
+          "label_zh": "市值",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 50249885895
+        },
+        {
+          "path": "pairCreatedAt",
+          "label_zh": "交易对创建时间",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1747108055000
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "两项都在 URL 路径中。",
+      "inputs": [
+        {
+          "name": "chainId",
+          "label_zh": "链 ID",
+          "required": true
+        },
+        {
+          "name": "tokenAddress",
+          "label_zh": "代币合约地址",
+          "required": true
+        }
+      ],
+      "input_source_url": "https://docs.dexscreener.com/api/reference"
+    },
+    {
+      "id": "kaito.mcp.kaito_entities",
+      "source_id": "kaito",
+      "label_zh": "对象资料",
+      "endpoint": "mcp://kaito_entities",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "coingecko_id",
+          "label_zh": "CoinGecko 标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "与 CoinGecko 对象对应的稳定名称。",
+          "use_case_zh": "将社交讨论与行情对象匹配。"
+        },
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Bitcoin",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。"
+        },
+        {
+          "path": "symbol",
+          "label_zh": "交易符号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "BTC",
+          "purpose_zh": "币种或股票常用的交易符号。",
+          "use_case_zh": "把 Kaito 对象与市场行情中的符号对应起来。"
+        },
+        {
+          "path": "token",
+          "label_zh": "对象代号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "BTC",
+          "purpose_zh": "Kaito 用来识别项目或币种的代号。",
+          "use_case_zh": "先用它确认对象，再查询该对象的走势。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "query",
+          "label_zh": "搜索词",
+          "required": false,
+          "description_en": "Optional project name, token value, symbol, or CoinGecko slug to search for (e.g. Hyperliquid, HYPE, hyperliquid)."
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "description_en": "Maximum matches to return (default: 20 for search, 50 for browse)."
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/reference-lookup.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_narratives",
+      "source_id": "kaito",
+      "label_zh": "叙事资料",
+      "endpoint": "mcp://kaito_narratives",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "description",
+          "label_zh": "说明",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "对象或事件的文字说明。",
+          "use_case_zh": "打开原始资料，确认它是否符合想研究的主题。"
+        },
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "AI",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。"
+        },
+        {
+          "path": "narrative",
+          "label_zh": "叙事代号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "AI",
+          "purpose_zh": "Kaito 识别叙事主题的代码。",
+          "use_case_zh": "用同一代号追踪一个叙事的关注变化。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "旧版代码中，不传参数可浏览；query=AI 可搜索叙事。当前在线 MCP 参数未知。",
+      "inputs": [
+        {
+          "name": "query",
+          "label_zh": "叙事 ID 或显示名称",
+          "required": false,
+          "description_en": "Optional narrative ID or display name to search for (e.g. AI, Layer 2, BTCFi)."
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "description_en": "Maximum matches to return (default: 20 for search, 50 for browse).",
+          "default": "搜索 20 条；浏览 50 条",
+          "accepted_values": "1–100"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/reference-lookup.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_feeds",
+      "source_id": "kaito",
+      "label_zh": "社交动态",
+      "endpoint": "mcp://kaito_feeds",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。"
+        },
+        {
+          "path": "author_user_id",
+          "label_zh": "作者用户 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布者在 X 上的用户标识。",
+          "use_case_zh": "关联作者资料和关注关系。"
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。"
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-26T17:43:49.000Z",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。"
+        },
+        {
+          "path": "doc_id",
+          "label_zh": "文档标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "内容在搜索索引中的标识。",
+          "use_case_zh": "合并搜索和动态结果时避免重复。"
+        },
+        {
+          "path": "engagement",
+          "label_zh": "互动量",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 1923,
+          "purpose_zh": "内容获得的总体互动。",
+          "use_case_zh": "比较内容的传播程度。"
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。"
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 36,
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。"
+        },
+        {
+          "path": "summary",
+          "label_zh": "内容摘要",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "上游提供的内容摘要。",
+          "use_case_zh": "打开原文判断讨论是否真正相关。"
+        },
+        {
+          "path": "tokens",
+          "label_zh": "关联对象",
+          "type": "array",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": [],
+          "purpose_zh": "上游标出的相关项目或币种列表。",
+          "use_case_zh": "筛出与目标对象有关的内容。"
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Twitter",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。"
+        }
+      ],
+      "input_coverage": "unverified",
+      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
+      "inputs": []
+    },
+    {
+      "id": "kaito.mcp.kaito_search",
+      "source_id": "kaito",
+      "label_zh": "内容搜索",
+      "endpoint": "mcp://kaito_search",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。"
+        },
+        {
+          "path": "author_user_id",
+          "label_zh": "作者用户 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布者在 X 上的用户标识。",
+          "use_case_zh": "关联作者资料和关注关系。"
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。"
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-21T12:02:35.000Z",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。"
+        },
+        {
+          "path": "doc_id",
+          "label_zh": "文档标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "内容在搜索索引中的标识。",
+          "use_case_zh": "合并搜索和动态结果时避免重复。"
+        },
+        {
+          "path": "engagement",
+          "label_zh": "互动量",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 16163,
+          "purpose_zh": "内容获得的总体互动。",
+          "use_case_zh": "比较内容的传播程度。"
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。"
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 51,
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。"
+        },
+        {
+          "path": "summary",
+          "label_zh": "内容摘要",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "上游提供的内容摘要。",
+          "use_case_zh": "打开原文判断讨论是否真正相关。"
+        },
+        {
+          "path": "tokens",
+          "label_zh": "关联对象",
+          "type": "array",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": [],
+          "purpose_zh": "上游标出的相关项目或币种列表。",
+          "use_case_zh": "筛出与目标对象有关的内容。"
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Twitter",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。"
+        }
+      ],
+      "input_coverage": "unverified",
+      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
+      "inputs": []
+    },
+    {
+      "id": "kaito.mcp.kaito_advanced_search",
+      "source_id": "kaito",
+      "label_zh": "高级内容搜索",
+      "endpoint": "mcp://kaito_advanced_search",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。"
+        },
+        {
+          "path": "author_user_id",
+          "label_zh": "作者用户 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布者在 X 上的用户标识。",
+          "use_case_zh": "关联作者资料和关注关系。"
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。"
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-16T11:25:49.000Z",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。"
+        },
+        {
+          "path": "doc_id",
+          "label_zh": "文档标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "内容在搜索索引中的标识。",
+          "use_case_zh": "合并搜索和动态结果时避免重复。"
+        },
+        {
+          "path": "engagement",
+          "label_zh": "互动量",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 23896,
+          "purpose_zh": "内容获得的总体互动。",
+          "use_case_zh": "比较内容的传播程度。"
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。"
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 34,
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。"
+        },
+        {
+          "path": "summary",
+          "label_zh": "内容摘要",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "上游提供的内容摘要。",
+          "use_case_zh": "打开原文判断讨论是否真正相关。"
+        },
+        {
+          "path": "tokens",
+          "label_zh": "关联对象",
+          "type": "array",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": [],
+          "purpose_zh": "上游标出的相关项目或币种列表。",
+          "use_case_zh": "筛出与目标对象有关的内容。"
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Twitter",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "tokens",
+          "label_zh": "Kaito 对象代号列表",
+          "required": false,
+          "description_en": "Comma-separated resolved token values from kaito_tokens for entity disambiguation or entity-scoped filtering (e.g. BTC,ETH,HYPERLIQUID)"
+        },
+        {
+          "name": "keyword",
+          "label_zh": "关键词",
+          "required": false,
+          "description_en": "Legacy-compatible primary text query. Use the same style as query: 2-6 high-signal words or a short phrase cluster."
+        },
+        {
+          "name": "query",
+          "label_zh": "搜索词",
+          "required": false,
+          "description_en": "Primary text query. Can be 1-6 high-signal words (e.g. 'validator hack', 'etf inflow'). Omit entirely when tokens alone is sufficient. Avoid filler words and time expressions."
+        },
+        {
+          "name": "usernames",
+          "label_zh": "X 用户名列表",
+          "required": false,
+          "description_en": "Comma-separated Twitter usernames (Twitter source only)"
+        },
+        {
+          "name": "sources",
+          "label_zh": "内容来源",
+          "required": false,
+          "description_en": "Comma-separated: Twitter, News (default: Twitter,News)"
+        },
+        {
+          "name": "min_created_at",
+          "label_zh": "最早发布时间",
+          "required": false,
+          "description_en": "Min creation date ISO 8601 (default: 90 days ago)"
+        },
+        {
+          "name": "max_created_at",
+          "label_zh": "最晚发布时间",
+          "required": false,
+          "description_en": "Max creation date ISO 8601"
+        },
+        {
+          "name": "from",
+          "label_zh": "分页起点",
+          "required": false,
+          "description_en": "Pagination offset 0-500 (default: 0)"
+        },
+        {
+          "name": "size",
+          "label_zh": "每页条数",
+          "required": false,
+          "description_en": "Results per page 20-50 (default: 50)"
+        },
+        {
+          "name": "languages",
+          "label_zh": "语言",
+          "required": false,
+          "description_en": "Comma-separated: en, zh, ko, others (default: en)"
+        },
+        {
+          "name": "sort_by",
+          "label_zh": "排序字段",
+          "required": false,
+          "description_en": "Sort field (default: relevance). NOTE: [smart_engagement, engagement, sentiment, bookmark, views, author (ict follower count ranking)] are only supported when sources=Twitter (not compatible with News)",
+          "accepted_values": "relevance, created_at, engagement, smart_engagement, author, length, bookmark, sentiment, views"
+        },
+        {
+          "name": "sort_order",
+          "label_zh": "排序方向",
+          "required": false,
+          "description_en": "Sort order (default: desc). asc only works with created_at and sentiment",
+          "accepted_values": "asc, desc"
+        },
+        {
+          "name": "tweet_length_type",
+          "label_zh": "推文长度类型",
+          "required": false,
+          "description_en": "Twitter only: tweet length type",
+          "accepted_values": "short, long, thread, article"
+        },
+        {
+          "name": "tweet_type",
+          "label_zh": "推文类型",
+          "required": false,
+          "description_en": "Twitter only: tweet type",
+          "accepted_values": "tweet, quote, reply"
+        },
+        {
+          "name": "sentiment_type",
+          "label_zh": "情绪类别",
+          "required": false,
+          "description_en": "Twitter only: sentiment filter. Filters on overall tweet sentiment, NOT sentiment about a specific token — pair with tokens param to scope.",
+          "accepted_values": "bullish, bearish, neutral"
+        },
+        {
+          "name": "author_type",
+          "label_zh": "作者类别",
+          "required": false,
+          "description_en": "Twitter only: author type",
+          "accepted_values": "Organization, Individual"
+        },
+        {
+          "name": "min_bookmark_count",
+          "label_zh": "最低收藏数",
+          "required": false,
+          "description_en": "Twitter only: min bookmarks"
+        },
+        {
+          "name": "max_bookmark_count",
+          "label_zh": "最高收藏数",
+          "required": false,
+          "description_en": "Twitter only: max bookmarks"
+        },
+        {
+          "name": "min_view_count",
+          "label_zh": "最低浏览数",
+          "required": false,
+          "description_en": "Twitter only: min views"
+        },
+        {
+          "name": "max_view_count",
+          "label_zh": "最高浏览数",
+          "required": false,
+          "description_en": "Twitter only: max views"
+        },
+        {
+          "name": "min_smart_engagement_count",
+          "label_zh": "最低高质量互动数",
+          "required": false,
+          "description_en": "Twitter only: min smart engagements"
+        },
+        {
+          "name": "max_smart_engagement_count",
+          "label_zh": "最高高质量互动数",
+          "required": false,
+          "description_en": "Twitter only: max smart engagements"
+        },
+        {
+          "name": "min_like_count",
+          "label_zh": "最低点赞数",
+          "required": false,
+          "description_en": "Twitter only: min likes"
+        },
+        {
+          "name": "max_like_count",
+          "label_zh": "最高点赞数",
+          "required": false,
+          "description_en": "Twitter only: max likes"
+        },
+        {
+          "name": "min_reply_count",
+          "label_zh": "最低回复数",
+          "required": false,
+          "description_en": "Twitter only: min replies"
+        },
+        {
+          "name": "max_reply_count",
+          "label_zh": "最高回复数",
+          "required": false,
+          "description_en": "Twitter only: max replies"
+        },
+        {
+          "name": "min_retweet_count",
+          "label_zh": "最低转发数",
+          "required": false,
+          "description_en": "Twitter only: min retweets"
+        },
+        {
+          "name": "max_retweet_count",
+          "label_zh": "最高转发数",
+          "required": false,
+          "description_en": "Twitter only: max retweets"
+        },
+        {
+          "name": "min_quote_count",
+          "label_zh": "最低引用数",
+          "required": false,
+          "description_en": "Twitter only: min quotes"
+        },
+        {
+          "name": "max_quote_count",
+          "label_zh": "最高引用数",
+          "required": false,
+          "description_en": "Twitter only: max quotes"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/advanced-search.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_twitter_user_metadata",
+      "source_id": "kaito",
+      "label_zh": "X 用户资料",
+      "endpoint": "mcp://kaito_twitter_user_metadata",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "bio",
+          "label_zh": "账号简介",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "账号资料中的自我介绍。",
+          "use_case_zh": "人工判断账号类别是否合适。"
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2011-08-24T04:46:48+00:00",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。"
+        },
+        {
+          "path": "followers",
+          "label_zh": "粉丝数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 1003,
+          "purpose_zh": "账号当前的粉丝量。",
+          "use_case_zh": "比较作者的受众规模。"
+        },
+        {
+          "path": "following_count",
+          "label_zh": "关注人数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 6314,
+          "purpose_zh": "账号主动关注的账号数量。",
+          "use_case_zh": "辅助理解账号行为。"
+        },
+        {
+          "path": "icon",
+          "label_zh": "头像链接",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "账号资料中的头像地址。",
+          "use_case_zh": "人工核对账号身份。"
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。"
+        },
+        {
+          "path": "name",
+          "label_zh": "显示名称",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "账号或对象展示给用户的名称。",
+          "use_case_zh": "与账号 ID 一起确认对象。"
+        },
+        {
+          "path": "tag_individual_or_organization",
+          "label_zh": "个人或机构",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Individual",
+          "purpose_zh": "Kaito 对账号的个人/机构分类。",
+          "use_case_zh": "分开比较个人和机构带来的讨论。"
+        },
+        {
+          "path": "user_type",
+          "label_zh": "账号类型",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "non_kkol",
+          "purpose_zh": "Kaito 对账号的类型标记。",
+          "use_case_zh": "筛选适合研究的账号群体。"
+        },
+        {
+          "path": "username",
+          "label_zh": "账号名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "X 账号的用户名。",
+          "use_case_zh": "与关注关系及发帖记录关联。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 用户标识的组合要求需与实时接口核对。",
+      "inputs": [
+        {
+          "name": "user_id",
+          "label_zh": "X 用户 ID",
+          "required": true,
+          "description_en": "Twitter user ID to look up (for example: 950486928784228352)."
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/get-twitter-user.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_ict_impressions",
+      "source_id": "kaito",
+      "label_zh": "高影响力账号曝光量",
+      "endpoint": "mcp://kaito_ict_impressions",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "author_id",
+          "label_zh": "作者 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "用于查询某位作者的 X 用户标识。",
+          "use_case_zh": "关联该作者的曝光和资料。"
+        },
+        {
+          "path": "end_date",
+          "label_zh": "统计止日",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-07",
+          "purpose_zh": "这次统计窗口的结束日期。",
+          "use_case_zh": "对齐不同指标的比较区间。"
+        },
+        {
+          "path": "is_ict",
+          "label_zh": "是否为追踪作者",
+          "type": "bool",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": true,
+          "purpose_zh": "作者是否属于 Kaito 的 ICT 追踪范围。",
+          "use_case_zh": "判断曝光统计是否可用。"
+        },
+        {
+          "path": "start_date",
+          "label_zh": "统计起日",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-01",
+          "purpose_zh": "这次统计窗口的开始日期。",
+          "use_case_zh": "对齐不同指标的比较区间。"
+        },
+        {
+          "path": "total_impressions",
+          "label_zh": "总曝光量",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 1426537,
+          "purpose_zh": "窗口内作者推文的总浏览量。",
+          "use_case_zh": "比较同一作者不同时段的触达。"
+        },
+        {
+          "path": "tweet_count",
+          "label_zh": "推文数量",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 20,
+          "purpose_zh": "窗口内纳入曝光统计的推文数。",
+          "use_case_zh": "避免只看总曝光忽略发帖量。"
+        }
+      ],
+      "input_coverage": "unverified",
+      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
+      "inputs": []
+    },
+    {
+      "id": "kaito.mcp.kaito_sentiment_entity",
+      "source_id": "kaito",
+      "label_zh": "对象情绪走势",
+      "endpoint": "mcp://kaito_sentiment_entity",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "events",
+          "label_zh": "事件计数",
+          "type": "null",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "情绪序列随附的事件数量或标记。",
+          "use_case_zh": "识别情绪波动附近的事件。"
+        },
+        {
+          "path": "sentiment_score",
+          "label_zh": "情绪得分",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 105.54331245617999,
+          "purpose_zh": "按日期返回的市场或对象讨论情绪值。",
+          "use_case_zh": "观察情绪是否与关注度同步变化。"
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "日期",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-01",
+          "purpose_zh": "时间序列中每个观测值对应的日期。",
+          "use_case_zh": "将情绪与行情、提及量按日期对齐。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "token",
+          "label_zh": "Kaito 对象代号",
+          "required": true,
+          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+        },
+        {
+          "name": "start_date",
+          "label_zh": "起始日期",
+          "required": false,
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2020-01-01)"
+        },
+        {
+          "name": "end_date",
+          "label_zh": "结束日期",
+          "required": false,
+          "description_en": "End date YYYY-MM-DD (default: tomorrow)"
+        },
+        {
+          "name": "adjusted",
+          "label_zh": "是否使用调整值",
+          "required": false,
+          "description_en": "Include replies/quotes, exclude org accounts, weight by smart engagement (default: true)"
+        },
+        {
+          "name": "average",
+          "label_zh": "是否取平均",
+          "required": false,
+          "description_en": "Return average sentiment -1 to +1 instead of absolute volume-weighted (default: false)"
+        },
+        {
+          "name": "gaussian",
+          "label_zh": "是否平滑",
+          "required": false,
+          "description_en": "Apply Gaussian smoothing (default: true)"
+        },
+        {
+          "name": "language",
+          "label_zh": "语言",
+          "required": false,
+          "description_en": "Language filter (default: all)",
+          "accepted_values": "all, en, zh, ko, others"
+        },
+        {
+          "name": "version",
+          "label_zh": "统计版本",
+          "required": false,
+          "description_en": "Sentiment model version (default: 3)",
+          "accepted_values": "2, 3"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/sentiment.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_engagement",
+      "source_id": "kaito",
+      "label_zh": "对象互动量走势",
+      "endpoint": "mcp://kaito_engagement",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "smart_engagement[date]",
+          "label_zh": "每日高质量账号互动",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 829,
+          "purpose_zh": "每天来自高质量账号的互动量。",
+          "use_case_zh": "比较连续几天专业账号参与是否增加。"
+        },
+        {
+          "path": "total_engagement[date]",
+          "label_zh": "每日总互动",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 132660,
+          "purpose_zh": "每天的总体互动量。",
+          "use_case_zh": "与高质量账号互动一起看讨论扩散。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 token 与 keyword 至少选一个；两者在公开代理源码中都标为可选。",
+      "inputs": [
+        {
+          "name": "token",
+          "label_zh": "Kaito 对象代号",
+          "required": false,
+          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+        },
+        {
+          "name": "keyword",
+          "label_zh": "关键词",
+          "required": false,
+          "description_en": "Search keyword"
+        },
+        {
+          "name": "start_date",
+          "label_zh": "起始日期",
+          "required": false,
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2023-01-01)"
+        },
+        {
+          "name": "end_date",
+          "label_zh": "结束日期",
+          "required": false,
+          "description_en": "End date YYYY-MM-DD (default: tomorrow)"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/engagement.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_mentions",
+      "source_id": "kaito",
+      "label_zh": "对象提及量走势",
+      "endpoint": "mcp://kaito_mentions",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "value[date]",
+          "label_zh": "每日提及量",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 951,
+          "purpose_zh": "日期映射中的每天提及次数。",
+          "use_case_zh": "找出对象讨论突然增多的日期。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 token 与 keyword 至少选一个；两者在公开代理源码中都标为可选。",
+      "inputs": [
+        {
+          "name": "token",
+          "label_zh": "Kaito 对象代号",
+          "required": false,
+          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+        },
+        {
+          "name": "keyword",
+          "label_zh": "关键词",
+          "required": false,
+          "description_en": "Search keyword"
+        },
+        {
+          "name": "start_date",
+          "label_zh": "起始日期",
+          "required": false,
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2023-01-01)"
+        },
+        {
+          "name": "end_date",
+          "label_zh": "结束日期",
+          "required": false,
+          "description_en": "End date YYYY-MM-DD (default: tomorrow)"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mentions.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_mindshare_entity",
+      "source_id": "kaito",
+      "label_zh": "对象关注份额走势",
+      "endpoint": "mcp://kaito_mindshare_entity",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "mindshare[date]",
+          "label_zh": "每日关注份额",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 0.06487444855298484,
+          "purpose_zh": "每天该对象或叙事在相关讨论中的关注份额。",
+          "use_case_zh": "比较不同时间窗口的关注份额走势。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "token",
+          "label_zh": "Kaito 对象代号",
+          "required": true,
+          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+        },
+        {
+          "name": "start_date",
+          "label_zh": "起始日期",
+          "required": false,
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2020-01-01)"
+        },
+        {
+          "name": "end_date",
+          "label_zh": "结束日期",
+          "required": false,
+          "description_en": "End date YYYY-MM-DD (default: tomorrow)"
+        },
+        {
+          "name": "scope",
+          "label_zh": "统计范围",
+          "required": false,
+          "description_en": "Set to 'pretge' to filter for Pre-TGE projects only"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mindshare.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_mindshare_entity_by_account",
+      "source_id": "kaito",
+      "label_zh": "对象账户关注份额",
+      "endpoint": "mcp://kaito_mindshare_entity_by_account",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "mindshare",
+          "label_zh": "关注份额",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 0.019970643150045736,
+          "purpose_zh": "当前窗口内对象占相关讨论的比例。",
+          "use_case_zh": "将排名与实际份额一起看。"
+        },
+        {
+          "path": "name",
+          "label_zh": "显示名称",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "账号或对象展示给用户的名称。",
+          "use_case_zh": "与账号 ID 一起确认对象。"
+        },
+        {
+          "path": "rank",
+          "label_zh": "排名",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 1,
+          "purpose_zh": "对象或账号在当前榜单中的位置。",
+          "use_case_zh": "找出关注份额靠前的对象。"
+        },
+        {
+          "path": "user_id",
+          "label_zh": "用户 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "X 用户的稳定标识。",
+          "use_case_zh": "把账号排名和账号资料关联。"
+        },
+        {
+          "path": "username",
+          "label_zh": "账号名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "X 账号的用户名。",
+          "use_case_zh": "与关注关系及发帖记录关联。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "token",
+          "label_zh": "Kaito 对象代号",
+          "required": true,
+          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+        },
+        {
+          "name": "duration",
+          "label_zh": "统计时长",
+          "required": false,
+          "description_en": "Time window for mindshare calculation (default: 12m).",
+          "accepted_values": "24h, 48h, 7d, 30d, 3m, 6m, 12m, all"
+        },
+        {
+          "name": "top_n",
+          "label_zh": "头部账号数",
+          "required": false,
+          "description_en": "Number of top KOLs to return (default: 100)."
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/kol-token-mindshare.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_events",
+      "source_id": "kaito",
+      "label_zh": "候选事件",
+      "endpoint": "mcp://kaito_events",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "catalyst_list[]",
+          "label_zh": "事件催化因素",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "事件附带的催化因素标签。",
+          "use_case_zh": "把同一类事件汇总分析。"
+        },
+        {
+          "path": "date",
+          "label_zh": "日期",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Nov 2026",
+          "purpose_zh": "事件或快照对应的日期。",
+          "use_case_zh": "按日比较变化或对齐其他指标。"
+        },
+        {
+          "path": "description",
+          "label_zh": "说明",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "对象或事件的文字说明。",
+          "use_case_zh": "打开原始资料，确认它是否符合想研究的主题。"
+        },
+        {
+          "path": "earliestRef.created_at",
+          "label_zh": "最早证据时间",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "最早一条参考资料的发布时间。",
+          "use_case_zh": "核对事件最初出现的时间。"
+        },
+        {
+          "path": "earliestRef.data_source",
+          "label_zh": "最早证据来源",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "最早参考资料的来源类别。",
+          "use_case_zh": "判断事件来自社交媒体还是其他来源。"
+        },
+        {
+          "path": "earliestRef.id",
+          "label_zh": "最早证据 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "最早参考资料的标识。",
+          "use_case_zh": "回查相同证据。"
+        },
+        {
+          "path": "earliestRef.url",
+          "label_zh": "最早证据链接",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "最早参考资料的原文地址。",
+          "use_case_zh": "打开证据核实事件。"
+        },
+        {
+          "path": "end_date",
+          "label_zh": "统计止日",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-11-30",
+          "purpose_zh": "这次统计窗口的结束日期。",
+          "use_case_zh": "对齐不同指标的比较区间。"
+        },
+        {
+          "path": "reference_list[].created_at",
+          "label_zh": "参考资料时间",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "事件参考资料的发布时间。",
+          "use_case_zh": "梳理证据的先后顺序。"
+        },
+        {
+          "path": "reference_list[].data_source",
+          "label_zh": "参考资料来源",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "参考资料的平台或来源类别。",
+          "use_case_zh": "比较不同来源对事件的报道。"
+        },
+        {
+          "path": "reference_list[].id",
+          "label_zh": "参考资料 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "参考资料的标识。",
+          "use_case_zh": "去重或回查参考资料。"
+        },
+        {
+          "path": "reference_list[].url",
+          "label_zh": "参考资料链接",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "参考资料的原文地址。",
+          "use_case_zh": "查看支撑事件的原始内容。"
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "20",
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。"
+        },
+        {
+          "path": "start_date",
+          "label_zh": "统计起日",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-11-01",
+          "purpose_zh": "这次统计窗口的开始日期。",
+          "use_case_zh": "对齐不同指标的比较区间。"
+        },
+        {
+          "path": "ticker[]",
+          "label_zh": "关联对象",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "事件关联的项目或币种代号。",
+          "use_case_zh": "按对象汇总事件。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "token",
+          "label_zh": "Kaito 对象代号",
+          "required": true,
+          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+        },
+        {
+          "name": "start_date",
+          "label_zh": "起始日期",
+          "required": false,
+          "description_en": "Filter events starting on or after this date YYYY-MM-DD"
+        },
+        {
+          "name": "end_date",
+          "label_zh": "结束日期",
+          "required": false,
+          "description_en": "Filter events starting on or before this date YYYY-MM-DD"
+        },
+        {
+          "name": "min_announcement_date",
+          "label_zh": "最早公告日期",
+          "required": false,
+          "description_en": "Announcement date lower bound YYYY-MM-DD"
+        },
+        {
+          "name": "max_announcement_date",
+          "label_zh": "最晚公告日期",
+          "required": false,
+          "description_en": "Announcement date upper bound YYYY-MM-DD"
+        },
+        {
+          "name": "event_types",
+          "label_zh": "事件类别",
+          "required": false,
+          "description_en": "Comma-separated event types: Mainnet Release, Testnet Release, Roadmap Update, Token Generation Event, Conference Attendance, Proposal and Voting, Tokenomics Update, Token Unlock, Others"
+        },
+        {
+          "name": "sources",
+          "label_zh": "内容来源",
+          "required": false,
+          "description_en": "Comma-separated sources: Twitter Space, Twitter, Podcast, Conference, Vote, Governance, DefiLlama, Token Unlocks"
+        },
+        {
+          "name": "sort_by",
+          "label_zh": "排序字段",
+          "required": false,
+          "description_en": "Sort field",
+          "accepted_values": "event_date, project_name, market_cap, announcement_date"
+        },
+        {
+          "name": "sort_order",
+          "label_zh": "排序方向",
+          "required": false,
+          "description_en": "Sort order",
+          "accepted_values": "asc, desc"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/events.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_mindshare_entity_arena",
+      "source_id": "kaito",
+      "label_zh": "对象关注份额排名",
+      "endpoint": "mcp://kaito_mindshare_entity_arena",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Ethereum",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。"
+        },
+        {
+          "path": "mindshare",
+          "label_zh": "关注份额",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 0.10053987220833573,
+          "purpose_zh": "当前窗口内对象占相关讨论的比例。",
+          "use_case_zh": "将排名与实际份额一起看。"
+        },
+        {
+          "path": "rank",
+          "label_zh": "排名",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 1,
+          "purpose_zh": "对象或账号在当前榜单中的位置。",
+          "use_case_zh": "找出关注份额靠前的对象。"
+        },
+        {
+          "path": "ticker",
+          "label_zh": "对象代号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "ETH",
+          "purpose_zh": "榜单中的项目或币种代号。",
+          "use_case_zh": "与其他数据源中的对象对应。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "duration",
+          "label_zh": "统计时长",
+          "required": false,
+          "description_en": "Time window (default: 24h)",
+          "accepted_values": "all, 24h, 48h, 7d, 30d, 3m, 6m, 12m"
+        },
+        {
+          "name": "language",
+          "label_zh": "语言",
+          "required": false,
+          "description_en": "Language filter (default: all)",
+          "accepted_values": "all, en, zh, ko, others"
+        },
+        {
+          "name": "categories",
+          "label_zh": "类别",
+          "required": false,
+          "description_en": "Category filter: EXCHANGE or INFOMKT",
+          "accepted_values": "EXCHANGE, INFOMKT"
+        },
+        {
+          "name": "pre_tge",
+          "label_zh": "是否含发币前对象",
+          "required": false,
+          "description_en": "Set true to filter Pre-TGE projects"
+        },
+        {
+          "name": "ex_official",
+          "label_zh": "是否排除官方账号",
+          "required": false,
+          "description_en": "Exclude official project accounts (default: false)"
+        },
+        {
+          "name": "weighted",
+          "label_zh": "是否加权",
+          "required": false,
+          "description_en": "Weight by smart engagement (default: true)"
+        },
+        {
+          "name": "nft",
+          "label_zh": "是否含 NFT",
+          "required": false,
+          "description_en": "Include NFT projects (default: false)"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mindshare-arena.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_mindshare_entity_delta",
+      "source_id": "kaito",
+      "label_zh": "对象关注份额变化",
+      "endpoint": "mcp://kaito_mindshare_entity_delta",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "change",
+          "label_zh": "关注份额变化",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 0.018112811693618197,
+          "purpose_zh": "与比较窗口相比的关注份额变化值。",
+          "use_case_zh": "查看关注度上升或下降的对象。"
+        },
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Solana",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。"
+        },
+        {
+          "path": "mindshare",
+          "label_zh": "关注份额",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 0.09014714064210234,
+          "purpose_zh": "当前窗口内对象占相关讨论的比例。",
+          "use_case_zh": "将排名与实际份额一起看。"
+        },
+        {
+          "path": "ticker",
+          "label_zh": "对象代号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "SOL",
+          "purpose_zh": "榜单中的项目或币种代号。",
+          "use_case_zh": "与其他数据源中的对象对应。"
+        },
+        {
+          "path": "ticker_id",
+          "label_zh": "对象内部 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "Kaito 用来区分榜单对象的标识。",
+          "use_case_zh": "避免仅靠同名代号做关联。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "duration",
+          "label_zh": "统计时长",
+          "required": false,
+          "description_en": "Time window (default: 24h)",
+          "accepted_values": "24h, 48h, 7d, 30d, 3m, 6m, 12m, all"
+        },
+        {
+          "name": "sort_type",
+          "label_zh": "变化方向",
+          "required": false,
+          "description_en": "'desc' for gainers, 'asc' for losers (default: desc)",
+          "accepted_values": "desc, asc"
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "description_en": "Number of results to return"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mindshare-delta.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_smart_following_market",
+      "source_id": "kaito",
+      "label_zh": "高关注度账号关注市场",
+      "endpoint": "mcp://kaito_smart_following_market",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "no_output_sample",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "duration",
+          "label_zh": "统计时长",
+          "required": false,
+          "description_en": "Time range (default: 24h). all_dates covers from 2024-01-01.",
+          "accepted_values": "24h, 48h, 7d, 30d, all_dates"
+        },
+        {
+          "name": "from",
+          "label_zh": "分页起点",
+          "required": false,
+          "description_en": "Pagination offset (default: 0)."
+        },
+        {
+          "name": "sort_by",
+          "label_zh": "排序字段",
+          "required": false,
+          "description_en": "Field to sort by (default sort direction is desc when sort_by is set).",
+          "accepted_values": "earliest_time, smart_followers, followers_change, change_ratio"
+        },
+        {
+          "name": "sort_order",
+          "label_zh": "排序方向",
+          "required": false,
+          "description_en": "Sort direction (default: desc).",
+          "accepted_values": "asc, desc"
+        },
+        {
+          "name": "filter_smart_followers_operator",
+          "label_zh": "高质量粉丝筛选符",
+          "required": false,
+          "description_en": "Filter operator for smart follower count: gte (≥) or lte (≤). Must be paired with filter_smart_followers_value.",
+          "accepted_values": "gte, lte"
+        },
+        {
+          "name": "filter_smart_followers_value",
+          "label_zh": "高质量粉丝筛选值",
+          "required": false,
+          "description_en": "Integer threshold for smart follower count. Must be paired with filter_smart_followers_operator."
+        },
+        {
+          "name": "user_status",
+          "label_zh": "账号状态",
+          "required": false,
+          "description_en": "Filter by user status: new = first followed within selected duration (default: all).",
+          "accepted_values": "new, existing, all"
+        },
+        {
+          "name": "user_tag_individual_or_organization",
+          "label_zh": "个人或机构",
+          "required": false,
+          "description_en": "Filter by account type (default: Organization).",
+          "accepted_values": "Individual, Organization, all"
+        },
+        {
+          "name": "user_type",
+          "label_zh": "账号类型",
+          "required": false,
+          "description_en": "Filter by KOL classification: kkol = Kaito-classified KOLs only (default: all).",
+          "accepted_values": "kkol, non_kkol, all"
+        },
+        {
+          "name": "user_web3_relevance",
+          "label_zh": "Web3 相关性",
+          "required": false,
+          "description_en": "Filter by Web3 relevance (omit to include all).",
+          "accepted_values": "relevant, irrelevant"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/market-smart-following.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_smart_followers",
+      "source_id": "kaito",
+      "label_zh": "高关注度粉丝",
+      "endpoint": "mcp://kaito_smart_followers",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "current_ict",
+          "label_zh": "当前是否在追踪",
+          "type": "bool",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": true,
+          "purpose_zh": "账号当前是否属于 ICT 追踪范围。",
+          "use_case_zh": "解释高质量粉丝统计的覆盖范围。"
+        },
+        {
+          "path": "date",
+          "label_zh": "日期",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-01",
+          "purpose_zh": "事件或快照对应的日期。",
+          "use_case_zh": "按日比较变化或对齐其他指标。"
+        },
+        {
+          "path": "mode",
+          "label_zh": "返回模式",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "count",
+          "purpose_zh": "当前响应是计数还是粉丝名单模式。",
+          "use_case_zh": "正确解读后面的计数或名单。"
+        },
+        {
+          "path": "num_of_smart_followers",
+          "label_zh": "高质量粉丝数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 14198,
+          "purpose_zh": "Kaito 识别的高质量账号粉丝数量。",
+          "use_case_zh": "观察一个账号的专业受众是否增长。"
+        },
+        {
+          "path": "smart_followers",
+          "label_zh": "高质量粉丝名单",
+          "type": "array",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": [],
+          "purpose_zh": "指定日期新增的高质量粉丝列表。",
+          "use_case_zh": "核对是谁带来了受众变化。"
+        },
+        {
+          "path": "user_id",
+          "label_zh": "用户 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "X 用户的稳定标识。",
+          "use_case_zh": "把账号排名和账号资料关联。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 用户标识的组合要求需与实时接口核对。",
+      "inputs": [
+        {
+          "name": "user_id",
+          "label_zh": "X 用户 ID",
+          "required": false,
+          "description_en": "Twitter user ID. One of user_id or username is required."
+        },
+        {
+          "name": "username",
+          "label_zh": "X 用户名",
+          "required": false,
+          "description_en": "Twitter username. One of user_id or username is required."
+        },
+        {
+          "name": "date",
+          "label_zh": "日期",
+          "required": false,
+          "description_en": "Date YYYY-MM-DD (default: yesterday, must be >= 2024-01-01)"
+        },
+        {
+          "name": "mode",
+          "label_zh": "返回模式",
+          "required": false,
+          "description_en": "'count' for cumulative count, 'users' for follower list (default: count)",
+          "accepted_values": "count, users"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/smart-followers.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_smart_following",
+      "source_id": "kaito",
+      "label_zh": "高关注度账号关注对象",
+      "endpoint": "mcp://kaito_smart_following",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "category",
+          "label_zh": "账号类别",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Organization",
+          "purpose_zh": "被关注账号的类别。",
+          "use_case_zh": "区分个人与机构关注。"
+        },
+        {
+          "path": "date",
+          "label_zh": "日期",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2025-12-29",
+          "purpose_zh": "事件或快照对应的日期。",
+          "use_case_zh": "按日比较变化或对齐其他指标。"
+        },
+        {
+          "path": "user_id",
+          "label_zh": "用户 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "X 用户的稳定标识。",
+          "use_case_zh": "把账号排名和账号资料关联。"
+        },
+        {
+          "path": "username",
+          "label_zh": "账号名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "X 账号的用户名。",
+          "use_case_zh": "与关注关系及发帖记录关联。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 用户标识的组合要求需与实时接口核对。",
+      "inputs": [
+        {
+          "name": "user_id",
+          "label_zh": "X 用户 ID",
+          "required": false,
+          "description_en": "Twitter user ID. One of user_id or username is required."
+        },
+        {
+          "name": "username",
+          "label_zh": "X 用户名",
+          "required": false,
+          "description_en": "Twitter username. One of user_id or username is required."
+        },
+        {
+          "name": "category",
+          "label_zh": "类别",
+          "required": false,
+          "description_en": "Filter by account type",
+          "accepted_values": "ALL, Organization, Individual"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/smart-following.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_mindshare_narrative",
+      "source_id": "kaito",
+      "label_zh": "叙事关注份额走势",
+      "endpoint": "mcp://kaito_mindshare_narrative",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "display_name",
+          "label_zh": "叙事名称",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "AI",
+          "purpose_zh": "叙事主题供阅读的名称。",
+          "use_case_zh": "将内部代号与易读名称对应。"
+        },
+        {
+          "path": "mindshare[date]",
+          "label_zh": "每日关注份额",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 0.2607909604519774,
+          "purpose_zh": "每天该对象或叙事在相关讨论中的关注份额。",
+          "use_case_zh": "比较不同时间窗口的关注份额走势。"
+        },
+        {
+          "path": "narrative",
+          "label_zh": "叙事代号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "AI",
+          "purpose_zh": "Kaito 识别叙事主题的代码。",
+          "use_case_zh": "用同一代号追踪一个叙事的关注变化。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "narrative",
+          "label_zh": "叙事代号",
+          "required": true,
+          "description_en": "Narrative ID (e.g. AI, DeFi). See kaito_narratives."
+        },
+        {
+          "name": "start_date",
+          "label_zh": "起始日期",
+          "required": false,
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2023-01-01)"
+        },
+        {
+          "name": "end_date",
+          "label_zh": "结束日期",
+          "required": false,
+          "description_en": "End date YYYY-MM-DD (default: tomorrow)"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/narrative-mindshare.ts"
+    },
+    {
+      "id": "kaito.mcp.kaito_market_sentiment",
+      "source_id": "kaito",
+      "label_zh": "市场情绪",
+      "endpoint": "mcp://kaito_market_sentiment",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "marketcap",
+          "label_zh": "市场总市值",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 2641368826434.4,
+          "purpose_zh": "同一天的加密市场总市值。",
+          "use_case_zh": "观察市场情绪变化时的市场背景。"
+        },
+        {
+          "path": "sentiment_score",
+          "label_zh": "情绪得分",
+          "type": "float",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 18.26326725828235,
+          "purpose_zh": "按日期返回的市场或对象讨论情绪值。",
+          "use_case_zh": "观察情绪是否与关注度同步变化。"
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "日期",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "2026-09-01",
+          "purpose_zh": "时间序列中每个观测值对应的日期。",
+          "use_case_zh": "将情绪与行情、提及量按日期对齐。"
+        }
+      ],
+      "input_coverage": "unverified",
+      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
+      "inputs": []
+    },
+    {
+      "id": "kaito.mcp.kaito_tweet_engagement_info",
+      "source_id": "kaito",
+      "label_zh": "推文互动信息",
+      "endpoint": "mcp://kaito_tweet_engagement_info",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "response_coverage": "mcp_sample_lower_bound",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "官方 MCP tools/list 未声明 outputSchema；保留完整原始响应，样本字段不是全集。",
+      "fields": [
+        {
+          "path": "author_id",
+          "label_zh": "作者 ID",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "用于查询某位作者的 X 用户标识。",
+          "use_case_zh": "关联该作者的曝光和资料。"
+        },
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。"
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。"
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。"
+        },
+        {
+          "path": "like_count",
+          "label_zh": "点赞数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 1642,
+          "purpose_zh": "这条推文收到的点赞。",
+          "use_case_zh": "衡量单条内容的基础互动。"
+        },
+        {
+          "path": "quote_count",
+          "label_zh": "引用数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 35,
+          "purpose_zh": "这条推文被引用的次数。",
+          "use_case_zh": "观察讨论是否被二次解读。"
+        },
+        {
+          "path": "reply_count",
+          "label_zh": "回复数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 137,
+          "purpose_zh": "这条推文收到的回复。",
+          "use_case_zh": "衡量讨论参与度。"
+        },
+        {
+          "path": "retweet_count",
+          "label_zh": "转发数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 109,
+          "purpose_zh": "这条推文被转发的次数。",
+          "use_case_zh": "观察内容传播范围。"
+        },
+        {
+          "path": "smart_engagement_count",
+          "label_zh": "高质量账号互动数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 36,
+          "purpose_zh": "这条推文来自高质量账号的互动次数。",
+          "use_case_zh": "与总互动一起判断讨论质量。"
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": "Twitter",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "type": "str",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": null,
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。"
+        },
+        {
+          "path": "view_count",
+          "label_zh": "浏览数",
+          "type": "int",
+          "evidence": "mcp_sample",
+          "condition": "",
+          "example_value": 189822,
+          "purpose_zh": "这条推文的浏览量。",
+          "use_case_zh": "把互动放到曝光规模中比较。"
+        }
+      ],
+      "input_coverage": "public_proxy_snapshot",
+      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "inputs": [
+        {
+          "name": "tweet_id",
+          "label_zh": "推文 ID",
+          "required": true,
+          "description_en": "Twitter tweet ID (numeric string)"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/tweet-engagement-info.ts"
+    },
+    {
+      "id": "rss.item",
+      "source_id": "rss",
+      "label_zh": "RSS 新闻条目",
+      "endpoint": "RSS 2.0 item",
+      "documentation_url": "https://www.rssboard.org/rss-specification",
+      "response_coverage": "documented_planned_selection",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "这是计划读取的 RSS item 元素；各 feed 还可能含扩展命名空间。",
+      "fields": [
+        {
+          "path": "title",
+          "label_zh": "标题",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "link",
+          "label_zh": "条目链接",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "pubDate",
+          "label_zh": "发布时间",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "description",
+          "label_zh": "摘要",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "guid",
+          "label_zh": "条目标识",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "category",
+          "label_zh": "分类",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "source",
+          "label_zh": "原始来源",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        }
+      ],
+      "input_coverage": "design_input",
+      "input_note_zh": "feed_url 是本产品采集配置，不是 RSS item 自身的字段；具体 feed 可另设刷新频率。",
+      "inputs": [
+        {
+          "name": "feed_url",
+          "label_zh": "订阅地址",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "taoli.funding_page",
+      "source_id": "taoli",
+      "label_zh": "页面资金费率表",
+      "endpoint": "https://taoli.tools/",
+      "documentation_url": "https://taoli.tools/",
+      "response_coverage": "awaiting_first_party_schema",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "尚无官方字段 API 文档；页面位置解析不能充当稳定输出契约。",
+      "fields": [],
+      "input_coverage": "unverified",
+      "input_note_zh": "网页采集而非公开参数化 API；尚无可靠的输入契约。",
+      "inputs": []
+    },
+    {
+      "id": "telegram.bot.message",
+      "source_id": "telegram-bot",
+      "label_zh": "Bot 消息",
+      "endpoint": "Message",
+      "documentation_url": "https://core.telegram.org/bots/api#message",
+      "response_coverage": "documented_planned_selection",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "这些是本产品计划读取的官方 Message 属性；Bot API 还有其他可选属性。",
+      "fields": [
+        {
+          "path": "message_id",
+          "label_zh": "消息标识",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "date",
+          "label_zh": "消息时间",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "chat.id",
+          "label_zh": "聊天 ID",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "chat.title",
+          "label_zh": "聊天名称",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "chat.username",
+          "label_zh": "聊天用户名",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "from.id",
+          "label_zh": "发送者 ID",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "from.username",
+          "label_zh": "发送者用户名",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "text",
+          "label_zh": "文本内容",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "caption",
+          "label_zh": "媒体说明",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "photo",
+          "label_zh": "图片",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "video",
+          "label_zh": "视频",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "document",
+          "label_zh": "文件",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "这里按 Bot API getUpdates 拉取消息建模；Webhook 是另一种接收方式。认证 token 不计业务输入。",
+      "inputs": [
+        {
+          "name": "offset",
+          "label_zh": "更新游标",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "label_zh": "返回上限",
+          "required": false,
+          "default": "100"
+        },
+        {
+          "name": "timeout",
+          "label_zh": "长轮询等待秒数",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "allowed_updates",
+          "label_zh": "接收的更新类型",
+          "required": false
+        }
+      ],
+      "input_source_url": "https://core.telegram.org/bots/api#message"
+    },
+    {
+      "id": "telegram.telethon.message",
+      "source_id": "telegram-telethon",
+      "label_zh": "Telethon 消息",
+      "endpoint": "Message",
+      "documentation_url": "https://docs.telethon.dev/en/stable/quick-references/objects-reference.html#message",
+      "response_coverage": "documented_planned_selection",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "这些是本产品计划读取的 Telethon Message 属性；不是对象完整属性列表。",
+      "fields": [
+        {
+          "path": "id",
+          "label_zh": "币种 ID",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "date",
+          "label_zh": "消息时间",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "peer_id",
+          "label_zh": "会话对象 ID",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "from_id",
+          "label_zh": "发送者对象 ID",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "message",
+          "label_zh": "消息正文",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "media",
+          "label_zh": "媒体对象",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "fwd_from",
+          "label_zh": "转发来源",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "views",
+          "label_zh": "浏览量",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "forwards",
+          "label_zh": "转发次数",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "replies",
+          "label_zh": "回复信息",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "",
+          "example_value": null
+        }
+      ],
+      "input_coverage": "design_input",
+      "input_note_zh": "这是 Telethon Message 对象，不是单一 API 操作；需在具体采集方法确定后记录 chat、时间和分页参数。",
+      "inputs": []
+    }
+  ],
+  "resources": [
+    {
+      "id": "kaito.resource.tokens",
+      "source_id": "kaito",
+      "label_zh": "支持的代币目录",
+      "uri": "kaito://tokens",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "purpose_zh": "查看 Kaito 支持的代币值、交易符号和项目名称，供后续查询前核对对象身份。",
+      "note_zh": "MCP 参考资源；公开说明标注无需认证。尚未取得资源读取样本，不能确定实际返回字段。",
+      "response_coverage": "no_output_sample",
+      "fields": [],
+      "input_coverage": "official_mcp_resource",
+      "input_note_zh": "读取已知 URI，不需要查询参数。",
+      "inputs": [
+        {
+          "name": "uri",
+          "label_zh": "资源 URI",
+          "required": true,
+          "default": "kaito://tokens"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server"
+    },
+    {
+      "id": "kaito.resource.narratives",
+      "source_id": "kaito",
+      "label_zh": "支持的叙事目录",
+      "uri": "kaito://narratives",
+      "documentation_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "purpose_zh": "查看 Kaito 支持的叙事标识，供查询叙事关注份额前核对主题。",
+      "note_zh": "MCP 参考资源；公开说明标注无需认证。尚未取得资源读取样本，不能确定实际返回字段。",
+      "response_coverage": "no_output_sample",
+      "fields": [],
+      "input_coverage": "official_mcp_resource",
+      "input_note_zh": "读取已知 URI，不需要查询参数。",
+      "inputs": [
+        {
+          "name": "uri",
+          "label_zh": "资源 URI",
+          "required": true,
+          "default": "kaito://narratives"
+        }
+      ],
+      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server"
+    }
+  ],
+  "revision": "sha256:88bcc7ca5353521113d194270dbee6255a0261c9c7a714e06c30a5ea3ffcd51f"
+}

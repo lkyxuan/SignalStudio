@@ -1,0 +1,957 @@
+{
+  "package_version": "signal-package.v1",
+  "signal_key": "coingecko_market_turnover_candidate",
+  "signal_version": 1,
+  "signal_contract_revision": "sha256:5d126a14c1a21f7d9f2cb5492028a54dde82185de029a9102a8f99f047aa6d1f",
+  "source_contract_revision": "sha256:88bcc7ca5353521113d194270dbee6255a0261c9c7a714e06c30a5ea3ffcd51f",
+  "definition": {
+    "signal_key": "coingecko_market_turnover_candidate",
+    "version": 1,
+    "graph_node_name": "市场交易活跃候选",
+    "design_status": "hypothesis",
+    "question_zh": "哪些币种的最近 24 小时成交额相对其市值偏高，值得进一步调查？",
+    "interpretation_zh": "这是待调查候选，不表示价格将上涨，也不表示规则经过回测验证。",
+    "graph_display": {
+      "observation_window": "来源最近 24 小时成交额快照；每小时采集一次。",
+      "formula": "turnover_ratio_24h = total_volume_usd_24h / market_cap_usd；市值必须大于 0。",
+      "trigger_rule": "比值 ≥ 0.2，且 24 小时成交额 ≥ 1,000,000 USD，市值 ≥ 10,000,000 USD。"
+    },
+    "subject": {
+      "grain": "coingecko_coin",
+      "identity_namespace": "coingecko_coin_id",
+      "identity_field": "id",
+      "asset_resolution": "deferred",
+      "unresolved_identity_policy": "emit_source_identity_only"
+    },
+    "collection": {
+      "operation_id": "coingecko.coins_markets",
+      "source_contract_version": "source-contracts.v1",
+      "request": {
+        "method": "GET",
+        "url": "https://pro-api.coingecko.com/api/v3/coins/markets",
+        "authentication": {
+          "kind": "secret_header",
+          "header": "x-cg-pro-api-key",
+          "secret_ref": "COINGECKO_API_KEY"
+        }
+      },
+      "parameters": {
+        "vs_currency": "usd",
+        "order": "market_cap_desc",
+        "per_page": 100,
+        "sparkline": false
+      },
+      "pagination": {
+        "parameter": "page",
+        "start": 1,
+        "step": 1,
+        "stop_on_empty_page": true,
+        "max_pages": 100,
+        "max_pages_reached_policy": "partial_coverage"
+      },
+      "cadence": "PT1H",
+      "event_time_field": "last_updated",
+      "event_time_normalization": "parse_rfc3339_and_store_utc",
+      "record_identity_field": "id",
+      "page_error_policy": "partial_coverage_if_prior_pages_succeeded_else_failed",
+      "retry": {
+        "max_attempts": 3,
+        "backoff": "exponential",
+        "honor_retry_after": true
+      },
+      "raw_response_policy": "preserve_complete_response",
+      "raw_response_storage": "content_addressed_with_reference_in_run_report"
+    },
+    "transport": {
+      "input": {
+        "kind": "redpanda",
+        "topic": "source.coingecko.coins_markets.v1",
+        "message_key": "id",
+        "payload_schema": "coingecko.coins_markets.v1",
+        "serialization": "json_utf8",
+        "deployment_status": "planned"
+      },
+      "output": {
+        "kind": "redpanda",
+        "topic": "signals.coingecko_market_turnover_candidate.v1",
+        "message_key": "coin_id",
+        "payload_schema": "signal_candidate.coingecko_market_turnover.v1",
+        "serialization": "json_utf8",
+        "deployment_status": "planned"
+      }
+    },
+    "implementation_guidance": {
+      "status": "preferred_stack_for_design",
+      "target_platform": "Few Understand",
+      "responsibility": "select_components_implement_and_report_run_evidence",
+      "stages": [
+        {
+          "stage": "collection",
+          "product": "CoinGecko Pro API",
+          "preferred_runtime": "Python",
+          "component_candidate": "spider/coingecko",
+          "candidate_status": "existing_code_requires_contract_comparison"
+        },
+        {
+          "stage": "transport",
+          "product": "Redpanda",
+          "preferred_runtime": "existing_platform_transport",
+          "component_candidate": "Few Understand topic registry",
+          "candidate_status": "planned_topics_require_mapping_or_provisioning"
+        },
+        {
+          "stage": "calculation",
+          "product": "Polars",
+          "preferred_runtime": "Python",
+          "preferred_execution_style": "batch_or_microbatch",
+          "component_candidate": "consumer/polars_engine",
+          "candidate_status": "existing_code_candidate_fit_not_verified"
+        },
+        {
+          "stage": "signal_delivery",
+          "product": "Redpanda",
+          "preferred_runtime": "existing_platform_transport",
+          "component_candidate": "consumer/coingecko_market_signal_scorer",
+          "candidate_status": "existing_volume_spike_logic_requires_contract_comparison"
+        }
+      ],
+      "decision_rule": "Few Understand may choose or adapt components. Treat collection, inputs, calculation, trigger, output and evidence as the target contract; report any proposed deviation, including transport or cadence, for review.",
+      "open_implementation_decisions": [
+        "reuse_existing_scorer_or_polars_engine",
+        "map_planned_topics_to_existing_topics_or_provision_new_topics",
+        "choose_raw_response_storage_location"
+      ]
+    },
+    "inputs": [
+      {
+        "name": "coin_id",
+        "upstream_path": "id",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "last_updated",
+        "upstream_path": "last_updated",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "total_volume_usd_24h",
+        "upstream_path": "total_volume",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "market_cap_usd",
+        "upstream_path": "market_cap",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "processing": {
+      "dedupe_key": [
+        "coin_id",
+        "last_updated"
+      ],
+      "same_key_policy": "retain_last_ingested_record",
+      "calculation": {
+        "output": "turnover_ratio_24h",
+        "operator": "divide",
+        "numerator": "total_volume_usd_24h",
+        "denominator": "market_cap_usd",
+        "zero_or_negative_denominator": "no_result"
+      },
+      "missing_input_policy": "no_result",
+      "invalid_number_policy": "no_result",
+      "timestamp_parse_failure_policy": "no_result",
+      "trigger": {
+        "operator": "all",
+        "conditions": [
+          {
+            "field": "turnover_ratio_24h",
+            "operator": "gte",
+            "value": 0.2
+          },
+          {
+            "field": "total_volume_usd_24h",
+            "operator": "gte",
+            "value": 1000000
+          },
+          {
+            "field": "market_cap_usd",
+            "operator": "gte",
+            "value": 10000000
+          }
+        ]
+      },
+      "threshold_status": "unvalidated_design_choice"
+    },
+    "runtime_ids": {
+      "source_run_id": "new_uuid_per_collection_attempt",
+      "source_observation_id": "sha256_utf8_of_operation_id_pipe_coin_id_pipe_last_updated"
+    },
+    "output": {
+      "record_type": "signal_candidate",
+      "emit_when": "trigger_true_and_all_inputs_valid",
+      "idempotency_key": [
+        "signal_key",
+        "version",
+        "coin_id",
+        "last_updated"
+      ],
+      "fields": [
+        {
+          "name": "signal_key",
+          "type": "string",
+          "source": "constant"
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "source": "constant"
+        },
+        {
+          "name": "coin_id",
+          "type": "string",
+          "source": "input.coin_id"
+        },
+        {
+          "name": "last_updated",
+          "type": "string",
+          "source": "input.last_updated"
+        },
+        {
+          "name": "total_volume_usd_24h",
+          "type": "number",
+          "source": "input.total_volume_usd_24h"
+        },
+        {
+          "name": "market_cap_usd",
+          "type": "number",
+          "source": "input.market_cap_usd"
+        },
+        {
+          "name": "turnover_ratio_24h",
+          "type": "number",
+          "source": "calculation.turnover_ratio_24h"
+        },
+        {
+          "name": "source_observation_id",
+          "type": "string",
+          "source": "runtime.source_observation_id"
+        },
+        {
+          "name": "source_run_id",
+          "type": "string",
+          "source": "runtime.source_run_id"
+        }
+      ],
+      "coverage": {
+        "required": true,
+        "states": [
+          "complete",
+          "partial_coverage",
+          "failed"
+        ],
+        "no_match_interpretation": "no_candidate_in_observed_coverage_only"
+      }
+    },
+    "validation": {
+      "status": "not_run",
+      "plan_zh": "取得实际爬虫运行记录后，核对分页覆盖、字段映射和计算值；抽样人工检查候选与漏掉的币种，再用历史样本调整阈值。",
+      "required_evidence": [
+        "successful_source_run",
+        "emitted_record_sample",
+        "field_mapping",
+        "calculation_check",
+        "historical_review"
+      ],
+      "known_false_positives_zh": [
+        "低流动性市场的异常成交",
+        "市值数据滞后",
+        "刷量或重复统计"
+      ]
+    },
+    "implementation_report": {
+      "required": true,
+      "fields": [
+        "signal_key",
+        "signal_version",
+        "package_revision",
+        "source_contract_revision",
+        "code_revision",
+        "implementation_status",
+        "source_run_id",
+        "source_request_parameters",
+        "coverage_state",
+        "raw_response_sample_ref",
+        "emitted_record_sample_ref",
+        "upstream_to_emitted_field_mapping",
+        "technology_decisions",
+        "errors"
+      ],
+      "evidence_policy": "report_actual_runs_separately_from_configured_fields"
+    }
+  },
+  "source_contract": {
+    "source": {
+      "id": "coingecko",
+      "label_zh": "CoinGecko 市场数据",
+      "authority_kind": "official_api",
+      "authority_url": "https://docs.coingecko.com/reference/coins-markets",
+      "schema_status": "source_reference"
+    },
+    "operation": {
+      "id": "coingecko.coins_markets",
+      "source_id": "coingecko",
+      "label_zh": "市场数据列表",
+      "endpoint": "/api/v3/coins/markets",
+      "documentation_url": "https://docs.coingecko.com/reference/coins-markets",
+      "response_coverage": "api_sample_plus_documented_optionals",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=1&page=1",
+      "note_zh": "本次请求未开启 sparkline 或额外涨跌幅窗口；可选字段按官方文档条件标注。",
+      "fields": [
+        {
+          "path": "id",
+          "label_zh": "币种 ID",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "bitcoin"
+        },
+        {
+          "path": "symbol",
+          "label_zh": "交易对",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "btc"
+        },
+        {
+          "path": "name",
+          "label_zh": "名称",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "Bitcoin"
+        },
+        {
+          "path": "image",
+          "label_zh": "图标链接",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "https://coin-images.coingecko.com/coins/images/1/large/bitcoin.png?1696501400"
+        },
+        {
+          "path": "current_price",
+          "label_zh": "当前价格",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 84816
+        },
+        {
+          "path": "market_cap",
+          "label_zh": "市值",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1703952687832
+        },
+        {
+          "path": "market_cap_rank",
+          "label_zh": "市值排名",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1
+        },
+        {
+          "path": "fully_diluted_valuation",
+          "label_zh": "完全稀释估值",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 1703954808239
+        },
+        {
+          "path": "total_volume",
+          "label_zh": "成交额",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 18550945549
+        },
+        {
+          "path": "high_24h",
+          "label_zh": "24 小时最高价",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 84748
+        },
+        {
+          "path": "low_24h",
+          "label_zh": "24 小时最低价",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 83835
+        },
+        {
+          "path": "price_change_24h",
+          "label_zh": "24 小时价格变化",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 777.0
+        },
+        {
+          "path": "price_change_percentage_24h",
+          "label_zh": "24h 涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 0.92372
+        },
+        {
+          "path": "market_cap_change_24h",
+          "label_zh": "24 小时市值变化",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 15652625498
+        },
+        {
+          "path": "market_cap_change_percentage_24h",
+          "label_zh": "24 小时市值涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 0.92712
+        },
+        {
+          "path": "circulating_supply",
+          "label_zh": "流通供应量",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 20089918.0
+        },
+        {
+          "path": "total_supply",
+          "label_zh": "总供应量",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 20089965.0
+        },
+        {
+          "path": "max_supply",
+          "label_zh": "最大供应量",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 21000000.0
+        },
+        {
+          "path": "ath",
+          "label_zh": "历史最高价",
+          "type": "integer",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 126080
+        },
+        {
+          "path": "ath_change_percentage",
+          "label_zh": "距历史最高价涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": -32.72812
+        },
+        {
+          "path": "ath_date",
+          "label_zh": "历史最高价日期",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "2025-10-06T10:57:42.000Z"
+        },
+        {
+          "path": "atl",
+          "label_zh": "历史最低价",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 67.81
+        },
+        {
+          "path": "atl_change_percentage",
+          "label_zh": "距历史最低价涨跌幅",
+          "type": "number",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": 124981.19682
+        },
+        {
+          "path": "atl_date",
+          "label_zh": "历史最低价日期",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "2013-07-05T16:00:00.000Z"
+        },
+        {
+          "path": "roi",
+          "label_zh": "投资回报信息",
+          "type": "null",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": null
+        },
+        {
+          "path": "last_updated",
+          "label_zh": "上游更新时间",
+          "type": "string",
+          "evidence": "api_sample",
+          "condition": "",
+          "example_value": "2026-09-27T08:17:30.000Z"
+        },
+        {
+          "path": "sparkline_in_7d.price",
+          "label_zh": "7 日价格序列",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "sparkline=true 时的七日价格序列",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_1h_in_currency",
+          "label_zh": "1h 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 1h 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_24h_in_currency",
+          "label_zh": "24h 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 24h 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_7d_in_currency",
+          "label_zh": "7d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 7d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_14d_in_currency",
+          "label_zh": "14d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 14d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_30d_in_currency",
+          "label_zh": "30d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 30d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_200d_in_currency",
+          "label_zh": "200d 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 200d 时的涨跌幅",
+          "example_value": null
+        },
+        {
+          "path": "price_change_percentage_1y_in_currency",
+          "label_zh": "1y 涨跌幅",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "price_change_percentage 包含 1y 时的涨跌幅",
+          "example_value": null
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "ids、names、symbols、category 是可选筛选；都不填时查询市场列表。API key 属于认证，不计业务输入。",
+      "inputs": [
+        {
+          "name": "vs_currency",
+          "label_zh": "计价货币",
+          "required": true,
+          "default": "usd（文档示例；仍须显式传入）"
+        },
+        {
+          "name": "ids",
+          "label_zh": "币种 ID 列表",
+          "required": false
+        },
+        {
+          "name": "names",
+          "label_zh": "币种名称列表",
+          "required": false
+        },
+        {
+          "name": "symbols",
+          "label_zh": "交易符号列表",
+          "required": false
+        },
+        {
+          "name": "include_tokens",
+          "label_zh": "同符号代币范围",
+          "required": false,
+          "default": "top",
+          "condition_zh": "仅用于 symbols 查询"
+        },
+        {
+          "name": "category",
+          "label_zh": "类别",
+          "required": false
+        },
+        {
+          "name": "order",
+          "label_zh": "排序方式",
+          "required": false,
+          "default": "market_cap_desc"
+        },
+        {
+          "name": "per_page",
+          "label_zh": "每页条数",
+          "required": false,
+          "default": "100"
+        },
+        {
+          "name": "page",
+          "label_zh": "页码",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "sparkline",
+          "label_zh": "是否包含 7 日价格序列",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "price_change_percentage",
+          "label_zh": "涨跌幅统计窗口",
+          "required": false,
+          "condition_zh": "可指定 1h、24h、7d、14d、30d、200d、1y"
+        },
+        {
+          "name": "locale",
+          "label_zh": "显示语言",
+          "required": false,
+          "default": "en"
+        },
+        {
+          "name": "precision",
+          "label_zh": "价格精度",
+          "required": false
+        },
+        {
+          "name": "include_rehypothecated",
+          "label_zh": "是否包含再抵押代币",
+          "required": false,
+          "default": "false"
+        }
+      ],
+      "input_source_url": "https://docs.coingecko.com/reference/coins-markets"
+    },
+    "revision": "sha256:88bcc7ca5353521113d194270dbee6255a0261c9c7a714e06c30a5ea3ffcd51f"
+  },
+  "design_graph": {
+    "signal_node": {
+      "id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+      "reference_number": 43,
+      "signal_key": "coingecko_market_turnover_candidate",
+      "name": "市场交易活跃候选",
+      "type": "Metric",
+      "definition": "这是待调查候选，不表示价格将上涨，也不表示规则经过回测验证。",
+      "formula": "turnover_ratio_24h = total_volume_usd_24h / market_cap_usd；市值必须大于 0。",
+      "decision_question": "哪些币种的最近 24 小时成交额相对其市值偏高，值得进一步调查？",
+      "observation_window": "来源最近 24 小时成交额快照；每小时采集一次。",
+      "trigger_rule": "比值 ≥ 0.2，且 24 小时成交额 ≥ 1,000,000 USD，市值 ≥ 10,000,000 USD。",
+      "validation_plan": "取得实际爬虫运行记录后，核对分页覆盖、字段映射和计算值；抽样人工检查候选与漏掉的币种，再用历史样本调整阈值。",
+      "validation_evidence": "",
+      "rationale": "",
+      "caveats": "阈值未验证；候选仅使用 CoinGecko 币种 ID，不自动认定内部资产身份。",
+      "notes": "完整机器配置：GET /api/signals/coingecko_market_turnover_candidate/package",
+      "workflow_lane": "signal"
+    },
+    "nodes": [
+      {
+        "id": "bb143913-6641-40c3-be08-2e920887ed08",
+        "reference_number": 14,
+        "signal_key": "",
+        "name": "coingecko.coins_markets",
+        "type": "Source",
+        "definition": "本产品规划的上游操作；字段依据官方文档、API 或 MCP，尚不代表爬虫已产出。",
+        "formula": "",
+        "decision_question": "",
+        "observation_window": "",
+        "trigger_rule": "",
+        "validation_plan": "",
+        "validation_evidence": "",
+        "rationale": "",
+        "caveats": "",
+        "notes": "",
+        "workflow_lane": "shared"
+      },
+      {
+        "id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "reference_number": 43,
+        "signal_key": "coingecko_market_turnover_candidate",
+        "name": "市场交易活跃候选",
+        "type": "Metric",
+        "definition": "这是待调查候选，不表示价格将上涨，也不表示规则经过回测验证。",
+        "formula": "turnover_ratio_24h = total_volume_usd_24h / market_cap_usd；市值必须大于 0。",
+        "decision_question": "哪些币种的最近 24 小时成交额相对其市值偏高，值得进一步调查？",
+        "observation_window": "来源最近 24 小时成交额快照；每小时采集一次。",
+        "trigger_rule": "比值 ≥ 0.2，且 24 小时成交额 ≥ 1,000,000 USD，市值 ≥ 10,000,000 USD。",
+        "validation_plan": "取得实际爬虫运行记录后，核对分页覆盖、字段映射和计算值；抽样人工检查候选与漏掉的币种，再用历史样本调整阈值。",
+        "validation_evidence": "",
+        "rationale": "",
+        "caveats": "阈值未验证；候选仅使用 CoinGecko 币种 ID，不自动认定内部资产身份。",
+        "notes": "完整机器配置：GET /api/signals/coingecko_market_turnover_candidate/package",
+        "workflow_lane": "signal"
+      }
+    ],
+    "edges": [
+      {
+        "id": "4b587316-ebcc-4754-af3a-0b4e0e628e40",
+        "reference_number": 1,
+        "upstream_id": "bb143913-6641-40c3-be08-2e920887ed08",
+        "downstream_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "rationale": "采集 CoinGecko 市场列表，计算交易活跃候选。",
+        "transformation": "按 CoinGecko ID 与 last_updated 去重；计算成交额/市值并判断阈值。",
+        "transport_kind": "redpanda",
+        "transport_topic": "source.coingecko.coins_markets.v1",
+        "transport_key": "id",
+        "payload_schema": "coingecko.coins_markets.v1",
+        "transport_headers": "[]"
+      }
+    ],
+    "fields": [
+      {
+        "id": "d572a8b4-4f91-4b8d-9915-d1d4d922c60f",
+        "node_id": "bb143913-6641-40c3-be08-2e920887ed08",
+        "name": "id",
+        "data_type": "string",
+        "definition": "币种 ID",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": "source-contracts.v1::coingecko.coins_markets::id"
+      },
+      {
+        "id": "8aea6b86-5b43-46f3-93e4-e3de6e165dbc",
+        "node_id": "bb143913-6641-40c3-be08-2e920887ed08",
+        "name": "last_updated",
+        "data_type": "string",
+        "definition": "上游更新时间",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": "source-contracts.v1::coingecko.coins_markets::last_updated"
+      },
+      {
+        "id": "5bd0a436-0e79-4e98-8018-cbf7bf5c210c",
+        "node_id": "bb143913-6641-40c3-be08-2e920887ed08",
+        "name": "total_volume",
+        "data_type": "integer",
+        "definition": "成交额",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": "source-contracts.v1::coingecko.coins_markets::total_volume"
+      },
+      {
+        "id": "cd5ef867-8d83-4297-9ad4-3fdf17b07a9d",
+        "node_id": "bb143913-6641-40c3-be08-2e920887ed08",
+        "name": "market_cap",
+        "data_type": "integer",
+        "definition": "市值",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": "source-contracts.v1::coingecko.coins_markets::market_cap"
+      },
+      {
+        "id": "0203e258-235b-4cbf-ac85-e9c2cac2c6d1",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "signal_key",
+        "data_type": "string",
+        "definition": "执行包输出字段，取值来源：constant",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "a083cbdb-9ba9-4751-8bbe-e0f0c9fcd7dd",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "version",
+        "data_type": "integer",
+        "definition": "执行包输出字段，取值来源：constant",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "9017e3f0-0365-4a7a-b167-5ad2ba505bf5",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "coin_id",
+        "data_type": "string",
+        "definition": "执行包输出字段，取值来源：input.coin_id",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "7e103cb8-95c9-44d8-ab9d-1934d14c58f4",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "last_updated",
+        "data_type": "string",
+        "definition": "执行包输出字段，取值来源：input.last_updated",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "cb9901a9-ad5d-4384-be54-dbfb71ca9670",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "total_volume_usd_24h",
+        "data_type": "number",
+        "definition": "执行包输出字段，取值来源：input.total_volume_usd_24h",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "f0c6abc3-b317-4756-a7fb-f5eda8adfc51",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "market_cap_usd",
+        "data_type": "number",
+        "definition": "执行包输出字段，取值来源：input.market_cap_usd",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "8bc74d17-e52c-4397-8b29-94389edda3f2",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "turnover_ratio_24h",
+        "data_type": "number",
+        "definition": "执行包输出字段，取值来源：calculation.turnover_ratio_24h",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "19977c75-4133-4289-a7b0-c32a803b0f9b",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "source_observation_id",
+        "data_type": "string",
+        "definition": "执行包输出字段，取值来源：runtime.source_observation_id",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      },
+      {
+        "id": "b9b9412b-6b7e-4e94-ab61-0db1d9eacf89",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "source_run_id",
+        "data_type": "string",
+        "definition": "执行包输出字段，取值来源：runtime.source_run_id",
+        "unit": "",
+        "normalization_rule": "",
+        "catalog_field_id": ""
+      }
+    ],
+    "field_usages": [
+      {
+        "id": "fb40c789-b3b3-4c79-b19d-16e1f903019b",
+        "reference_number": 1,
+        "edge_id": "4b587316-ebcc-4754-af3a-0b4e0e628e40",
+        "source_field_id": "d572a8b4-4f91-4b8d-9915-d1d4d922c60f",
+        "target_field_id": "9017e3f0-0365-4a7a-b167-5ad2ba505bf5",
+        "usage_note": "按执行包读取上游路径 id"
+      },
+      {
+        "id": "c9b6b45c-ac80-4afe-88ec-44af579e4638",
+        "reference_number": 2,
+        "edge_id": "4b587316-ebcc-4754-af3a-0b4e0e628e40",
+        "source_field_id": "8aea6b86-5b43-46f3-93e4-e3de6e165dbc",
+        "target_field_id": "7e103cb8-95c9-44d8-ab9d-1934d14c58f4",
+        "usage_note": "按执行包读取上游路径 last_updated"
+      },
+      {
+        "id": "3bf946c4-f553-4d15-a05b-064f88b33af4",
+        "reference_number": 3,
+        "edge_id": "4b587316-ebcc-4754-af3a-0b4e0e628e40",
+        "source_field_id": "5bd0a436-0e79-4e98-8018-cbf7bf5c210c",
+        "target_field_id": "cb9901a9-ad5d-4384-be54-dbfb71ca9670",
+        "usage_note": "按执行包读取上游路径 total_volume"
+      },
+      {
+        "id": "0782281e-dfd2-40e4-be7a-f1b138590f54",
+        "reference_number": 4,
+        "edge_id": "4b587316-ebcc-4754-af3a-0b4e0e628e40",
+        "source_field_id": "cd5ef867-8d83-4297-9ad4-3fdf17b07a9d",
+        "target_field_id": "f0c6abc3-b317-4756-a7fb-f5eda8adfc51",
+        "usage_note": "按执行包读取上游路径 market_cap"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "f9e329f9-1058-4269-afcc-555cc2d77de6",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "coin_id",
+        "purpose": "执行包必需输入；上游路径 id",
+        "source_field_id": "d572a8b4-4f91-4b8d-9915-d1d4d922c60f"
+      },
+      {
+        "id": "654c9459-5100-41e4-945e-d463f7013a04",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "last_updated",
+        "purpose": "执行包必需输入；上游路径 last_updated",
+        "source_field_id": "8aea6b86-5b43-46f3-93e4-e3de6e165dbc"
+      },
+      {
+        "id": "e79cf5a2-ec41-4457-8a37-0c8ea69bdfe3",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "total_volume_usd_24h",
+        "purpose": "执行包必需输入；上游路径 total_volume",
+        "source_field_id": "5bd0a436-0e79-4e98-8018-cbf7bf5c210c"
+      },
+      {
+        "id": "25347688-d940-4b5c-96a3-b74492b3f214",
+        "node_id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
+        "name": "market_cap_usd",
+        "purpose": "执行包必需输入；上游路径 market_cap",
+        "source_field_id": "cd5ef867-8d83-4297-9ad4-3fdf17b07a9d"
+      }
+    ]
+  },
+  "implementation_readiness": {
+    "status": "ready",
+    "issues": []
+  },
+  "revision": "sha256:c8d28fa732e7929d96316f9a7ead97a4b4853c28c2e0bc7f83b8cde22d5dadd3",
+  "runtime_evidence": {
+    "status": "not_provided",
+    "latest_report_id": null,
+    "signal_validated": false,
+    "emitted_record_sample_reported": false,
+    "crawler_records_verified": false
+  }
+}

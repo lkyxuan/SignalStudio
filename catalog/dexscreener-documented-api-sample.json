@@ -1,0 +1,62 @@
+{
+  "source": "DEX Screener documented token-pairs/v1 endpoint",
+  "retrieved_at": "2026-09-27T10:44:50.585166+00:00",
+  "url": "https://api.dexscreener.com/token-pairs/v1/ethereum/0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+  "returned_pair_count": 30,
+  "pair": {
+    "chainId": "ethereum",
+    "dexId": "uniswap",
+    "url": "https://dexscreener.com/ethereum/0x0fb0e40cec3bb23e13abc585958a93c796fbea56955e19a23727a716a0423239",
+    "pairAddress": "0x0fb0e40cec3bb23e13abc585958a93c796fbea56955e19a23727a716a0423239",
+    "labels": [
+      "v4"
+    ],
+    "baseToken": {
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "name": "USD Coin",
+      "symbol": "USDC"
+    },
+    "quoteToken": {
+      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "name": "Tether USD",
+      "symbol": "USDT"
+    },
+    "priceNative": "1.0001310",
+    "priceUsd": "1.00013",
+    "txns": {
+      "m5": {
+        "buys": 1,
+        "sells": 6
+      },
+      "h1": {
+        "buys": 50,
+        "sells": 75
+      },
+      "h6": {
+        "buys": 368,
+        "sells": 321
+      },
+      "h24": {
+        "buys": 1218,
+        "sells": 1323
+      }
+    },
+    "volume": {
+      "h24": 51563617.39,
+      "h6": 5945309.57,
+      "h1": 697108,
+      "m5": 106711.61
+    },
+    "priceChange": {
+      "h6": -0.01
+    },
+    "liquidity": {
+      "usd": 3464726.33,
+      "base": 2394418,
+      "quote": 1069994
+    },
+    "fdv": 50249885895,
+    "marketCap": 50249885895,
+    "pairCreatedAt": 1747108055000
+  }
+}

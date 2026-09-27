@@ -1,0 +1,86 @@
+{
+  "reviewed_at": "2026-09-27",
+  "snapshot_revision": "23a854c2a02e6b52e424844648d4026737361caa",
+  "sources": {
+    "binance-futures": {
+      "upstream_name": "Binance USDⓈ-M Futures REST API",
+      "upstream_url": "https://developers.binance.com/en/docs/catalog",
+      "upstream_kind": "official_api_documentation",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/binance-futures/binance_futures_transform.py",
+      "scope_zh": "右侧是爬虫按接口响应生成的 V2 记录字段；接口原始 JSON 与转换后消息不是同一层。各记录类型对应不同的 /fapi 或 /futures/data 接口。",
+      "scope_en": "The cards are V2 fields emitted by the crawler from different /fapi or /futures/data responses, not the raw JSON schema.",
+      "coverage_zh": "V2 对转换后记录标为 exact；没有把它当作全部上游接口字段，也没有真实采集记录证据。",
+      "coverage_en": "V2 marks the transformed records exact; this is not a complete upstream API field inventory or proof of collection."
+    },
+    "coingecko": {
+      "upstream_name": "CoinGecko /coins/markets",
+      "upstream_url": "https://docs.coingecko.com/reference/coins-markets",
+      "upstream_kind": "official_api_documentation",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/coingecko/spider.py",
+      "scope_zh": "右侧逐项列出一次 /coins/markets 的真实上游响应。爬虫过滤低市值币种，并删去 roi、image、ath、atl，再添加 collected_at。",
+      "scope_en": "The cards show one real /coins/markets response. The crawler filters low market caps, removes roi, image, ath and atl, and adds collected_at.",
+      "coverage_zh": "样本包含本次请求返回的字段；官方文档还列有需额外参数才可能出现的字段，不能把样本当作接口全集。",
+      "coverage_en": "The sample covers one request; the official reference lists additional parameter-dependent fields."
+    },
+    "dexscreener": {
+      "upstream_name": "DEX Screener API and site stream",
+      "upstream_url": "https://docs.dexscreener.com/api/reference",
+      "upstream_kind": "official_api_documentation_partial_match",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/dexScreener/main.py",
+      "scope_zh": "爬虫从网站 WebSocket 消息提取地址，再请求 /latest/dex/tokens/{address} 并只取 pairs[0]；右侧逐项展开该路径一次真实响应的第一条 pair。",
+      "scope_en": "The crawler extracts addresses from a site WebSocket, requests /latest/dex/tokens/{address}, and keeps only pairs[0]. Cards expand the first pair from a real response to that path.",
+      "coverage_zh": "样本列全了本次第一条 pair 的键；当前公开文档没有证明 WebSocket 和旧式 tokens 路径的完整契约，也不能保证其他地址返回同样的键。",
+      "coverage_en": "The sample lists every key in this first pair; the public reference does not establish a complete contract for the WebSocket or legacy tokens path, or for other addresses."
+    },
+    "kaito": {
+      "upstream_name": "Kaito MCP (MetaSearch-IO proxy)",
+      "upstream_url": "https://github.com/MetaSearch-IO/kaito-mcp-server",
+      "upstream_kind": "mcp_provider_repository",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/kaito-social-spider/spider.py",
+      "scope_zh": "右侧是对应 MCP 工具已保存的响应样本字段。中文用途是本产品解释；V2 的 data.metrics 等转换后字段不混入样本字段。",
+      "scope_en": "The cards are saved response sample fields for each MCP tool. Chinese guidance is app-owned; transformed V2 data.metrics fields are separate.",
+      "coverage_zh": "MCP tools/list 没有 outputSchema；样本字段是下限，无法据此宣称覆盖全部参数和记录分支。",
+      "coverage_en": "MCP tools/list supplied no outputSchema. Sampled fields are a lower bound across parameters and record variants."
+    },
+    "rss": {
+      "upstream_name": "RSS 2.0 feeds",
+      "upstream_url": "https://www.rssboard.org/rss-specification",
+      "upstream_kind": "format_specification",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/crypto-rss-collector/src/parser.py",
+      "scope_zh": "RSS 规范允许更多 item 元素；爬虫通过 feedparser 只生成 title、link、published、summary、source、category 六个字段。",
+      "scope_en": "RSS permits more item elements; the crawler emits six fields via feedparser.",
+      "coverage_zh": "V2 的六项是当前爬虫输出结构，不是 RSS 原文的完整字段集；无真实采集记录证明。",
+      "coverage_en": "The six V2 fields are the crawler output, not every RSS item element; no collected record is evidenced."
+    },
+    "taoli": {
+      "upstream_name": "taoli.tools website",
+      "upstream_url": "https://taoli.tools/",
+      "upstream_kind": "website_without_public_api_schema",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/taoli-spider/spider.py",
+      "scope_zh": "爬虫读取页面行内 span 的位置并生成八个英文键；转换时另加 collected_at。",
+      "scope_en": "The crawler reads positioned spans from page rows, emits eight English keys, then adds collected_at during transformation.",
+      "coverage_zh": "未找到公开的字段 API 契约；字段范围依据爬虫代码。网页结构变化可能改变或中断提取。",
+      "coverage_en": "No public field API contract was found; the crawler code is the field basis. Site changes may alter or break extraction."
+    },
+    "tg-spider": {
+      "upstream_name": "Telegram Bot API Message",
+      "upstream_url": "https://core.telegram.org/bots/api#message",
+      "upstream_kind": "official_api_documentation",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/tg-spider/spider.py",
+      "scope_zh": "Bot API 的 Message 对象远多于右侧字段；右侧只列当前爬虫选择并整理后的消息字段。",
+      "scope_en": "The Bot API Message object has many more properties; cards show only fields selected by this crawler.",
+      "coverage_zh": "V2 对爬虫输出结构标为 exact；不能将其理解为 Telegram 官方 Message 的全部字段。",
+      "coverage_en": "V2 marks the crawler output exact, not the full Telegram Message schema."
+    },
+    "tg-spider-telethon": {
+      "upstream_name": "Telethon Message / Telegram MTProto",
+      "upstream_url": "https://docs.telethon.dev/en/stable/quick-references/objects-reference.html#message",
+      "upstream_kind": "library_documentation",
+      "crawler_url": "https://github.com/cyberight-cap/fewunderstand/blob/23a854c2a02e6b52e424844648d4026737361caa/spider/tg-spider-telethon/spider.py",
+      "scope_zh": "右侧列当前 Telethon 爬虫整理并保存的字段；Telethon Message 本身提供更多属性。",
+      "scope_en": "Cards list the fields assembled and saved by this Telethon crawler; Telethon Message exposes more properties.",
+      "coverage_zh": "V2 对爬虫输出结构标为 exact；不是 Telethon 或 Telegram 原始消息的完整属性列表。",
+      "coverage_en": "V2 marks the crawler output exact, not the full Telethon or Telegram message object."
+    }
+  }
+}

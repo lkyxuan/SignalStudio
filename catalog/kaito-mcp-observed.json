@@ -1,0 +1,1307 @@
+{
+  "source": "Kaito MCP live tools/call",
+  "endpoint": "https://bff.kaito.ai/api/mcp",
+  "observed_at": "2026-09-27T08:31:52.055893+00:00",
+  "v2_source_revision": "sha256:f1620ffa32315698b375587fe1c122404db9b82a56c98e66940100518206b35c",
+  "tool_count": 21,
+  "output_schema_count": 0,
+  "count_meaning": "Observed response row/series fields in small live samples; lower bound, not complete output schema or crawler-emitted fields.",
+  "tools": [
+    {
+      "name": "kaito_entities",
+      "entity_id": "kaito-social-spider.kaito_entity_reference",
+      "sample_status": "observed",
+      "observed_field_count": 4,
+      "fields": [
+        {
+          "path": "coingecko_id",
+          "label_zh": "CoinGecko 标识",
+          "purpose_zh": "与 CoinGecko 对象对应的稳定名称。",
+          "use_case_zh": "将社交讨论与行情对象匹配。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。",
+          "type": "str",
+          "example_value": "Bitcoin"
+        },
+        {
+          "path": "symbol",
+          "label_zh": "交易符号",
+          "purpose_zh": "币种或股票常用的交易符号。",
+          "use_case_zh": "把 Kaito 对象与市场行情中的符号对应起来。",
+          "type": "str",
+          "example_value": "BTC"
+        },
+        {
+          "path": "token",
+          "label_zh": "对象代号",
+          "purpose_zh": "Kaito 用来识别项目或币种的代号。",
+          "use_case_zh": "先用它确认对象，再查询该对象的走势。",
+          "type": "str",
+          "example_value": "BTC"
+        }
+      ],
+      "response_example": {
+        "fullname": "Bitcoin",
+        "symbol": "BTC",
+        "token": "BTC"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_narratives",
+      "entity_id": "kaito-social-spider.kaito_narrative_reference",
+      "sample_status": "observed",
+      "observed_field_count": 3,
+      "fields": [
+        {
+          "path": "description",
+          "label_zh": "说明",
+          "purpose_zh": "对象或事件的文字说明。",
+          "use_case_zh": "打开原始资料，确认它是否符合想研究的主题。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。",
+          "type": "str",
+          "example_value": "AI"
+        },
+        {
+          "path": "narrative",
+          "label_zh": "叙事代号",
+          "purpose_zh": "Kaito 识别叙事主题的代码。",
+          "use_case_zh": "用同一代号追踪一个叙事的关注变化。",
+          "type": "str",
+          "example_value": "AI"
+        }
+      ],
+      "response_example": {
+        "fullname": "AI",
+        "narrative": "AI"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_feeds",
+      "entity_id": "kaito-social-spider.kaito_feed_item",
+      "sample_status": "observed",
+      "observed_field_count": 12,
+      "fields": [
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_user_id",
+          "label_zh": "作者用户 ID",
+          "purpose_zh": "发布者在 X 上的用户标识。",
+          "use_case_zh": "关联作者资料和关注关系。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。",
+          "type": "str",
+          "example_value": "2026-09-26T17:43:49.000Z"
+        },
+        {
+          "path": "doc_id",
+          "label_zh": "文档标识",
+          "purpose_zh": "内容在搜索索引中的标识。",
+          "use_case_zh": "合并搜索和动态结果时避免重复。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "engagement",
+          "label_zh": "互动量",
+          "purpose_zh": "内容获得的总体互动。",
+          "use_case_zh": "比较内容的传播程度。",
+          "type": "int",
+          "example_value": 1923
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。",
+          "type": "int",
+          "example_value": 36
+        },
+        {
+          "path": "summary",
+          "label_zh": "内容摘要",
+          "purpose_zh": "上游提供的内容摘要。",
+          "use_case_zh": "打开原文判断讨论是否真正相关。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "tokens",
+          "label_zh": "关联对象",
+          "purpose_zh": "上游标出的相关项目或币种列表。",
+          "use_case_zh": "筛出与目标对象有关的内容。",
+          "type": "array",
+          "example_value": []
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。",
+          "type": "str",
+          "example_value": "Twitter"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "created_at": "2026-09-26T17:43:49.000Z",
+        "engagement": 1923,
+        "smart_engagement": 36,
+        "tokens": [],
+        "type": "Twitter"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_search",
+      "entity_id": "kaito-social-spider.kaito_search_result",
+      "sample_status": "observed",
+      "observed_field_count": 12,
+      "fields": [
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_user_id",
+          "label_zh": "作者用户 ID",
+          "purpose_zh": "发布者在 X 上的用户标识。",
+          "use_case_zh": "关联作者资料和关注关系。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。",
+          "type": "str",
+          "example_value": "2026-09-21T12:02:35.000Z"
+        },
+        {
+          "path": "doc_id",
+          "label_zh": "文档标识",
+          "purpose_zh": "内容在搜索索引中的标识。",
+          "use_case_zh": "合并搜索和动态结果时避免重复。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "engagement",
+          "label_zh": "互动量",
+          "purpose_zh": "内容获得的总体互动。",
+          "use_case_zh": "比较内容的传播程度。",
+          "type": "int",
+          "example_value": 16163
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。",
+          "type": "int",
+          "example_value": 51
+        },
+        {
+          "path": "summary",
+          "label_zh": "内容摘要",
+          "purpose_zh": "上游提供的内容摘要。",
+          "use_case_zh": "打开原文判断讨论是否真正相关。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "tokens",
+          "label_zh": "关联对象",
+          "purpose_zh": "上游标出的相关项目或币种列表。",
+          "use_case_zh": "筛出与目标对象有关的内容。",
+          "type": "array",
+          "example_value": []
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。",
+          "type": "str",
+          "example_value": "Twitter"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "created_at": "2026-09-21T12:02:35.000Z",
+        "engagement": 16163,
+        "smart_engagement": 51,
+        "tokens": [],
+        "type": "Twitter"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_advanced_search",
+      "entity_id": "kaito-social-spider.kaito_search_result",
+      "sample_status": "observed",
+      "observed_field_count": 12,
+      "fields": [
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_user_id",
+          "label_zh": "作者用户 ID",
+          "purpose_zh": "发布者在 X 上的用户标识。",
+          "use_case_zh": "关联作者资料和关注关系。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。",
+          "type": "str",
+          "example_value": "2026-09-16T11:25:49.000Z"
+        },
+        {
+          "path": "doc_id",
+          "label_zh": "文档标识",
+          "purpose_zh": "内容在搜索索引中的标识。",
+          "use_case_zh": "合并搜索和动态结果时避免重复。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "engagement",
+          "label_zh": "互动量",
+          "purpose_zh": "内容获得的总体互动。",
+          "use_case_zh": "比较内容的传播程度。",
+          "type": "int",
+          "example_value": 23896
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。",
+          "type": "int",
+          "example_value": 34
+        },
+        {
+          "path": "summary",
+          "label_zh": "内容摘要",
+          "purpose_zh": "上游提供的内容摘要。",
+          "use_case_zh": "打开原文判断讨论是否真正相关。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "tokens",
+          "label_zh": "关联对象",
+          "purpose_zh": "上游标出的相关项目或币种列表。",
+          "use_case_zh": "筛出与目标对象有关的内容。",
+          "type": "array",
+          "example_value": []
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。",
+          "type": "str",
+          "example_value": "Twitter"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "created_at": "2026-09-16T11:25:49.000Z",
+        "engagement": 23896,
+        "smart_engagement": 34,
+        "tokens": [],
+        "type": "Twitter"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_twitter_user_metadata",
+      "entity_id": "kaito-social-spider.kaito_twitter_user_metadata",
+      "sample_status": "observed",
+      "observed_field_count": 10,
+      "fields": [
+        {
+          "path": "bio",
+          "label_zh": "账号简介",
+          "purpose_zh": "账号资料中的自我介绍。",
+          "use_case_zh": "人工判断账号类别是否合适。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "created_at",
+          "label_zh": "发布时间",
+          "purpose_zh": "内容或账号创建的时间。",
+          "use_case_zh": "按时间窗口比较新增讨论。",
+          "type": "str",
+          "example_value": "2011-08-24T04:46:48+00:00"
+        },
+        {
+          "path": "followers",
+          "label_zh": "粉丝数",
+          "purpose_zh": "账号当前的粉丝量。",
+          "use_case_zh": "比较作者的受众规模。",
+          "type": "int",
+          "example_value": 1003
+        },
+        {
+          "path": "following_count",
+          "label_zh": "关注人数",
+          "purpose_zh": "账号主动关注的账号数量。",
+          "use_case_zh": "辅助理解账号行为。",
+          "type": "int",
+          "example_value": 6314
+        },
+        {
+          "path": "icon",
+          "label_zh": "头像链接",
+          "purpose_zh": "账号资料中的头像地址。",
+          "use_case_zh": "人工核对账号身份。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "name",
+          "label_zh": "显示名称",
+          "purpose_zh": "账号或对象展示给用户的名称。",
+          "use_case_zh": "与账号 ID 一起确认对象。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "tag_individual_or_organization",
+          "label_zh": "个人或机构",
+          "purpose_zh": "Kaito 对账号的个人/机构分类。",
+          "use_case_zh": "分开比较个人和机构带来的讨论。",
+          "type": "str",
+          "example_value": "Individual"
+        },
+        {
+          "path": "user_type",
+          "label_zh": "账号类型",
+          "purpose_zh": "Kaito 对账号的类型标记。",
+          "use_case_zh": "筛选适合研究的账号群体。",
+          "type": "str",
+          "example_value": "non_kkol"
+        },
+        {
+          "path": "username",
+          "label_zh": "账号名",
+          "purpose_zh": "X 账号的用户名。",
+          "use_case_zh": "与关注关系及发帖记录关联。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "created_at": "2011-08-24T04:46:48+00:00",
+        "followers": 1003,
+        "following_count": 6314,
+        "tag_individual_or_organization": "Individual",
+        "user_type": "non_kkol"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_ict_impressions",
+      "entity_id": null,
+      "sample_status": "observed",
+      "observed_field_count": 6,
+      "fields": [
+        {
+          "path": "author_id",
+          "label_zh": "作者 ID",
+          "purpose_zh": "用于查询某位作者的 X 用户标识。",
+          "use_case_zh": "关联该作者的曝光和资料。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "end_date",
+          "label_zh": "统计止日",
+          "purpose_zh": "这次统计窗口的结束日期。",
+          "use_case_zh": "对齐不同指标的比较区间。",
+          "type": "str",
+          "example_value": "2026-09-07"
+        },
+        {
+          "path": "is_ict",
+          "label_zh": "是否为追踪作者",
+          "purpose_zh": "作者是否属于 Kaito 的 ICT 追踪范围。",
+          "use_case_zh": "判断曝光统计是否可用。",
+          "type": "bool",
+          "example_value": true
+        },
+        {
+          "path": "start_date",
+          "label_zh": "统计起日",
+          "purpose_zh": "这次统计窗口的开始日期。",
+          "use_case_zh": "对齐不同指标的比较区间。",
+          "type": "str",
+          "example_value": "2026-09-01"
+        },
+        {
+          "path": "total_impressions",
+          "label_zh": "总曝光量",
+          "purpose_zh": "窗口内作者推文的总浏览量。",
+          "use_case_zh": "比较同一作者不同时段的触达。",
+          "type": "int",
+          "example_value": 1426537
+        },
+        {
+          "path": "tweet_count",
+          "label_zh": "推文数量",
+          "purpose_zh": "窗口内纳入曝光统计的推文数。",
+          "use_case_zh": "避免只看总曝光忽略发帖量。",
+          "type": "int",
+          "example_value": 20
+        }
+      ],
+      "response_example": {
+        "end_date": "2026-09-07",
+        "is_ict": true,
+        "start_date": "2026-09-01",
+        "total_impressions": 1426537,
+        "tweet_count": 20
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_sentiment_entity",
+      "entity_id": "kaito-social-spider.kaito_entity_sentiment_timeseries",
+      "sample_status": "observed",
+      "observed_field_count": 3,
+      "fields": [
+        {
+          "path": "events",
+          "label_zh": "事件计数",
+          "purpose_zh": "情绪序列随附的事件数量或标记。",
+          "use_case_zh": "识别情绪波动附近的事件。",
+          "type": "null",
+          "example_value": null
+        },
+        {
+          "path": "sentiment_score",
+          "label_zh": "情绪得分",
+          "purpose_zh": "按日期返回的市场或对象讨论情绪值。",
+          "use_case_zh": "观察情绪是否与关注度同步变化。",
+          "type": "float",
+          "example_value": 105.54331245617999
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "日期",
+          "purpose_zh": "时间序列中每个观测值对应的日期。",
+          "use_case_zh": "将情绪与行情、提及量按日期对齐。",
+          "type": "str",
+          "example_value": "2026-09-01"
+        }
+      ],
+      "response_example": {
+        "sentiment_score": 105.54331245617999,
+        "timestamp": "2026-09-01"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_engagement",
+      "entity_id": "kaito-social-spider.kaito_entity_engagement_timeseries",
+      "sample_status": "observed",
+      "observed_field_count": 2,
+      "fields": [
+        {
+          "path": "smart_engagement[date]",
+          "label_zh": "每日高质量账号互动",
+          "purpose_zh": "每天来自高质量账号的互动量。",
+          "use_case_zh": "比较连续几天专业账号参与是否增加。",
+          "type": "int",
+          "example_value": 829
+        },
+        {
+          "path": "total_engagement[date]",
+          "label_zh": "每日总互动",
+          "purpose_zh": "每天的总体互动量。",
+          "use_case_zh": "与高质量账号互动一起看讨论扩散。",
+          "type": "int",
+          "example_value": 132660
+        }
+      ],
+      "response_example": {
+        "smart_engagement[date]": 829,
+        "total_engagement[date]": 132660
+      },
+      "response_excerpt": {
+        "smart_engagement": {
+          "2026-09-01": 829
+        },
+        "total_engagement": {
+          "2026-09-01": 132660
+        }
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_mentions",
+      "entity_id": "kaito-social-spider.kaito_entity_mentions_timeseries",
+      "sample_status": "observed",
+      "observed_field_count": 1,
+      "fields": [
+        {
+          "path": "value[date]",
+          "label_zh": "每日提及量",
+          "purpose_zh": "日期映射中的每天提及次数。",
+          "use_case_zh": "找出对象讨论突然增多的日期。",
+          "type": "int",
+          "example_value": 951
+        }
+      ],
+      "response_example": {
+        "value[date]": 951
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_mindshare_entity",
+      "entity_id": "kaito-social-spider.kaito_entity_mindshare_timeseries",
+      "sample_status": "observed",
+      "observed_field_count": 1,
+      "fields": [
+        {
+          "path": "mindshare[date]",
+          "label_zh": "每日关注份额",
+          "purpose_zh": "每天该对象或叙事在相关讨论中的关注份额。",
+          "use_case_zh": "比较不同时间窗口的关注份额走势。",
+          "type": "float",
+          "example_value": 0.06487444855298484
+        }
+      ],
+      "response_example": {
+        "mindshare[date]": 0.06487444855298484
+      },
+      "response_excerpt": {
+        "mindshare": {
+          "2026-09-01": 0.06487444855298484
+        }
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_mindshare_entity_by_account",
+      "entity_id": "kaito-social-spider.kaito_entity_account_mindshare",
+      "sample_status": "observed",
+      "observed_field_count": 5,
+      "fields": [
+        {
+          "path": "mindshare",
+          "label_zh": "关注份额",
+          "purpose_zh": "当前窗口内对象占相关讨论的比例。",
+          "use_case_zh": "将排名与实际份额一起看。",
+          "type": "float",
+          "example_value": 0.019970643150045736
+        },
+        {
+          "path": "name",
+          "label_zh": "显示名称",
+          "purpose_zh": "账号或对象展示给用户的名称。",
+          "use_case_zh": "与账号 ID 一起确认对象。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "rank",
+          "label_zh": "排名",
+          "purpose_zh": "对象或账号在当前榜单中的位置。",
+          "use_case_zh": "找出关注份额靠前的对象。",
+          "type": "int",
+          "example_value": 1
+        },
+        {
+          "path": "user_id",
+          "label_zh": "用户 ID",
+          "purpose_zh": "X 用户的稳定标识。",
+          "use_case_zh": "把账号排名和账号资料关联。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "username",
+          "label_zh": "账号名",
+          "purpose_zh": "X 账号的用户名。",
+          "use_case_zh": "与关注关系及发帖记录关联。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "mindshare": 0.019970643150045736,
+        "rank": 1
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_events",
+      "entity_id": "kaito-social-spider.kaito_event",
+      "sample_status": "observed",
+      "observed_field_count": 15,
+      "fields": [
+        {
+          "path": "catalyst_list[]",
+          "label_zh": "事件催化因素",
+          "purpose_zh": "事件附带的催化因素标签。",
+          "use_case_zh": "把同一类事件汇总分析。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "date",
+          "label_zh": "日期",
+          "purpose_zh": "事件或快照对应的日期。",
+          "use_case_zh": "按日比较变化或对齐其他指标。",
+          "type": "str",
+          "example_value": "Nov 2026"
+        },
+        {
+          "path": "description",
+          "label_zh": "说明",
+          "purpose_zh": "对象或事件的文字说明。",
+          "use_case_zh": "打开原始资料，确认它是否符合想研究的主题。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "earliestRef.created_at",
+          "label_zh": "最早证据时间",
+          "purpose_zh": "最早一条参考资料的发布时间。",
+          "use_case_zh": "核对事件最初出现的时间。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "earliestRef.data_source",
+          "label_zh": "最早证据来源",
+          "purpose_zh": "最早参考资料的来源类别。",
+          "use_case_zh": "判断事件来自社交媒体还是其他来源。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "earliestRef.id",
+          "label_zh": "最早证据 ID",
+          "purpose_zh": "最早参考资料的标识。",
+          "use_case_zh": "回查相同证据。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "earliestRef.url",
+          "label_zh": "最早证据链接",
+          "purpose_zh": "最早参考资料的原文地址。",
+          "use_case_zh": "打开证据核实事件。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "end_date",
+          "label_zh": "统计止日",
+          "purpose_zh": "这次统计窗口的结束日期。",
+          "use_case_zh": "对齐不同指标的比较区间。",
+          "type": "str",
+          "example_value": "2026-11-30"
+        },
+        {
+          "path": "reference_list[].created_at",
+          "label_zh": "参考资料时间",
+          "purpose_zh": "事件参考资料的发布时间。",
+          "use_case_zh": "梳理证据的先后顺序。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "reference_list[].data_source",
+          "label_zh": "参考资料来源",
+          "purpose_zh": "参考资料的平台或来源类别。",
+          "use_case_zh": "比较不同来源对事件的报道。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "reference_list[].id",
+          "label_zh": "参考资料 ID",
+          "purpose_zh": "参考资料的标识。",
+          "use_case_zh": "去重或回查参考资料。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "reference_list[].url",
+          "label_zh": "参考资料链接",
+          "purpose_zh": "参考资料的原文地址。",
+          "use_case_zh": "查看支撑事件的原始内容。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "smart_engagement",
+          "label_zh": "高质量账号互动",
+          "purpose_zh": "相关内容得到的高质量账号互动。",
+          "use_case_zh": "衡量事件在专业账号中的传播。",
+          "type": "str",
+          "example_value": "20"
+        },
+        {
+          "path": "start_date",
+          "label_zh": "统计起日",
+          "purpose_zh": "这次统计窗口的开始日期。",
+          "use_case_zh": "对齐不同指标的比较区间。",
+          "type": "str",
+          "example_value": "2026-11-01"
+        },
+        {
+          "path": "ticker[]",
+          "label_zh": "关联对象",
+          "purpose_zh": "事件关联的项目或币种代号。",
+          "use_case_zh": "按对象汇总事件。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "date": "Nov 2026",
+        "end_date": "2026-11-30",
+        "smart_engagement": "20",
+        "start_date": "2026-11-01"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_mindshare_entity_arena",
+      "entity_id": "kaito-social-spider.kaito_entity_mindshare_ranking",
+      "sample_status": "observed",
+      "observed_field_count": 4,
+      "fields": [
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。",
+          "type": "str",
+          "example_value": "Ethereum"
+        },
+        {
+          "path": "mindshare",
+          "label_zh": "关注份额",
+          "purpose_zh": "当前窗口内对象占相关讨论的比例。",
+          "use_case_zh": "将排名与实际份额一起看。",
+          "type": "float",
+          "example_value": 0.10053987220833573
+        },
+        {
+          "path": "rank",
+          "label_zh": "排名",
+          "purpose_zh": "对象或账号在当前榜单中的位置。",
+          "use_case_zh": "找出关注份额靠前的对象。",
+          "type": "int",
+          "example_value": 1
+        },
+        {
+          "path": "ticker",
+          "label_zh": "对象代号",
+          "purpose_zh": "榜单中的项目或币种代号。",
+          "use_case_zh": "与其他数据源中的对象对应。",
+          "type": "str",
+          "example_value": "ETH"
+        }
+      ],
+      "response_example": {
+        "fullname": "Ethereum",
+        "mindshare": 0.10053987220833573,
+        "rank": 1,
+        "ticker": "ETH"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_mindshare_entity_delta",
+      "entity_id": "kaito-social-spider.kaito_entity_mindshare_delta",
+      "sample_status": "observed",
+      "observed_field_count": 5,
+      "fields": [
+        {
+          "path": "change",
+          "label_zh": "关注份额变化",
+          "purpose_zh": "与比较窗口相比的关注份额变化值。",
+          "use_case_zh": "查看关注度上升或下降的对象。",
+          "type": "float",
+          "example_value": 0.018112811693618197
+        },
+        {
+          "path": "fullname",
+          "label_zh": "对象全名",
+          "purpose_zh": "项目、币种或叙事的完整名称。",
+          "use_case_zh": "核对同名或相似代号对应的对象。",
+          "type": "str",
+          "example_value": "Solana"
+        },
+        {
+          "path": "mindshare",
+          "label_zh": "关注份额",
+          "purpose_zh": "当前窗口内对象占相关讨论的比例。",
+          "use_case_zh": "将排名与实际份额一起看。",
+          "type": "float",
+          "example_value": 0.09014714064210234
+        },
+        {
+          "path": "ticker",
+          "label_zh": "对象代号",
+          "purpose_zh": "榜单中的项目或币种代号。",
+          "use_case_zh": "与其他数据源中的对象对应。",
+          "type": "str",
+          "example_value": "SOL"
+        },
+        {
+          "path": "ticker_id",
+          "label_zh": "对象内部 ID",
+          "purpose_zh": "Kaito 用来区分榜单对象的标识。",
+          "use_case_zh": "避免仅靠同名代号做关联。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "change": 0.018112811693618197,
+        "fullname": "Solana",
+        "mindshare": 0.09014714064210234,
+        "ticker": "SOL"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_smart_following_market",
+      "entity_id": "kaito-social-spider.kaito_smart_following_market",
+      "sample_status": "empty_result",
+      "observed_field_count": 0,
+      "fields": [],
+      "response_example": {},
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_smart_followers",
+      "entity_id": "kaito-social-spider.kaito_smart_followers_snapshot",
+      "sample_status": "observed",
+      "observed_field_count": 6,
+      "fields": [
+        {
+          "path": "current_ict",
+          "label_zh": "当前是否在追踪",
+          "purpose_zh": "账号当前是否属于 ICT 追踪范围。",
+          "use_case_zh": "解释高质量粉丝统计的覆盖范围。",
+          "type": "bool",
+          "example_value": true
+        },
+        {
+          "path": "date",
+          "label_zh": "日期",
+          "purpose_zh": "事件或快照对应的日期。",
+          "use_case_zh": "按日比较变化或对齐其他指标。",
+          "type": "str",
+          "example_value": "2026-09-01"
+        },
+        {
+          "path": "mode",
+          "label_zh": "返回模式",
+          "purpose_zh": "当前响应是计数还是粉丝名单模式。",
+          "use_case_zh": "正确解读后面的计数或名单。",
+          "type": "str",
+          "example_value": "count"
+        },
+        {
+          "path": "num_of_smart_followers",
+          "label_zh": "高质量粉丝数",
+          "purpose_zh": "Kaito 识别的高质量账号粉丝数量。",
+          "use_case_zh": "观察一个账号的专业受众是否增长。",
+          "type": "int",
+          "example_value": 14198
+        },
+        {
+          "path": "smart_followers",
+          "label_zh": "高质量粉丝名单",
+          "purpose_zh": "指定日期新增的高质量粉丝列表。",
+          "use_case_zh": "核对是谁带来了受众变化。",
+          "type": "array",
+          "example_value": []
+        },
+        {
+          "path": "user_id",
+          "label_zh": "用户 ID",
+          "purpose_zh": "X 用户的稳定标识。",
+          "use_case_zh": "把账号排名和账号资料关联。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "current_ict": true,
+        "date": "2026-09-01",
+        "mode": "count",
+        "num_of_smart_followers": 14198,
+        "smart_followers": []
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_smart_following",
+      "entity_id": "kaito-social-spider.kaito_smart_following_snapshot",
+      "sample_status": "observed",
+      "observed_field_count": 4,
+      "fields": [
+        {
+          "path": "category",
+          "label_zh": "账号类别",
+          "purpose_zh": "被关注账号的类别。",
+          "use_case_zh": "区分个人与机构关注。",
+          "type": "str",
+          "example_value": "Organization"
+        },
+        {
+          "path": "date",
+          "label_zh": "日期",
+          "purpose_zh": "事件或快照对应的日期。",
+          "use_case_zh": "按日比较变化或对齐其他指标。",
+          "type": "str",
+          "example_value": "2025-12-29"
+        },
+        {
+          "path": "user_id",
+          "label_zh": "用户 ID",
+          "purpose_zh": "X 用户的稳定标识。",
+          "use_case_zh": "把账号排名和账号资料关联。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "username",
+          "label_zh": "账号名",
+          "purpose_zh": "X 账号的用户名。",
+          "use_case_zh": "与关注关系及发帖记录关联。",
+          "type": "str",
+          "example_value": null
+        }
+      ],
+      "response_example": {
+        "category": "Organization",
+        "date": "2025-12-29"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_mindshare_narrative",
+      "entity_id": "kaito-social-spider.kaito_narrative_mindshare_timeseries",
+      "sample_status": "observed",
+      "observed_field_count": 3,
+      "fields": [
+        {
+          "path": "display_name",
+          "label_zh": "叙事名称",
+          "purpose_zh": "叙事主题供阅读的名称。",
+          "use_case_zh": "将内部代号与易读名称对应。",
+          "type": "str",
+          "example_value": "AI"
+        },
+        {
+          "path": "mindshare[date]",
+          "label_zh": "每日关注份额",
+          "purpose_zh": "每天该对象或叙事在相关讨论中的关注份额。",
+          "use_case_zh": "比较不同时间窗口的关注份额走势。",
+          "type": "float",
+          "example_value": 0.2607909604519774
+        },
+        {
+          "path": "narrative",
+          "label_zh": "叙事代号",
+          "purpose_zh": "Kaito 识别叙事主题的代码。",
+          "use_case_zh": "用同一代号追踪一个叙事的关注变化。",
+          "type": "str",
+          "example_value": "AI"
+        }
+      ],
+      "response_example": {
+        "display_name": "AI",
+        "mindshare[date]": 0.2607909604519774,
+        "narrative": "AI"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_market_sentiment",
+      "entity_id": null,
+      "sample_status": "observed",
+      "observed_field_count": 3,
+      "fields": [
+        {
+          "path": "marketcap",
+          "label_zh": "市场总市值",
+          "purpose_zh": "同一天的加密市场总市值。",
+          "use_case_zh": "观察市场情绪变化时的市场背景。",
+          "type": "float",
+          "example_value": 2641368826434.4
+        },
+        {
+          "path": "sentiment_score",
+          "label_zh": "情绪得分",
+          "purpose_zh": "按日期返回的市场或对象讨论情绪值。",
+          "use_case_zh": "观察情绪是否与关注度同步变化。",
+          "type": "float",
+          "example_value": 18.26326725828235
+        },
+        {
+          "path": "timestamp",
+          "label_zh": "日期",
+          "purpose_zh": "时间序列中每个观测值对应的日期。",
+          "use_case_zh": "将情绪与行情、提及量按日期对齐。",
+          "type": "str",
+          "example_value": "2026-09-01"
+        }
+      ],
+      "response_example": {
+        "marketcap": 2641368826434.4,
+        "sentiment_score": 18.26326725828235,
+        "timestamp": "2026-09-01"
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    },
+    {
+      "name": "kaito_tweet_engagement_info",
+      "entity_id": "kaito-social-spider.kaito_tweet_engagement_snapshot",
+      "sample_status": "observed",
+      "observed_field_count": 12,
+      "fields": [
+        {
+          "path": "author_id",
+          "label_zh": "作者 ID",
+          "purpose_zh": "用于查询某位作者的 X 用户标识。",
+          "use_case_zh": "关联该作者的曝光和资料。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_name",
+          "label_zh": "作者显示名",
+          "purpose_zh": "发布者在平台显示的名称。",
+          "use_case_zh": "人工核对作者身份。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "author_username",
+          "label_zh": "作者账号",
+          "purpose_zh": "发布内容的账号名称。",
+          "use_case_zh": "把内容按作者去重或观察特定账号。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "id",
+          "label_zh": "记录标识",
+          "purpose_zh": "这条上游记录的标识。",
+          "use_case_zh": "去重或回查同一条原始记录。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "like_count",
+          "label_zh": "点赞数",
+          "purpose_zh": "这条推文收到的点赞。",
+          "use_case_zh": "衡量单条内容的基础互动。",
+          "type": "int",
+          "example_value": 1642
+        },
+        {
+          "path": "quote_count",
+          "label_zh": "引用数",
+          "purpose_zh": "这条推文被引用的次数。",
+          "use_case_zh": "观察讨论是否被二次解读。",
+          "type": "int",
+          "example_value": 35
+        },
+        {
+          "path": "reply_count",
+          "label_zh": "回复数",
+          "purpose_zh": "这条推文收到的回复。",
+          "use_case_zh": "衡量讨论参与度。",
+          "type": "int",
+          "example_value": 137
+        },
+        {
+          "path": "retweet_count",
+          "label_zh": "转发数",
+          "purpose_zh": "这条推文被转发的次数。",
+          "use_case_zh": "观察内容传播范围。",
+          "type": "int",
+          "example_value": 109
+        },
+        {
+          "path": "smart_engagement_count",
+          "label_zh": "高质量账号互动数",
+          "purpose_zh": "这条推文来自高质量账号的互动次数。",
+          "use_case_zh": "与总互动一起判断讨论质量。",
+          "type": "int",
+          "example_value": 36
+        },
+        {
+          "path": "type",
+          "label_zh": "内容来源类型",
+          "purpose_zh": "这条内容属于 X 动态还是新闻等来源。",
+          "use_case_zh": "比较不同来源对同一主题的讨论。",
+          "type": "str",
+          "example_value": "Twitter"
+        },
+        {
+          "path": "url",
+          "label_zh": "原文链接",
+          "purpose_zh": "指向来源内容的链接。",
+          "use_case_zh": "查看证据原文，确认摘要没有误导。",
+          "type": "str",
+          "example_value": null
+        },
+        {
+          "path": "view_count",
+          "label_zh": "浏览数",
+          "purpose_zh": "这条推文的浏览量。",
+          "use_case_zh": "把互动放到曝光规模中比较。",
+          "type": "int",
+          "example_value": 189822
+        }
+      ],
+      "response_example": {
+        "like_count": 1642,
+        "quote_count": 35,
+        "reply_count": 137,
+        "retweet_count": 109,
+        "smart_engagement_count": 36,
+        "type": "Twitter",
+        "view_count": 189822
+      },
+      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+    }
+  ]
+}

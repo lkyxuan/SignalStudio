@@ -1,0 +1,55 @@
+{
+  "source_revision": "sha256:f1620ffa32315698b375587fe1c122404db9b82a56c98e66940100518206b35c",
+  "samples": [
+    {
+      "source": "Binance Futures public API",
+      "url": "https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+      "retrieved_at": "2026-09-27T08:05:45Z",
+      "response": {
+        "symbol": "BTCUSDT",
+        "openInterest": "94796.925",
+        "time": 1790496342943
+      },
+      "field_paths": {
+        "binance-futures.open_interest.symbol": "symbol",
+        "binance-futures.open_interest.data.open_interest": "openInterest"
+      }
+    },
+    {
+      "source": "CoinGecko public API",
+      "url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=1&page=1",
+      "retrieved_at": "2026-09-27T08:20:22Z",
+      "response": {
+        "id": "bitcoin",
+        "symbol": "btc",
+        "name": "Bitcoin",
+        "image": "https://coin-images.coingecko.com/coins/images/1/large/bitcoin.png?1696501400",
+        "current_price": 84816,
+        "market_cap": 1703952687832,
+        "market_cap_rank": 1,
+        "fully_diluted_valuation": 1703954808239,
+        "total_volume": 18550945549,
+        "high_24h": 84748,
+        "low_24h": 83835,
+        "price_change_24h": 777.0,
+        "price_change_percentage_24h": 0.92372,
+        "market_cap_change_24h": 15652625498,
+        "market_cap_change_percentage_24h": 0.92712,
+        "circulating_supply": 20089918.0,
+        "total_supply": 20089965.0,
+        "max_supply": 21000000.0,
+        "ath": 126080,
+        "ath_change_percentage": -32.72812,
+        "ath_date": "2025-10-06T10:57:42.000Z",
+        "atl": 67.81,
+        "atl_change_percentage": 124981.19682,
+        "atl_date": "2013-07-05T16:00:00.000Z",
+        "roi": null,
+        "last_updated": "2026-09-27T08:17:30.000Z"
+      },
+      "field_paths": {
+        "coingecko.market_snapshot.market_cap": "market_cap"
+      }
+    }
+  ]
+}

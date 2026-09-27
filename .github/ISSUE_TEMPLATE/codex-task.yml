@@ -1,0 +1,33 @@
+name: Codex development task
+description: A reviewable task for the asynchronous development board
+title: "[Task] "
+labels: ["codex-inbox"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe what should be different for the user when this task is done.
+      placeholder: A user can...
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and examples
+      description: Link relevant screens, files, discussions, or example behavior. Label assumptions as assumptions.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Review criteria
+      description: State what a reviewer should check in the product and which evidence should be reported.
+      placeholder: |
+        - The intended user flow works locally.
+        - Relevant checks pass, with commands and results reported.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies or blockers
+      description: Include another issue number or a missing decision only when one exists.

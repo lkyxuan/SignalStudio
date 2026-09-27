@@ -1,0 +1,198 @@
+{
+  "catalog_version": "signal-contracts.v1",
+  "owner": "Data Logic IDE",
+  "signals": [
+    {
+      "signal_key": "coingecko_market_turnover_candidate",
+      "version": 1,
+      "graph_node_name": "市场交易活跃候选",
+      "design_status": "hypothesis",
+      "question_zh": "哪些币种的最近 24 小时成交额相对其市值偏高，值得进一步调查？",
+      "interpretation_zh": "这是待调查候选，不表示价格将上涨，也不表示规则经过回测验证。",
+      "graph_display": {
+        "observation_window": "来源最近 24 小时成交额快照；每小时采集一次。",
+        "formula": "turnover_ratio_24h = total_volume_usd_24h / market_cap_usd；市值必须大于 0。",
+        "trigger_rule": "比值 ≥ 0.2，且 24 小时成交额 ≥ 1,000,000 USD，市值 ≥ 10,000,000 USD。"
+      },
+      "subject": {
+        "grain": "coingecko_coin",
+        "identity_namespace": "coingecko_coin_id",
+        "identity_field": "id",
+        "asset_resolution": "deferred",
+        "unresolved_identity_policy": "emit_source_identity_only"
+      },
+      "collection": {
+        "operation_id": "coingecko.coins_markets",
+        "source_contract_version": "source-contracts.v1",
+        "request": {
+          "method": "GET",
+          "url": "https://pro-api.coingecko.com/api/v3/coins/markets",
+          "authentication": {
+            "kind": "secret_header",
+            "header": "x-cg-pro-api-key",
+            "secret_ref": "COINGECKO_API_KEY"
+          }
+        },
+        "parameters": {
+          "vs_currency": "usd",
+          "order": "market_cap_desc",
+          "per_page": 100,
+          "sparkline": false
+        },
+        "pagination": {
+          "parameter": "page",
+          "start": 1,
+          "step": 1,
+          "stop_on_empty_page": true,
+          "max_pages": 100,
+          "max_pages_reached_policy": "partial_coverage"
+        },
+        "cadence": "PT1H",
+        "event_time_field": "last_updated",
+        "event_time_normalization": "parse_rfc3339_and_store_utc",
+        "record_identity_field": "id",
+        "page_error_policy": "partial_coverage_if_prior_pages_succeeded_else_failed",
+        "retry": {"max_attempts": 3, "backoff": "exponential", "honor_retry_after": true},
+        "raw_response_policy": "preserve_complete_response",
+        "raw_response_storage": "content_addressed_with_reference_in_run_report"
+      },
+      "transport": {
+        "input": {
+          "kind": "redpanda",
+          "topic": "source.coingecko.coins_markets.v1",
+          "message_key": "data.id",
+          "payload_schema": "coingecko.coins_markets.v1",
+          "serialization": "json_utf8",
+          "deployment_status": "planned"
+        },
+        "output": {
+          "kind": "redpanda",
+          "topic": "signals.coingecko_market_turnover_candidate.v1",
+          "message_key": "coin_id",
+          "payload_schema": "signal_candidate.coingecko_market_turnover.v1",
+          "serialization": "json_utf8",
+          "deployment_status": "planned"
+        }
+      },
+      "input_message": {
+        "role": "crawler_produces_consumer_reads",
+        "record_grain": "one_coingecko_coin_record_per_message",
+        "payload_record_path": "data",
+        "metadata_path": "meta",
+        "payload_policy": "preserve_complete_upstream_record",
+        "unknown_upstream_fields_policy": "pass_through_in_data",
+        "declared_field_inventory_status": "upstream_contract_lower_bound_not_emitted_record_evidence",
+        "message_status": "planned_not_observed",
+        "metadata_fields": [
+          {"path": "meta.operation_id", "source": "constant.collection.operation_id", "required": true},
+          {"path": "meta.source_run_id", "source": "runtime.source_run_id", "required": true},
+          {"path": "meta.source_observation_id", "source": "runtime.source_observation_id", "required": true},
+          {"path": "meta.collected_at", "source": "runtime.collection_timestamp_utc", "required": true}
+        ]
+      },
+      "implementation_guidance": {
+        "status": "preferred_stack_for_design",
+        "target_platform": "Few Understand",
+        "responsibility": "select_components_implement_and_report_run_evidence",
+        "stages": [
+          {
+            "stage": "collection",
+            "product": "CoinGecko Pro API",
+            "preferred_runtime": "Python",
+            "component_candidate": "spider/coingecko",
+            "candidate_status": "existing_code_requires_contract_comparison"
+          },
+          {
+            "stage": "transport",
+            "product": "Redpanda",
+            "preferred_runtime": "existing_platform_transport",
+            "component_candidate": "Few Understand topic registry",
+            "candidate_status": "planned_topics_require_mapping_or_provisioning"
+          },
+          {
+            "stage": "calculation",
+            "product": "Polars",
+            "preferred_runtime": "Python",
+            "preferred_execution_style": "batch_or_microbatch",
+            "component_candidate": "consumer/polars_engine",
+            "candidate_status": "existing_code_candidate_fit_not_verified"
+          },
+          {
+            "stage": "signal_delivery",
+            "product": "Redpanda",
+            "preferred_runtime": "existing_platform_transport",
+            "component_candidate": "consumer/coingecko_market_signal_scorer",
+            "candidate_status": "existing_volume_spike_logic_requires_contract_comparison"
+          }
+        ],
+        "decision_rule": "Few Understand may choose or adapt components. Treat collection, inputs, calculation, trigger, output and evidence as the target contract; report any proposed deviation, including transport or cadence, for review.",
+        "open_implementation_decisions": ["reuse_existing_scorer_or_polars_engine", "map_planned_topics_to_existing_topics_or_provision_new_topics", "choose_raw_response_storage_location"]
+      },
+      "inputs": [
+        {"name": "coin_id", "upstream_path": "id", "message_path": "data.id", "type": "string", "required": true},
+        {"name": "last_updated", "upstream_path": "last_updated", "message_path": "data.last_updated", "type": "string", "required": true},
+        {"name": "total_volume_usd_24h", "upstream_path": "total_volume", "message_path": "data.total_volume", "type": "number", "required": true},
+        {"name": "market_cap_usd", "upstream_path": "market_cap", "message_path": "data.market_cap", "type": "number", "required": true}
+      ],
+      "processing": {
+        "dedupe_key": ["coin_id", "last_updated"],
+        "same_key_policy": "retain_last_ingested_record",
+        "calculation": {
+          "output": "turnover_ratio_24h",
+          "operator": "divide",
+          "numerator": "total_volume_usd_24h",
+          "denominator": "market_cap_usd",
+          "zero_or_negative_denominator": "no_result"
+        },
+        "missing_input_policy": "no_result",
+        "invalid_number_policy": "no_result",
+        "timestamp_parse_failure_policy": "no_result",
+        "trigger": {
+          "operator": "all",
+          "conditions": [
+            {"field": "turnover_ratio_24h", "operator": "gte", "value": 0.2},
+            {"field": "total_volume_usd_24h", "operator": "gte", "value": 1000000},
+            {"field": "market_cap_usd", "operator": "gte", "value": 10000000}
+          ]
+        },
+        "threshold_status": "unvalidated_design_choice"
+      },
+      "runtime_ids": {
+        "source_run_id": "new_uuid_per_collection_attempt",
+        "source_observation_id": "sha256_utf8_of_operation_id_pipe_coin_id_pipe_last_updated"
+      },
+      "output": {
+        "record_type": "signal_candidate",
+        "emit_when": "trigger_true_and_all_inputs_valid",
+        "idempotency_key": ["signal_key", "version", "coin_id", "last_updated"],
+        "fields": [
+          {"name": "signal_key", "type": "string", "source": "constant"},
+          {"name": "version", "type": "integer", "source": "constant"},
+          {"name": "coin_id", "type": "string", "source": "input.coin_id"},
+          {"name": "last_updated", "type": "string", "source": "input.last_updated"},
+          {"name": "total_volume_usd_24h", "type": "number", "source": "input.total_volume_usd_24h"},
+          {"name": "market_cap_usd", "type": "number", "source": "input.market_cap_usd"},
+          {"name": "turnover_ratio_24h", "type": "number", "source": "calculation.turnover_ratio_24h"},
+          {"name": "source_observation_id", "type": "string", "source": "runtime.source_observation_id"},
+          {"name": "source_run_id", "type": "string", "source": "runtime.source_run_id"}
+        ],
+        "coverage": {
+          "required": true,
+          "states": ["complete", "partial_coverage", "failed"],
+          "no_match_interpretation": "no_candidate_in_observed_coverage_only"
+        }
+      },
+      "validation": {
+        "status": "not_run",
+        "plan_zh": "取得实际爬虫运行记录后，核对分页覆盖、字段映射和计算值；抽样人工检查候选与漏掉的币种，再用历史样本调整阈值。",
+        "required_evidence": ["successful_source_run", "emitted_record_sample", "field_mapping", "calculation_check", "historical_review"],
+        "known_false_positives_zh": ["低流动性市场的异常成交", "市值数据滞后", "刷量或重复统计"]
+      },
+      "implementation_report": {
+        "required": true,
+        "fields": ["signal_key", "signal_version", "package_revision", "source_contract_revision", "code_revision", "implementation_status", "source_run_id", "source_request_parameters", "coverage_state", "raw_response_sample_ref", "emitted_record_sample_ref", "upstream_to_emitted_field_mapping", "technology_decisions", "errors"],
+        "evidence_policy": "report_actual_runs_separately_from_configured_fields"
+      }
+    }
+  ]
+}

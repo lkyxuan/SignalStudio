@@ -1,0 +1,240 @@
+"""Editorial field guidance for signal design; never evidence of collected records."""
+
+PURPOSES_ZH = {
+    "author": "指出内容的作者，便于按发布者汇总或回到原帖。",
+    "base_asset": "指出交易对中的基础资产，用来把不同合约归到同一资产。",
+    "caption": "保存媒体消息附带的文字，便于理解图片或视频的上下文。",
+    "category": "标记新闻的分类，便于按主题筛选。",
+    "chat": "保存消息所属聊天的基本信息，用于区分频道或群组。",
+    "chat.id": "稳定识别消息所在的聊天，用于按频道或群组去重与汇总。",
+    "chat.title": "显示聊天名称，便于人工核对消息来源。",
+    "chat.type": "区分群组、频道等聊天类型，便于设定不同的筛选规则。",
+    "chat.username": "保存聊天的公开用户名，便于定位来源。",
+    "collected_at": "记录采集器取得数据的时间，用于判断数据是否过时。",
+    "data": "装载这一类记录的主要业务数据；应继续展开具体子字段。",
+    "data.buy_sell_ratio": "比较主动买入量与主动卖出量，用于观察成交方向。",
+    "data.buy_volume": "记录主动买入的成交量，用于和卖出量比较。",
+    "data.close": "记录该 K 线周期的收盘价格，用于计算区间涨跌。",
+    "data.close_time": "标记 K 线周期结束的时间，用于对齐时间窗。",
+    "data.content_type": "说明 Kaito 记录的内容类别，便于区分不同内容。",
+    "data.entity": "保存被分析对象的身份信息，用于关联同一项目或资产。",
+    "data.entity.coingecko_slug": "保存 CoinGecko 的对象标识，便于跨来源对齐同一资产。",
+    "data.entity.kaito_id": "保存 Kaito 的对象标识，便于合并同一对象的多条记录。",
+    "data.entity.name": "显示被分析对象的名称，便于人工核对。",
+    "data.entity.symbol": "保存对象的资产代码，便于与市场数据匹配；同名代码仍需核验。",
+    "data.estimated_settle_price": "记录预计结算价格，用于与当前标记价格比较。",
+    "data.high": "记录该 K 线周期内的最高价格，用于衡量价格区间。",
+    "data.index_price": "记录指数价格，用于与标记价格比较。",
+    "data.interest_rate": "记录资金费率计算涉及的利率分量。",
+    "data.last_funding_rate": "记录最近一期资金费率，用于观察持仓成本。",
+    "data.long_proportion": "记录统计对象中多头一侧的占比；比较前需确认统计人群。",
+    "data.long_short_ratio": "记录多头与空头的比值；比较前需确认账户或持仓口径。",
+    "data.low": "记录该 K 线周期内的最低价格，用于衡量价格区间。",
+    "data.mark_price": "记录交易所标记价格，用于与指数价格或费率一起观察。",
+    "data.metrics": "装载 Kaito 返回行中提取出的指标；具体有哪些键取决于工具返回。",
+    "data.metrics.bearish": "保留返回行中的看跌指标；分值口径需由对应工具确认。",
+    "data.metrics.bullish": "保留返回行中的看涨指标；分值口径需由对应工具确认。",
+    "data.metrics.change": "保留返回行中的变化值；比较前需确认变化的基准。",
+    "data.metrics.current_mindshare": "保留当前关注份额；分母和时间窗需由对应工具确认。",
+    "data.metrics.delta": "保留相对上一窗口的变化值；比较前需确认方向和单位。",
+    "data.metrics.delta_abs": "保留绝对变化值；不要与百分比变化混用。",
+    "data.metrics.delta_pct": "保留百分比变化；需要核对上游使用的是小数还是百分数。",
+    "data.metrics.direction": "标记变化属于上升或下降等方向，用于区分增减。",
+    "data.metrics.engagement": "保留返回行的互动量；需核对包含哪些互动行为。",
+    "data.metrics.followers": "保留返回行的粉丝数量；需核对统计对象。",
+    "data.metrics.likes": "保留点赞次数，用于观察内容互动。",
+    "data.metrics.mention_count": "保留提及次数，用于观察讨论量。",
+    "data.metrics.mentions": "保留提及量，用于观察讨论量。",
+    "data.metrics.mentions_count": "保留提及次数，用于观察讨论量。",
+    "data.metrics.mindshare": "保留关注份额；比较前需确认分母、时间窗和来源范围。",
+    "data.metrics.mindshare_current": "保留当前关注份额；比较前需确认分母和时间窗。",
+    "data.metrics.mindshare_delta": "保留关注份额变化；需与相同口径的前期值比较。",
+    "data.metrics.previous_rank": "保留上一统计窗口的名次，用于计算排名变化。",
+    "data.metrics.quotes": "保留引用转发次数，用于观察内容传播。",
+    "data.metrics.rank": "保留当前名次，用于查看对象在同口径榜单中的位置。",
+    "data.metrics.rank_change": "保留名次变化；需要确认正负号代表的方向。",
+    "data.metrics.replies": "保留回复次数，用于观察讨论参与。",
+    "data.metrics.retweets": "保留转发次数，用于观察内容传播。",
+    "data.metrics.score": "保留工具返回的评分；不同工具的评分不能直接混算。",
+    "data.metrics.sentiment": "保留情绪指标；量纲和正负含义需由对应工具确认。",
+    "data.metrics.sentiment_score": "保留情绪评分；与讨论量一起看更能判断可靠性。",
+    "data.metrics.smart_engagement": "保留高关注度账号的互动量；账号认定口径需核对。",
+    "data.metrics.smart_engagement_ratio": "保留高关注度账号互动占比；需核对分母。",
+    "data.metrics.smart_followers": "保留高关注度粉丝数；账号认定口径需核对。",
+    "data.metrics.timestamp": "标记指标对应的时间点，用于组成时间序列。",
+    "data.metrics.total_engagement": "保留总互动量，用于观察讨论热度。",
+    "data.metrics.value": "保留时间序列或指标行的数值；含义取决于对应工具。",
+    "data.metrics.views": "保留浏览次数，用于观察内容曝光。",
+    "data.next_funding_time": "记录下一次资金费率结算时间，用于对齐费率窗口。",
+    "data.next_funding_time_iso": "以 ISO 时间格式记录下一次资金费率结算时间。",
+    "data.open": "记录该 K 线周期的开盘价格，用于计算区间涨跌。",
+    "data.open_interest": "记录当前未平仓合约量，用于观察持仓规模变化。",
+    "data.open_time": "标记 K 线周期开始的时间，用于对齐时间窗。",
+    "data.platform": "标记内容所在的平台，便于区分来源渠道。",
+    "data.quote_volume": "记录按计价资产折算的成交量，用于比较成交额。",
+    "data.raw": "保留该 Kaito 记录对应的原始返回行，用于回查未提取的键。",
+    "data.record_type": "标记转换后的 Kaito 记录类型，便于选择正确的处理规则。",
+    "data.request": "保存调用 Kaito 工具的请求元信息，用于核对查询条件。",
+    "data.request.params_hash": "保存脱敏后的请求参数摘要，用于识别同一次查询条件。",
+    "data.request.tool": "指出产生这条记录的 Kaito 工具，用于核对指标口径。",
+    "data.request.window": "记录请求时使用的时间窗口，用于比较同口径数据。",
+    "data.request.window_end": "记录请求窗口的结束时间，用于界定统计区间。",
+    "data.request.window_start": "记录请求窗口的开始时间，用于界定统计区间。",
+    "data.sell_volume": "记录主动卖出的成交量，用于和买入量比较。",
+    "data.short_proportion": "记录统计对象中空头一侧的占比；比较前需确认统计人群。",
+    "data.sum_open_interest": "记录某时点未平仓合约总量，用于看持仓趋势。",
+    "data.sum_open_interest_value": "记录未平仓合约总价值，用于比较不同时间的资金规模。",
+    "data.taker_buy_base_volume": "记录主动买入的基础资产成交量。",
+    "data.taker_buy_quote_volume": "记录主动买入的计价资产成交量。",
+    "data.trade_count": "记录该 K 线周期的成交笔数，用于衡量交易活跃度。",
+    "data.volume": "记录该 K 线周期的基础资产成交量。",
+    "data.window": "保存记录对应的统计窗口，用于避免混合不同时间跨度。",
+    "date": "记录消息或内容发生的日期，用于按时间排序。",
+    "dedupe_key": "保存同一市场记录的去重键，用于避免重复计算。",
+    "event_time_ms": "记录交易所事件时间（毫秒），用于对齐行情窗口。",
+    "exchange": "标记数据所属交易所，用于区分市场来源。",
+    "file_name": "保存消息附件文件名，便于识别媒体内容。",
+    "forward": "保存 Telegram 转发的来源信息，用于区分原创与转发。",
+    "forward.date": "记录被转发消息的原始时间，用于判断信息先后。",
+    "forward.from_name": "记录转发来源的显示名称，便于人工核查。",
+    "from_user": "保存 Telegram 发送者信息，用于按账号归并消息。",
+    "from_user.first_name": "保存发送者显示名的一部分，主要用于人工辨认。",
+    "from_user.id": "稳定识别发送者，用于同一账号的消息去重与统计。",
+    "from_user.is_bot": "标记发送者是否为机器人，便于单独处理自动消息。",
+    "from_user.last_name": "保存发送者显示名的一部分，主要用于人工辨认。",
+    "from_user.username": "保存发送者用户名，便于定位公开账号。",
+    "funding_rate_1y": "记录来源提供的一年期资金费率指标；具体年化口径需核对。",
+    "ingested_at": "记录转换器处理数据的时间，用于排查处理延迟。",
+    "interval": "记录资金费率相关的时间间隔，用于统一比较窗口。",
+    "lineage": "保存处理链路元信息，用于追查记录如何产生。",
+    "lineage.asset_id": "保存解析后的内部资产 ID；未完成资产绑定时可能为空。",
+    "lineage.event_id": "稳定识别这条事件，用于追踪后续计算与结果。",
+    "lineage.observed_at": "记录事实被观察的时间，用于确认原始数据时效。",
+    "lineage.parent_event_ids": "保存上游事件 ID，用于追溯派生结果的输入。",
+    "lineage.processed_at": "记录处理程序生成消息的时间，用于定位处理延迟。",
+    "lineage.processing_stage": "标记当前处理阶段，用于区分采集与后续加工。",
+    "lineage.producer": "标记生成这条消息的程序，用于核对生产来源。",
+    "lineage.record_type": "标记溯源信封里的记录类型，用于验证处理链路。",
+    "lineage.schema_version": "标记消息结构版本，用于兼容不同版本的处理代码。",
+    "lineage.source_event_id": "保存来源系统的事件 ID，用于跨系统回查。",
+    "lineage.source_offset": "保存来源消息偏移量，用于定位消息流位置。",
+    "lineage.source_partition": "保存来源消息分区，用于定位消息流位置。",
+    "lineage.source_topic": "保存来源主题名称，用于定位消息流位置。",
+    "lineage.trace_id": "关联同一处理链路上的事件，用于端到端追踪。",
+    "link": "保存新闻原文链接，用于回看来源和核查内容。",
+    "market_cap": "记录资产市值，用于观察规模或筛选资产。",
+    "market_type": "区分现货、合约等市场类别，避免混用指标。",
+    "media_type": "标记消息包含的媒体类型，用于区分文本、图片和视频。",
+    "message_id": "稳定识别 Telegram 消息，用于去重和回查。",
+    "metric_type": "指出 Binance 记录属于哪种指标，用于选择正确计算口径。",
+    "next_funding": "记录下一次资金费率相关数值；时间或费率含义需核对来源。",
+    "open_interest": "记录未平仓合约量，用于观察持仓规模。",
+    "period": "记录市场指标的采样周期，用于对齐不同时间序列。",
+    "photo_count": "记录消息包含的图片数量，用于识别媒体消息。",
+    "published": "记录新闻的发布时间，用于按事件时间排序。",
+    "quote_asset": "指出交易对中的计价资产，用于区分不同报价市场。",
+    "rate_limits": "保存接口请求限额信息，用于评估采集频率。",
+    "raw": "保留上游原始返回，用于核对转换后的字段；不宜直接当作统一指标。",
+    "raw_text": "保留内容的原始文本，用于回查清洗前的信息。",
+    "root": "保存供应商返回的开放对象；内部键随响应变化，需查看样本后再选字段。",
+    "source": "标记这条记录的来源，用于筛选和核对数据出处。",
+    "sticker_emoji": "保存贴纸对应的表情符号，便于识别非文字消息。",
+    "summary": "保存新闻摘要，用于快速判断内容是否相关。",
+    "symbol": "标记交易对或资产代码，用于与其他市场记录关联；须核对市场。",
+    "text": "保存消息或帖子的正文，用于关键词、主题和事件分析。",
+    "timestamp": "记录该数据对应的时间点，用于排序或时间窗聚合。",
+    "title": "保存内容标题，用于快速判断主题。",
+    "url": "保存内容原文地址，用于回查和去重。",
+    "video_duration": "记录视频时长，用于区分短片和长视频。",
+    "volume_24h": "记录过去 24 小时成交量，用于衡量市场活跃度。",
+}
+
+IDENTITY_PATHS = {"base_asset", "chat.id", "chat.username", "data.entity.coingecko_slug",
+                  "data.entity.kaito_id", "data.entity.name", "data.entity.symbol", "exchange",
+                  "from_user.id", "from_user.username", "link", "message_id", "quote_asset",
+                  "symbol", "url"}
+TIME_PATHS = {"collected_at", "data.close_time", "data.metrics.timestamp",
+              "data.next_funding_time", "data.next_funding_time_iso", "data.open_time",
+              "data.request.window", "data.request.window_end", "data.request.window_start",
+              "data.window", "date", "event_time_ms", "forward.date", "ingested_at",
+              "lineage.observed_at", "lineage.processed_at", "period", "published", "timestamp"}
+CONTENT_PATHS = {"author", "caption", "category", "chat.title", "data.content_type",
+                 "file_name", "forward.from_name", "from_user.first_name",
+                 "from_user.last_name", "media_type", "photo_count", "raw_text",
+                 "sticker_emoji", "summary", "text", "title", "video_duration"}
+ATTRIBUTE_PATHS = {"chat.type", "data.content_type", "data.metrics.direction",
+                   "data.platform", "from_user.is_bot", "interval", "market_type",
+                   "media_type", "rate_limits"}
+PROVENANCE_PREFIXES = ("lineage", "data.request")
+RAW_PATHS = {"data", "data.entity", "data.metrics", "data.raw", "data.request",
+             "chat", "forward", "from_user", "raw", "root"}
+USE_CASES_ZH = {
+    "data.buy_sell_ratio": "例如比较同一交易对连续几个周期的主动买卖比，寻找成交方向是否持续偏向一侧。",
+    "data.close": "例如把本期收盘价与上期收盘价比较，计算同一交易对的周期涨跌。",
+    "data.high": "例如与最低价一起计算单根 K 线的价格波动区间。",
+    "data.low": "例如与最高价一起计算单根 K 线的价格波动区间。",
+    "data.last_funding_rate": "例如观察同一合约资金费率是否连续升高，再对照价格与持仓变化。",
+    "data.long_short_ratio": "例如在相同统计人群与周期下跟踪多空比趋势，避免直接与另一口径的比值比较。",
+    "data.mark_price": "例如比较标记价格和指数价格的偏离，作为检查合约市场状态的线索。",
+    "data.metrics.engagement": "例如统计同一对象在一个窗口内的互动量变化，再对照提及量判断热度来源。",
+    "data.metrics.likes": "例如比较同一批帖子中的点赞分布，识别由少数爆款带来的热度。",
+    "data.metrics.mention_count": "例如按天计算项目提及次数，并与过去一周的基线比较。",
+    "data.metrics.mentions": "例如按天观察项目被提及的频率，检查增长是否持续。",
+    "data.metrics.mentions_count": "例如按天观察项目被提及的频率，检查增长是否持续。",
+    "data.metrics.mindshare": "例如比较同一来源、同一窗口的关注份额变化，检查项目讨论占比是否持续上升。",
+    "data.metrics.mindshare_delta": "例如筛选关注份额上升最快的项目，再检查绝对讨论量，避免小基数误导。",
+    "data.metrics.rank": "例如追踪同一榜单中名次的连续变化，而不是只看单次排名。",
+    "data.metrics.sentiment": "例如把情绪变化与同一窗口的提及量一起看，避免少量帖子主导判断。",
+    "data.metrics.sentiment_score": "例如把情绪评分与同一窗口的提及量一起看，避免少量帖子主导判断。",
+    "data.metrics.smart_engagement": "例如观察高关注度账号的互动是否先于整体互动增加，作为待验证的早期关注线索。",
+    "data.metrics.smart_followers": "例如比较同一账号连续两次的高关注度粉丝数，检查是否出现异常增长。",
+    "data.metrics.total_engagement": "例如与提及次数一起比较，区分少数高互动内容和广泛讨论。",
+    "data.metrics.views": "例如用浏览量作曝光参考，再看互动量是否同步增长。",
+    "data.open_interest": "例如看同一合约未平仓量连续上升时，价格与成交量是否也发生变化。",
+    "data.sum_open_interest": "例如按相同采样周期比较未平仓合约量，寻找持仓扩张或收缩。",
+    "data.sum_open_interest_value": "例如比较不同日期的未平仓价值，观察持仓资金规模的变化。",
+    "data.trade_count": "例如对照成交量，区分交易笔数增加和单笔规模增加。",
+    "data.volume": "例如与价格波动一起看，确认涨跌是否伴随成交量放大。",
+    "funding_rate_1y": "例如比较同一交易所、同一合约的费率趋势，再核对页面的年化计算口径。",
+    "link": "例如发现相关新闻后点回原文，核对标题是否准确反映正文。",
+    "market_cap": "例如按市值筛选研究范围，再观察同一资产的市值变化。",
+    "open_interest": "例如与成交量一起看，判断市场活动是否伴随持仓增加。",
+    "summary": "例如快速筛选新闻是否涉及目标项目，再点开原文确认。",
+    "text": "例如查找项目名或事件关键词，并结合消息时间和来源做人工核对。",
+    "title": "例如先用标题筛选相关内容，再用正文或原文链接验证。",
+    "volume_24h": "例如比较同一市场连续快照的 24 小时成交量，观察活跃度变化。",
+}
+
+
+def field_guidance(field, record_label):
+    """Return a concise purpose and a design example without claiming observation."""
+    path = field["path"]
+    purpose = PURPOSES_ZH.get(path) or field.get("plain_meaning") or "该字段的具体用途还需结合返回样本核对。"
+    if path in RAW_PATHS:
+        role = "原始或结构数据"
+        use_case = "点开返回样本核对内部键，再决定是否需要提取为独立字段。"
+    elif path.startswith(PROVENANCE_PREFIXES) or path in {"dedupe_key", "source", "data.record_type", "metric_type"}:
+        role = "来源与溯源"
+        use_case = "例如排查一条指标的来源或重复记录时，用它回到原始查询和处理链。"
+    elif path in IDENTITY_PATHS:
+        role = "对象识别"
+        use_case = "例如把同一对象在不同时间的记录对齐，再比较指标变化。"
+    elif path in TIME_PATHS:
+        role = "时间定位"
+        use_case = "例如按同一时间窗分组，并检查记录是否过时。"
+    elif path in ATTRIBUTE_PATHS:
+        role = "记录属性"
+        use_case = "例如先用这个属性筛选可比较的记录，再查看对应的数值或内容。"
+    elif path in CONTENT_PATHS:
+        role = "内容理解"
+        use_case = "例如筛选与目标项目相关的内容，再点回原文人工核查。"
+    else:
+        role = "衡量指标"
+        use_case = f"例如在“{record_label}”中按对象和时间窗比较这个值；计算前先核对单位与口径。"
+    if field.get("condition") == "metric present in tool row":
+        use_case += " 此指标是否由当前 Kaito 工具返回仍待核对。"
+    if path in USE_CASES_ZH:
+        use_case = USE_CASES_ZH[path]
+        if field.get("condition") == "metric present in tool row":
+            use_case += " 当前工具是否返回此指标仍待核对。"
+    return {"role_zh": role, "purpose_zh": purpose, "use_case_zh": use_case}

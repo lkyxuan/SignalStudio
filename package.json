@@ -1,0 +1,22 @@
+{
+  "name": "data-logic-ide",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"python3 server/app.py\" \"vite\"",
+    "build": "vite build",
+    "test:layout": "node --test src/autoLayout.test.js",
+    "preview": "python3 server/app.py"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.9.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "vite": "^6.2.0"
+  }
+}
