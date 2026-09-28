@@ -13,6 +13,8 @@ npm run dev
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API runs on port 8787. The SQLite file is created at `data/logic.db`; set `SIGNALSTUDIO_DB` to use a different path. Startup removes unused V2 record-type nodes and keeps the app-owned upstream operations as the source baseline. A one-time migration closes gaps left by that retirement; later deletions do not reuse reference numbers.
 
+To sync project data between computers, run `python3 scripts/sync_project_data.py export` before committing and pushing. This updates the Git-tracked `data/logic.sync.db` from the live database, including changes still in its WAL. On the other computer, pull GitHub, stop its local server, run `python3 scripts/sync_project_data.py restore`, and start the server. Restore preserves the previous local database as `data/logic.before-restore.db`. The synced database becomes public when pushed to this public repository.
+
 Vite also listens on network interfaces. To open the development site from another device in the same Tailscale network, run `tailscale ip -4` on this machine and visit `http://<that-ip>:5173` on the other device. The API continues to run locally behind Vite's `/api` proxy.
 
 For a single-server build:
