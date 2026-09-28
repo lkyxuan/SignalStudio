@@ -46,8 +46,6 @@ For model-backed drafts, start the app with `OPENAI_API_KEY` in the server envir
 
 The architectural decisions and staged implementation plan are in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
-Development happens directly in Codex. See [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) for the workflow and [AGENTS.md](AGENTS.md) for repository instructions.
-
 The app-owned source contract is the product baseline for desired upstream inputs, not proof of crawled business records. Open supplier objects may contain more keys than the saved samples show. Few Understand should implement this contract and report actual run evidence separately. On startup, unused V2 record-type nodes are retired; the migration refuses to discard a node with a design connection or matched data need. Once those nodes are retired, a one-time migration makes surviving node references consecutive while preserving their internal IDs and graph data. Later deletions do not reuse numbers. When changing the upstream contract, regenerate and review its revision before providing it to Few Understand.
 
 To design a new signal, create a Metric or Score node and define the result in its inspector. Under **需要的数据**, list the inputs needed to produce it. Use **去爬虫里找** to search the bundled crawler fields and match one to the need. Keep any unmatched needs as the working backlog for crawler updates; the expandable brief is a draft to copy and discuss, not an automatic request or data collection job.
