@@ -1,7 +1,7 @@
 node_modules/
 dist/
 data/*
-!data/logic.sync.db
+!data/logic.db
 __pycache__/
 .DS_Store
 .env
