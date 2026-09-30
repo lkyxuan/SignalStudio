@@ -2,7 +2,7 @@
 
 .proposal-source{margin-left:auto;color:#91a7a0;font-size:9px}
 .proposal-field{display:grid;grid-template-columns:100px 1fr;gap:8px;border-top:1px solid #e9f0ee;padding:8px 0;font-size:11px;line-height:1.5;color:#60766e}.proposal-field b{color:#438b7e;font-weight:700}.proposal-field span{white-space:pre-wrap}
-.node-field-count{margin-left:auto;font:600 9px "IBM Plex Mono",monospace;color:#4f948b;background:#eaf6f3;border-radius:3px;padding:2px 4px}.inspector{width:365px}@media(max-width:1200px){.inspector{width:320px}}
+.node-field-count{margin-left:auto;font:600 9px "IBM Plex Mono",monospace;color:#4f948b;background:#eaf6f3;border-radius:3px;padding:2px 4px}.inspector{width:min(840px,calc(100vw - 700px))}@media(max-width:1200px){.inspector{width:min(580px,calc(100vw - 560px))}}
 .source-origin-tag{display:inline-flex;align-items:center;flex:none;padding:2px 5px;border:1px solid #c8dced;border-radius:4px;background:#edf5fc;color:#45749d;font:700 8px/1.2 'IBM Plex Mono',monospace;letter-spacing:0;white-space:nowrap}
 .source-origin-tag[data-source="binance-futures"]{background:#fff5d8;border-color:#e8cf83;color:#805b08}
 .source-origin-tag[data-source="coingecko"]{background:#e7f5df;border-color:#b9d99e;color:#3f732f}
@@ -60,6 +60,7 @@
 .state-tables code{font-size:10px;color:#466a92;overflow-wrap:anywhere}
 .state-details>small{display:block;color:#8a99a7;font-size:10px;line-height:1.55;margin-bottom:18px}
 .source-flow-summary{margin:0 0 18px;padding:12px;border:1px solid #dce8e5;border-radius:8px;background:#f7fbfa;display:grid;gap:8px}
+.source-flow-summary>summary{cursor:pointer;list-style-position:inside}
 .source-flow-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#3b5f59;font-size:11px}
 .source-flow-heading span{margin-left:4px;color:#147a6b}
 .source-flow-heading small,.source-flow-summary>small{color:#819690;font-size:10px;line-height:1.45}
@@ -77,6 +78,10 @@
 .logic-node.evidence{border-top-color:#78a1aa}
 .logic-node.review{border-top-color:#a593c2}
 .logic-node.event{border-top-color:#d19b7d}
+.type-dot.topic,.table-type-mark.topic{background:#8265b6}
+.logic-node.topic{border-top-color:#8265b6;background:#f9f6ff}
+.type-dot.cache,.table-type-mark.cache{background:#b36473}
+.logic-node.cache{border-top-color:#b36473;background:#fff7f7}
 .logic-node.output-node{background:#fffcf9;border-bottom-style:dashed}
 .evidence .node-glyph{color:#6d9ba5}
 .review .node-glyph{color:#a593c2}
@@ -94,3 +99,12 @@
 .graph-group-label span{padding:2px 6px;border-radius:10px;background:#eaf0f3;color:#78909c;font:600 10px 'IBM Plex Mono',monospace}
 .graph-hint{top:10px;right:14px;left:auto;padding:6px 8px;background:#ffffffcf;box-shadow:none;font-size:9px}
 @media(max-width:1250px){.workflow-tabs p{display:none}}
+
+/* Curved routes use separate ports so several connections do not share one point. */
+.flow-handle.edge-port{width:7px!important;height:7px!important;background:#779caa!important;box-shadow:0 0 0 1px #c8d9df!important}
+.react-flow__node.graph-dimmed,.react-flow__edge.graph-dimmed{opacity:.16;transition:opacity .16s}
+.react-flow__node.graph-related .logic-node{box-shadow:0 7px 22px #1d665533;border-color:#3ea899}
+.react-flow__edge.graph-related path{stroke-width:3px!important;filter:drop-shadow(0 1px 2px #294c6a38)}
+.logic-node.decision-node{position:relative;border:2px solid #bf9a5e;border-left-width:5px;border-right-width:5px;border-radius:17px 7px 17px 7px;background:#fffdf8}
+.logic-node.decision-node:hover,.logic-node.decision-node.is-selected{border-color:#a98443;box-shadow:0 7px 22px #97734238}
+.decision-node-badge{position:absolute;top:-12px;right:9px;padding:3px 7px;border:1px solid #d7bd89;border-radius:11px;background:#fff8e9;color:#936c2d;font-size:9px;font-weight:800;white-space:nowrap}

@@ -1,0 +1,299 @@
+{
+  "source": "Live public upstream HTTP calls",
+  "examples": [
+    {
+      "operation_id": "binance.usdm.exchangeInfo",
+      "observed_at": "2026-09-28T08:54:48.293808+00:00",
+      "request": {},
+      "http_status": 200,
+      "response": {
+        "timezone": "UTC",
+        "serverTime": 1790578903234,
+        "symbols_count": 912
+      },
+      "response_path": "root",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次不传筛选参数，请 Binance 列出可交易合约。返回的 symbols 列表共有 912 项；右侧显示服务器时间和从同一次返回中数出的合约数量。这个数量说明接口列出了多少合约，不表示我们已经开始跟踪它们。",
+      "response_note_zh": "symbols_count 是对同一次返回中 symbols 数组计数得到的值。"
+    },
+    {
+      "operation_id": "binance.usdm.klines",
+      "observed_at": "2026-09-28T08:54:49.213139+00:00",
+      "request": {
+        "symbol": "BTCUSDT",
+        "interval": "1h",
+        "limit": 1
+      },
+      "http_status": 200,
+      "response": {
+        "[1]": "82914.40",
+        "[2]": "83120.00",
+        "[3]": "82725.50",
+        "[4]": "82994.70",
+        "[5]": "5586.887"
+      },
+      "result_count": 1,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次查询 BTCUSDT 最近一根 1 小时 K 线。返回数组的第一根显示：开盘价 82914.40，最高价 83120.00，最低价 82725.50，收盘价 82994.70，成交量 5586.887。每个位置代表一种行情数据；这是一个小时的市场记录。"
+    },
+    {
+      "operation_id": "binance.usdm.openInterest",
+      "observed_at": "2026-09-28T08:54:49.639253+00:00",
+      "request": {
+        "symbol": "BTCUSDT"
+      },
+      "http_status": 200,
+      "response": {
+        "symbol": "BTCUSDT",
+        "openInterest": "95531.031",
+        "time": 1790585683064
+      },
+      "response_path": "root",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次指定 BTCUSDT，询问当前还有多少未平仓合约。接口在该时刻返回 95531.031 的 openInterest，并附带时间戳；它是一张即时快照，不能单凭这一张判断持仓是增加还是减少。"
+    },
+    {
+      "operation_id": "binance.usdm.premiumIndex",
+      "observed_at": "2026-09-28T08:54:50.055908+00:00",
+      "request": {
+        "symbol": "BTCUSDT"
+      },
+      "http_status": 200,
+      "response": {
+        "symbol": "BTCUSDT",
+        "markPrice": "82988.35579710",
+        "indexPrice": "83009.61695652",
+        "lastFundingRate": "-0.00003016",
+        "nextFundingTime": 1790611200000,
+        "time": 1790585690004
+      },
+      "response_path": "root",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次查询 BTCUSDT 的标记价格与资金费率。接口返回标记价 82988.35579710、指数价 83009.61695652，以及当时的资金费率 -0.00003016；这些数值描述同一时刻的合约定价状态。"
+    },
+    {
+      "operation_id": "binance.usdm.openInterestHist",
+      "observed_at": "2026-09-28T08:54:50.579858+00:00",
+      "request": {
+        "symbol": "BTCUSDT",
+        "period": "1h",
+        "limit": 1
+      },
+      "http_status": 200,
+      "response": {
+        "symbol": "BTCUSDT",
+        "sumOpenInterest": "95957.05800000",
+        "sumOpenInterestValue": "7957378479.53304700",
+        "timestamp": 1790582400000
+      },
+      "result_count": 1,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次查询 BTCUSDT 最近一个 1 小时统计点的未平仓量历史。接口返回该点的合约数量 95957.05800000 和名义价值 7957378479.53304700；与前后统计点对比，才能看出仓位变化。"
+    },
+    {
+      "operation_id": "binance.usdm.globalLongShortAccountRatio",
+      "observed_at": "2026-09-28T08:54:51.020233+00:00",
+      "request": {
+        "symbol": "BTCUSDT",
+        "period": "1h",
+        "limit": 1
+      },
+      "http_status": 200,
+      "response": {
+        "symbol": "BTCUSDT",
+        "longAccount": "0.5630",
+        "longShortRatio": "1.2883",
+        "shortAccount": "0.4370",
+        "timestamp": 1790582400000
+      },
+      "result_count": 1,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次查询 BTCUSDT 在最近一个 1 小时统计点的全市场账户多空分布。返回中做多账户占 56.30%，做空账户占 43.70%，多空账户比为 1.2883；这是账户数比例，不是成交量。"
+    },
+    {
+      "operation_id": "binance.usdm.topLongShortAccountRatio",
+      "observed_at": "2026-09-28T08:54:51.530360+00:00",
+      "request": {
+        "symbol": "BTCUSDT",
+        "period": "1h",
+        "limit": 1
+      },
+      "http_status": 200,
+      "response": {
+        "symbol": "BTCUSDT",
+        "longAccount": "0.5818",
+        "longShortRatio": "1.3912",
+        "shortAccount": "0.4182",
+        "timestamp": 1790582400000
+      },
+      "result_count": 1,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次查询 BTCUSDT 在最近一个 1 小时统计点的头部账户多空分布。返回中头部账户做多占 58.18%，做空占 41.82%，账户多空比为 1.3912。"
+    },
+    {
+      "operation_id": "binance.usdm.topLongShortPositionRatio",
+      "observed_at": "2026-09-28T08:54:51.997336+00:00",
+      "request": {
+        "symbol": "BTCUSDT",
+        "period": "1h",
+        "limit": 1
+      },
+      "http_status": 200,
+      "response": {
+        "symbol": "BTCUSDT",
+        "longAccount": "0.6493",
+        "longShortRatio": "1.8516",
+        "shortAccount": "0.3507",
+        "timestamp": 1790582400000
+      },
+      "result_count": 1,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次查询 BTCUSDT 在最近一个 1 小时统计点的头部持仓多空分布。返回的多头份额为 64.93%，空头份额为 35.07%，多空比为 1.8516；这里比较的是持仓方向。"
+    },
+    {
+      "operation_id": "binance.usdm.takerlongshortRatio",
+      "observed_at": "2026-09-28T08:54:52.514316+00:00",
+      "request": {
+        "symbol": "BTCUSDT",
+        "period": "1h",
+        "limit": 1
+      },
+      "http_status": 200,
+      "response": {
+        "buySellRatio": "1.1703",
+        "sellVol": "2218.4700",
+        "buyVol": "2596.3350",
+        "timestamp": 1790578800000
+      },
+      "result_count": 1,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次查询 BTCUSDT 在最近一个 1 小时统计点的主动买卖量。接口返回主动买入量 2596.3350、主动卖出量 2218.4700，买卖量比 1.1703；这个点的主动买入量高于主动卖出量。"
+    },
+    {
+      "operation_id": "coingecko.coins_markets",
+      "observed_at": "2026-09-28T08:54:52.921968+00:00",
+      "request": {
+        "vs_currency": "usd",
+        "ids": "bitcoin",
+        "per_page": 1,
+        "page": 1
+      },
+      "http_status": 200,
+      "response": {
+        "name": "Bitcoin",
+        "current_price": 82917,
+        "market_cap": 1665620197887,
+        "total_volume": 31365259474
+      },
+      "result_count": 1,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次按 bitcoin 的 CoinGecko ID 查询，并要求以美元计价。接口返回 Bitcoin 的当前价格 82917 美元、市值 1665620197887 美元和 24 小时成交量 31365259474 美元；这些都是调用当时的市场快照。"
+    },
+    {
+      "operation_id": "dexscreener.token_pairs_by_address",
+      "observed_at": "2026-09-28T08:54:53.566249+00:00",
+      "request": {
+        "chainId": "ethereum",
+        "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      },
+      "http_status": 200,
+      "response": {
+        "chainId": "ethereum",
+        "dexId": "uniswap",
+        "pairAddress": "0x0fb0e40cec3bb23e13abc585958a93c796fbea56955e19a23727a716a0423239",
+        "priceUsd": "1.00039"
+      },
+      "result_count": 30,
+      "response_path": "[0]",
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次用以太坊链和 USDC 合约地址查交易对。接口返回 30 个交易对；右侧只列第一条，它属于 Uniswap，价格为 1.00039 美元。多个交易对可能共用同一代币地址，不能把第一条当作唯一市场。"
+    },
+    {
+      "operation_id": "rss.item",
+      "observed_at": "2026-09-28T08:57:24.323278+00:00",
+      "request": {
+        "feed_url": "https://www.coindesk.com/arc/outboundfeeds/rss"
+      },
+      "response": {
+        "title": "RedotPay completes financial audit as it presses ahead with U.S. IPO plans",
+        "pubDate": "Mon, 28 Sep 2026 07:50:00 +0000"
+      },
+      "result_count": 25,
+      "response_path": "channel.item[0]",
+      "http_status": 200,
+      "evidence": "live_http_call",
+      "source": "Live upstream HTTP response",
+      "explanation_zh": "这次读取 CoinDesk 的 RSS 订阅地址，拿到 25 篇条目。右侧是第一篇的标题和发布时间；订阅源提供的是新闻线索，是否与研究对象有关，还需要打开原文核对。"
+    },
+    {
+      "operation_id": "taoli.funding_page",
+      "observed_at": "2026-09-28T09:24:46+00:00",
+      "request": {
+        "coin_search": "",
+        "exchange_filter": "全部",
+        "min_open_interest": "$1M",
+        "min_daily_volume": "$1M",
+        "interval_filter": "*H"
+      },
+      "response": {
+        "exchange": "OKX",
+        "market": "CXMT/USDT",
+        "open_interest_display": "$1.3M",
+        "daily_volume_display": "$8.3M",
+        "funding_rate_1y_display": "+284.3%",
+        "next_funding_display": "6h 35m +0.2597%",
+        "funding_rate_limits_display": "+1.000% / -1.000%",
+        "funding_interval_display": "8H"
+      },
+      "response_path": "rendered table row 0",
+      "source": "Live Taoli rendered page",
+      "evidence": "live_page_observation",
+      "case_label_zh": "默认筛选",
+      "explanation_zh": "这次直接查看 Taoli 页面，币种和交易所都没有额外筛选；页面默认只显示未平仓额、日成交额至少 100 万美元的市场。右边是当时排在首位的 OKX CXMT/USDT 行：未平仓额约 130 万美元、日成交额约 830 万美元，页面的“1Y 资金费率”列为 +284.3%，下次资金费率显示为 +0.2597%，间隔为 8 小时。这是当时网页呈现的数值，不是已验证的底层 API 响应。"
+    },
+    {
+      "operation_id": "taoli.funding_page",
+      "observed_at": "2026-09-28T09:23:39+00:00",
+      "request": {
+        "coin_search": "BTC",
+        "exchange_filter": "Binance",
+        "min_open_interest": "$1M",
+        "min_daily_volume": "$1M",
+        "interval_filter": "*H"
+      },
+      "response": {
+        "exchange": "Binance",
+        "market": "BTC/USDT",
+        "open_interest_display": "$7.9B",
+        "daily_volume_display": "$9.7B",
+        "funding_rate_1y_display": "-1.5%",
+        "next_funding_display": "6h 36m -0.0013%",
+        "funding_rate_limits_display": "+0.300% / -0.300%",
+        "funding_interval_display": "8H"
+      },
+      "response_path": "rendered Binance BTC/USDT row",
+      "source": "Live Taoli rendered page",
+      "evidence": "live_page_observation",
+      "case_label_zh": "BTC＋Binance",
+      "explanation_zh": "这次在 Taoli 页面搜索 BTC，并勾选 Binance；页面当时列出 5 个匹配市场。右边是其中 BTC/USDT 这一行：未平仓额约 79 亿美元、日成交额约 97 亿美元，页面的“1Y 资金费率”列为 -1.5%，下次资金费率显示为 -0.0013%，间隔为 8 小时。页面数值会更新，不能把这次观察当作固定费率或底层 API 契约。"
+    }
+  ]
+}

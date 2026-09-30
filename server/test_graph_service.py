@@ -96,6 +96,42 @@ class GraphServiceTest(unittest.TestCase):
         third = self.service.create_node({"name": "Next signal", "type": "Metric"})
         self.assertEqual(third["reference_number"], 3)
 
+    def test_grouped_card_references_preserve_nodes_and_allocate_by_kind(self):
+        self.service.ensure_system_tables()
+        source = self.service.create_node({"name": "Crawler", "type": "Source"})
+        asset_old_ref = self.service.find_name("assets")["reference_number"]
+        metric = self.service.create_node({"name": "Calculate", "type": "Metric",
+                                           "definition": f"Read #{asset_old_ref:03d} from #{source['reference_number']:03d}."})
+        decision = self.service.create_node({"name": "Look up asset", "type": "Asset Resolution"})
+        result = self.service.create_node({"name": "Result", "type": "Flow Result"})
+        review = self.service.create_node({"name": "Review", "type": "Review Decision"})
+        matched = self.service.create_edge({"upstream_id": decision["id"],
+                                            "downstream_id": result["id"], "branch_label": "matched"})
+        self.service.create_edge({"upstream_id": decision["id"],
+                                  "downstream_id": review["id"], "branch_label": "conflict"})
+        self.assertEqual(self.service.group_node_references_once(), {"renumbered": 11, "total": 11})
+        self.assertEqual(self.service.group_node_references_once(), {"renumbered": 0, "total": 11})
+        self.assertEqual(self.service.find_name("assets")["reference_number"], 1001)
+        self.assertEqual(self.service.get_node(source["id"])["reference_number"], 2001)
+        self.assertEqual(self.service.get_node(metric["id"])["reference_number"], 3001)
+        self.assertEqual(self.service.get_node(metric["id"])["definition"],
+                         "Read #1001 from #2001.")
+        self.assertEqual(self.service.get_node(result["id"])["reference_number"], 3002)
+        self.assertEqual(self.service.get_node(decision["id"])["reference_number"], 4001)
+        self.assertEqual(self.service.get_node(review["id"])["reference_number"], 4002)
+        self.assertEqual(self.service.get_edge(matched["id"])["reference_number"], 1)
+        self.service.db.close()
+        self.service = GraphService(self.path)
+        self.assertEqual(self.service.compact_retired_node_references(),
+                         {"renumbered": 0, "total": 11})
+        self.assertEqual(self.service.create_node({"name": "Second crawler", "type": "Source"})["reference_number"], 2002)
+        self.assertEqual(self.service.create_node({"name": "Check", "type": "Evidence Check"})["reference_number"], 4003)
+        self.assertEqual(self.service.create_node({"name": "Second metric", "type": "Score"})["reference_number"], 3003)
+        self.assertEqual(self.service.create_node({"name": "Branch lookup", "type": "Asset Resolution",
+                                                   "reference_group": 4})["reference_number"], 4004)
+        with self.assertRaisesRegex(GraphError, "reference group"):
+            self.service.create_node({"name": "Wrong group", "type": "Source", "reference_group": 4})
+
     def test_connection_and_field_usage_numbers_survive_edits_and_deletion(self):
         source, target, _, source_field, output, _, edge, usage = self._flow()
         self.assertEqual((edge["reference_number"], usage["reference_number"]), (1, 1))
@@ -112,6 +148,21 @@ class GraphServiceTest(unittest.TestCase):
         self.assertEqual((next_edge["reference_number"], next_usage["reference_number"]), (2, 2))
         self.assertEqual(self.service.graph()["edges"][0]["reference_number"], 2)
         self.assertEqual(self.service.graph()["field_usages"][0]["reference_number"], 2)
+
+    def test_decision_routes_keep_labels_and_result_endpoint(self):
+        decision = self.service.create_node({"name": "Match identity", "type": "Asset Resolution"})
+        result = self.service.create_node({"name": "Matched record", "type": "Flow Result"})
+        pending = self.service.create_node({"name": "Pending identity", "type": "Asset Resolution"})
+        matched = self.service.create_edge({"upstream_id": decision["id"],
+                                            "downstream_id": result["id"], "branch_label": "matched"})
+        unmatched = self.service.create_edge({"upstream_id": decision["id"],
+                                              "downstream_id": pending["id"], "branch_label": "unmatched / conflict"})
+        self.service.update_edge(matched["id"], {"branch_label": "verified match"})
+        self.service.db.close()
+        self.service = GraphService(self.path)
+        routes = {edge["branch_label"]: edge["downstream_id"] for edge in self.service.graph()["edges"]}
+        self.assertEqual(routes, {"verified match": result["id"], "unmatched / conflict": pending["id"]})
+        self.assertEqual(self.service.get_edge(unmatched["id"])["branch_label"], "unmatched / conflict")
 
     def test_existing_connections_and_field_usages_gain_numbers(self):
         *_, edge, usage = self._flow()
@@ -163,11 +214,12 @@ class GraphServiceTest(unittest.TestCase):
                          {1, 2, 3})
 
     def test_business_table_nodes_are_distinct_connectable_references(self):
-        self.assertEqual(self.service.ensure_system_tables(), {"created": 4, "total": 4})
-        self.assertEqual(self.service.ensure_system_tables(), {"created": 0, "total": 4})
+        self.assertEqual(self.service.ensure_system_tables(), {"created": 6, "total": 6})
+        self.assertEqual(self.service.ensure_system_tables(), {"created": 0, "total": 6})
         self.assertEqual(self.service.graph()["edges"], [])
         self.assertEqual({node["name"] for node in self.service.graph()["nodes"]},
-                         {"assets", "asset_identifiers", "asset_relationships", "asset_monitoring_rules"})
+                         {"assets", "asset_identifiers", "asset_relationships", "asset_monitoring_rules",
+                          "asset_score_events", "asset_scores_current"})
         state = self.service.find_name("asset_identifiers")
         self.assertEqual((state["type"], state["workflow_lane"], state["is_system_state"]),
                          ("asset_identifiers", "shared", 1))
@@ -183,6 +235,18 @@ class GraphServiceTest(unittest.TestCase):
             self.service.create_field(state["id"], {"name": "fake_record"})
         with self.assertRaises(GraphError):
             self.service.delete_node(state["id"])
+
+    def test_table_feedback_represents_later_runs_without_allowing_processor_cycle(self):
+        self.service.ensure_system_tables()
+        table = self.service.find_name("assets")
+        lookup = self.service.create_node({"name": "Lookup candidate", "type": "Asset Resolution"})
+        update = self.service.create_node({"name": "Update candidate", "type": "Asset Resolution"})
+        self.service.create_edge({"upstream_id": table["id"], "downstream_id": lookup["id"]})
+        self.service.create_edge({"upstream_id": lookup["id"], "downstream_id": update["id"]})
+        write = self.service.create_edge({"upstream_id": update["id"], "downstream_id": table["id"]})
+        self.assertEqual(write["transport_kind"], "direct")
+        with self.assertRaisesRegex(GraphError, "dependency cycle"):
+            self.service.create_edge({"upstream_id": update["id"], "downstream_id": lookup["id"]})
 
     def test_legacy_aggregate_nodes_are_removed_only_when_unconnected(self):
         old = self.service.create_node({"name": "Asset Registry", "type": "Asset Registry"}, actor="system")
@@ -468,10 +532,12 @@ class GraphServiceTest(unittest.TestCase):
         updated = self.service.update_edge(edge["id"], {
             "transport_kind": "redpanda", "transport_topic": "market.prices",
             "transport_key": "asset_symbol", "payload_schema": "price-event/v1",
+            "consumer_group": "signalstudio.market_prices.v1",
             "transport_headers": [{"name": "source", "description": "采集源", "consumed": True},
                                   {"name": "trace_id", "description": "链路标识"}],
         })
         self.assertEqual(updated["transport_topic"], "market.prices")
+        self.assertEqual(updated["consumer_group"], "signalstudio.market_prices.v1")
         self.assertEqual(json.loads(updated["transport_headers"])[1]["name"], "trace_id")
         self.assertTrue(json.loads(updated["transport_headers"])[0]["consumed"])
         self.assertEqual(self.service.get_field_usages(edge["id"]), before_usages)
@@ -481,6 +547,7 @@ class GraphServiceTest(unittest.TestCase):
         direct = self.service.update_edge(edge["id"], {"transport_kind": "direct"})
         self.assertEqual(direct["transport_topic"], "")
         self.assertEqual(direct["transport_headers"], "[]")
+        self.assertEqual(direct["consumer_group"], "")
 
     def test_redpanda_transport_requires_valid_topic_and_headers(self):
         *_, edge, _ = self._flow()

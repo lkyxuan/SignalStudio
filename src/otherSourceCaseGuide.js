@@ -1,0 +1,95 @@
+// Chinese explanations of the input contracts used by the other source cards.
+// These describe allowed inputs, not proof that a particular filter was honored.
+const EXPLANATIONS = {
+  adjusted: '是否调整情绪统计：包含回复和引用、排除机构账号，并按 Smart Engagement 加权。',
+  allowed_updates: '指定 Bot 接收哪些更新类型；省略时按 Telegram 的默认规则处理。',
+  author_id: '要统计曝光量的 X 作者用户 ID，通常是数字字符串。',
+  average: '是否返回平均情绪分数；否则返回按内容量加权的情绪总量。',
+  categories: '按 Kaito 的对象类别筛排名，例如交易所或信息市场。',
+  category: '按类别缩小查询范围。',
+  chainId: '代币所在链的标识，例如 ethereum；与合约地址一起定位交易对。',
+  coin_search: '在资金费率网页上按币种或市场名称搜索。',
+  date: '查询指定日期的高质量粉丝数据，格式为 YYYY-MM-DD。',
+  duration: '统计或筛选所覆盖的时间窗口，例如 24h、7d；具体可用值看本接口定义。',
+  endTime: 'Binance 时间窗口的结束时刻，使用 Unix 毫秒时间戳。',
+  end_date: '查询窗口结束日期，格式为 YYYY-MM-DD；是否包含当日以该接口定义及实际返回为准。',
+  event_types: '只请求指定类别的事件，多个类别用英文逗号分隔。',
+  ex_official: '是否把项目官方账号排除在关注份额统计之外。',
+  exchange_filter: '资金费率网页的交易所筛选。',
+  feed_url: 'RSS 订阅源地址；读取后返回其中的新闻条目。',
+  filter_smart_followers_operator: '高质量粉丝数的比较方式：gte 为不低于，lte 为不高于；需要同时传阈值。',
+  filter_smart_followers_value: '高质量粉丝数的整数阈值；需要同时传比较方式。',
+  from: '分页偏移量，表示从结果列表的哪个位置开始。',
+  gaussian: '是否对情绪时间序列做高斯平滑，让短时波动更平顺。',
+  ids: 'CoinGecko 币种 ID 列表，例如 bitcoin；用于准确指定币种。',
+  include_rehypothecated: '是否把再抵押代币包含在 CoinGecko 市场列表中。',
+  include_tokens: '用 symbols 按简称搜索时，决定同名代币的包含范围。',
+  interval: '每根 K 线覆盖的时间，如 1h 表示一小时。',
+  interval_filter: '资金费率网页的结算间隔筛选。',
+  keyword: '按关键词查询某个主题；与 token 按 Kaito 对象代号查询是两种不同入口。',
+  language: 'Kaito 内容或统计结果的语言筛选。',
+  limit: '请求返回的最大条数；实际返回条数仍以本次结果为准。',
+  locale: 'CoinGecko 返回的本地化显示语言。',
+  max_announcement_date: '事件公告日期的上界，格式为 YYYY-MM-DD。',
+  max_created_at: '内容发布时间的上界，使用 ISO 8601 时间。',
+  min_announcement_date: '事件公告日期的下界，格式为 YYYY-MM-DD。',
+  min_created_at: '内容发布时间的下界，使用 ISO 8601 时间。',
+  min_daily_volume: '资金费率网页只看日成交额达到此数值的市场。',
+  min_open_interest: '资金费率网页只看未平仓额达到此数值的市场。',
+  mode: 'count 返回高质量粉丝数量；users 请求粉丝账号列表。',
+  names: '按 CoinGecko 币种名称列表筛选。',
+  narrative: 'Kaito 叙事代号；先用叙事目录核对，再查询该叙事的关注份额。',
+  nft: '是否将 NFT 项目纳入关注份额排名。',
+  offset: 'Telegram getUpdates 的更新游标，用于从已处理更新之后继续读取。',
+  order: 'CoinGecko 市场列表的排序方式，例如按市值降序。',
+  page: 'CoinGecko 列表页码，从第一页开始。',
+  per_page: 'CoinGecko 每页请求的币种条数。',
+  period: 'Binance 统计数据的聚合周期，例如 1h 是每小时一条。',
+  pre_tge: '是否只看尚未发生代币生成事件的项目。',
+  precision: 'CoinGecko 价格字段的小数精度。',
+  price_change_percentage: '要求返回指定窗口的涨跌幅，例如 24h 或 7d。',
+  query: '发送给 Kaito 的搜索文字；具体是名称查找还是内容检索，取决于当前接口。',
+  scope: '关注份额统计范围；pretge 表示只看发币前项目。',
+  size: '请求最终返回的条数；实际返回条数以本次响应为准。',
+  sort_by: '指定排序所依据的字段；可用值因接口而异。',
+  sort_order: '指定排序方向：asc 升序，desc 降序。',
+  sort_type: '关注份额变化的方向：desc 看上升者，asc 看下降者。',
+  sources: '按内容来源筛候选事件，多个来源用英文逗号分隔。',
+  sparkline: '是否附带最近 7 天的小型价格时间序列。',
+  startTime: 'Binance 时间窗口的开始时刻，使用 Unix 毫秒时间戳。',
+  start_date: '查询窗口开始日期，格式为 YYYY-MM-DD。',
+  symbol: 'Binance 合约交易对，例如 BTCUSDT。',
+  symbols: '按 CoinGecko 交易简称列表筛选；同名币种可能不止一个。',
+  timeout: 'Telegram 长轮询等待新更新的秒数；0 表示不等待。',
+  token: '由 Kaito 对象目录确认的代号，例如 BTC；用于按对象查询。',
+  tokenAddress: '代币在所选链上的合约地址；与 chainId 一起定位交易对。',
+  top_n: '请求排名靠前的账号数量。',
+  tweet_id: '要查询互动详情的 X 帖子 ID。',
+  uri: '要读取的 MCP 资源地址，例如 kaito://tokens。',
+  user_id: 'X 用户数字 ID；需要指定账号的接口可用它定位用户。',
+  user_status: '筛新出现、已有或全部账号。',
+  user_tag_individual_or_organization: '筛个人账号或机构账号。',
+  user_type: '按 Kaito 的 KOL 分类筛账号。',
+  user_web3_relevance: '筛与 Web3 相关或不相关的账号。',
+  username: 'X 用户名；需要指定账号的接口可用它定位用户。',
+  version: 'Kaito 情绪模型的版本号。',
+  vs_currency: '市场价格和市值采用的计价货币，例如 usd。',
+  weighted: '是否按 Smart Engagement 给账号讨论加权。',
+};
+
+const QUERY_BY_OPERATION = {
+  'kaito.mcp.kaito_entities': '按项目名称、代币代号、交易简称或 CoinGecko slug 查 Kaito 支持的对象。',
+  'kaito.mcp.kaito_narratives': '按叙事 ID 或显示名称查 Kaito 支持的叙事。',
+  'kaito.mcp.kaito_search': '用自然语言描述想找的内容，由 Kaito 进行内容搜索。',
+};
+
+export function explainOtherInput(operation, input) {
+  if (operation.id === 'kaito.mcp.kaito_events' && input.name === 'start_date') return '事件结束日期的下界：只看结束日期在这天或之后的事件，格式 YYYY-MM-DD。';
+  if (operation.id === 'kaito.mcp.kaito_events' && input.name === 'end_date') return '事件结束日期的上界：只看结束日期在这天或之前的事件，格式 YYYY-MM-DD。';
+  if (input.name === 'query' && QUERY_BY_OPERATION[operation.id]) return QUERY_BY_OPERATION[operation.id];
+  if (input.name === 'limit' && operation.id === 'telegram.bot.message') return '一次最多读取多少条 Telegram 更新。';
+  if (input.name === 'category' && operation.id === 'kaito.mcp.kaito_smart_following') return '只看该账号新关注的指定类型账号。';
+  return EXPLANATIONS[input.name] || input.label_zh;
+}
+
+export const OTHER_EXPLAINED_INPUTS = Object.keys(EXPLANATIONS);

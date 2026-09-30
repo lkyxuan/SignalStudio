@@ -206,15 +206,33 @@ class SignalContractStore:
                 issues.append(f"Graph text differs from the published contract: {field_name}")
         if not source_node or source_node["id"] not in node_ids:
             issues.append("Source operation is not connected to the signal")
-        source_edge = next((edge for edge in edges if source_node
+        direct_edge = next((edge for edge in edges if source_node
                             and edge["upstream_id"] == source_node["id"]
                             and edge["downstream_id"] == node["id"]), None)
+        topic_node = next((item for item in nodes if item["type"] == "Redpanda Topic"
+                           and source_node and any(edge["upstream_id"] == source_node["id"]
+                               and edge["downstream_id"] == item["id"] for edge in edges)
+                           and any(edge["upstream_id"] == item["id"]
+                               and edge["downstream_id"] == node["id"] for edge in edges)), None)
+        topic_settings = json.loads(topic_node["notes"] or "{}") if topic_node else {}
+        producer_edge = next((edge for edge in edges if topic_node and source_node
+                              and edge["upstream_id"] == source_node["id"]
+                              and edge["downstream_id"] == topic_node["id"]), None)
+        source_edge = direct_edge or next((edge for edge in edges if topic_node
+                                           and edge["upstream_id"] == topic_node["id"]
+                                           and edge["downstream_id"] == node["id"]), None)
         expected_transport = spec["transport"]["input"]
-        if not source_edge or any(source_edge[actual] != expected_transport[planned]
+        transport_matches = (bool(source_edge) and
+                             (all(source_edge[actual] == expected_transport[planned]
                                   for actual, planned in (("transport_kind", "kind"),
                                                           ("transport_topic", "topic"),
                                                           ("transport_key", "message_key"),
-                                                          ("payload_schema", "payload_schema"))):
+                                                          ("payload_schema", "payload_schema")))
+                              if direct_edge else bool(producer_edge) and
+                              topic_settings.get("topic") == expected_transport["topic"] and
+                              topic_settings.get("message_key") == expected_transport["message_key"] and
+                              topic_settings.get("payload_schema") == expected_transport["payload_schema"]))
+        if not transport_matches:
             issues.append("Input transport does not match the signal contract")
         consumed_fields = []
         for item in spec["inputs"]:
@@ -223,10 +241,19 @@ class SignalContractStore:
                                  if field["catalog_field_id"] == catalog_id), None)
             target_field = next((field for field in fields if field["node_id"] == node["id"]
                                  and field["name"] == item["name"]), None)
-            usage = next((usage for usage in usages if source_edge and source_field
-                          and target_field and usage["edge_id"] == source_edge["id"]
-                          and usage["source_field_id"] == source_field["id"]
+            topic_field = next((field for field in fields if topic_node
+                                and field["node_id"] == topic_node["id"]
+                                and field["name"] == item["upstream_path"]), None)
+            producer_usage = next((usage for usage in usages if producer_edge and source_field
+                                   and topic_field and usage["edge_id"] == producer_edge["id"]
+                                   and usage["source_field_id"] == source_field["id"]
+                                   and usage["target_field_id"] == topic_field["id"]), None)
+            usage = next((usage for usage in usages if source_edge and source_field and target_field
+                          and usage["edge_id"] == source_edge["id"]
+                          and usage["source_field_id"] == (source_field["id"] if direct_edge else (topic_field or {}).get("id"))
                           and usage["target_field_id"] == target_field["id"]), None)
+            if topic_node and not producer_usage:
+                usage = None
             if not usage:
                 issues.append(f"Input is not mapped on the graph: {item['name']}")
             consumed_fields.append({"usage_reference": f"R{usage['reference_number']:03d}" if usage else None,
@@ -251,7 +278,7 @@ class SignalContractStore:
                                       "rationale", "caveats", "notes", "workflow_lane")) for item in nodes]
         exported_edges = [pick(item, ("id", "reference_number", "upstream_id", "downstream_id",
                                       "rationale", "transformation", "transport_kind", "transport_topic",
-                                      "transport_key", "payload_schema", "transport_headers")) for item in edges]
+                                      "transport_key", "payload_schema", "transport_headers", "consumer_group")) for item in edges]
         exported_fields = [pick(item, ("id", "node_id", "name", "data_type", "definition",
                                        "unit", "normalization_rule", "catalog_field_id")) for item in fields]
         exported_usages = [pick(item, ("id", "reference_number", "edge_id", "source_field_id",
@@ -265,7 +292,11 @@ class SignalContractStore:
                 "edge_id": source_edge["id"],
                 "producer": {"node_id": source_node["id"], "node_name": source_node["name"],
                              "role": "planned_crawler"},
-                "transport": spec["transport"]["input"],
+                "transport": {**spec["transport"]["input"],
+                              "consumer_group": (source_edge["consumer_group"] if direct_edge else
+                                                 topic_settings.get("consumers", {}).get(node["name"], "")),
+                              "headers": (json.loads(source_edge["transport_headers"]) if direct_edge else
+                                          topic_settings.get("headers", []))},
                 "payload": spec["input_message"],
                 "declared_upstream_field_inventory": [
                     {**pick(field, ("path", "type", "evidence", "condition_zh")),

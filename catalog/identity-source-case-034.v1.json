@@ -1,0 +1,55 @@
+{
+  "operation_id": "kaito.mcp.kaito_smart_following_market",
+  "request": {
+    "duration": "24h"
+  },
+  "observed_at": "2026-09-29T11:47:34.962198+00:00",
+  "evidence": "live_mcp_call",
+  "response_count": 100,
+  "records": [
+    {
+      "id": "2921807028",
+      "name": "Stake | Bonus",
+      "username": "Tyler_Darts",
+      "icon": "https://pbs.twimg.com/profile_images/2100939940670394368/eOpxfTXh_normal.jpg",
+      "bio": "I'm here to let you know about new bonuses.",
+      "new": 1,
+      "user_type": "non_kkol",
+      "user_web3_relevance": "Web3-Relevant",
+      "user_tag_individual_or_organization": "Organization",
+      "score": {
+        "change": 0,
+        "direction": 1
+      },
+      "date": "2026-09-28 23:55:18.098",
+      "followers": {
+        "change_ratio": 1000000000,
+        "value": 1,
+        "change": 1,
+        "direction": 1
+      }
+    },
+    {
+      "id": "998973985026002944",
+      "name": "KASUN",
+      "username": "kasuncfdo",
+      "icon": "https://pbs.twimg.com/profile_images/2086573180647555072/SzPWrvVj_normal.jpg",
+      "bio": "⌘ Frontend Web Dev • Blockchain Enthusiast • Author @TechNewsLK • ⚡\n✳︎ Web3 • Content Writer • Shipping & sharing design engineering stuff",
+      "new": 1,
+      "user_type": "non_kkol",
+      "user_web3_relevance": "Web3-Relevant",
+      "user_tag_individual_or_organization": "Individual",
+      "score": {
+        "change": 0,
+        "direction": 1
+      },
+      "date": "2026-09-28 23:55:18.098",
+      "followers": {
+        "change_ratio": 1000000000,
+        "value": 1,
+        "change": 1,
+        "direction": 1
+      }
+    }
+  ]
+}

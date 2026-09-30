@@ -8,7 +8,7 @@ const BLOCK_GAP = 80;
 const MAX_ROW_WIDTH = 1800;
 const TYPE_ORDER = ['Source', 'Raw Field', 'Evidence Check', 'asset_identifiers', 'assets',
   'Asset Resolution', 'Relationship Discovery', 'Review Decision', 'Derived Field',
-  'Metric', 'Score', 'asset_monitoring_rules', 'Rule Evaluation', 'Signal Event',
+  'Metric', 'Score', 'Redpanda Topic', 'Redis Window', 'asset_monitoring_rules', 'Rule Evaluation', 'asset_score_events', 'asset_scores_current', 'Flow Result', 'Signal Event',
   'asset_relationships', 'Relationship Lookup', 'Ranking',
   'Product Module'];
 
@@ -23,6 +23,8 @@ function layoutConnected(nodes, edges) {
   const outgoing = new Map(nodes.map(node => [node.id, []]));
   for (const edge of edges) {
     if (!byId.has(edge.upstream_id) || !byId.has(edge.downstream_id)) continue;
+    // A write back to a table affects later runs, not this run's dependency order.
+    if (byId.get(edge.downstream_id).is_system_state) continue;
     incoming.get(edge.downstream_id).push(edge.upstream_id);
     outgoing.get(edge.upstream_id).push(edge.downstream_id);
   }

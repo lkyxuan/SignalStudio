@@ -1,0 +1,9 @@
+{
+  "version": "source-collection-plans.v1",
+  "plans": {
+    "kaito.mcp.kaito_smart_following_market": {
+      "mode": "scheduled",
+      "interval_minutes": 720
+    }
+  }
+}

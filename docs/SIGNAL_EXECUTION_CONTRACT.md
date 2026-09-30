@@ -12,6 +12,7 @@
 - `GET /api/signals/coingecko_market_turnover_candidate/package`：返回一条信号的完整执行包；也可用图节点 UUID。
 - 不方便访问本地 API 时，读取本次导出的 [`handoff/coingecko_market_turnover_candidate.v2.json`](../handoff/coingecko_market_turnover_candidate.v2.json)。项目图变更后可运行 `python3 scripts/export_signal_package.py coingecko_market_turnover_candidate handoff/coingecko_market_turnover_candidate.v2.json` 刷新快照；脚本拒绝导出未就绪的配置。旧的 v1 文件保留作历史对照，不包含本次 L001 消息契约。
 - 返回内容包括版本化定义、CoinGecko 上游操作契约及其修订号、该信号的上游设计子图、输入/输出字段映射、实施就绪检查和运行证据状态。
+- 来源操作的用户定义采集计划由 `catalog/source-collection-plans.v1.json` 生成到来源契约的 `operation.collection_plan`。例如 #2030 的 `mode=scheduled`、`interval_minutes=720` 表示目标每 12 小时采集一次；`evidence_status=design_only_no_runtime_verification` 表示尚无实际运行频率的证据。未定义计划的操作不包含该字段。涉及该操作的执行包通过 `source_contract.operation.collection_plan` 交付相同参数。
 - `revision` 是执行定义与来源契约修订号的规范 JSON SHA-256；设计图快照、画布位置及运行回报不进入该哈希，因此同一配置在不同项目数据库中仍有相同修订号。设计图仅用于核对输入映射及可读说明。Few Understand 应保存 `signal_key`、`signal_version`、包 `revision`、`source_contract_revision`，按这些值定位所实现的配置。包修订变化时重新比对。
 - `implementation_readiness.status=ready` 只表示本产品的规划配置、字段映射和图连接完整，**不表示**上游 API 凭据可用、消息主题已创建、爬虫已运行或信号有效。`transport.*.deployment_status=planned` 明确标出消息主题尚未部署。
 - `definition.implementation_guidance` 标出目标平台、各阶段涉及的产品和推荐技术栈。本信号推荐 Few Understand 使用 Python + Polars 计算，并把现有 `consumer/polars_engine` 标为待评估组件。技术与组件是实施建议；`collection`、`inputs`、`processing`、`output` 和证据要求是目标行为。Few Understand 可以选用已有 scorer、Polars Engine 或新组件；对采集频率、消息通道等目标配置的改动也应回报差异，供本产品审核。

@@ -1,0 +1,223 @@
+{
+  "version": 3,
+  "storage_note": "SignalStudio defines the table fields, keys, and case rows for a separate backend AI to implement. #1001 generates asset_id once as UUIDv7; #1002 and other tables reuse that exact ID. PostgreSQL, ClickHouse, or Parquet may be chosen there if the same semantics are preserved; no table write is performed by these case rows.",
+  "tables": {
+    "assets": {
+      "label_zh": "内部资产",
+      "purpose_zh": "一个 asset_id 对应一个内部资产对象；只有 X 账号时可暂用账号名称，身份仍待确认。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "type": "TEXT",
+          "format": "uuidv7",
+          "label_zh": "系统创建的内部资产 ID（UUIDv7）",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "label_zh": "当前展示名称；待确认时可暂用来源名称",
+          "required": false
+        },
+        {
+          "name": "identity_status",
+          "type": "TEXT",
+          "label_zh": "身份状态：pending_identity 或 confirmed",
+          "required": true
+        },
+        {
+          "name": "asset_kind",
+          "type": "TEXT",
+          "label_zh": "对象类别，如社交账号、项目、加密资产、股票；尚不确定时可空",
+          "required": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "label_zh": "系统首次建档时间",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "asset_id"
+      ],
+      "create_sql": "CREATE TABLE assets (asset_id TEXT PRIMARY KEY, name TEXT, identity_status TEXT NOT NULL CHECK (identity_status IN ('pending_identity', 'confirmed')), asset_kind TEXT, created_at TEXT NOT NULL)",
+      "purpose_en": "Store stable internal asset objects with a current display name that may be provisional while identity is pending."
+    },
+    "asset_identifiers": {
+      "label_zh": "资产外部标识",
+      "purpose_zh": "用来源范围或别名类别加标识值找到 #1001 的内部资产 ID；一行只保存一条对应关系，多行可以指向同一资产。",
+      "columns": [
+        {
+          "name": "source_namespace",
+          "type": "TEXT",
+          "label_zh": "来源范围或别名类别",
+          "required": true
+        },
+        {
+          "name": "external_identifier",
+          "type": "TEXT",
+          "label_zh": "外部 ID 或别名值",
+          "required": true
+        },
+        {
+          "name": "asset_id",
+          "type": "TEXT",
+          "format": "uuidv7",
+          "label_zh": "引用 #1001 已创建的 asset_id（UUIDv7）；#1002 不另生成",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "source_namespace",
+        "external_identifier"
+      ],
+      "create_sql": "CREATE TABLE asset_identifiers (source_namespace TEXT NOT NULL, external_identifier TEXT NOT NULL, asset_id TEXT NOT NULL REFERENCES assets(asset_id), PRIMARY KEY (source_namespace, external_identifier))",
+      "purpose_en": "Map each source-scoped identifier or curated alias to an existing internal asset ID; multiple rows may point to one asset."
+    },
+    "asset_relationships": {
+      "label_zh": "已审核资产关系",
+      "purpose_zh": "保存两项已确认资产之间经过审核的关系。",
+      "columns": [
+        {
+          "name": "relationship_id",
+          "type": "TEXT",
+          "label_zh": "关系 ID",
+          "required": true
+        },
+        {
+          "name": "from_asset_id",
+          "type": "TEXT",
+          "label_zh": "起点资产 ID",
+          "required": true
+        },
+        {
+          "name": "to_asset_id",
+          "type": "TEXT",
+          "label_zh": "终点资产 ID",
+          "required": true
+        },
+        {
+          "name": "relationship_type",
+          "type": "TEXT",
+          "label_zh": "关系类型",
+          "required": true
+        },
+        {
+          "name": "evidence_ref",
+          "type": "TEXT",
+          "label_zh": "关系证据",
+          "required": true
+        },
+        {
+          "name": "review_id",
+          "type": "TEXT",
+          "label_zh": "批准记录 ID",
+          "required": true
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "label_zh": "创建时间",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "relationship_id"
+      ],
+      "create_sql": "CREATE TABLE asset_relationships (relationship_id TEXT PRIMARY KEY, from_asset_id TEXT NOT NULL REFERENCES assets(asset_id), to_asset_id TEXT NOT NULL REFERENCES assets(asset_id), relationship_type TEXT NOT NULL, evidence_ref TEXT NOT NULL, review_id TEXT NOT NULL, created_at TEXT NOT NULL, CHECK (from_asset_id <> to_asset_id))",
+      "purpose_en": "Store reviewed relationships between approved assets."
+    },
+    "asset_monitoring_rules": {
+      "label_zh": "资产监控规则",
+      "purpose_zh": "按资产保存经审核的规则及其版本。",
+      "columns": [
+        {
+          "name": "rule_id",
+          "type": "TEXT",
+          "label_zh": "规则 ID",
+          "required": true
+        },
+        {
+          "name": "version",
+          "type": "INTEGER",
+          "label_zh": "版本号",
+          "required": true
+        },
+        {
+          "name": "asset_id",
+          "type": "TEXT",
+          "label_zh": "资产 ID",
+          "required": true
+        },
+        {
+          "name": "metric_key",
+          "type": "TEXT",
+          "label_zh": "指标键",
+          "required": true
+        },
+        {
+          "name": "rule_json",
+          "type": "TEXT",
+          "label_zh": "规则内容 JSON",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "label_zh": "规则状态",
+          "required": true
+        },
+        {
+          "name": "review_id",
+          "type": "TEXT",
+          "label_zh": "批准记录 ID",
+          "required": true
+        },
+        {
+          "name": "effective_at",
+          "type": "TEXT",
+          "label_zh": "生效时间",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "rule_id",
+        "version"
+      ],
+      "create_sql": "CREATE TABLE asset_monitoring_rules (rule_id TEXT NOT NULL, version INTEGER NOT NULL, asset_id TEXT NOT NULL REFERENCES assets(asset_id), metric_key TEXT NOT NULL, rule_json TEXT NOT NULL, status TEXT NOT NULL, review_id TEXT NOT NULL, effective_at TEXT NOT NULL, PRIMARY KEY (rule_id, version))",
+      "purpose_en": "Store reviewed, versioned monitoring rules for assets."
+    },
+    "asset_score_events": {
+      "label_zh": "资产评分流水",
+      "purpose_zh": "汇集各评分程序已经确认的加分事实；每笔分引用详细判定记录，并使用稳定 event_key 防重。事件先进入 Redpanda，再分别写入 Redis 近期窗口与 Delta/Parquet 长期流水；Redis 不是唯一账本。",
+      "storage_plan": {"ingress": "redpanda_score_event", "archive": "delta_parquet_asset_score_events", "hot_window": "redis_recent_score_events", "fan_out": "independent_consumers", "status": "planned_not_executed"},
+      "columns": [
+        { "name": "asset_id", "type": "TEXT", "format": "uuidv7", "label_zh": "引用 #1001 的内部资产 ID", "required": true },
+        { "name": "event_key", "type": "TEXT", "label_zh": "由资产 ID、评分维度和判定记录引用稳定生成的去重键", "required": true },
+        { "name": "score_key", "type": "TEXT", "label_zh": "本次加分所属维度，如 KOL 热度、热度变化或看空证据；新维度需先定义口径", "required": true },
+        { "name": "decision_ref", "type": "TEXT", "label_zh": "评分程序命名空间和其详细判定记录 ID；据此查询原始输入、命中原因和规则版本", "required": true },
+        { "name": "score_delta", "type": "REAL", "label_zh": "本次入账的分数变化量；看空证据通常给看空维度加正分，明确扣分或冲销可为负数", "required": true },
+        { "name": "created_at", "type": "TEXT", "label_zh": "评分事件被系统接受时确定的入账时间，UTC；实时窗口和归档沿用同一时间", "required": true }
+      ],
+      "primary_key": ["event_key"],
+      "unique_keys": [["asset_id", "score_key", "decision_ref"]],
+      "create_sql": "CREATE TABLE asset_score_events (asset_id TEXT NOT NULL REFERENCES assets(asset_id), event_key TEXT PRIMARY KEY, score_key TEXT NOT NULL, decision_ref TEXT NOT NULL, score_delta REAL NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (asset_id, score_key, decision_ref))",
+      "purpose_en": "Collect deduplicated score contributions from program-owned decision records by asset and score dimension."
+    },
+    "asset_scores_current": {
+      "label_zh": "资产当前评分",
+      "purpose_zh": "保存各资产评分在 calculated_at 时刻的值；Demo 只使用 total_heat 全量热度。新资产首次建档贡献 +100，按 7 天（10080 分钟）半衰；后续贡献可按各自规则衰减后汇总。#3005 从 Redis 评分事件更新本表，排名在同一查询时刻计算，尚未运行。",
+      "storage_plan": {"current_view": "redis_asset_scores_current", "derived_from": "redis_recent_score_events", "status": "planned_not_executed"},
+      "columns": [
+        { "name": "asset_id", "type": "TEXT", "format": "uuidv7", "label_zh": "引用 #1001 的内部资产 ID", "required": true },
+        { "name": "score_key", "type": "TEXT", "label_zh": "评分指标唯一键；本次 Demo 固定为 total_heat（全量热度）", "required": true },
+        { "name": "score_value", "type": "REAL", "label_zh": "该资产在此指标上的当前分数；内部保留计算精度，仅展示保留两位小数", "required": true, "display_decimal_places": 2 },
+        { "name": "calculated_at", "type": "TEXT", "label_zh": "score_value 对应的 UTC 时刻；连续指数衰减指标读取时折算到实际查询时刻", "required": true }
+      ],
+      "primary_key": ["asset_id", "score_key"],
+      "create_sql": "CREATE TABLE asset_scores_current (asset_id TEXT NOT NULL REFERENCES assets(asset_id), score_key TEXT NOT NULL, score_value REAL NOT NULL, calculated_at TEXT NOT NULL, PRIMARY KEY (asset_id, score_key))",
+      "purpose_en": "Materialize the latest value of each program-owned score metric for each asset; calculate ranks when querying."
+    }
+  }
+}

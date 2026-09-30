@@ -4,6 +4,7 @@ import { displayNodeName, translate } from './i18n';
 import { displayCatalogNodeName, displayFieldName } from './catalogPresentation';
 import { SourceContractFields } from './SourceContractFields';
 import { nodeRef, edgeRef, usageRef } from './graphRefs';
+import { displayCaseValue, flattenAccount, SMART_FOLLOWING_OPERATION } from './smartFollowingCase';
 import './field-panels.css';
 
 const emptyField = { name: '', data_type: 'Text', definition: '', notes: '', example_value: '', unit: '', min_value: null, max_value: null, normalization_rule: '' };
@@ -12,14 +13,14 @@ const fieldContract = (field, t) => [
   (field.min_value != null || field.max_value != null) && `${t('Value range')}: ${field.min_value ?? '—'}–${field.max_value ?? '—'}`,
 ].filter(Boolean).join(' · ');
 const readHeaders = value => { try { return JSON.parse(value || '[]'); } catch { return []; } };
-const edgeForm = edge => ({ rationale: edge.rationale, transformation: edge.transformation || '',
+const edgeForm = edge => ({ rationale: edge.rationale, transformation: edge.transformation || '', branch_label: edge.branch_label || '',
   transport_kind: edge.transport_kind || 'unspecified', transport_topic: edge.transport_topic || '',
-  transport_key: edge.transport_key || '', payload_schema: edge.payload_schema || '',
+  transport_key: edge.transport_key || '', payload_schema: edge.payload_schema || '', consumer_group: edge.consumer_group || '',
   transport_headers: readHeaders(edge.transport_headers) });
 
-export function NodeIOOverview({ node, graph, openEdge, language }) {
+export function NodeIOOverview({ node, graph, openEdge, openNode, language, nodeLabel }) {
   const t = text => translate(language, text);
-  const displayName = name => displayCatalogNodeName(graph.nodes.find(item => item.name === name), language) || displayNodeName(language, name);
+  const displayName = name => nodeLabel?.(name) || displayCatalogNodeName(graph.nodes.find(item => item.name === name), language) || displayNodeName(language, name);
   const [selectedOutputId, setSelectedOutputId] = useState(null);
   useEffect(() => setSelectedOutputId(null), [node.id]);
   const inputs = graph.edges.filter(edge => edge.downstream_id === node.id);
@@ -36,11 +37,9 @@ export function NodeIOOverview({ node, graph, openEdge, language }) {
       {inputs.map(edge => {
         const source = graph.nodes.find(item => item.id === edge.upstream_id);
         const usages = graph.field_usages.filter(item => item.edge_id === edge.id);
-        const headers = readHeaders(edge.transport_headers);
-        return <button className="io-source" key={edge.id} onClick={() => openEdge(edge.id)}>
-          <strong><span className="edge-inline-ref">{edgeRef(edge)}</span>{source ? displayName(source.name) : '—'}</strong><span className={`io-transport ${edge.transport_kind || 'unspecified'}`}>{t(edge.transport_kind === 'redpanda' ? 'Redpanda' : edge.transport_kind === 'direct' ? 'Direct' : 'Unspecified')}</span>
-          {edge.transport_kind === 'redpanda' && <small>{edge.transport_topic}{headers.length ? ` · ${t('Headers')}: ${headers.map(item => `${item.name}${item.consumed ? ` (${t('Used')})` : ''}`).join(', ')}` : ''}</small>}
-          {usages.length ? <ul>{usages.map(usage => { const field = graph.fields.find(item => item.id === usage.source_field_id); return <li key={usage.id}><span className="io-field-top"><strong><span className="usage-inline-ref">{usageRef(usage)}</span>{field ? displayFieldName(field, language) : '—'}</strong><span>{field ? t(field.data_type) : '—'}</span></span>{field && fieldContract(field, t) && <span className="io-example">{fieldContract(field, t)}</span>}{field?.example_value && <span className="io-example">{t('Example')}: {field.example_value}</span>}</li>; })}</ul> : <small>{t('Input fields not mapped yet.')}</small>}
+        return <button className="io-source" key={edge.id} onClick={() => source && openNode(source.id)}>
+          <strong><span className="io-source-ref">{nodeRef(source)}</span>{source ? displayName(source.name) : '—'}</strong>
+          {usages.length ? <ul>{usages.map(usage => { const field = graph.fields.find(item => item.id === usage.source_field_id); return <li key={usage.id}><span className="io-field-top"><strong>{field ? displayFieldName(field, language) : '—'}</strong><span>{field ? t(field.data_type) : '—'}</span></span>{field && fieldContract(field, t) && <span className="io-example">{fieldContract(field, t)}</span>}{field?.example_value && <span className="io-example">{t('Example')}: {field.example_value}</span>}</li>; })}</ul> : <small>{source?.is_system_state ? edge.rationale || (language === 'zh-CN' ? '规划读表，尚无实际查询结果。' : 'Planned table read; no observed result.') : t('Input fields not mapped yet.')}</small>}
         </button>;
       })}
     </div>}
@@ -48,7 +47,7 @@ export function NodeIOOverview({ node, graph, openEdge, language }) {
       {outputs.length ? <ul className="io-outputs">{outputs.map(field => <li key={field.id}><button className={selectedOutputId === field.id ? 'selected' : ''} onClick={() => setSelectedOutputId(selectedOutputId === field.id ? null : field.id)} aria-expanded={selectedOutputId === field.id}><span className="io-field-top"><strong>{displayFieldName(field, language)}</strong><span>{t(field.data_type)}</span></span>{fieldContract(field, t) && <span className="io-example">{fieldContract(field, t)}</span>}{field.example_value && <span className="io-example">{t('Example')}: {field.example_value}</span>}</button></li>)}</ul> : <p className="io-empty">{t('No output fields yet.')}</p>}
       {selectedOutput && <div className="io-lineage"><strong>{t('DOWNSTREAM FIELD USE')}</strong>
         {selectedOutput.normalization_rule && <p>{t('Normalization rule')}: {selectedOutput.normalization_rule}</p>}
-        {downstreamUses.length ? downstreamUses.map(({ usage, edge, consumer, target }) => <button key={usage.id} onClick={() => openEdge(edge.id)}><span><span className="usage-inline-ref">{usageRef(usage)}</span>{consumer ? displayName(consumer.name) : '—'} {target ? `→ ${displayFieldName(target, language)}` : ''}</span><small>{edgeRef(edge)} · {t(edge.transport_kind === 'redpanda' ? 'Redpanda' : edge.transport_kind === 'direct' ? 'Direct' : 'Unspecified')}</small></button>)
+        {downstreamUses.length ? downstreamUses.map(({ usage, edge, consumer, target }) => <button key={usage.id} onClick={() => openEdge(edge.id)}><span><span className="usage-inline-ref">{usageRef(usage)}</span>{consumer ? displayName(consumer.name) : '—'} {target ? `→ ${displayFieldName(target, language)}` : ''}</span></button>)
           : <p>{t('No downstream field mapping for this output.')}</p>}
       </div>}
     </div>
@@ -118,16 +117,27 @@ export function FieldCatalog({ node, fields, mutate, busy, language }) {
   </section>;
 }
 
-export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, targetFields, usages, mutate, busy, language }) {
+export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, mutate, busy, language, nodeLabel }) {
   const [edgeDraft, setEdgeDraft] = useState(() => edgeForm(edge));
-  const [mapping, setMapping] = useState({ source_field_id: '', target_field_id: '', usage_note: '' });
   const [lineContract, setLineContract] = useState(null);
   const t = text => translate(language, text);
-  const displayName = name => displayCatalogNodeName([sourceNode, targetNode].find(item => item?.name === name), language) || displayNodeName(language, name);
+  const displayName = name => nodeLabel?.(name) || displayCatalogNodeName([sourceNode, targetNode].find(item => item?.name === name), language) || displayNodeName(language, name);
   const isTableAccess = Boolean(sourceNode?.is_system_state || targetNode?.is_system_state);
   const isSignalMessage = edge.transport_kind === 'redpanda' && Boolean(targetNode?.signal_key);
-  useEffect(() => { setEdgeDraft(edgeForm(edge));
-    setMapping({ source_field_id: '', target_field_id: '', usage_note: '' }); }, [edge]);
+  const isSmartFollowing = edge.transport_kind === 'redpanda' && sourceNode?.name === SMART_FOLLOWING_OPERATION;
+  const messageHeaders = readHeaders(edge.transport_headers);
+  const [observedCase, setObservedCase] = useState(null);
+  useEffect(() => {
+    setObservedCase(null);
+    if (!isSmartFollowing) return undefined;
+    let active = true;
+    fetch(`/api/source-cases/v1/${encodeURIComponent(SMART_FOLLOWING_OPERATION)}`)
+      .then(response => response.json())
+      .then(data => { if (active) setObservedCase(data.cases?.find(item => item.response_complete && Array.isArray(item.response) && item.response.length)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [isSmartFollowing, edge.id]);
+  useEffect(() => { setEdgeDraft(edgeForm(edge)); }, [edge]);
   useEffect(() => {
     if (edge.transport_kind !== 'redpanda' || !targetNode?.signal_key) {
       setLineContract(null);
@@ -144,50 +154,56 @@ export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, t
       .catch(() => { if (current) setLineContract(null); });
     return () => { current = false; };
   }, [edge, targetNode?.signal_key]);
-  const addUsage = async () => {
-    const result = await mutate(`/edges/${edge.id}/usages`, 'POST', mapping, 'Field usage added');
-    if (result) setMapping({ source_field_id: '', target_field_id: '', usage_note: '' });
-  };
   const saveEdge = () => mutate(`/edges/${edge.id}`, 'PATCH', {
     ...edgeDraft, transport_kind: isTableAccess ? 'direct' : edgeDraft.transport_kind,
     transport_headers: edgeDraft.transport_headers.filter(item => item.name.trim())
   }, 'Connection saved');
   return <div className="edge-detail-scroll">
     <div className="edge-path"><strong>{sourceNode && <><span className="path-node-ref">{nodeRef(sourceNode)}</span>{displayName(sourceNode.name)}</>}</strong><ArrowRight size={15} /><strong>{targetNode && <><span className="path-node-ref">{nodeRef(targetNode)}</span>{displayName(targetNode.name)}</>}</strong></div>
+    {edge.transport_kind !== 'redpanda' && <section className="edge-plain-summary">
+      {edge.branch_label && <strong>{language === 'zh-CN' ? '分支：' : 'Branch: '}{edge.branch_label}</strong>}
+      <h3>{language === 'zh-CN' ? isTableAccess ? '这条线表示什么' : '这条线传什么' : isTableAccess ? 'What this connection means' : 'What this connection carries'}</h3>
+      <p>{edge.rationale || (language === 'zh-CN' ? '这条线的用途尚未写明。' : 'The purpose of this connection is not described yet.')}</p>
+      <div className="edge-plain-method"><strong>{language === 'zh-CN' ? '方式' : 'Method'}</strong><span>{isTableAccess ? language === 'zh-CN' ? sourceNode?.is_system_state ? '直接读表' : '直接写表' : sourceNode?.is_system_state ? 'Direct table read' : 'Direct table write' : edge.transport_kind === 'redpanda' ? 'Redpanda' : t(edge.transport_kind === 'direct' ? 'Direct' : 'Unspecified')}</span>{edge.transport_kind === 'redpanda' && edge.transport_topic && <code>{edge.transport_topic}</code>}</div>
+      <small>{language === 'zh-CN' ? isTableAccess ? '规划连接；尚无实际表查询或写入记录。' : '规划连接；尚无实际队列消息验证。' : isTableAccess ? 'Planned connection; no observed table query or write.' : 'Planned connection; no emitted queue message verified.'}</small>
+    </section>}
     {!isTableAccess && edge.transport_kind === 'redpanda' && <section className="message-flow-summary">
-      <div className="message-flow-title"><strong>{edgeRef(edge)} · {language === 'zh-CN' ? 'Redpanda 消息内容' : 'Redpanda message payload'}</strong><span>{lineContract?.evidence_status === 'design_only_no_emitted_message_verified' ? language === 'zh-CN' ? '规划，未验证消息' : 'Planned, no verified message' : language === 'zh-CN' ? '设计连接' : 'Design connection'}</span></div>
-      <div className="message-flow-route"><span>{language === 'zh-CN' ? '爬虫写入' : 'Crawler writes'}</span><ArrowRight size={13} /><code>{edge.transport_topic}</code><span>{language === 'zh-CN' ? `键：${edge.transport_key}` : `Key: ${edge.transport_key}`}</span></div>
+      <div className="message-flow-title"><strong>{language === 'zh-CN' ? 'Redpanda 消息字段' : 'Redpanda message fields'}</strong><span>{language === 'zh-CN' ? '规划，未验证消息' : 'Planned, no verified message'}</span></div>
+      <div className="message-flow-route"><span>{language === 'zh-CN' ? '生产者写入' : 'Producer writes'}</span><ArrowRight size={13} /><code>{edge.transport_topic}</code><span>{language === 'zh-CN' ? `消息键：${edge.transport_key || '待定义'}` : `Message key: ${edge.transport_key || 'To define'}`}</span><span>{language === 'zh-CN' ? `消费者组：${edge.consumer_group || '待定义'}` : `Consumer group: ${edge.consumer_group || 'To define'}`}</span></div>
+      <p>{language === 'zh-CN' ? `格式：${edge.payload_schema || '待定义'}。下游卡片负责解析和处理消息。` : `Schema: ${edge.payload_schema || 'To define'}. The downstream node owns parsing and processing.`}</p>
       {lineContract ? <>
         <p>{language === 'zh-CN' ? `规划每个币种一条消息。data 保留完整上游记录；以下 ${lineContract.declared_upstream_field_inventory.length} 项是来源契约已声明的路径，新增字段也透传。` : `One planned message per coin. data preserves the complete upstream record; these ${lineContract.declared_upstream_field_inventory.length} paths are declared by the source contract, and new fields pass through too.`}</p>
         <div className="message-payload-fields"><strong>{language === 'zh-CN' ? `data · 已声明 ${lineContract.declared_upstream_field_inventory.length} 个字段路径` : `data · ${lineContract.declared_upstream_field_inventory.length} declared field paths`}</strong>
           {lineContract.declared_upstream_field_inventory.map(field => <div key={field.message_path}><code>{field.message_path}</code><span>{field.type}</span></div>)}
         </div>
-        <div className="message-payload-fields"><strong>{language === 'zh-CN' ? 'meta · 消息元信息' : 'meta · message metadata'}</strong>
-          {lineContract.payload.metadata_fields.map(field => <div key={field.path}><code>{field.path}</code><span>{field.required ? language === 'zh-CN' ? '必填' : 'required' : ''}</span></div>)}
-        </div>
         <p>{language === 'zh-CN' ? '字段清单来自上游契约；实际爬虫消息尚未核对。' : 'Field paths come from the upstream contract; no emitted crawler message has been verified.'}</p>
-      </> : <p>{language === 'zh-CN' ? '尚无版本化消息字段契约。' : 'No versioned message field contract is available.'}</p>}
+      </> : isSignalMessage ? <p>{language === 'zh-CN' ? '尚无版本化消息字段契约。' : 'No versioned message field contract is available.'}</p> : isSmartFollowing ? <>
+        <p>{language === 'zh-CN' ? `计划把 #2030 每条账号记录原样放进 data；本次上游调用返回 ${observedCase?.response?.length ?? '—'} 条。下面是首条上游记录投影出的拟发消息，不是实际 Redpanda 消息。` : `Planned: one message per #2030 account row, preserving the complete row in data. The fields below are from an upstream example, not an emitted message.`}</p>
+        <div className="message-payload-fields"><strong>{language === 'zh-CN' ? `data · 首条上游记录 ${observedCase?.response?.[0] ? flattenAccount(observedCase.response[0]).length : sourceFields.length} 项已见字段` : 'data · observed first account row'}</strong>
+          {(observedCase?.response?.[0] ? flattenAccount(observedCase.response[0]) : sourceFields.map(field => [field.name, undefined])).map(([path, value], index) => <div key={path}><code>{String(index + 1).padStart(2, '0')} · data.{path}</code><span>{value === undefined ? '—' : displayCaseValue(value)}</span></div>)}
+        </div>
+        <p>{language === 'zh-CN' ? 'data 保留完整上游对象，新增字段也透传；16 项只是首条实见字段。爬虫实际发出的消息与消费结果尚未验证。' : 'The complete upstream object passes through, including future fields. Emitted messages and consumer results are not verified.'}</p>
+      </> : <>
+        <p>{language === 'zh-CN' ? `消息格式：${edge.payload_schema || '未指定'}。data 保留完整上游记录；下列字段是当前已列出的消费字段，不代表上游返回字段全集。` : `Schema: ${edge.payload_schema || 'unspecified'}. data retains the complete upstream record; these are the currently listed consumed fields, not the full upstream response.`}</p>
+        <div className="message-payload-fields"><strong>{language === 'zh-CN' ? 'data · 已列字段' : 'data · listed fields'}</strong>{sourceFields.map(field => <div key={field.id}><code>data.{field.name}</code><span>{field.data_type}</span></div>)}</div>
+        <p>{language === 'zh-CN' ? '消息封装与 Headers 均为设计，实际爬虫消息尚未验证。' : 'The message envelope and headers are planned; no emitted crawler message has been verified.'}</p>
+      </>}
+      <div className="message-payload-fields"><strong>Headers · {messageHeaders.length}</strong>{messageHeaders.length ? messageHeaders.map((header, index) => <div key={header.name}><code>{String(index + 1).padStart(2, '0')} · {header.name}</code><span>{header.description}</span></div>) : <p>{language === 'zh-CN' ? '尚未定义 Headers' : 'No Headers defined yet'}</p>}</div>
     </section>}
-    <p className="section-help">{isSignalMessage ? language === 'zh-CN' ? '此连接描述爬虫写入 Redpanda 的消息。下游节点详情记录字段使用与计算。' : 'This connection describes the crawler message written to Redpanda. Open the downstream node for field usage and calculation.' : isTableAccess ? t(sourceNode?.is_system_state ? 'This edge plans a direct table read. Describe the lookup keys and result used by the processing step.' : 'This edge plans a table update. Describe the reviewed decision and values to write.') : t('The downstream node depends on this source. Record exactly which source fields it consumes and which output they help produce.')}</p>
-    {!isTableAccess && <div className="transport-editor"><div className="section-heading"><span>{t('TRANSPORT')}</span></div>
-      <label>{t('Transport method')}<select value={edgeDraft.transport_kind} onChange={e => setEdgeDraft({ ...edgeDraft, transport_kind: e.target.value })}><option value="unspecified">{t('Unspecified')}</option><option value="direct">{t('Direct')}</option><option value="redpanda">{t('Redpanda')}</option></select></label>
-      {edgeDraft.transport_kind === 'redpanda' && <><label>{t('Topic')}<input value={edgeDraft.transport_topic} placeholder="market.prices" onChange={e => setEdgeDraft({ ...edgeDraft, transport_topic: e.target.value })} /></label>
-        <label>{t('Message key')}<input value={edgeDraft.transport_key} placeholder="asset_symbol" onChange={e => setEdgeDraft({ ...edgeDraft, transport_key: e.target.value })} /></label>
-        <label>{t('Payload schema reference')}<input value={edgeDraft.payload_schema} placeholder="price-event/v1" onChange={e => setEdgeDraft({ ...edgeDraft, payload_schema: e.target.value })} /></label>
-        <div className="header-heading"><span>{t('Headers')}</span><button onClick={() => setEdgeDraft({ ...edgeDraft, transport_headers: [...edgeDraft.transport_headers, { name: '', description: '', consumed: false }] })}><Plus size={13} /> {t('Add header')}</button></div>
-        {edgeDraft.transport_headers.map((header, index) => <div className="header-row" key={index}><input aria-label={`${t('Header name')} ${index + 1}`} value={header.name} placeholder={t('Header name')} onChange={e => setEdgeDraft({ ...edgeDraft, transport_headers: edgeDraft.transport_headers.map((item, i) => i === index ? { ...item, name: e.target.value } : item) })} /><input aria-label={`${t('Header meaning')} ${index + 1}`} value={header.description} placeholder={t('Header meaning')} onChange={e => setEdgeDraft({ ...edgeDraft, transport_headers: edgeDraft.transport_headers.map((item, i) => i === index ? { ...item, description: e.target.value } : item) })} /><label className="header-consumed"><input type="checkbox" checked={Boolean(header.consumed)} onChange={e => setEdgeDraft({ ...edgeDraft, transport_headers: edgeDraft.transport_headers.map((item, i) => i === index ? { ...item, consumed: e.target.checked } : item) })} />{t('Used')}</label><button aria-label={`${t('Remove header')} ${index + 1}`} onClick={() => setEdgeDraft({ ...edgeDraft, transport_headers: edgeDraft.transport_headers.filter((_, i) => i !== index) })}><X size={13} /></button></div>)}
-        <p className="section-help">{isSignalMessage ? language === 'zh-CN' ? '消息头与 data / meta 一起描述爬虫写入内容。' : 'Headers, data and meta describe what the crawler writes.' : t('Headers are message metadata. Map consumed payload fields below; reuse the upstream schema when the payload is unchanged.')}</p></>}
-    </div>}
-    <label>{isSignalMessage ? language === 'zh-CN' ? '爬虫如何封装消息？' : 'How does the crawler package the message?' : t(isTableAccess ? 'Lookup / write contract' : 'How are the inputs transformed?')}<textarea rows="4" value={edgeDraft.transformation} placeholder={t(isTableAccess ? 'Keys, filters, expected result or reviewed update' : 'e.g. Filter by asset and time window, deduplicate, then count mentions.')} onChange={e => setEdgeDraft({ ...edgeDraft, transformation: e.target.value })} /></label>
-    <label>{t('Why is this dependency needed?')}<textarea rows="3" value={edgeDraft.rationale} placeholder={t('Design reason for this connection')} onChange={e => setEdgeDraft({ ...edgeDraft, rationale: e.target.value })} /></label>
-    <button className="mini-primary edge-save" disabled={busy || (edgeDraft.transport_kind === 'redpanda' && !edgeDraft.transport_topic.trim())} onClick={saveEdge}><Check size={13} /> {t('Save connection')}</button>
-    {!isTableAccess && !isSignalMessage && <><div className="section-heading mapping-heading"><span>{t('FIELD USAGE')} <em>{usages.length}</em></span></div>
-    {usages.length === 0 && <div className="field-empty">{t('No field usage defined yet. This connection only records a node-level dependency.')}</div>}
-    {usages.map(usage => {
-      const source = sourceFields.find(field => field.id === usage.source_field_id);
-      const target = targetFields.find(field => field.id === usage.target_field_id);
-      return <div className="mapping-card" key={usage.id}><span className="mapping-ref">{usageRef(usage)}</span><div className="mapping-line"><span>{source ? displayFieldName(source, language) : t('Missing source field')}</span><ArrowRight size={13} /><span>{target ? displayFieldName(target, language) : t('Node output')}</span><button title={t('Remove field usage')} aria-label={language === 'zh-CN' ? `删除${usageRef(usage)}：${source ? displayFieldName(source, language) : '字段'}的使用关系` : `Remove ${usageRef(usage)} usage of ${source?.name || 'field'}`} onClick={() => mutate(`/usages/${usage.id}`, 'DELETE', null, 'Field usage removed')}><X size={13} /></button></div><label className="mapping-target-label">{language === 'zh-CN' ? '生成的输出字段' : 'Output field produced'}<select aria-label={language === 'zh-CN' ? `为${source ? displayFieldName(source, language) : '输入'}选择输出字段` : `Choose output field for ${source?.name || 'input'}`} value={usage.target_field_id || ''} disabled={busy} onChange={event => mutate(`/usages/${usage.id}`, 'PATCH', { target_field_id: event.target.value || null }, language === 'zh-CN' ? '输出字段已关联' : 'Output field linked')}><option value="">{t('Node level / unspecified')}</option>{targetFields.map(field => <option key={field.id} value={field.id}>{displayFieldName(field, language)}</option>)}</select></label>{usage.usage_note && <small>{usage.usage_note}</small>}</div>;
-    })}
-    <div className="mapping-editor"><div className="mapping-editor-title">{t('Add field usage')}</div><label>{t('From')} {sourceNode && displayName(sourceNode.name)}<select aria-label={t('Source field')} value={mapping.source_field_id} onChange={e => setMapping({ ...mapping, source_field_id: e.target.value })}><option value="">{t('Select source field')}</option>{sourceFields.map(field => <option key={field.id} value={field.id}>{displayFieldName(field, language)}</option>)}</select></label><label>{t('Produces on')} {targetNode && displayName(targetNode.name)}<select aria-label={t('Target field')} value={mapping.target_field_id} onChange={e => setMapping({ ...mapping, target_field_id: e.target.value })}><option value="">{t('Node level / unspecified')}</option>{targetFields.map(field => <option key={field.id} value={field.id}>{displayFieldName(field, language)}</option>)}</select></label><label>{t('Field usage note')}<input aria-label={t('Field usage note')} value={mapping.usage_note} placeholder={t('Optional: how this field is used')} onChange={e => setMapping({ ...mapping, usage_note: e.target.value })} /></label><button className="mini-primary" disabled={busy || !mapping.source_field_id} onClick={addUsage}><Plus size={13} /> {t('Add mapping')}</button>{sourceFields.length === 0 && <p className="mapping-note">{language === 'zh-CN' ? `请先向 ${sourceNode ? displayName(sourceNode.name) : ''} 添加字段。` : `Add fields to ${sourceNode?.name} first.`}</p>}</div></>}
+    {!isTableAccess && <details className="edge-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>
+      <div className="transport-editor">
+        <label>{language === 'zh-CN' ? '分支名称' : 'Branch label'}<input value={edgeDraft.branch_label} placeholder={language === 'zh-CN' ? '例如：已匹配' : 'e.g. Matched'} onChange={e => setEdgeDraft({ ...edgeDraft, branch_label: e.target.value })} /></label>
+        <label>{t('Transport method')}<select value={edgeDraft.transport_kind} onChange={e => setEdgeDraft({ ...edgeDraft, transport_kind: e.target.value })}><option value="unspecified">{t('Unspecified')}</option><option value="direct">{t('Direct')}</option><option value="redpanda">{t('Redpanda')}</option></select></label>
+        {edgeDraft.transport_kind === 'redpanda' && <>
+          <label>{t('Topic')}<input value={edgeDraft.transport_topic} placeholder="market.prices" onChange={e => setEdgeDraft({ ...edgeDraft, transport_topic: e.target.value })} /></label>
+          <label>{t('Message key')}<input value={edgeDraft.transport_key} placeholder="data.id" onChange={e => setEdgeDraft({ ...edgeDraft, transport_key: e.target.value })} /></label>
+          <label>{language === 'zh-CN' ? '消费者组' : 'Consumer group'}<input value={edgeDraft.consumer_group} placeholder="signalstudio.consumer" onChange={e => setEdgeDraft({ ...edgeDraft, consumer_group: e.target.value })} /></label>
+          <label>{t('Payload schema reference')}<input value={edgeDraft.payload_schema} placeholder="message/v1" onChange={e => setEdgeDraft({ ...edgeDraft, payload_schema: e.target.value })} /></label>
+          <div className="header-heading"><span>Headers</span><button type="button" onClick={() => setEdgeDraft({ ...edgeDraft, transport_headers: [...edgeDraft.transport_headers, { name: '', description: '', consumed: false }] })}><Plus size={13} /> {language === 'zh-CN' ? '添加' : 'Add'}</button></div>
+          {edgeDraft.transport_headers.map((header, index) => <div className="header-row" key={index}><input aria-label={`${t('Header name')} ${index + 1}`} value={header.name} placeholder={language === 'zh-CN' ? '名称' : 'Name'} onChange={e => setEdgeDraft({ ...edgeDraft, transport_headers: edgeDraft.transport_headers.map((item, i) => i === index ? { ...item, name: e.target.value } : item) })} /><input aria-label={`${t('Header meaning')} ${index + 1}`} value={header.description} placeholder={language === 'zh-CN' ? '记录什么' : 'What it records'} onChange={e => setEdgeDraft({ ...edgeDraft, transport_headers: edgeDraft.transport_headers.map((item, i) => i === index ? { ...item, description: e.target.value } : item) })} /><button type="button" aria-label={`${t('Remove header')} ${index + 1}`} onClick={() => setEdgeDraft({ ...edgeDraft, transport_headers: edgeDraft.transport_headers.filter((_, i) => i !== index) })}><X size={13} /></button></div>)}
+        </>}
+      </div>
+      <button className="mini-primary edge-save" disabled={busy || (edgeDraft.transport_kind === 'redpanda' && !edgeDraft.transport_topic.trim())} onClick={saveEdge}><Check size={13} /> {t('Save connection')}</button>
+    </details>}
   </div>;
 }

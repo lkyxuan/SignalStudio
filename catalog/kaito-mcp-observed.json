@@ -998,11 +998,161 @@
     {
       "name": "kaito_smart_following_market",
       "entity_id": "kaito-social-spider.kaito_smart_following_market",
-      "sample_status": "empty_result",
-      "observed_field_count": 0,
-      "fields": [],
-      "response_example": {},
-      "sample_note": "实际 API 响应中的值；文本、账号 ID 和链接已省略。"
+      "sample_status": "observed",
+      "observed_field_count": 16,
+      "fields": [
+        {
+          "path": "id",
+          "label_zh": "X 用户 ID",
+          "type": "string",
+          "example_value": "2584015610",
+          "purpose_zh": "这次被列出的 X 账号用户 ID，可用于身份匹配。",
+          "use_case_zh": "优先用稳定 ID 与已核实资产标识关联。"
+        },
+        {
+          "path": "name",
+          "label_zh": "账号名称",
+          "type": "string",
+          "example_value": "NEXON",
+          "purpose_zh": "这次被列出的账号显示名称。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "username",
+          "label_zh": "账号用户名",
+          "type": "string",
+          "example_value": "nexonmarkets",
+          "purpose_zh": "账号在 X 上的用户名。",
+          "use_case_zh": "回到该账号核对身份和近期内容。"
+        },
+        {
+          "path": "icon",
+          "label_zh": "头像链接",
+          "type": "string",
+          "example_value": "https://pbs.twimg.com/profile_images/2096921213037957120/Hv0beawm_normal.jpg",
+          "purpose_zh": "账号头像链接。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "bio",
+          "label_zh": "账号简介",
+          "type": "string",
+          "example_value": "🤖️From Capital to Token. \n⚡️From Digital to Real. \nA value-connection network where AI agents turn what you mean into what gets settled.",
+          "purpose_zh": "账号简介原文。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "new",
+          "label_zh": "是否新出现",
+          "type": "integer",
+          "example_value": 1,
+          "purpose_zh": "Kaito 返回的新出现标记；不等于新资产。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "user_type",
+          "label_zh": "账号类型",
+          "type": "string",
+          "example_value": "non_kkol",
+          "purpose_zh": "Kaito 返回的账号分类。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "user_web3_relevance",
+          "label_zh": "Web3 相关性",
+          "type": "string",
+          "example_value": "Web3-Relevant",
+          "purpose_zh": "Kaito 返回的 Web3 相关性分类。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "user_tag_individual_or_organization",
+          "label_zh": "个人或机构",
+          "type": "string",
+          "example_value": "Organization",
+          "purpose_zh": "Kaito 返回的个人或机构分类。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "score.change",
+          "label_zh": "评分变化",
+          "type": "integer",
+          "example_value": 0,
+          "purpose_zh": "Kaito 返回的 score 变化值，具体口径尚待确认。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "score.direction",
+          "label_zh": "评分方向",
+          "type": "integer",
+          "example_value": 1,
+          "purpose_zh": "Kaito 返回的 score 方向标记，具体口径尚待确认。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "date",
+          "label_zh": "记录时间",
+          "type": "string",
+          "example_value": "2026-09-28 05:57:04.832",
+          "purpose_zh": "这条关注动态对应的时间。",
+          "use_case_zh": "与其他事件按时间对齐。"
+        },
+        {
+          "path": "followers.change_ratio",
+          "label_zh": "高质量关注变化比率",
+          "type": "integer",
+          "example_value": 1000000000,
+          "purpose_zh": "Kaito 返回的关注变化比率，异常大值需核对口径。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        },
+        {
+          "path": "followers.value",
+          "label_zh": "高质量关注值",
+          "type": "integer",
+          "example_value": 1,
+          "purpose_zh": "返回的关注人数或计数值。",
+          "use_case_zh": "结合变化值查看关注动向。"
+        },
+        {
+          "path": "followers.change",
+          "label_zh": "高质量关注变化",
+          "type": "integer",
+          "example_value": 1,
+          "purpose_zh": "本次窗口内的关注计数变化。",
+          "use_case_zh": "识别关注变化较大的账号。"
+        },
+        {
+          "path": "followers.direction",
+          "label_zh": "高质量关注方向",
+          "type": "integer",
+          "example_value": 1,
+          "purpose_zh": "Kaito 返回的关注变化方向标记。",
+          "use_case_zh": "保留原始返回值，待处理步骤确认用途。"
+        }
+      ],
+      "response_example": {
+        "id": "2584015610",
+        "name": "NEXON",
+        "username": "nexonmarkets",
+        "icon": "https://pbs.twimg.com/profile_images/2096921213037957120/Hv0beawm_normal.jpg",
+        "bio": "🤖️From Capital to Token. \n⚡️From Digital to Real. \nA value-connection network where AI agents turn what you mean into what gets settled.",
+        "new": 1,
+        "user_type": "non_kkol",
+        "user_web3_relevance": "Web3-Relevant",
+        "user_tag_individual_or_organization": "Organization",
+        "score": {
+          "change": 0,
+          "direction": 1
+        },
+        "date": "2026-09-28 05:57:04.832",
+        "followers": {
+          "change_ratio": 1000000000,
+          "value": 1,
+          "change": 1,
+          "direction": 1
+        }
+      },
+      "sample_note": "2026-09-28 在线 MCP 完整调用返回 100 条；此处展示首条记录的全部 16 个叶子字段。字段清单仍只是本次已见下限。"
     },
     {
       "name": "kaito_smart_followers",

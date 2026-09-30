@@ -1,4 +1,5 @@
 .source-field-card{background:#fff;border:1px solid #dfe9e5;border-radius:7px;padding:8px 9px;min-width:0}
+.source-field-number{display:block;color:#23806e;font:700 9px 'IBM Plex Mono',monospace;margin-bottom:4px}
 .source-field-line{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:start;gap:7px;min-height:18px;padding:2px 0;font-size:10px;line-height:1.4}
 .source-field-line+.source-field-line{border-top:1px solid #f0f3f2}
 .source-field-line>span{color:#8a9b96;font-size:9px;white-space:nowrap}

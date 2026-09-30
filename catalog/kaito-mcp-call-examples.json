@@ -1,0 +1,1369 @@
+{
+  "source": "Kaito online MCP tools/call",
+  "examples": [
+    {
+      "tool": "kaito_entities",
+      "observed_at": "2026-09-28T08:41:21.260481+00:00",
+      "request": {
+        "query": "Bitcoin",
+        "limit": 1
+      },
+      "response": {
+        "fullname": "Bitcoin",
+        "symbol": "BTC",
+        "token": "BTC",
+        "coingecko_id": "bitcoin"
+      },
+      "result_count": 1,
+      "source": "Kaito online MCP tools/call",
+      "response_path": "matches[0]",
+      "response_note_zh": "同一次调用返回的首条 matches 数据；仅保存非敏感字段。",
+      "evidence": "live_mcp_call",
+      "explanation_zh": "这次让 Kaito 搜索“Bitcoin”，最多取 1 条匹配。实际找到 1 条；右侧展示第一条，名称是 Bitcoin，后续查询可以使用 Kaito 代号 BTC。",
+      "case_label_zh": "Bitcoin"
+    },
+    {
+      "tool": "kaito_entities",
+      "observed_at": "2026-09-28T08:48:59.271322+00:00",
+      "request": {
+        "query": "Ethereum",
+        "limit": 1
+      },
+      "response": {
+        "fullname": "Ethereum",
+        "symbol": "ETH",
+        "token": "ETH",
+        "coingecko_id": "ethereum"
+      },
+      "result_count": 1,
+      "source": "Kaito online MCP tools/call",
+      "response_path": "matches[0]",
+      "response_note_zh": "同一次调用返回的首条 matches 数据；仅保存非敏感字段。",
+      "evidence": "live_mcp_call",
+      "explanation_zh": "这次让 Kaito 搜索“Ethereum”，最多取 1 条匹配。实际找到 1 条；右侧展示第一条，名称是 Ethereum，后续查询可以使用 Kaito 代号 ETH。",
+      "case_label_zh": "Ethereum"
+    },
+    {
+      "tool": "kaito_entities",
+      "observed_at": "2026-09-28T08:49:00.150042+00:00",
+      "request": {
+        "query": "Solana",
+        "limit": 2
+      },
+      "response": {
+        "fullname": "Solana",
+        "symbol": "SOL",
+        "token": "SOL",
+        "coingecko_id": "solana"
+      },
+      "result_count": 2,
+      "source": "Kaito online MCP tools/call",
+      "response_path": "matches[0]",
+      "response_note_zh": "同一次调用返回的首条 matches 数据；仅保存非敏感字段。",
+      "evidence": "live_mcp_call",
+      "explanation_zh": "这次让 Kaito 搜索“Solana”，最多取 2 条匹配。实际找到 2 条；右侧展示第一条，名称是 Solana，后续查询可以使用 Kaito 代号 SOL。",
+      "case_label_zh": "Solana"
+    },
+    {
+      "tool": "kaito_engagement",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:40.862323+00:00",
+      "request": {
+        "token": "BTC",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": {
+        "total_engagement": {
+          "2026-09-01": 132672,
+          "2026-09-02": 108414,
+          "2026-09-03": 176582,
+          "2026-09-04": 165982,
+          "2026-09-05": 94588,
+          "2026-09-06": 114291
+        },
+        "smart_engagement": {
+          "2026-09-01": 829,
+          "2026-09-02": 817,
+          "2026-09-03": 1125,
+          "2026-09-04": 840,
+          "2026-09-05": 469,
+          "2026-09-06": 743
+        }
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "total_engagement": 132672,
+          "smart_engagement": 829
+        },
+        {
+          "date": "2026-09-02",
+          "total_engagement": 108414,
+          "smart_engagement": 817
+        },
+        {
+          "date": "2026-09-03",
+          "total_engagement": 176582,
+          "smart_engagement": 1125
+        },
+        {
+          "date": "2026-09-04",
+          "total_engagement": 165982,
+          "smart_engagement": 840
+        },
+        {
+          "date": "2026-09-05",
+          "total_engagement": 94588,
+          "smart_engagement": 469
+        },
+        {
+          "date": "2026-09-06",
+          "total_engagement": 114291,
+          "smart_engagement": 743
+        }
+      ],
+      "response_path": "root",
+      "explanation_zh": "这次请求查询比特币从 9 月 1 日到 7 日的互动。Kaito 实际只返回 9 月 1 日至 6 日共 6 天，每天的数值都不同；这些天合计 792,529 次总互动，其中 4,823 次是 Kaito 所称的 Smart Engagement，也就是其识别的高质量账号互动。9 月 7 日未返回，所以不计入合计。",
+      "case_label_zh": "BTC"
+    },
+    {
+      "tool": "kaito_engagement",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:42.177604+00:00",
+      "request": {
+        "token": "ETH",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": {
+        "total_engagement": {
+          "2026-09-01": 73517,
+          "2026-09-02": 64305,
+          "2026-09-03": 89336,
+          "2026-09-04": 67734,
+          "2026-09-05": 57658,
+          "2026-09-06": 37372
+        },
+        "smart_engagement": {
+          "2026-09-01": 1052,
+          "2026-09-02": 940,
+          "2026-09-03": 1256,
+          "2026-09-04": 949,
+          "2026-09-05": 493,
+          "2026-09-06": 491
+        }
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "total_engagement": 73517,
+          "smart_engagement": 1052
+        },
+        {
+          "date": "2026-09-02",
+          "total_engagement": 64305,
+          "smart_engagement": 940
+        },
+        {
+          "date": "2026-09-03",
+          "total_engagement": 89336,
+          "smart_engagement": 1256
+        },
+        {
+          "date": "2026-09-04",
+          "total_engagement": 67734,
+          "smart_engagement": 949
+        },
+        {
+          "date": "2026-09-05",
+          "total_engagement": 57658,
+          "smart_engagement": 493
+        },
+        {
+          "date": "2026-09-06",
+          "total_engagement": 37372,
+          "smart_engagement": 491
+        }
+      ],
+      "response_path": "root",
+      "explanation_zh": "这次请求查询以太坊从 9 月 1 日到 7 日的互动。Kaito 实际只返回 9 月 1 日至 6 日共 6 天，每天的数值都不同；这些天合计 389,922 次总互动，其中 5,181 次是 Kaito 所称的 Smart Engagement，也就是其识别的高质量账号互动。9 月 7 日未返回，所以不计入合计。",
+      "case_label_zh": "ETH"
+    },
+    {
+      "tool": "kaito_engagement",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:43.556275+00:00",
+      "request": {
+        "token": "SOL",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": {
+        "total_engagement": {
+          "2026-09-01": 114602,
+          "2026-09-02": 82744,
+          "2026-09-03": 94974,
+          "2026-09-04": 83804,
+          "2026-09-05": 72508,
+          "2026-09-06": 98517
+        },
+        "smart_engagement": {
+          "2026-09-01": 1404,
+          "2026-09-02": 1291,
+          "2026-09-03": 1343,
+          "2026-09-04": 889,
+          "2026-09-05": 755,
+          "2026-09-06": 1054
+        }
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "total_engagement": 114602,
+          "smart_engagement": 1404
+        },
+        {
+          "date": "2026-09-02",
+          "total_engagement": 82744,
+          "smart_engagement": 1291
+        },
+        {
+          "date": "2026-09-03",
+          "total_engagement": 94974,
+          "smart_engagement": 1343
+        },
+        {
+          "date": "2026-09-04",
+          "total_engagement": 83804,
+          "smart_engagement": 889
+        },
+        {
+          "date": "2026-09-05",
+          "total_engagement": 72508,
+          "smart_engagement": 755
+        },
+        {
+          "date": "2026-09-06",
+          "total_engagement": 98517,
+          "smart_engagement": 1054
+        }
+      ],
+      "response_path": "root",
+      "explanation_zh": "这次请求查询Solana从 9 月 1 日到 7 日的互动。Kaito 实际只返回 9 月 1 日至 6 日共 6 天，每天的数值都不同；这些天合计 547,149 次总互动，其中 6,736 次是 Kaito 所称的 Smart Engagement，也就是其识别的高质量账号互动。9 月 7 日未返回，所以不计入合计。",
+      "case_label_zh": "SOL"
+    },
+    {
+      "tool": "kaito_narratives",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:44.661977+00:00",
+      "request": {
+        "query": "AI",
+        "limit": 1
+      },
+      "response": {
+        "narrative": "AI",
+        "fullname": "AI"
+      },
+      "result_count": 1,
+      "response_path": "matches[0]",
+      "explanation_zh": "这次搜索 AI 叙事，最多请求 1 条匹配。Kaito 返回 1 条；第一条的叙事代号是 AI，显示名称是 AI。这个代号可用于后续叙事走势查询。"
+    },
+    {
+      "tool": "kaito_search",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:45.563891+00:00",
+      "request": {
+        "query": "Ethereum",
+        "size": 1
+      },
+      "response": {
+        "type": "Twitter",
+        "created_at": "2026-09-27T10:45:45.000Z",
+        "smart_engagement": 131
+      },
+      "result_count": 1,
+      "response_path": "results[0]",
+      "explanation_zh": "这次用 Ethereum 做普通内容搜索。Kaito 实际返回 1 条候选内容；右侧是第一条的内容类型、发布时间和高质量账号互动数。要判断内容是否可信，还需回看原文。",
+      "case_label_zh": "Ethereum"
+    },
+    {
+      "tool": "kaito_advanced_search",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:47.423888+00:00",
+      "request": {
+        "query": "Ethereum",
+        "size": 1
+      },
+      "response": {
+        "type": "Twitter",
+        "created_at": "2026-09-25T08:09:39.000Z",
+        "smart_engagement": 108
+      },
+      "result_count": 50,
+      "response_path": "results[0]",
+      "explanation_zh": "这次用 Ethereum 做高级内容搜索。Kaito 实际返回 50 条候选内容；右侧是第一条的内容类型、发布时间和高质量账号互动数。要判断内容是否可信，还需回看原文。 虽然这次 size 填了 1，实际仍返回 50 条，因此不能把 size 当作这次调用已验证的返回上限。",
+      "case_label_zh": "基础搜索"
+    },
+    {
+      "tool": "kaito_feeds",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:49.344793+00:00",
+      "request": {
+        "token": "BTC",
+        "size": 1
+      },
+      "response": {
+        "type": "Twitter",
+        "created_at": "2026-09-27T11:46:07.000Z",
+        "smart_engagement": 41
+      },
+      "result_count": 1,
+      "response_path": "results[0]",
+      "explanation_zh": "这次读取 BTC 的社交动态。Kaito 实际返回 1 条候选内容；右侧是第一条的内容类型、发布时间和高质量账号互动数。要判断内容是否可信，还需回看原文。",
+      "case_label_zh": "BTC"
+    },
+    {
+      "tool": "kaito_sentiment_entity",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:51.762252+00:00",
+      "request": {
+        "token": "BTC",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": [
+        [
+          "sentiment_score",
+          105.45009974646,
+          102.92707216434,
+          94.90024291368,
+          80.78247497352001,
+          64.89807177144,
+          54.702260911500005,
+          54.30836060346,
+          61.23384607656,
+          69.14647433106,
+          73.2922781796,
+          74.54181124596,
+          75.37615601214,
+          79.2716790792,
+          86.83089726642001,
+          98.14055838594001,
+          114.53008812131999,
+          132.78952998713999,
+          150.75552380796,
+          166.7711557377,
+          179.68994194337998,
+          186.20286875016,
+          182.17734723371998,
+          168.33903424422,
+          151.81420260294001,
+          141.83970346872,
+          142.23423716922,
+          148.27944949416,
+          151.5361827108
+        ],
+        [
+          "timestamp",
+          "2026-09-01",
+          "2026-09-02",
+          "2026-09-03",
+          "2026-09-04",
+          "2026-09-05",
+          "2026-09-06",
+          "2026-09-07",
+          "2026-09-08",
+          "2026-09-09",
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-12",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-26",
+          "2026-09-27",
+          "2026-09-28"
+        ],
+        [
+          "events",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "sentiment_score": 105.45009974646,
+          "events": null
+        },
+        {
+          "date": "2026-09-02",
+          "sentiment_score": 102.92707216434,
+          "events": null
+        },
+        {
+          "date": "2026-09-03",
+          "sentiment_score": 94.90024291368,
+          "events": null
+        },
+        {
+          "date": "2026-09-04",
+          "sentiment_score": 80.78247497352001,
+          "events": null
+        },
+        {
+          "date": "2026-09-05",
+          "sentiment_score": 64.89807177144,
+          "events": null
+        },
+        {
+          "date": "2026-09-06",
+          "sentiment_score": 54.702260911500005,
+          "events": null
+        },
+        {
+          "date": "2026-09-07",
+          "sentiment_score": 54.30836060346,
+          "events": null
+        },
+        {
+          "date": "2026-09-08",
+          "sentiment_score": 61.23384607656,
+          "events": null
+        },
+        {
+          "date": "2026-09-09",
+          "sentiment_score": 69.14647433106,
+          "events": null
+        },
+        {
+          "date": "2026-09-10",
+          "sentiment_score": 73.2922781796,
+          "events": null
+        },
+        {
+          "date": "2026-09-11",
+          "sentiment_score": 74.54181124596,
+          "events": null
+        },
+        {
+          "date": "2026-09-12",
+          "sentiment_score": 75.37615601214,
+          "events": null
+        },
+        {
+          "date": "2026-09-13",
+          "sentiment_score": 79.2716790792,
+          "events": null
+        },
+        {
+          "date": "2026-09-14",
+          "sentiment_score": 86.83089726642001,
+          "events": null
+        },
+        {
+          "date": "2026-09-15",
+          "sentiment_score": 98.14055838594001,
+          "events": null
+        },
+        {
+          "date": "2026-09-16",
+          "sentiment_score": 114.53008812131999,
+          "events": null
+        },
+        {
+          "date": "2026-09-17",
+          "sentiment_score": 132.78952998713999,
+          "events": null
+        },
+        {
+          "date": "2026-09-18",
+          "sentiment_score": 150.75552380796,
+          "events": null
+        },
+        {
+          "date": "2026-09-19",
+          "sentiment_score": 166.7711557377,
+          "events": null
+        },
+        {
+          "date": "2026-09-20",
+          "sentiment_score": 179.68994194337998,
+          "events": null
+        },
+        {
+          "date": "2026-09-21",
+          "sentiment_score": 186.20286875016,
+          "events": null
+        },
+        {
+          "date": "2026-09-22",
+          "sentiment_score": 182.17734723371998,
+          "events": null
+        },
+        {
+          "date": "2026-09-23",
+          "sentiment_score": 168.33903424422,
+          "events": null
+        },
+        {
+          "date": "2026-09-24",
+          "sentiment_score": 151.81420260294001,
+          "events": null
+        },
+        {
+          "date": "2026-09-25",
+          "sentiment_score": 141.83970346872,
+          "events": null
+        },
+        {
+          "date": "2026-09-26",
+          "sentiment_score": 142.23423716922,
+          "events": null
+        },
+        {
+          "date": "2026-09-27",
+          "sentiment_score": 148.27944949416,
+          "events": null
+        },
+        {
+          "date": "2026-09-28",
+          "sentiment_score": 151.5361827108,
+          "events": null
+        }
+      ],
+      "response_path": "tabular rows",
+      "explanation_zh": "这次查询比特币讨论情绪。接口实际给了 28 个按天排列的数据点，最后一天是 2026-09-28；右侧完整列出返回的日期和数值。这里是每日走势，不是整个时段的单一分数。"
+    },
+    {
+      "tool": "kaito_mentions",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:53.052866+00:00",
+      "request": {
+        "token": "BTC",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": {
+        "2026-09-01": 953,
+        "2026-09-02": 887,
+        "2026-09-03": 1138,
+        "2026-09-04": 1007,
+        "2026-09-05": 494,
+        "2026-09-06": 603
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "mentions": 953
+        },
+        {
+          "date": "2026-09-02",
+          "mentions": 887
+        },
+        {
+          "date": "2026-09-03",
+          "mentions": 1138
+        },
+        {
+          "date": "2026-09-04",
+          "mentions": 1007
+        },
+        {
+          "date": "2026-09-05",
+          "mentions": 494
+        },
+        {
+          "date": "2026-09-06",
+          "mentions": 603
+        }
+      ],
+      "response_path": "date keys",
+      "explanation_zh": "这次查询比特币的每日提及次数。Kaito 返回 6 天；右侧每一行是一日的提及量，数值随日期变化。"
+    },
+    {
+      "tool": "kaito_mindshare_entity",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:54.812629+00:00",
+      "request": {
+        "token": "BTC",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": {
+        "mindshare": {
+          "2026-09-01": 0.06503194218307018,
+          "2026-09-02": 0.05961343362702542,
+          "2026-09-03": 0.06387690849143311,
+          "2026-09-04": 0.06703796010286991,
+          "2026-09-05": 0.061564523410138086,
+          "2026-09-06": 0.08277896683006845
+        }
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "mindshare": 0.06503194218307018
+        },
+        {
+          "date": "2026-09-02",
+          "mindshare": 0.05961343362702542
+        },
+        {
+          "date": "2026-09-03",
+          "mindshare": 0.06387690849143311
+        },
+        {
+          "date": "2026-09-04",
+          "mindshare": 0.06703796010286991
+        },
+        {
+          "date": "2026-09-05",
+          "mindshare": 0.061564523410138086
+        },
+        {
+          "date": "2026-09-06",
+          "mindshare": 0.08277896683006845
+        }
+      ],
+      "response_path": "mindshare[date]",
+      "explanation_zh": "这次查询比特币每日的讨论关注份额。Kaito 返回 6 天；右侧的数字表示比特币在当天相关讨论中所占的份额，可以按天观察变化。"
+    },
+    {
+      "tool": "kaito_mindshare_entity_by_account",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:55.828994+00:00",
+      "request": {
+        "token": "BTC",
+        "duration": "7d",
+        "top_n": 1
+      },
+      "response": {
+        "name": "DonAlt",
+        "username": "DonAlt",
+        "mindshare": 0.019443077277567434,
+        "rank": 1
+      },
+      "result_count": 1,
+      "response_path": "results[0]",
+      "explanation_zh": "这次查询过去 7 天推动比特币讨论份额的主要账号，并取排名靠前的一条。返回的账号是 DonAlt，排名 1，关注份额为 0.019443077277567434；这说明该账号在这个统计口径下的相对贡献。"
+    },
+    {
+      "tool": "kaito_events",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:57.609726+00:00",
+      "request": {
+        "token": "BTC",
+        "start_date": "2026-09-28",
+        "end_date": "2026-10-12",
+        "sort_by": "event_date",
+        "sort_order": "asc"
+      },
+      "response": [],
+      "result_count": 0,
+      "response_path": "root",
+      "explanation_zh": "这次查询比特币在 9 月 28 日至 10 月 12 日的候选事件。接口实际返回 0 条；空列表只表示这次条件下没有结果，不能推断未来不会发生事件。"
+    },
+    {
+      "tool": "kaito_mindshare_entity_arena",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:58.282520+00:00",
+      "request": {
+        "duration": "24h"
+      },
+      "response": {
+        "ticker": "ETH",
+        "fullname": "Ethereum",
+        "mindshare": 0.11876494213239559,
+        "rank": 1
+      },
+      "result_count": 100,
+      "response_path": "results[0]",
+      "explanation_zh": "这次查询最近 24 小时的对象关注份额排名。接口返回 100 条；第一名是 Ethereum，关注份额 0.11876494213239559。这是相对讨论份额的排序，不是价格涨幅。"
+    },
+    {
+      "tool": "kaito_mindshare_entity_delta",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:07:59.878161+00:00",
+      "request": {
+        "duration": "24h",
+        "limit": 1
+      },
+      "response": {
+        "ticker": "ETH",
+        "fullname": "Ethereum",
+        "mindshare": 0.11358556922887468,
+        "change": 0.02790032079098642
+      },
+      "result_count": 1,
+      "response_path": "top_gainer[0]",
+      "explanation_zh": "这次寻找最近 24 小时关注份额上升最多的对象。返回的首位是 Ethereum，当前份额 0.11358556922887468，变化值 0.02790032079098642；还需回查新闻或内容解释变化原因。"
+    },
+    {
+      "tool": "kaito_smart_following_market",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:02.264795+00:00",
+      "request": {
+        "duration": "24h"
+      },
+      "response": {
+        "id": "2584015610",
+        "name": "NEXON",
+        "username": "nexonmarkets",
+        "icon": "https://pbs.twimg.com/profile_images/2096921213037957120/Hv0beawm_normal.jpg",
+        "bio": "🤖️From Capital to Token. \n⚡️From Digital to Real. \nA value-connection network where AI agents turn what you mean into what gets settled.",
+        "new": 1,
+        "user_type": "non_kkol",
+        "user_web3_relevance": "Web3-Relevant",
+        "user_tag_individual_or_organization": "Organization",
+        "score": {
+          "change": 0,
+          "direction": 1
+        },
+        "date": "2026-09-28 05:57:04.832",
+        "followers": {
+          "change_ratio": 1000000000,
+          "value": 1,
+          "change": 1,
+          "direction": 1
+        }
+      },
+      "result_count": 100,
+      "response_path": "[0]",
+      "explanation_zh": "这次用 duration=24h 查询，接口返回 100 条；这里展示第一条 NEXON 账号的完整上游记录。它不是已发出的 Redpanda 消息，也不是资产识别结果。"
+    },
+    {
+      "tool": "kaito_smart_followers",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:04.252890+00:00",
+      "request": {
+        "username": "VitalikButerin",
+        "mode": "count",
+        "date": "2026-09-27"
+      },
+      "response": {
+        "mode": "count",
+        "date": "2026-09-27",
+        "num_of_smart_followers": 14198,
+        "current_ict": true
+      },
+      "response_path": "root",
+      "explanation_zh": "这次查询 VitalikButerin 在 9 月 27 日的高质量粉丝数量。接口返回 14198，并标明当时是否属于 ICT 追踪范围；这里的数量是账号粉丝统计，不是互动量。"
+    },
+    {
+      "tool": "kaito_smart_following",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:05.635631+00:00",
+      "request": {
+        "username": "VitalikButerin"
+      },
+      "response": {
+        "username": "WorkshopLabsPBC",
+        "category": "Organization",
+        "date": "2025-12-29"
+      },
+      "result_count": 100,
+      "response_path": "following[0]",
+      "explanation_zh": "这次查看 VitalikButerin 最近关注的账号。接口返回 100 条；右侧第一条记录了被关注账号、类别和日期，用来观察关注方向的变化。"
+    },
+    {
+      "tool": "kaito_mindshare_narrative",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:06.301997+00:00",
+      "request": {
+        "narrative": "AI",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": {
+        "narrative": "AI",
+        "display_name": "AI",
+        "mindshare": {
+          "2026-09-01": 0.2607909604519774,
+          "2026-09-02": 0.2626454523866065,
+          "2026-09-03": 0.295863309352518,
+          "2026-09-04": 0.2619871478002966,
+          "2026-09-05": 0.29229514879739094,
+          "2026-09-06": 0.28524724152022884,
+          "2026-09-07": 0.2514668901927913
+        }
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "mindshare": 0.2607909604519774
+        },
+        {
+          "date": "2026-09-02",
+          "mindshare": 0.2626454523866065
+        },
+        {
+          "date": "2026-09-03",
+          "mindshare": 0.295863309352518
+        },
+        {
+          "date": "2026-09-04",
+          "mindshare": 0.2619871478002966
+        },
+        {
+          "date": "2026-09-05",
+          "mindshare": 0.29229514879739094
+        },
+        {
+          "date": "2026-09-06",
+          "mindshare": 0.28524724152022884
+        },
+        {
+          "date": "2026-09-07",
+          "mindshare": 0.2514668901927913
+        }
+      ],
+      "response_path": "mindshare[date]",
+      "explanation_zh": "这次查询 AI 叙事在 9 月 1 日至 7 日的每日关注份额。接口返回 7 天；右侧逐天列出相对讨论份额，不是绝对帖子数。"
+    },
+    {
+      "tool": "kaito_market_sentiment",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:06.828114+00:00",
+      "request": {
+        "start_date": "2026-09-01"
+      },
+      "response": [
+        [
+          "sentiment_score",
+          18.234966570405767,
+          18.214348549492176,
+          18.151572406177703,
+          18.05696233247064,
+          17.92512546325555,
+          17.763543715125817,
+          17.588721518900904,
+          17.401803835058423,
+          17.222649285714862,
+          17.052916958130744,
+          16.900845193565377,
+          16.7635513680798,
+          16.635818475872306,
+          16.51926368314236,
+          16.407038548016615,
+          16.2812545212852,
+          16.144743793573753,
+          16.001448114788495,
+          15.83896596603929,
+          15.661839219067991,
+          15.467685448797935,
+          15.270555088288944,
+          15.069211051244352,
+          14.881989177677543,
+          14.725394569825848,
+          14.609356208086009,
+          14.537407161889393,
+          14.51281015162548
+        ],
+        [
+          "timestamp",
+          "2026-09-01",
+          "2026-09-02",
+          "2026-09-03",
+          "2026-09-04",
+          "2026-09-05",
+          "2026-09-06",
+          "2026-09-07",
+          "2026-09-08",
+          "2026-09-09",
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-12",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-26",
+          "2026-09-27",
+          "2026-09-28"
+        ],
+        [
+          "marketcap",
+          2641368826434.4,
+          2606650234319.52,
+          2605423437342.62,
+          2726005455192.26,
+          2682396418745.22,
+          2703716390983.96,
+          2727160755507.33,
+          2690822024270.6,
+          2680380621424.72,
+          2662448580841.18,
+          2607500479503.08,
+          2639633952246.94,
+          2642899974481.19,
+          2619116411023.31,
+          2663136461882.13,
+          2574912528011.32,
+          2599743602397.51,
+          2620653325625.07,
+          2765338474194.78,
+          2776633020352.49,
+          2781989675851.02,
+          2935248974870.06,
+          2935071902114.96,
+          2864511750857.13,
+          2879361743577.49,
+          2885776385722.52,
+          2894051174767.06,
+          2898215440592.96
+        ]
+      ],
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "sentiment_score": 18.234966570405767,
+          "marketcap": 2641368826434.4
+        },
+        {
+          "date": "2026-09-02",
+          "sentiment_score": 18.214348549492176,
+          "marketcap": 2606650234319.52
+        },
+        {
+          "date": "2026-09-03",
+          "sentiment_score": 18.151572406177703,
+          "marketcap": 2605423437342.62
+        },
+        {
+          "date": "2026-09-04",
+          "sentiment_score": 18.05696233247064,
+          "marketcap": 2726005455192.26
+        },
+        {
+          "date": "2026-09-05",
+          "sentiment_score": 17.92512546325555,
+          "marketcap": 2682396418745.22
+        },
+        {
+          "date": "2026-09-06",
+          "sentiment_score": 17.763543715125817,
+          "marketcap": 2703716390983.96
+        },
+        {
+          "date": "2026-09-07",
+          "sentiment_score": 17.588721518900904,
+          "marketcap": 2727160755507.33
+        },
+        {
+          "date": "2026-09-08",
+          "sentiment_score": 17.401803835058423,
+          "marketcap": 2690822024270.6
+        },
+        {
+          "date": "2026-09-09",
+          "sentiment_score": 17.222649285714862,
+          "marketcap": 2680380621424.72
+        },
+        {
+          "date": "2026-09-10",
+          "sentiment_score": 17.052916958130744,
+          "marketcap": 2662448580841.18
+        },
+        {
+          "date": "2026-09-11",
+          "sentiment_score": 16.900845193565377,
+          "marketcap": 2607500479503.08
+        },
+        {
+          "date": "2026-09-12",
+          "sentiment_score": 16.7635513680798,
+          "marketcap": 2639633952246.94
+        },
+        {
+          "date": "2026-09-13",
+          "sentiment_score": 16.635818475872306,
+          "marketcap": 2642899974481.19
+        },
+        {
+          "date": "2026-09-14",
+          "sentiment_score": 16.51926368314236,
+          "marketcap": 2619116411023.31
+        },
+        {
+          "date": "2026-09-15",
+          "sentiment_score": 16.407038548016615,
+          "marketcap": 2663136461882.13
+        },
+        {
+          "date": "2026-09-16",
+          "sentiment_score": 16.2812545212852,
+          "marketcap": 2574912528011.32
+        },
+        {
+          "date": "2026-09-17",
+          "sentiment_score": 16.144743793573753,
+          "marketcap": 2599743602397.51
+        },
+        {
+          "date": "2026-09-18",
+          "sentiment_score": 16.001448114788495,
+          "marketcap": 2620653325625.07
+        },
+        {
+          "date": "2026-09-19",
+          "sentiment_score": 15.83896596603929,
+          "marketcap": 2765338474194.78
+        },
+        {
+          "date": "2026-09-20",
+          "sentiment_score": 15.661839219067991,
+          "marketcap": 2776633020352.49
+        },
+        {
+          "date": "2026-09-21",
+          "sentiment_score": 15.467685448797935,
+          "marketcap": 2781989675851.02
+        },
+        {
+          "date": "2026-09-22",
+          "sentiment_score": 15.270555088288944,
+          "marketcap": 2935248974870.06
+        },
+        {
+          "date": "2026-09-23",
+          "sentiment_score": 15.069211051244352,
+          "marketcap": 2935071902114.96
+        },
+        {
+          "date": "2026-09-24",
+          "sentiment_score": 14.881989177677543,
+          "marketcap": 2864511750857.13
+        },
+        {
+          "date": "2026-09-25",
+          "sentiment_score": 14.725394569825848,
+          "marketcap": 2879361743577.49
+        },
+        {
+          "date": "2026-09-26",
+          "sentiment_score": 14.609356208086009,
+          "marketcap": 2885776385722.52
+        },
+        {
+          "date": "2026-09-27",
+          "sentiment_score": 14.537407161889393,
+          "marketcap": 2894051174767.06
+        },
+        {
+          "date": "2026-09-28",
+          "sentiment_score": 14.51281015162548,
+          "marketcap": 2898215440592.96
+        }
+      ],
+      "response_path": "tabular rows",
+      "explanation_zh": "这次查询整体市场情绪及市值背景。接口实际给了 28 个按天排列的数据点，最后一天是 2026-09-28；右侧完整列出返回的日期和数值。这里是每日走势，不是整个时段的单一分数。"
+    },
+    {
+      "tool": "kaito_twitter_user_metadata",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:07.601725+00:00",
+      "request": {
+        "user_id": "295218901"
+      },
+      "response": {
+        "name": "vitalik.eth",
+        "username": "VitalikButerin",
+        "followers": 9605,
+        "following_count": 550
+      },
+      "result_count": 1,
+      "response_path": "listData[0]",
+      "explanation_zh": "这次用一条 Ethereum 搜索结果中的作者 ID 查询 X 账号资料。接口返回 1 条资料；右侧展示账号名称与粉丝规模，用来核对内容作者身份。"
+    },
+    {
+      "tool": "kaito_ict_impressions",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:08.742904+00:00",
+      "request": {
+        "author_id": "295218901",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07"
+      },
+      "response": {
+        "is_ict": true,
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-07",
+        "total_impressions": 1384245,
+        "tweet_count": 7
+      },
+      "response_path": "root",
+      "explanation_zh": "这次查询同一作者在 9 月 1 日至 7 日的曝光统计。接口返回 7 条内容、合计曝光 1384245；它衡量被看到的次数，不等于互动。"
+    },
+    {
+      "tool": "kaito_tweet_engagement_info",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:08:10.044046+00:00",
+      "request": {
+        "tweet_id": "2104160561374343176"
+      },
+      "response": {
+        "like_count": 4804,
+        "reply_count": 465,
+        "retweet_count": 812,
+        "view_count": 984071,
+        "smart_engagement_count": 131
+      },
+      "response_path": "result",
+      "explanation_zh": "这次按一条公开 X 内容的 ID 查询互动。接口返回浏览 984071 次、点赞 4804 次、回复 465 次，其中高质量账号互动 131 次；这些是同一条内容的统计。"
+    },
+    {
+      "tool": "kaito_engagement",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:09:41.039812+00:00",
+      "request": {
+        "keyword": "Bitcoin",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-04"
+      },
+      "response": {
+        "total_engagement": {
+          "2026-09-01": 110306,
+          "2026-09-02": 93572,
+          "2026-09-03": 142096
+        },
+        "smart_engagement": {
+          "2026-09-01": 661,
+          "2026-09-02": 649,
+          "2026-09-03": 748
+        }
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-01",
+          "total_engagement": 110306,
+          "smart_engagement": 661
+        },
+        {
+          "date": "2026-09-02",
+          "total_engagement": 93572,
+          "smart_engagement": 649
+        },
+        {
+          "date": "2026-09-03",
+          "total_engagement": 142096,
+          "smart_engagement": 748
+        }
+      ],
+      "response_path": "root",
+      "explanation_zh": "这次改用关键词 Bitcoin查询互动，并调整日期范围。接口实际返回 3 天；右侧逐天展示总互动和高质量账号互动。这与其他案例可对比：按关键词查的是匹配该词的讨论，按代币代号查的是 Kaito 识别的对象。",
+      "case_label_zh": "关键词"
+    },
+    {
+      "tool": "kaito_engagement",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:09:42.438314+00:00",
+      "request": {
+        "token": "BTC",
+        "start_date": "2026-09-03",
+        "end_date": "2026-09-05"
+      },
+      "response": {
+        "total_engagement": {
+          "2026-09-03": 176582,
+          "2026-09-04": 165982
+        },
+        "smart_engagement": {
+          "2026-09-03": 1125,
+          "2026-09-04": 840
+        }
+      },
+      "daily_series": [
+        {
+          "date": "2026-09-03",
+          "total_engagement": 176582,
+          "smart_engagement": 1125
+        },
+        {
+          "date": "2026-09-04",
+          "total_engagement": 165982,
+          "smart_engagement": 840
+        }
+      ],
+      "response_path": "root",
+      "explanation_zh": "这次改用比特币代号 BTC查询互动，并调整日期范围。接口实际返回 2 天；右侧逐天展示总互动和高质量账号互动。这与其他案例可对比：按关键词查的是匹配该词的讨论，按代币代号查的是 Kaito 识别的对象。",
+      "case_label_zh": "BTC短区间"
+    },
+    {
+      "tool": "kaito_search",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:09:46.163769+00:00",
+      "request": {
+        "query": "Solana",
+        "size": 2
+      },
+      "response": {
+        "type": "Twitter",
+        "created_at": "2023-12-10T23:35:13.000Z",
+        "smart_engagement": 1468
+      },
+      "result_count": 2,
+      "response_path": "results[0]",
+      "explanation_zh": "这次换成 Solana 搜索，并把 size 填为 2。接口实际返回 2 条；右侧展示第一条的内容类型、发布时间和高质量账号互动。",
+      "case_label_zh": "Solana"
+    },
+    {
+      "tool": "kaito_feeds",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:09:47.501877+00:00",
+      "request": {
+        "size": 1
+      },
+      "response": {
+        "type": "Twitter",
+        "created_at": "2026-09-27T10:45:45.000Z",
+        "smart_engagement": 131
+      },
+      "result_count": 1,
+      "response_path": "results[0]",
+      "explanation_zh": "这次不填 token，只请求一条市场动态。接口实际返回 1 条；右侧展示第一条。与指定 BTC 的案例对比，可以看出省略对象筛选时返回的范围。",
+      "case_label_zh": "不限对象"
+    },
+    {
+      "tool": "kaito_advanced_search",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:11:21.721421+00:00",
+      "request": {
+        "tokens": "BTC",
+        "sources": "Twitter",
+        "sort_by": "smart_engagement",
+        "sort_order": "desc",
+        "size": 2
+      },
+      "response": {
+        "type": "Twitter",
+        "created_at": "2026-07-06T12:03:11.000Z",
+        "smart_engagement": 439,
+        "author_username": "saylor"
+      },
+      "result_count": 50,
+      "response_path": "results[0]",
+      "explanation_zh": "这次只看 BTC 相关的 X 内容，并按高质量账号互动从高到低排列。接口实际返回 50 条；右侧展示第一条的内容类型、发布时间、作者和高质量账号互动。 虽然这次 size 填了 2，实际仍返回 50 条，因此不能把 size 当作这次调用已验证的返回上限。",
+      "case_label_zh": "代币＋排序"
+    },
+    {
+      "tool": "kaito_advanced_search",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:11:23.051640+00:00",
+      "request": {
+        "keyword": "bitcoin etf",
+        "sources": "News",
+        "min_created_at": "2026-09-01T00:00:00Z",
+        "max_created_at": "2026-09-28T00:00:00Z",
+        "sort_by": "created_at",
+        "size": 2
+      },
+      "response": {
+        "type": "News",
+        "created_at": "2026-09-26T17:01:03.000Z"
+      },
+      "result_count": 50,
+      "response_path": "results[0]",
+      "explanation_zh": "这次查 9 月以来的 Bitcoin ETF 新闻，并按发布时间排列。接口实际返回 50 条；右侧展示第一条的内容类型和发布时间。这条记录没有展示作者或高质量账号互动数。虽然这次 size 填了 2，实际仍返回 50 条，因此不能把 size 当作这次调用已验证的返回上限。",
+      "case_label_zh": "新闻＋日期"
+    },
+    {
+      "tool": "kaito_advanced_search",
+      "source": "Kaito online MCP tools/call",
+      "evidence": "live_mcp_call",
+      "observed_at": "2026-09-28T09:11:24.061594+00:00",
+      "request": {
+        "query": "Ethereum",
+        "sources": "Twitter",
+        "tweet_type": "tweet",
+        "sentiment_type": "bullish",
+        "min_like_count": 100,
+        "size": 2
+      },
+      "response": {
+        "type": "Twitter",
+        "created_at": "2026-09-25T08:09:39.000Z",
+        "smart_engagement": 108,
+        "author_username": "0xQuit"
+      },
+      "result_count": 50,
+      "response_path": "results[0]",
+      "explanation_zh": "这次只看提到 Ethereum、属于普通推文、整体情绪偏多且至少有 100 个赞的 X 内容。接口实际返回 50 条；右侧展示第一条的内容类型、发布时间、作者和高质量账号互动。 虽然这次 size 填了 2，实际仍返回 50 条，因此不能把 size 当作这次调用已验证的返回上限。",
+      "case_label_zh": "情绪＋点赞"
+    }
+  ]
+}

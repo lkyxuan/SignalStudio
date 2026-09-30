@@ -68,7 +68,12 @@ def seed(graph, source_contracts, signal_contracts):
         "transport_kind": transport["kind"],
         "transport_topic": transport["topic"],
         "transport_key": transport["message_key"],
+        "consumer_group": f"signalstudio.{spec['signal_key']}",
         "payload_schema": transport["payload_schema"],
+        "transport_headers": [
+            {"name": "schema_version", "description": f"固定为 {transport['payload_schema']}，供消费方识别消息格式。", "consumed": True},
+            {"name": "operation_id", "description": f"固定为 {operation['id']}，用于来源识别。", "consumed": False},
+        ],
     }, actor="signal_contract")
     return graph.get_node(node["id"])
 

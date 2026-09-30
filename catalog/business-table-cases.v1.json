@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "dataset_kind": "product_case_rows",
+  "note": "Case rows specify table formats in the SignalStudio product. Bitcoin, Ethereum, Solana, and CoinGecko IDs appear in saved live Kaito entity responses; 比特币 and BTC are proposed aliases of Bitcoin in #1002. All internal IDs, review IDs, relationships, bindings, and rules here are specified case values, not deployed records or approved decisions. The score tables have no case rows because no score contribution or ranking has been calculated.",
+  "source_refs": [
+    "catalog/kaito-mcp-call-examples.json",
+    "catalog/identity-source-case-034.v1.json"
+  ],
+  "tables": {
+    "assets": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "asset_kind": "coin",
+        "created_at": "2026-09-29T00:00:00Z",
+        "identity_status": "confirmed",
+        "name": "Bitcoin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "asset_kind": "coin",
+        "created_at": "2026-09-29T00:00:00Z",
+        "identity_status": "confirmed",
+        "name": "Ethereum"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "asset_kind": "coin",
+        "created_at": "2026-09-29T00:00:00Z",
+        "identity_status": "confirmed",
+        "name": "Solana"
+      }
+    ],
+    "asset_identifiers": [
+      {
+        "source_namespace": "coingecko_coin_id",
+        "external_identifier": "bitcoin",
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394"
+      },
+      {
+        "source_namespace": "alias_name_zh",
+        "external_identifier": "比特币",
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394"
+      },
+      {
+        "source_namespace": "alias_ticker",
+        "external_identifier": "BTC",
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394"
+      },
+      {
+        "source_namespace": "coingecko_coin_id",
+        "external_identifier": "ethereum",
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7"
+      },
+      {
+        "source_namespace": "coingecko_coin_id",
+        "external_identifier": "solana",
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c"
+      }
+    ],
+    "asset_relationships": [
+      {
+        "relationship_id": "case_rel_btc_eth",
+        "from_asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "to_asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "relationship_type": "comparison_peer",
+        "evidence_ref": "case:comparison_set",
+        "review_id": "case_review_rel_1",
+        "created_at": "2026-09-29T00:00:00Z"
+      },
+      {
+        "relationship_id": "case_rel_btc_sol",
+        "from_asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "to_asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "relationship_type": "comparison_peer",
+        "evidence_ref": "case:comparison_set",
+        "review_id": "case_review_rel_2",
+        "created_at": "2026-09-29T00:00:00Z"
+      },
+      {
+        "relationship_id": "case_rel_eth_sol",
+        "from_asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "to_asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "relationship_type": "comparison_peer",
+        "evidence_ref": "case:comparison_set",
+        "review_id": "case_review_rel_3",
+        "created_at": "2026-09-29T00:00:00Z"
+      }
+    ],
+    "asset_monitoring_rules": [
+      {
+        "rule_id": "case_rule_btc_price",
+        "version": 1,
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "metric_key": "price_change_24h_pct",
+        "rule_json": "{\"operator\":\">=\",\"threshold\":5,\"unit\":\"percent\"}",
+        "status": "active",
+        "review_id": "case_review_rule_1",
+        "effective_at": "2026-09-29T00:00:00Z"
+      },
+      {
+        "rule_id": "case_rule_eth_attention",
+        "version": 1,
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "metric_key": "mindshare_change_24h_pct",
+        "rule_json": "{\"operator\":\">=\",\"threshold\":3,\"unit\":\"percent\"}",
+        "status": "active",
+        "review_id": "case_review_rule_2",
+        "effective_at": "2026-09-29T00:00:00Z"
+      },
+      {
+        "rule_id": "case_rule_sol_following",
+        "version": 1,
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "metric_key": "new_smart_followed_accounts_24h",
+        "rule_json": "{\"operator\":\">=\",\"threshold\":10,\"unit\":\"accounts\"}",
+        "status": "active",
+        "review_id": "case_review_rule_3",
+        "effective_at": "2026-09-29T00:00:00Z"
+      }
+    ],
+    "asset_score_events": [],
+    "asset_scores_current": []
+  }
+}

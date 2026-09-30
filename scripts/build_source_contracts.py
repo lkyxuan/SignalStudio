@@ -137,6 +137,14 @@ BOT_PLANNED = ("message_id", "date", "chat.id", "chat.title", "chat.username",
                "from.id", "from.username", "text", "caption", "photo", "video", "document")
 TELETHON_PLANNED = ("id", "date", "peer_id", "from_id", "message", "media",
                     "fwd_from", "views", "forwards", "replies")
+TAOLI_PAGE_COLUMNS = (
+    ("exchange", "交易所"), ("market", "币种交易对"),
+    ("open_interest_display", "未平仓额"), ("daily_volume_display", "日成交额"),
+    ("funding_rate_1y_display", "页面 1Y 资金费率"),
+    ("next_funding_display", "下次资金费率及倒计时"),
+    ("funding_rate_limits_display", "费率上限与下限"),
+    ("funding_interval_display", "资金费率间隔"),
+)
 
 
 def read(name):
@@ -270,9 +278,12 @@ def build():
                                 alias="crypto-rss-collector.rss_news_item",
                                 note="这是计划读取的 RSS item 元素；各 feed 还可能含扩展命名空间。"))
     operations.append(operation("taoli", "taoli.funding_page", "页面资金费率表",
-                                "https://taoli.tools/", docs["taoli"], [],
-                                "awaiting_first_party_schema", alias="taoli.funding_rate",
-                                note="尚无官方字段 API 文档；页面位置解析不能充当稳定输出契约。"))
+                                "https://taoli.tools/", docs["taoli"],
+                                [{"path": path, "label_zh": label, "type": "string",
+                                  "evidence": "live_page_observation", "condition": "页面当时渲染的显示值；非 API 字段契约。",
+                                  "example_value": None} for path, label in TAOLI_PAGE_COLUMNS],
+                                "page_observation_lower_bound", alias="taoli.funding_rate",
+                                note="2026-09-28 浏览器页面显示了这些列；尚无官方字段 API 文档，网页列名与位置可能变化。"))
     operations.append(operation("telegram-bot", "telegram.bot.message", "Bot 消息",
                                 "Message", docs["telegram-bot"],
                                 [field(path, evidence="official_documentation") for path in BOT_PLANNED],
@@ -288,12 +299,78 @@ def build():
     input_contract = read("source-inputs.v1.json")
     if input_contract.get("version") != "source-inputs.v1":
         raise ValueError("Unsupported source input contract")
+    kaito_schemas = read("kaito-mcp-input-schemas.json")
+    if input_contract.get("kaito_input_schema_observed_at") != kaito_schemas["observed_at"]:
+        raise ValueError("Kaito input contract and live schema snapshot have different dates")
+    if {tool["name"] for tool in kaito_schemas["tools"]} != {tool["name"] for tool in kaito["tools"]}:
+        raise ValueError("Kaito input schemas must cover every observed tool")
+    for tool in kaito_schemas["tools"]:
+        item = input_contract["operations"][f'kaito.mcp.{tool["name"]}']
+        schema = tool["inputSchema"]
+        if item["input_coverage"] != "live_mcp_input_schema" or [
+            (field["name"], field["required"]) for field in item["inputs"]
+        ] != [(name, name in schema.get("required", [])) for name in schema["properties"]]:
+            raise ValueError(f'Kaito input contract differs from live schema: {tool["name"]}')
     if set(input_contract["operations"]) != {item["id"] for item in operations}:
         raise ValueError("Input contract must cover every operation")
     if set(input_contract["resources"]) != {item["id"] for item in resources}:
         raise ValueError("Input contract must cover every resource")
     for item, group in [(item, "operations") for item in operations] + [(item, "resources") for item in resources]:
         item.update(input_contract[group][item["id"]])
+
+    for kaito_example in read("kaito-mcp-call-examples.json")["examples"]:
+        example_operation = next(item for item in operations
+                                 if item["id"] == f'kaito.mcp.{kaito_example["tool"]}')
+        input_names = {field["name"] for field in example_operation["inputs"]}
+        if (kaito_example["evidence"] != "live_mcp_call"
+                or not set(kaito_example["request"]) <= input_names
+                or "response" not in kaito_example
+                or not kaito_example.get("observed_at")):
+            raise ValueError("Kaito call example must match the operation contract")
+        example_operation.setdefault("call_examples", []).append(kaito_example)
+
+    for observed_example in read("public-call-examples.json")["examples"]:
+        example_operation = next(item for item in operations
+                                 if item["id"] == observed_example["operation_id"])
+        input_names = {field["name"] for field in example_operation["inputs"]}
+        if (observed_example["evidence"] not in ("live_http_call", "live_page_observation")
+                or not set(observed_example["request"]) <= input_names):
+            raise ValueError("Public call example must match the operation input contract")
+        example_operation.setdefault("call_examples", []).append(observed_example)
+
+    missing_call_reasons = {
+        "telegram.bot.message": "还没有该项目 Bot 的访问凭据及可读取的真实更新，因此不能展示 Bot API 的请求与 Message 返回。",
+        "telegram.telethon.message": "还没有该项目获授权的 Telethon 会话与频道，因此不能展示真实消息读取。",
+    }
+    for item in operations:
+        if item["id"] in missing_call_reasons:
+            item["call_status_note_zh"] = missing_call_reasons[item["id"]]
+    for item in resources:
+        item["call_status_note_zh"] = "已尝试通过当前 Kaito MCP 端点读取此资源；服务端返回 -32601（不支持该方法），暂时没有可展示的真实资源内容。"
+
+    collection_plans = read("source-collection-plans.v1.json")
+    if collection_plans.get("version") != "source-collection-plans.v1" or not isinstance(collection_plans.get("plans"), dict):
+        raise ValueError("Invalid source collection plan catalog")
+    plans = collection_plans["plans"]
+    unknown = set(plans) - {item["id"] for item in operations}
+    if unknown:
+        raise ValueError(f"Collection plan has unknown operations: {sorted(unknown)}")
+    for item in operations:
+        plan = plans.get(item["id"])
+        if plan is None:
+            continue
+        if not isinstance(plan, dict) or set(plan) != {"mode", "interval_minutes"}:
+            raise ValueError(f"Invalid collection plan for {item['id']}")
+        mode, interval = plan["mode"], plan["interval_minutes"]
+        if mode not in {"scheduled", "event_driven", "on_demand"} or (
+            mode == "scheduled" and (type(interval) is not int or interval <= 0)
+        ) or (mode != "scheduled" and interval is not None):
+            raise ValueError(f"Invalid collection cadence for {item['id']}")
+        item["collection_plan"] = {
+            **plan,
+            "status": "user_defined_plan",
+            "evidence_status": "design_only_no_runtime_verification",
+        }
 
     payload = {"catalog_version": "source-contracts.v1", "owner": "SignalStudio",
                "direction": "SignalStudio defines desired upstream inputs; Few Understand implements and reports evidence.",

@@ -1,0 +1,214 @@
+{
+  "case_type": "product_specification_with_observed_input",
+  "source": {
+    "operation_id": "kaito.mcp.kaito_smart_following_market",
+    "request": {
+      "duration": "24h"
+    },
+    "observed_at": "2026-09-29T11:47:34.962198+00:00",
+    "evidence": "live_mcp_call",
+    "response_count": 100,
+    "sample_count": 2
+  },
+  "initial_score_policy": {
+    "status": "planned_not_executed",
+    "processing_card": 3009,
+    "trigger": "3009_receives_3002_new_asset_only_after_asset_and_identifier_are_created",
+    "input_score_key": "total_heat",
+    "score_delta": 100,
+    "current_score_key": "total_heat",
+    "decay_policy_ref": "asset_initial_score/v1",
+    "decay": {"mode": "exponential_half_life", "half_life_minutes": 10080, "parameter_status": "defined_by_user", "time_granularity": "continuous_elapsed_time_from_created_at", "elapsed_minutes_rule": "max(0, (calculated_at_unix_seconds - created_at_unix_seconds) / 60)", "calculation_precision": "full", "display_decimal_places": 2},
+    "decision_ref_template": "asset_initial_score/v1/{asset_id}",
+    "event_key_rule": "stable_from_asset_id_score_key_and_decision_ref",
+    "repeat_lookup": "3004_routes_to_3009_which_skips_initial_score_event",
+    "legacy_asset_without_score": "handle_in_a_separate_backfill_not_on_repeat_lookup",
+    "identity_note": "A new social_account remains pending_identity; the initial 100 points decay with age and do not verify that it is a project."
+  },
+  "tables": {
+    "assets": {
+      "scope": "specified_target_rows",
+      "columns": [
+        "asset_id",
+        "name",
+        "identity_status",
+        "asset_kind",
+        "created_at"
+      ],
+      "primary_key": [
+        "asset_id"
+      ],
+      "row_count": 2,
+      "rows": [
+        {
+          "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+          "name": "Stake | Bonus",
+          "identity_status": "pending_identity",
+          "asset_kind": "social_account",
+          "created_at": "2026-09-29T11:47:34.962198+00:00"
+        },
+        {
+          "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+          "name": "KASUN",
+          "identity_status": "pending_identity",
+          "asset_kind": "social_account",
+          "created_at": "2026-09-29T11:47:34.962198+00:00"
+        }
+      ]
+    },
+    "asset_identifiers": {
+      "scope": "specified_target_rows",
+      "columns": [
+        "source_namespace",
+        "external_identifier",
+        "asset_id"
+      ],
+      "primary_key": [
+        "source_namespace",
+        "external_identifier"
+      ],
+      "row_count": 2,
+      "rows": [
+        {
+          "source_namespace": "x_user_id",
+          "external_identifier": "2921807028",
+          "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0"
+        },
+        {
+          "source_namespace": "x_user_id",
+          "external_identifier": "998973985026002944",
+          "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80"
+        }
+      ]
+    },
+    "asset_relationships": {
+      "scope": "specified_target_rows",
+      "columns": [
+        "relationship_id",
+        "from_asset_id",
+        "to_asset_id",
+        "relationship_type",
+        "evidence_ref",
+        "review_id",
+        "created_at"
+      ],
+      "primary_key": [
+        "relationship_id"
+      ],
+      "row_count": 0,
+      "rows": []
+    },
+    "asset_monitoring_rules": {
+      "scope": "specified_target_rows",
+      "columns": [
+        "rule_id",
+        "version",
+        "asset_id",
+        "metric_key",
+        "rule_json",
+        "status",
+        "review_id",
+        "effective_at"
+      ],
+      "primary_key": [
+        "rule_id",
+        "version"
+      ],
+      "row_count": 0,
+      "rows": []
+    }
+  },
+  "cases": [
+    {
+      "source_record": {
+        "id": "2921807028",
+        "name": "Stake | Bonus",
+        "username": "Tyler_Darts",
+        "icon": "https://pbs.twimg.com/profile_images/2100939940670394368/eOpxfTXh_normal.jpg",
+        "bio": "I'm here to let you know about new bonuses.",
+        "new": 1,
+        "user_type": "non_kkol",
+        "user_web3_relevance": "Web3-Relevant",
+        "user_tag_individual_or_organization": "Organization",
+        "score": {
+          "change": 0,
+          "direction": 1
+        },
+        "date": "2026-09-28 23:55:18.098",
+        "followers": {
+          "change_ratio": 1000000000,
+          "value": 1,
+          "change": 1,
+          "direction": 1
+        }
+      },
+      "lookup_key": {
+        "source_namespace": "x_user_id",
+        "external_identifier": "2921807028"
+      },
+      "lookup_result": {
+        "row_count": 0,
+        "asset_id": null,
+        "match_status": "unmatched"
+      },
+      "create_result": {
+        "action": "created",
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "match_status": "unmatched",
+        "identity_status": "pending_identity"
+      },
+      "repeat_result": {
+        "action": "reused",
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "match_status": "matched",
+        "identity_status": "pending_identity"
+      }
+    },
+    {
+      "source_record": {
+        "id": "998973985026002944",
+        "name": "KASUN",
+        "username": "kasuncfdo",
+        "icon": "https://pbs.twimg.com/profile_images/2086573180647555072/SzPWrvVj_normal.jpg",
+        "bio": "⌘ Frontend Web Dev • Blockchain Enthusiast • Author @TechNewsLK • ⚡\n✳︎ Web3 • Content Writer • Shipping & sharing design engineering stuff",
+        "new": 1,
+        "user_type": "non_kkol",
+        "user_web3_relevance": "Web3-Relevant",
+        "user_tag_individual_or_organization": "Individual",
+        "score": {
+          "change": 0,
+          "direction": 1
+        },
+        "date": "2026-09-28 23:55:18.098",
+        "followers": {
+          "change_ratio": 1000000000,
+          "value": 1,
+          "change": 1,
+          "direction": 1
+        }
+      },
+      "lookup_key": {
+        "source_namespace": "x_user_id",
+        "external_identifier": "998973985026002944"
+      },
+      "lookup_result": {
+        "row_count": 0,
+        "asset_id": null,
+        "match_status": "unmatched"
+      },
+      "create_result": {
+        "action": "created",
+        "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+        "match_status": "unmatched",
+        "identity_status": "pending_identity"
+      },
+      "repeat_result": {
+        "action": "reused",
+        "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+        "match_status": "matched",
+        "identity_status": "pending_identity"
+      }
+    }
+  ],
+  "limits": "Only source_record and #2030 request/response metadata come from an observed Kaito MCP call. Lookup results, #1001/#1002 rows, asset IDs, and repeat outcomes specify required product behavior; they are not executed database results. No Redpanda message, AI identity decision, or approval was observed."
+}

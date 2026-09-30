@@ -45,6 +45,7 @@ class SourceContractStore:
             if len(set(paths)) != len(paths):
                 raise GraphError("Duplicate operation field path")
             self._validate_inputs(operation)
+            self._validate_collection_plan(operation)
         for resource in resources:
             if resource["source_id"] not in self.sources:
                 raise GraphError("Resource source does not exist")
@@ -59,8 +60,8 @@ class SourceContractStore:
         inputs = item.get("inputs")
         coverage = item.get("input_coverage")
         if not isinstance(inputs, list) or coverage not in {
-            "official_documentation", "public_proxy_snapshot", "official_mcp_resource",
-            "design_input", "unverified",
+            "official_documentation", "live_mcp_input_schema", "official_mcp_resource",
+            "design_input", "live_page_controls", "unverified",
         }:
             raise GraphError("Invalid source input contract")
         names = [field.get("name") for field in inputs if isinstance(field, dict)]
@@ -70,6 +71,23 @@ class SourceContractStore:
             raise GraphError("Invalid source input fields")
         if coverage == "unverified" and inputs:
             raise GraphError("Unverified inputs cannot claim exact parameters")
+
+    @staticmethod
+    def _validate_collection_plan(operation):
+        plan = operation.get("collection_plan")
+        if plan is None:
+            return
+        if not isinstance(plan, dict) or set(plan) != {
+            "mode", "interval_minutes", "status", "evidence_status"
+        }:
+            raise GraphError("Invalid source collection plan")
+        mode, interval = plan["mode"], plan["interval_minutes"]
+        if (mode not in {"scheduled", "event_driven", "on_demand"}
+                or (mode == "scheduled" and (type(interval) is not int or interval <= 0))
+                or (mode != "scheduled" and interval is not None)
+                or plan["status"] != "user_defined_plan"
+                or plan["evidence_status"] != "design_only_no_runtime_verification"):
+            raise GraphError("Invalid source collection cadence")
 
     def full(self):
         return self.contract

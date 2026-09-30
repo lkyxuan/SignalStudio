@@ -13,6 +13,8 @@ from source_contract_store import SourceContractStore
 from signal_contract_store import SignalContractStore
 
 ROOT = Path(__file__).resolve().parent.parent
+LOCAL_KAITO_CASE = ROOT / "data" / "kaito-advanced-search-live.json"
+LOCAL_SOURCE_CASES = ROOT / "data" / "source-cases-live.json"
 service = GraphService(os.environ.get("SIGNALSTUDIO_DB"))
 source_contracts = SourceContractStore()
 signal_contracts = SignalContractStore(source_contracts)
@@ -20,6 +22,7 @@ service.ensure_system_tables()
 service.ensure_source_contract_sources(source_contracts.contract["operations"] + source_contracts.contract["resources"])
 service.retire_legacy_record_types()
 service.compact_retired_node_references()
+service.group_node_references_once()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -66,6 +69,18 @@ class Handler(BaseHTTPRequestHandler):
             return source_contracts.full()
         if parts == ["api", "source-contracts", "v1", "meta"] and method == "GET":
             return source_contracts.meta()
+        if parts == ["api", "source-cases", "016"] and method == "GET":
+            return json.loads(LOCAL_KAITO_CASE.read_text(encoding="utf-8")) if LOCAL_KAITO_CASE.is_file() else {"cases": []}
+        if len(parts) == 4 and parts[:3] == ["api", "source-cases", "v1"] and method == "GET":
+            saved = json.loads(LOCAL_SOURCE_CASES.read_text(encoding="utf-8")) if LOCAL_SOURCE_CASES.is_file() else {"operations": {}}
+            return {"operation_id": unquote(parts[3]), "cases": saved.get("operations", {}).get(unquote(parts[3]), [])}
+        if len(parts) == 6 and parts[:3] == ["api", "source-cases", "v1"] and parts[4] == "responses" and method == "GET":
+            saved = json.loads(LOCAL_SOURCE_CASES.read_text(encoding="utf-8")) if LOCAL_SOURCE_CASES.is_file() else {"operations": {}}
+            cases = saved.get("operations", {}).get(unquote(parts[3]), [])
+            try:
+                return cases[int(parts[5])]["response"]
+            except (ValueError, IndexError, KeyError):
+                raise GraphError("Source case response not found")
         if len(parts) == 5 and parts[:4] == ["api", "source-contracts", "v1", "operations"] and method == "GET":
             return source_contracts.get_operation(unquote(parts[4]))
         if len(parts) == 5 and parts[:4] == ["api", "source-contracts", "v1", "resources"] and method == "GET":

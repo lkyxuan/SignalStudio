@@ -3,7 +3,7 @@
   "signal_key": "coingecko_market_turnover_candidate",
   "signal_version": 2,
   "signal_contract_revision": "sha256:6b6ab1ca3f7ef79144b9b2700a0cb8b02c74ec28589c094c23c5bf4e868785d2",
-  "source_contract_revision": "sha256:ed3c962725f79b87b29c6cc5c493799df872b3793ed669f7bbe353ae21f2671f",
+  "source_contract_revision": "sha256:f269df52309e403e88a7eb4afe9256a8a21fa36795fc880b8c1070b1a78acc02",
   "definition": {
     "signal_key": "coingecko_market_turnover_candidate",
     "version": 2,
@@ -705,9 +705,33 @@
           "default": "false"
         }
       ],
-      "input_source_url": "https://docs.coingecko.com/reference/coins-markets"
+      "input_source_url": "https://docs.coingecko.com/reference/coins-markets",
+      "call_examples": [
+        {
+          "operation_id": "coingecko.coins_markets",
+          "observed_at": "2026-09-28T08:54:52.921968+00:00",
+          "request": {
+            "vs_currency": "usd",
+            "ids": "bitcoin",
+            "per_page": 1,
+            "page": 1
+          },
+          "http_status": 200,
+          "response": {
+            "name": "Bitcoin",
+            "current_price": 82917,
+            "market_cap": 1665620197887,
+            "total_volume": 31365259474
+          },
+          "result_count": 1,
+          "response_path": "[0]",
+          "evidence": "live_http_call",
+          "source": "Live upstream HTTP response",
+          "explanation_zh": "这次按 bitcoin 的 CoinGecko ID 查询，并要求以美元计价。接口返回 Bitcoin 的当前价格 82917 美元、市值 1665620197887 美元和 24 小时成交量 31365259474 美元；这些都是调用当时的市场快照。"
+        }
+      ]
     },
-    "revision": "sha256:ed3c962725f79b87b29c6cc5c493799df872b3793ed669f7bbe353ae21f2671f"
+    "revision": "sha256:f269df52309e403e88a7eb4afe9256a8a21fa36795fc880b8c1070b1a78acc02"
   },
   "connection_contracts": [
     {
@@ -724,7 +748,20 @@
         "message_key": "data.id",
         "payload_schema": "coingecko.coins_markets.v1",
         "serialization": "json_utf8",
-        "deployment_status": "planned"
+        "deployment_status": "planned",
+        "consumer_group": "signalstudio.coingecko_market_turnover_candidate",
+        "headers": [
+          {
+            "name": "schema_version",
+            "description": "固定为 coingecko.coins_markets.v1，供消费方识别消息格式。",
+            "consumed": true
+          },
+          {
+            "name": "operation_id",
+            "description": "固定为 coingecko.coins_markets，用于来源识别。",
+            "consumed": false
+          }
+        ]
       },
       "payload": {
         "role": "crawler_produces_consumer_reads",
@@ -1111,7 +1148,7 @@
   "design_graph": {
     "signal_node": {
       "id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
-      "reference_number": 43,
+      "reference_number": 3001,
       "signal_key": "coingecko_market_turnover_candidate",
       "name": "市场交易活跃候选",
       "type": "Metric",
@@ -1130,7 +1167,7 @@
     "nodes": [
       {
         "id": "bb143913-6641-40c3-be08-2e920887ed08",
-        "reference_number": 14,
+        "reference_number": 2010,
         "signal_key": "",
         "name": "coingecko.coins_markets",
         "type": "Source",
@@ -1148,7 +1185,7 @@
       },
       {
         "id": "bea1d62d-395f-4bf8-bfe2-0fec37d874aa",
-        "reference_number": 43,
+        "reference_number": 3001,
         "signal_key": "coingecko_market_turnover_candidate",
         "name": "市场交易活跃候选",
         "type": "Metric",
@@ -1177,7 +1214,8 @@
         "transport_topic": "source.coingecko.coins_markets.v1",
         "transport_key": "data.id",
         "payload_schema": "coingecko.coins_markets.v1",
-        "transport_headers": "[]"
+        "transport_headers": "[{\"name\": \"schema_version\", \"description\": \"固定为 coingecko.coins_markets.v1，供消费方识别消息格式。\", \"consumed\": true}, {\"name\": \"operation_id\", \"description\": \"固定为 coingecko.coins_markets，用于来源识别。\", \"consumed\": false}]",
+        "consumer_group": "signalstudio.coingecko_market_turnover_candidate"
       }
     ],
     "fields": [
@@ -1381,7 +1419,7 @@
     "status": "ready",
     "issues": []
   },
-  "revision": "sha256:fcb4169e065820bc3b2a85fe9beacdfdb90bf22641ab552d3d0dc286f5735a4b",
+  "revision": "sha256:0177187c2529324829358e38ca7c9e45220887714f3043d18420464d69a2a582",
   "runtime_evidence": {
     "status": "not_provided",
     "latest_report_id": null,

@@ -1,0 +1,31 @@
+{
+  "source": "One-time Chinese interpretations of 2026-09-28 CoinDesk RSS items; separate from observed RSS XML",
+  "record_count": 25,
+  "records": {
+    "https://www.coindesk.com/business/2026/09/28/chainlink-updates-its-crypto-bridge-tech-months-after-a-usd292-million-hack-shook-the-industry": "CoinDesk 报道 Chainlink 更新跨链桥软件，让使用方加入自定义安全检查；背景是其他桥曾发生大额攻击。这是产品安全功能更新，实际防护效果仍需看技术细节和使用方配置。",
+    "https://www.coindesk.com/tech/2026/09/28/thorchain-rejects-bitget-request-to-block-hacker-as-usd6-million-moves-to-bitcoin": "报道说 THORChain 拒绝了 Bitget 阻止涉案地址交易的请求，同时观察到部分被盗 ETH 被换成 BTC。这是安全事件的资金流线索，金额、归属和交易路径需核对原文证据。",
+    "https://www.coindesk.com/daybook-us/2026/09/28/bitcoin-traders-aren-t-panicking-yet-despite-cooling-sentiment": "这是一篇 9 月 28 日的市场日程与情绪简报，标题称加密市场情绪降温但交易者尚未恐慌；订阅源摘要没有给出具体指标，需要打开原文看依据。",
+    "https://www.coindesk.com/business/2026/09/28/crypto-friendly-institution-franklin-templeton-brings-its-tokenized-collateral-service-to-bybit": "报道称 Franklin Templeton 的代币化货币市场基金份额可在 Bybit 用作 USDT 或 USDC 交易授信的抵押品，同时底层资产继续产生收益。可关注抵押品范围、风险控制和实际开通条件。",
+    "https://www.coindesk.com/markets/2026/09/28/bitcoin-falls-to-usd83-000-while-altcoins-unwind-friday-s-rally": "市场报道说比特币跌至约 8.3 万美元，其他代币回吐前一交易日涨幅；这是当时行情快照，不能从标题推断后续走势。",
+    "https://www.coindesk.com/business/2026/09/28/live-updates-bitcoin-sinks-below-usd83-000-as-iran-talks-stall-and-oil-climbs": "实时更新称比特币跌破 8.3 万美元，油价上涨及伊朗谈判停滞被列为市场背景，ZEC 等代币跌幅较大。行情与宏观叙事的因果关系需要进一步核对。",
+    "https://www.coindesk.com/markets/2026/09/28/bitcoin-rally-takes-a-breather-ahead-of-key-u-s-employment-data-crypto-week-ahead": "这篇周前瞻提示关注美国就业等关键数据，并描述加密市场涨势暂歇。可用作后续事件日历，具体公布时间和预期值需看原文。",
+    "https://www.coindesk.com/markets/2026/09/28/bitcoin-bears-pay-to-bet-on-further-declines-as-futures-positions-near-yearly-lows": "报道认为比特币期货未平仓量接近年内低位，剩余杠杆仓位更偏向看跌。它是衍生品情绪线索，需结合交易所数据和统计口径核对。",
+    "https://www.coindesk.com/business/2026/09/28/redotpay-completes-financial-audit-as-it-presses-ahead-with-u-s-ipo-plans": "RedotPay 称已完成财务审计并继续准备美国 IPO，回应此前上市计划搁置的报道。这里能确认的是公司公告和媒体转述，上市进度仍待监管文件验证。",
+    "https://www.coindesk.com/markets/2026/09/28/california-s-newsom-signs-memecoin-ban-and-calls-it-the-opposite-of-trump": "报道称加州州长签署涉及迷因币的 AB 2409，并把它放在反腐败政策背景下。法律适用范围不能只凭标题判断，需查看法案文本。",
+    "https://www.coindesk.com/markets/2026/09/28/solana-etfs-draw-record-usd188-million-in-a-week-as-bitwise-takes-two-thirds-of-inflows": "报道说 Solana ETF 一周净流入约 1.88 亿美元，Bitwise 占约三分之二，周五流入创单日纪录。这是基金资金流线索，统计范围和数据来源需核对。",
+    "https://www.coindesk.com/markets/2026/09/28/bitcoin-and-nasdaq-futures-decline-as-trump-won-t-rule-out-more-iran-strikes": "报道将比特币和纳斯达克期货下跌与伊朗局势表态并列呈现；这说明当时市场关注地缘风险，不能据此单独认定跌幅原因。",
+    "https://www.coindesk.com/tech/2026/09/27/vitalik-buterin-maps-ethereum-s-shift-beyond-a-blockchain-in-sweeping-2030-vision": "文章梳理 Vitalik Buterin 对以太坊未来架构的设想：让网络完成更多计算任务，同时减少所有节点重复执行。属于技术路线观点，具体提案和进度需看原文。",
+    "https://www.coindesk.com/news-analysis/2026/09/27/how-months-of-work-on-the-clarity-act-all-fell-apart": "这篇新闻分析回顾 Clarity Act 起草与投票失败的过程，采访了行业和立法相关人士。它提供法案进程的背景解释，具体法律状态应另核官方记录。",
+    "https://www.coindesk.com/business/2026/09/26/kraken-s-parent-payward-is-betting-billions-on-becoming-financial-infrastructure-not-just-a-crypto-exchange": "报道说 Kraken 母公司 Payward 正整合交易、支付、资产管理和机构服务，目标是提供更广的金融基础设施。这是公司战略表述，项目落地情况需单独核对。",
+    "https://www.coindesk.com/business/2026/09/26/binance-deal-gives-circle-a-boost-in-stablecoin-race-with-tether-analysts-say": "分析人士认为 Binance 与 Circle 的五年合作可能扩大 USDC 在新兴市场的触达，但 Tether 的流动性优势仍强。这是市场竞争分析，不是未来份额已确定。",
+    "https://www.coindesk.com/markets/2026/09/26/bitget-hacker-moves-usd83-million-in-stolen-xrp-that-ripple-cannot-freeze": "报道跟踪 Bitget 事件中被盗 XRP 的转移，称部分资金已越过冻结控制范围。钱包余额和资金去向会变化，应以链上记录和调查更新核对。",
+    "https://www.coindesk.com/tech/2026/09/25/bitcoin-could-soon-get-zcash-style-shielded-privacy-without-changing-its-rules": "文章介绍一种无需改动比特币主链规则的隐私转账研究方案，但关键的 BTC 锁定和释放机制尚未完成。属于研发进展，不是已上线功能。",
+    "https://www.coindesk.com/tech/2026/09/26/solana-s-150-millisecond-settlement-upgrade-reaches-second-public-test-network": "报道称 Solana 的 Alpenglow 快速确认升级已进入第二个公开测试网，应用团队可在主网上线前测试兼容性。测试网运行不等于主网已经启用。",
+    "https://www.coindesk.com/tech/2026/09/26/xrp-ledger-s-batch-upgrade-slips-to-oct-9-after-validator-support-resets": "报道说 XRP Ledger 的 Batch 升级因验证者支持率短暂跌破门槛而重启激活计时，预计日期延至 10 月 9 日。实际激活仍取决于后续支持情况。",
+    "https://www.coindesk.com/policy/2026/09/25/u-s-sec-s-steadiest-crypto-advocate-hester-peirce-to-depart-next-week": "报道称 SEC 委员 Hester Peirce 将于 10 月 2 日离任，并回顾其加密政策立场。人事和机构政策变化应以 SEC 公告为准。",
+    "https://www.coindesk.com/policy/2026/09/25/another-appeals-court-rules-against-prediction-market-provider-kalshi-says-sports-contracts-are-subject-to-state-regulations": "报道称美国第六巡回上诉法院就 Kalshi 体育事件合约作出不利裁定，认为相关合约不属于联邦互换监管范畴。法律含义需查看判决书，摘要不构成法律判断。",
+    "https://www.coindesk.com/policy/2026/09/25/blockchain-association-sees-leadership-shift-shortly-after-crypto-clarity-act-fizzles": "报道说 Blockchain Association 在 Clarity Act 遇挫后调整领导层，原 CEO Kristin Smith 将再次领导组织。这是行业团体人事变化线索。",
+    "https://www.coindesk.com/markets/2026/09/25/circle-and-tether-step-in-to-freeze-hacker-wallet-after-massive-bitget-crypto-heist": "报道说稳定币发行方冻结了与 Bitget 盗窃事件相关的钱包中部分 USDT 和 USDC，但大部分被盗资产为无法按同样方式冻结的 ETH。冻结范围和金额需看链上与发行方记录。",
+    "https://www.coindesk.com/opinion/2026/09/25/tokenization-is-moving-faster-than-washington": "这是一篇观点文章，主张代币化发展速度快于美国监管规则形成速度，并强调监管明确性也有经济影响。它代表作者立场，不是客观市场统计。"
+  }
+}

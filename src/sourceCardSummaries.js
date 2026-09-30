@@ -27,7 +27,7 @@ export const SOURCE_CARD_SUMMARIES = {
   'kaito.mcp.kaito_events': ['列出项目候选催化事件，回查公告后设计提醒。', 'Review candidate catalysts against source announcements before alerts.'],
   'kaito.mcp.kaito_mindshare_entity_arena': ['按关注份额给对象排名，用于发现研究候选。', 'Rank entities by discussion share to find research candidates.'],
   'kaito.mcp.kaito_mindshare_entity_delta': ['找出关注份额变化最大的对象，再追查变化原因。', 'Find the largest mindshare changes, then investigate their causes.'],
-  'kaito.mcp.kaito_smart_following_market': ['观察市场范围的高关注账号动向；返回字段待核对。', 'Explore market-wide smart-follow activity; response fields need review.'],
+  'kaito.mcp.kaito_smart_following_market': ['观察市场范围的高关注账号动向，并查看本次返回的对象。', 'Explore market-wide smart-follow activity and inspect the returned entities.'],
   'kaito.mcp.kaito_smart_followers': ['查看指定账号的高质量粉丝数量或名单，跟踪受众变化。', 'Check smart-follower counts or lists for an X account.'],
   'kaito.mcp.kaito_smart_following': ['查看指定账号最近关注谁，作为注意力变化线索。', 'See whom an X account recently followed as an attention clue.'],
   'kaito.mcp.kaito_mindshare_narrative': ['查看叙事讨论份额走势，比较主题关注度变化。', 'Track a narrative’s share of discussion over time.'],

@@ -17,6 +17,7 @@ const zh = {
   'Score': '评分',
   'Ranking': '排名',
   'Rule Evaluation': '规则判断',
+  'Flow Result': '流程结果',
   'Signal Event': '信号事件',
   'Product Module': '产品模块',
   'Asset Registry': '资产身份与关系库',
@@ -68,6 +69,8 @@ const zh = {
   'Keys, filters, expected result or reviewed update': '查询键、筛选条件、预期结果或审核后的更新',
   'Internal asset identities and stable asset IDs; planned table, not connected to live records.': '内部资产身份与稳定 asset_id 的规划表；尚未连接真实记录。',
   'External source identifiers mapped to internal asset IDs; planned table, not connected to live records.': '外部来源标识到内部 asset_id 的映射规划表；尚未连接真实记录。',
+  'Unmatched external identities grouped for later review; planned table, not connected to live records.': '未匹配外部身份的候选分组规划表；尚未连接真实记录。',
+  'Read unresolved external-identity groups before matching or review; rows are planned, not observed.': '读取待确认的外部身份组供匹配或复核；表行仍是规划，尚未观察到。',
   'Reviewed relationships between internal assets; planned table, not connected to live records.': '内部资产之间已审核关系的规划表；尚未连接真实记录。',
   'Versioned monitoring rules for assets; planned table, not connected to live records.': '资产监控规则版本的规划表；尚未连接真实记录。',
   'Bind source asset': '绑定来源资产',
@@ -115,6 +118,9 @@ const zh = {
   'SignalStudio': 'SignalStudio',
   'SQLite': '数据库',
   'Redpanda': '消息队列',
+  'Redpanda Topic': 'Redpanda 主题',
+  'Redis Window': 'Redis 近期窗口',
+  'Data infrastructure': '数据基础设施',
   'DESIGN STUDIO': '设计工作台',
   'WORKSPACE': '工作区',
   'Crawler Fields': '基础爬虫字段',
@@ -339,8 +345,8 @@ export function displayNodeName(language, name) {
 
 export function normalizeNodeReferences(language, prompt, nodes) {
   const byRef = new Map(nodes.filter(node => node.reference_number != null)
-    .map(node => [`#${String(node.reference_number).padStart(3, '0')}`, node.name]));
-  return prompt.replace(/#\d{3,}\b/g, ref => byRef.get(ref) || ref);
+    .map(node => [`#${String(node.reference_number).padStart(4, '0')}`, node.name]));
+  return prompt.replace(/#\d{4}\b/g, ref => byRef.get(ref) || ref);
 }
 
 export function translate(language, text) {

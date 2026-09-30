@@ -1,7 +1,6 @@
 {
   "version": "source-inputs.v1",
-  "reviewed_at": "2026-09-27",
-  "kaito_public_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/tree/d48aad2",
+  "reviewed_at": "2026-09-28",
   "operations": {
     "binance.usdm.exchangeInfo": {
       "input_coverage": "official_documentation",
@@ -342,60 +341,68 @@
       "input_source_url": "https://docs.dexscreener.com/api/reference"
     },
     "kaito.mcp.kaito_entities": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "query",
           "label_zh": "搜索词",
           "required": false,
-          "description_en": "Optional project name, token value, symbol, or CoinGecko slug to search for (e.g. Hyperliquid, HYPE, hyperliquid)."
+          "description_en": "Optional project name, token value, symbol, or CoinGecko slug to search for."
         },
         {
           "name": "limit",
           "label_zh": "返回上限",
           "required": false,
-          "description_en": "Maximum matches to return (default: 20 for search, 50 for browse)."
+          "description_en": "Maximum matches to return."
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/reference-lookup.ts"
+      ]
     },
     "kaito.mcp.kaito_narratives": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "旧版代码中，不传参数可浏览；query=AI 可搜索叙事。当前在线 MCP 参数未知。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "query",
           "label_zh": "叙事 ID 或显示名称",
           "required": false,
-          "description_en": "Optional narrative ID or display name to search for (e.g. AI, Layer 2, BTCFi)."
+          "description_en": "Optional narrative ID or display name to search for."
         },
         {
           "name": "limit",
           "label_zh": "返回上限",
           "required": false,
-          "description_en": "Maximum matches to return (default: 20 for search, 50 for browse).",
-          "default": "搜索 20 条；浏览 50 条",
-          "accepted_values": "1–100"
+          "description_en": "Maximum matches to return."
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/reference-lookup.ts"
+      ]
     },
     "kaito.mcp.kaito_advanced_search": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
+        {
+          "name": "rerank",
+          "label_zh": "是否重排序",
+          "required": false,
+          "description_en": "Set false to keep the original search order for this MCP call."
+        },
+        {
+          "name": "rerank_query",
+          "label_zh": "重排序研究问题",
+          "required": false,
+          "description_en": "Optional full research question for server-side relevance reranking. Requires explicit UTC dates, relevance sort, from=0, size<=20. No provider key is accepted from callers."
+        },
         {
           "name": "tokens",
           "label_zh": "Kaito 对象代号列表",
           "required": false,
-          "description_en": "Comma-separated resolved token values from kaito_tokens for entity disambiguation or entity-scoped filtering (e.g. BTC,ETH,HYPERLIQUID)"
+          "description_en": "Comma-separated resolved token values from kaito_entities for entity disambiguation or entity-scoped filtering (e.g. BTC,ETH,HYPERLIQUID)"
         },
         {
           "name": "keyword",
           "label_zh": "关键词",
           "required": false,
-          "description_en": "Legacy-compatible primary text query. Use the same style as query: 2-6 high-signal words or a short phrase cluster."
+          "description_en": "Original-compatible primary text query. Use the same style as query: 2-6 high-signal words or a short phrase cluster."
         },
         {
           "name": "query",
@@ -437,7 +444,7 @@
           "name": "size",
           "label_zh": "每页条数",
           "required": false,
-          "description_en": "Results per page 20-50 (default: 50)"
+          "description_en": "Use 1-20 for reranking (default: 20). Larger requests preserve original search behavior."
         },
         {
           "name": "languages",
@@ -449,14 +456,14 @@
           "name": "sort_by",
           "label_zh": "排序字段",
           "required": false,
-          "description_en": "Sort field (default: relevance). NOTE: [smart_engagement, engagement, sentiment, bookmark, views, author (ict follower count ranking)] are only supported when sources=Twitter (not compatible with News)",
+          "description_en": "Sort field (default: relevance). NOTE: [smart_engagement, engagement, sentiment, bookmark, views, author] are only supported when sources=Twitter (not compatible with News)",
           "accepted_values": "relevance, created_at, engagement, smart_engagement, author, length, bookmark, sentiment, views"
         },
         {
           "name": "sort_order",
           "label_zh": "排序方向",
           "required": false,
-          "description_en": "Sort order (default: desc). asc only works with created_at and sentiment",
+          "description_en": "Sort order (default: desc). asc is mainly useful with created_at and sentiment",
           "accepted_values": "asc, desc"
         },
         {
@@ -477,7 +484,7 @@
           "name": "sentiment_type",
           "label_zh": "情绪类别",
           "required": false,
-          "description_en": "Twitter only: sentiment filter. Filters on overall tweet sentiment, NOT sentiment about a specific token — pair with tokens param to scope.",
+          "description_en": "Twitter only: sentiment filter. Filters on overall tweet sentiment, not sentiment about a specific token. Pair with tokens to scope.",
           "accepted_values": "bullish, bearish, neutral"
         },
         {
@@ -571,61 +578,59 @@
           "required": false,
           "description_en": "Twitter only: max quotes"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/advanced-search.ts"
+      ]
     },
     "kaito.mcp.kaito_twitter_user_metadata": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 用户标识的组合要求需与实时接口核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "user_id",
           "label_zh": "X 用户 ID",
           "required": true,
-          "description_en": "Twitter user ID to look up (for example: 950486928784228352)."
+          "description_en": "Twitter user ID to look up."
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/get-twitter-user.ts"
+      ]
     },
     "kaito.mcp.kaito_sentiment_entity": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "token",
           "label_zh": "Kaito 对象代号",
           "required": true,
-          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+          "description_en": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
         },
         {
           "name": "start_date",
           "label_zh": "起始日期",
           "required": false,
-          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2020-01-01)"
+          "description_en": "Start date YYYY-MM-DD (default: 1 year ago, earliest practical history starts in 2020-01-01)"
         },
         {
           "name": "end_date",
           "label_zh": "结束日期",
           "required": false,
-          "description_en": "End date YYYY-MM-DD (default: tomorrow)"
+          "description_en": "End date YYYY-MM-DD (default: now or tomorrow depending on granularity)"
         },
         {
           "name": "adjusted",
           "label_zh": "是否使用调整值",
           "required": false,
-          "description_en": "Include replies/quotes, exclude org accounts, weight by smart engagement (default: true)"
+          "description_en": "Include replies/quotes, exclude org accounts, and weight by smart engagement (default: true)"
         },
         {
           "name": "average",
           "label_zh": "是否取平均",
           "required": false,
-          "description_en": "Return average sentiment -1 to +1 instead of absolute volume-weighted (default: false)"
+          "description_en": "Return average sentiment -1 to +1 instead of absolute volume-weighted totals (default: false)"
         },
         {
           "name": "gaussian",
           "label_zh": "是否平滑",
           "required": false,
-          "description_en": "Apply Gaussian smoothing (default: true)"
+          "description_en": "Apply Gaussian smoothing to the returned series (default: true)"
         },
         {
           "name": "language",
@@ -641,30 +646,29 @@
           "description_en": "Sentiment model version (default: 3)",
           "accepted_values": "2, 3"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/sentiment.ts"
+      ]
     },
     "kaito.mcp.kaito_engagement": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 token 与 keyword 至少选一个；两者在公开代理源码中都标为可选。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "token",
           "label_zh": "Kaito 对象代号",
           "required": false,
-          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+          "description_en": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
         },
         {
           "name": "keyword",
           "label_zh": "关键词",
           "required": false,
-          "description_en": "Search keyword"
+          "description_en": "Search keyword when you want topic-based engagement instead of token-scoped engagement"
         },
         {
           "name": "start_date",
           "label_zh": "起始日期",
           "required": false,
-          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2023-01-01)"
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest practical history starts in 2023)"
         },
         {
           "name": "end_date",
@@ -672,30 +676,29 @@
           "required": false,
           "description_en": "End date YYYY-MM-DD (default: tomorrow)"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/engagement.ts"
+      ]
     },
     "kaito.mcp.kaito_mentions": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 token 与 keyword 至少选一个；两者在公开代理源码中都标为可选。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "token",
           "label_zh": "Kaito 对象代号",
           "required": false,
-          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+          "description_en": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
         },
         {
           "name": "keyword",
           "label_zh": "关键词",
           "required": false,
-          "description_en": "Search keyword"
+          "description_en": "Search keyword when you want mention counts for a topic instead of a token"
         },
         {
           "name": "start_date",
           "label_zh": "起始日期",
           "required": false,
-          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2023-01-01)"
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest practical history starts in 2023)"
         },
         {
           "name": "end_date",
@@ -703,87 +706,84 @@
           "required": false,
           "description_en": "End date YYYY-MM-DD (default: tomorrow)"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mentions.ts"
+      ]
     },
     "kaito.mcp.kaito_mindshare_entity": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "token",
           "label_zh": "Kaito 对象代号",
           "required": true,
-          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+          "description_en": "Resolved token value from kaito_entities."
         },
         {
           "name": "start_date",
           "label_zh": "起始日期",
           "required": false,
-          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2020-01-01)"
+          "description_en": "Start date YYYY-MM-DD."
         },
         {
           "name": "end_date",
           "label_zh": "结束日期",
           "required": false,
-          "description_en": "End date YYYY-MM-DD (default: tomorrow)"
+          "description_en": "End date YYYY-MM-DD."
         },
         {
           "name": "scope",
           "label_zh": "统计范围",
           "required": false,
-          "description_en": "Set to 'pretge' to filter for Pre-TGE projects only"
+          "description_en": "Set to 'pretge' to filter for Pre-TGE projects only."
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mindshare.ts"
+      ]
     },
     "kaito.mcp.kaito_mindshare_entity_by_account": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "token",
           "label_zh": "Kaito 对象代号",
           "required": true,
-          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+          "description_en": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
         },
         {
           "name": "duration",
           "label_zh": "统计时长",
           "required": false,
-          "description_en": "Time window for mindshare calculation (default: 12m).",
+          "description_en": "Time window for mindshare calculation (default: 12m)",
           "accepted_values": "24h, 48h, 7d, 30d, 3m, 6m, 12m, all"
         },
         {
           "name": "top_n",
           "label_zh": "头部账号数",
           "required": false,
-          "description_en": "Number of top KOLs to return (default: 100)."
+          "description_en": "Number of top KOLs to return (default: 100)"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/kol-token-mindshare.ts"
+      ]
     },
     "kaito.mcp.kaito_events": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "token",
           "label_zh": "Kaito 对象代号",
           "required": true,
-          "description_en": "Resolved token value from kaito_tokens (e.g. BTC, ETH, HYPERLIQUID)"
+          "description_en": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
         },
         {
           "name": "start_date",
           "label_zh": "起始日期",
           "required": false,
-          "description_en": "Filter events starting on or after this date YYYY-MM-DD"
+          "description_en": "Filter events whose end_date is on or after this date YYYY-MM-DD"
         },
         {
           "name": "end_date",
           "label_zh": "结束日期",
           "required": false,
-          "description_en": "Filter events starting on or before this date YYYY-MM-DD"
+          "description_en": "Filter events ending on or before this date YYYY-MM-DD"
         },
         {
           "name": "min_announcement_date",
@@ -801,13 +801,13 @@
           "name": "event_types",
           "label_zh": "事件类别",
           "required": false,
-          "description_en": "Comma-separated event types: Mainnet Release, Testnet Release, Roadmap Update, Token Generation Event, Conference Attendance, Proposal and Voting, Tokenomics Update, Token Unlock, Others"
+          "description_en": "Comma-separated event types such as Mainnet Release, Testnet Release, Token Unlock, Proposal and Voting, Conference Attendance, Tokenomics Update"
         },
         {
           "name": "sources",
           "label_zh": "内容来源",
           "required": false,
-          "description_en": "Comma-separated sources: Twitter Space, Twitter, Podcast, Conference, Vote, Governance, DefiLlama, Token Unlocks"
+          "description_en": "Comma-separated sources such as Twitter, Twitter Space, Podcast, Conference, Vote, Governance, DefiLlama, Token Unlocks"
         },
         {
           "name": "sort_by",
@@ -823,12 +823,11 @@
           "description_en": "Sort order",
           "accepted_values": "asc, desc"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/events.ts"
+      ]
     },
     "kaito.mcp.kaito_mindshare_entity_arena": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "duration",
@@ -875,12 +874,11 @@
           "required": false,
           "description_en": "Include NFT projects (default: false)"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mindshare-arena.ts"
+      ]
     },
     "kaito.mcp.kaito_mindshare_entity_delta": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "duration",
@@ -902,99 +900,97 @@
           "required": false,
           "description_en": "Number of results to return"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/mindshare-delta.ts"
+      ]
     },
     "kaito.mcp.kaito_smart_following_market": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "duration",
           "label_zh": "统计时长",
           "required": false,
-          "description_en": "Time range (default: 24h). all_dates covers from 2024-01-01.",
+          "description_en": "Time range (default: 24h). all_dates covers from 2024-01-01",
           "accepted_values": "24h, 48h, 7d, 30d, all_dates"
         },
         {
           "name": "from",
           "label_zh": "分页起点",
           "required": false,
-          "description_en": "Pagination offset (default: 0)."
+          "description_en": "Pagination offset (default: 0)"
         },
         {
           "name": "sort_by",
           "label_zh": "排序字段",
           "required": false,
-          "description_en": "Field to sort by (default sort direction is desc when sort_by is set).",
+          "description_en": "Field to sort by",
           "accepted_values": "earliest_time, smart_followers, followers_change, change_ratio"
         },
         {
           "name": "sort_order",
           "label_zh": "排序方向",
           "required": false,
-          "description_en": "Sort direction (default: desc).",
+          "description_en": "Sort direction (default: desc when sort_by is set)",
           "accepted_values": "asc, desc"
         },
         {
           "name": "filter_smart_followers_operator",
           "label_zh": "高质量粉丝筛选符",
           "required": false,
-          "description_en": "Filter operator for smart follower count: gte (≥) or lte (≤). Must be paired with filter_smart_followers_value.",
+          "description_en": "Filter operator for smart follower count. Must be paired with filter_smart_followers_value",
           "accepted_values": "gte, lte"
         },
         {
           "name": "filter_smart_followers_value",
           "label_zh": "高质量粉丝筛选值",
           "required": false,
-          "description_en": "Integer threshold for smart follower count. Must be paired with filter_smart_followers_operator."
+          "description_en": "Integer threshold for smart follower count. Must be paired with filter_smart_followers_operator"
         },
         {
           "name": "user_status",
           "label_zh": "账号状态",
           "required": false,
-          "description_en": "Filter by user status: new = first followed within selected duration (default: all).",
+          "description_en": "Filter by user status: new, existing, or all",
           "accepted_values": "new, existing, all"
         },
         {
           "name": "user_tag_individual_or_organization",
           "label_zh": "个人或机构",
           "required": false,
-          "description_en": "Filter by account type (default: Organization).",
+          "description_en": "Filter by account type",
           "accepted_values": "Individual, Organization, all"
         },
         {
           "name": "user_type",
           "label_zh": "账号类型",
           "required": false,
-          "description_en": "Filter by KOL classification: kkol = Kaito-classified KOLs only (default: all).",
+          "description_en": "Filter by KOL classification",
           "accepted_values": "kkol, non_kkol, all"
         },
         {
           "name": "user_web3_relevance",
           "label_zh": "Web3 相关性",
           "required": false,
-          "description_en": "Filter by Web3 relevance (omit to include all).",
+          "description_en": "Filter by Web3 relevance",
           "accepted_values": "relevant, irrelevant"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/market-smart-following.ts"
+      ]
     },
     "kaito.mcp.kaito_smart_followers": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 用户标识的组合要求需与实时接口核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "user_id",
           "label_zh": "X 用户 ID",
           "required": false,
-          "description_en": "Twitter user ID. One of user_id or username is required."
+          "description_en": "Twitter user ID. One of user_id or username is required"
         },
         {
           "name": "username",
           "label_zh": "X 用户名",
           "required": false,
-          "description_en": "Twitter username. One of user_id or username is required."
+          "description_en": "Twitter username. One of user_id or username is required"
         },
         {
           "name": "date",
@@ -1009,50 +1005,48 @@
           "description_en": "'count' for cumulative count, 'users' for follower list (default: count)",
           "accepted_values": "count, users"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/smart-followers.ts"
+      ]
     },
     "kaito.mcp.kaito_smart_following": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。 用户标识的组合要求需与实时接口核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "user_id",
           "label_zh": "X 用户 ID",
           "required": false,
-          "description_en": "Twitter user ID. One of user_id or username is required."
+          "description_en": "Twitter user ID. One of user_id or username is required"
         },
         {
           "name": "username",
           "label_zh": "X 用户名",
           "required": false,
-          "description_en": "Twitter username. One of user_id or username is required."
+          "description_en": "Twitter username. One of user_id or username is required"
         },
         {
           "name": "category",
           "label_zh": "类别",
           "required": false,
-          "description_en": "Filter by account type",
+          "description_en": "Filter by followed account type",
           "accepted_values": "ALL, Organization, Individual"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/smart-following.ts"
+      ]
     },
     "kaito.mcp.kaito_mindshare_narrative": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "narrative",
           "label_zh": "叙事代号",
           "required": true,
-          "description_en": "Narrative ID (e.g. AI, DeFi). See kaito_narratives."
+          "description_en": "Narrative ID from kaito_narratives (e.g. AI, DeFi, TopicPerpDEX)"
         },
         {
           "name": "start_date",
           "label_zh": "起始日期",
           "required": false,
-          "description_en": "Start date YYYY-MM-DD (default: 30 days ago, earliest: 2023-01-01)"
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago)"
         },
         {
           "name": "end_date",
@@ -1060,12 +1054,11 @@
           "required": false,
           "description_en": "End date YYYY-MM-DD (default: tomorrow)"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/narrative-mindshare.ts"
+      ]
     },
     "kaito.mcp.kaito_tweet_engagement_info": {
-      "input_coverage": "public_proxy_snapshot",
-      "input_note_zh": "来自 MetaSearch-IO 仓库 2026-04-01 的旧版工具实现；当前在线 MCP 参数尚未核对。",
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
       "inputs": [
         {
           "name": "tweet_id",
@@ -1073,28 +1066,97 @@
           "required": true,
           "description_en": "Twitter tweet ID (numeric string)"
         }
-      ],
-      "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server/blob/d48aad2/src/tools/tweet-engagement-info.ts"
+      ]
     },
     "kaito.mcp.kaito_feeds": {
-      "input_coverage": "unverified",
-      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
-      "inputs": []
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
+      "inputs": [
+        {
+          "name": "token",
+          "label_zh": "token",
+          "required": false,
+          "description_en": "Optional resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID). Omit for whole-market feeds."
+        },
+        {
+          "name": "min_created_at",
+          "label_zh": "min_created_at",
+          "required": false,
+          "description_en": "Optional min creation date ISO 8601 timestamp (default: 24 hours ago)"
+        },
+        {
+          "name": "max_created_at",
+          "label_zh": "max_created_at",
+          "required": false,
+          "description_en": "Optional max creation date ISO 8601 timestamp"
+        },
+        {
+          "name": "size",
+          "label_zh": "size",
+          "required": false,
+          "description_en": "Number of top results to return (default: 20)"
+        }
+      ]
     },
     "kaito.mcp.kaito_search": {
-      "input_coverage": "unverified",
-      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
-      "inputs": []
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
+      "inputs": [
+        {
+          "name": "query",
+          "label_zh": "query",
+          "required": true,
+          "description_en": "A plain-language search request."
+        },
+        {
+          "name": "size",
+          "label_zh": "size",
+          "required": false,
+          "description_en": "Optional number of final results to return (default: 20)."
+        }
+      ]
     },
     "kaito.mcp.kaito_ict_impressions": {
-      "input_coverage": "unverified",
-      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
-      "inputs": []
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
+      "inputs": [
+        {
+          "name": "author_id",
+          "label_zh": "作者 ID",
+          "required": true,
+          "description_en": "Twitter user ID of the author (numeric string)"
+        },
+        {
+          "name": "start_date",
+          "label_zh": "start_date",
+          "required": false,
+          "description_en": "Start date YYYY-MM-DD (default: 30 days ago)"
+        },
+        {
+          "name": "end_date",
+          "label_zh": "end_date",
+          "required": false,
+          "description_en": "End date YYYY-MM-DD (default: today)"
+        }
+      ]
     },
     "kaito.mcp.kaito_market_sentiment": {
-      "input_coverage": "unverified",
-      "input_note_zh": "当前保存的响应样本不含 inputSchema，公开代理快照也没有这个同名工具；必填数与参数名待实时 tools/list 核对。",
-      "inputs": []
+      "input_coverage": "live_mcp_input_schema",
+      "input_note_zh": "来自 2026-09-28 Kaito 在线 MCP tools/list 的 inputSchema；必填按 schema 的 required 标注。",
+      "inputs": [
+        {
+          "name": "start_date",
+          "label_zh": "start_date",
+          "required": false,
+          "description_en": "Start date YYYY-MM-DD (default: 2023-01-01)"
+        },
+        {
+          "name": "average",
+          "label_zh": "是否返回平均情绪",
+          "required": false,
+          "description_en": "Return averaged sentiment tone instead of absolute volume-weighted totals (default: false)"
+        }
+      ]
     },
     "rss.item": {
       "input_coverage": "design_input",
@@ -1107,10 +1169,16 @@
         }
       ]
     },
-    "taoli.funding_page": {
-      "input_coverage": "unverified",
-      "input_note_zh": "网页采集而非公开参数化 API；尚无可靠的输入契约。",
-      "inputs": []
+  "taoli.funding_page": {
+      "input_coverage": "live_page_controls",
+      "input_note_zh": "这些是 2026-09-28 实际操作过的网页筛选控件，不是已验证的公开 API 参数。",
+      "inputs": [
+        {"name": "coin_search", "label_zh": "币种搜索", "required": false},
+        {"name": "exchange_filter", "label_zh": "交易所筛选", "required": false},
+        {"name": "min_open_interest", "label_zh": "未平仓额下限", "required": false},
+        {"name": "min_daily_volume", "label_zh": "日成交额下限", "required": false},
+        {"name": "interval_filter", "label_zh": "间隔筛选", "required": false}
+      ]
     },
     "telegram.bot.message": {
       "input_coverage": "official_documentation",
@@ -1174,5 +1242,6 @@
       ],
       "input_source_url": "https://github.com/MetaSearch-IO/kaito-mcp-server"
     }
-  }
+  },
+  "kaito_input_schema_observed_at": "2026-09-28T08:20:35.107001+00:00"
 }

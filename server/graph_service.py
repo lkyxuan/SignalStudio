@@ -13,23 +13,31 @@ from urllib.request import Request, urlopen
 
 TYPES = ("Source", "Raw Field", "Evidence Check", "Asset Resolution", "Relationship Lookup",
          "Relationship Discovery", "Review Decision", "Derived Field", "Metric",
-         "Score", "Ranking", "Rule Evaluation", "Signal Event", "Product Module",
+         "Score", "Ranking", "Rule Evaluation", "Flow Result", "Signal Event", "Product Module",
+         "Redpanda Topic", "Redis Window",
          "assets", "asset_identifiers", "asset_relationships", "asset_monitoring_rules",
+         "asset_score_events", "asset_scores_current",
          "Asset Registry", "Rule Registry")
 SYSTEM_TABLES = (
-    ("assets", "Internal asset identities and stable asset IDs; planned table, not connected to live records.", 340, -220),
-    ("asset_identifiers", "External source identifiers mapped to internal asset IDs; planned table, not connected to live records.", 340, 160),
+    ("assets", "Internal asset objects and stable IDs, including pending identities; planned backend table.", 340, -220),
+    ("asset_identifiers", "Source-scoped external IDs mapped to existing internal asset IDs in three columns; planned backend table.", 340, 160),
     ("asset_relationships", "Reviewed relationships between internal assets; planned table, not connected to live records.", 1020, 160),
     ("asset_monitoring_rules", "Versioned monitoring rules for assets; planned table, not connected to live records.", 1020, -220),
+    ("asset_score_events", "Unified score postings by asset and dimension, linked to program-owned decision records; planned table, not calculated results.", 1700, -220),
+    ("asset_scores_current", "Latest score metric values by asset; separate score keys identify distinct calculations; rank is derived when querying; planned table, not calculated results.", 1700, 160),
 )
 LEGACY_STATE_TYPES = ("Asset Registry", "Rule Registry")
 STATE_TYPES = tuple(item[0] for item in SYSTEM_TABLES) + LEGACY_STATE_TYPES
+DECISION_TYPES = {"Evidence Check", "Review Decision", "Rule Evaluation"}
+CHOOSABLE_REFERENCE_GROUP_TYPES = {"Asset Resolution", "Relationship Lookup"}
+GROUPED_NODE_REFERENCE_MARKER = "grouped_node_references_v1"
 WORKFLOW_LANES = ("shared", "signal", "knowledge")
 DEFAULT_LANES = {
     "Source": "shared", "Raw Field": "shared", "Evidence Check": "shared",
     "Asset Resolution": "shared", "Relationship Lookup": "signal",
     "Relationship Discovery": "knowledge",
     "Review Decision": "knowledge", **{name: "shared" for name in STATE_TYPES},
+    "Flow Result": "knowledge",
 }
 TEXT_FIELDS = ("name", "type", "definition", "formula", "rationale", "caveats", "notes")
 SIGNAL_DESIGN_FIELDS = ("decision_question", "observation_window", "trigger_rule",
@@ -169,11 +177,13 @@ class GraphService:
         self.db.execute("CREATE UNIQUE INDEX IF NOT EXISTS node_fields_catalog_id_idx "
                         "ON node_fields(catalog_field_id) WHERE catalog_field_id != ''")
         edge_columns = {row[1] for row in self.db.execute("PRAGMA table_info(edges)")}
+        if "branch_label" not in edge_columns:
+            self.db.execute("ALTER TABLE edges ADD COLUMN branch_label TEXT NOT NULL DEFAULT ''")
         if "reference_number" not in edge_columns:
             self.db.execute("ALTER TABLE edges ADD COLUMN reference_number INTEGER")
         if "reference_number" not in {row[1] for row in self.db.execute("PRAGMA table_info(edge_field_usages)")}:
             self.db.execute("ALTER TABLE edge_field_usages ADD COLUMN reference_number INTEGER")
-        for column in ("transport_kind", "transport_topic", "transport_key", "payload_schema", "transport_headers"):
+        for column in ("transport_kind", "transport_topic", "transport_key", "payload_schema", "transport_headers", "consumer_group"):
             if column not in edge_columns:
                 default = "unspecified" if column == "transport_kind" else "[]" if column == "transport_headers" else ""
                 self.db.execute(f"ALTER TABLE edges ADD COLUMN {column} TEXT NOT NULL DEFAULT '{default}'")
@@ -208,6 +218,21 @@ class GraphService:
     def _ensure_node_numbers(self):
         """Give existing nodes permanent human-readable numbers without reusing deletions."""
         with self.db:
+            if self._one("SELECT value FROM schema_meta WHERE key=?", (GROUPED_NODE_REFERENCE_MARKER,)):
+                self.db.execute("""INSERT OR IGNORE INTO schema_meta (key, value)
+                                   VALUES ('next_node_number_5', '5001')""")
+                self.db.execute("""INSERT OR IGNORE INTO schema_meta (key, value)
+                                   VALUES ('next_node_number_6', '6001')""")
+                for row in self.db.execute("""SELECT id, type FROM nodes WHERE reference_number IS NULL
+                                              ORDER BY created_at, name, id""").fetchall():
+                    group = self._node_reference_group(row["type"])
+                    key = f"next_node_number_{group}"
+                    number = int(self._one("SELECT value FROM schema_meta WHERE key=?", (key,))["value"])
+                    self.db.execute("UPDATE nodes SET reference_number=? WHERE id=?", (number, row["id"]))
+                    self.db.execute("UPDATE schema_meta SET value=? WHERE key=?", (str(number + 1), key))
+                self.db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS nodes_reference_number_idx
+                                   ON nodes(reference_number)""")
+                return
             current = self._one("SELECT value FROM schema_meta WHERE key='next_node_number'")
             highest = self.db.execute(
                 "SELECT COALESCE(MAX(reference_number), 0) FROM nodes").fetchone()[0]
@@ -336,6 +361,8 @@ class GraphService:
         marker = "legacy_node_reference_compaction_v1"
         rows = [dict(row) for row in self.db.execute(
             "SELECT id, name, reference_number FROM nodes ORDER BY reference_number, id")]
+        if self._one("SELECT value FROM schema_meta WHERE key=?", (GROUPED_NODE_REFERENCE_MARKER,)):
+            return {"renumbered": 0, "total": len(rows)}
         if self._one("SELECT value FROM schema_meta WHERE key=?", (marker,)):
             return {"renumbered": 0, "total": len(rows)}
         if any(row["reference_number"] is None or row["reference_number"] < 1 for row in rows):
@@ -358,6 +385,84 @@ class GraphService:
             self.db.execute("UPDATE schema_meta SET value=? WHERE key='next_node_number'",
                             (str(len(rows) + 1),))
             self.db.execute("INSERT INTO schema_meta (key, value) VALUES (?, 'done')", (marker,))
+        return {"renumbered": len(changes), "total": len(rows)}
+
+    @staticmethod
+    def _node_reference_group(node_type):
+        if node_type == "Redpanda Topic":
+            return 5
+        if node_type == "Redis Window":
+            return 6
+        if node_type in STATE_TYPES:
+            return 1
+        if node_type == "Source":
+            return 2
+        if node_type in DECISION_TYPES:
+            return 4
+        return 3
+
+    def group_node_references_once(self):
+        """Move card references into four stable ranges; leave edge and field references intact."""
+        rows = [dict(row) for row in self.db.execute(
+            "SELECT id, name, type, reference_number FROM nodes ORDER BY reference_number, id")]
+        if self._one("SELECT value FROM schema_meta WHERE key=?", (GROUPED_NODE_REFERENCE_MARKER,)):
+            return {"renumbered": 0, "total": len(rows)}
+        if any(row["reference_number"] is None or row["reference_number"] < 1 for row in rows):
+            raise GraphError("Cannot group invalid node references")
+        branched_ids = {row["upstream_id"] for row in self.db.execute("""
+            SELECT edges.upstream_id FROM edges
+            JOIN nodes AS target ON target.id=edges.downstream_id
+            WHERE edges.branch_label != '' AND target.is_system_state=0
+            GROUP BY edges.upstream_id HAVING COUNT(*) > 1
+        """)}
+        next_numbers = {group: group * 1000 + 1 for group in range(1, 7)}
+        changes = []
+        for row in rows:
+            group = (4 if row["type"] not in STATE_TYPES and row["type"] != "Source"
+                     and row["id"] in branched_ids
+                     else self._node_reference_group(row["type"]))
+            new_number = next_numbers[group]
+            if new_number >= (group + 1) * 1000:
+                raise GraphError(f"Reference range {group}xxx is full")
+            next_numbers[group] += 1
+            changes.append({"id": row["id"], "name": row["name"],
+                            "old": row["reference_number"], "new": new_number})
+        old_to_new = {f'{change["old"]:03d}': f'{change["new"]:04d}' for change in changes}
+        def replace_refs(value):
+            return re.sub(r'#(\d{3})(?!\d)',
+                          lambda match: '#' + old_to_new.get(match.group(1), match.group(1)),
+                          value or '')
+        with self.db:
+            if rows:
+                self.db.execute("UPDATE nodes SET reference_number=-reference_number")
+                for change in changes:
+                    self.db.execute("UPDATE nodes SET reference_number=? WHERE id=?",
+                                    (change["new"], change["id"]))
+                text_columns = {
+                    "nodes": ("definition", "formula", "rationale", "caveats", "notes",
+                              "decision_question", "observation_window", "trigger_rule",
+                              "validation_plan", "validation_evidence"),
+                    "edges": ("rationale", "transformation", "branch_label"),
+                    "node_fields": ("definition", "notes"),
+                    "data_requirements": ("purpose",),
+                    "edge_field_usages": ("usage_note",),
+                }
+                for table, columns in text_columns.items():
+                    for record in self.db.execute(
+                            f"SELECT id, {', '.join(columns)} FROM {table}").fetchall():
+                        updates = {column: replace_refs(record[column]) for column in columns
+                                   if record[column] and replace_refs(record[column]) != record[column]}
+                        if updates:
+                            self.db.execute(
+                                f"UPDATE {table} SET {', '.join(f'{column}=?' for column in updates)} WHERE id=?",
+                                (*updates.values(), record["id"]))
+                self._event("system", "group_node_references", "graph", "all", before=changes)
+            for group, next_number in next_numbers.items():
+                self.db.execute("""INSERT INTO schema_meta (key, value) VALUES (?, ?)
+                                   ON CONFLICT(key) DO UPDATE SET value=excluded.value""",
+                                (f"next_node_number_{group}", str(next_number)))
+            self.db.execute("INSERT INTO schema_meta (key, value) VALUES (?, 'done')",
+                            (GROUPED_NODE_REFERENCE_MARKER,))
         return {"renumbered": len(changes), "total": len(rows)}
 
     def retire_catalog_fields(self, current_field_ids):
@@ -489,6 +594,7 @@ class GraphService:
             "SELECT * FROM data_requirements ORDER BY created_at")]
         return {"nodes": nodes, "edges": edges, "fields": fields,
                 "field_usages": usages, "requirements": requirements, "types": list(TYPES)}
+
 
     def get_requirements(self, node_id):
         self.get_node(node_id)
@@ -892,8 +998,19 @@ class GraphService:
                            or self.find_signal_key(signal_key)):
             raise GraphError("Invalid or duplicate signal key")
         stamp, node_id = now(), uid()
+        grouped = self._one("SELECT value FROM schema_meta WHERE key=?",
+                            (GROUPED_NODE_REFERENCE_MARKER,))
+        group = self._node_reference_group(node_type) if grouped else None
+        requested_group = data.get("reference_group")
+        if grouped and requested_group is not None:
+            if node_type not in CHOOSABLE_REFERENCE_GROUP_TYPES or str(requested_group) not in {"3", "4"}:
+                raise GraphError("Invalid reference group for node type")
+            group = int(requested_group)
+        number_key = f"next_node_number_{group}" if grouped else "next_node_number"
         reference_number = int(self._one(
-            "SELECT value FROM schema_meta WHERE key='next_node_number'")["value"])
+            "SELECT value FROM schema_meta WHERE key=?", (number_key,))["value"])
+        if grouped and reference_number >= (group + 1) * 1000:
+            raise GraphError(f"Reference range {group}xxx is full")
         detail_fields = tuple(key for key in TEXT_FIELDS if key not in ("name", "type")) + SIGNAL_DESIGN_FIELDS
         values = {key: str(data.get(key, "") or "") for key in detail_fields}
         if "position_x" not in data and "position_y" not in data:
@@ -909,8 +1026,8 @@ class GraphService:
         self.db.execute(f"INSERT INTO nodes ({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})",
                         (node_id, reference_number, name, node_type, workflow_lane, signal_key,
                          *(values[key] for key in detail_fields), x, y, stamp, stamp))
-        self.db.execute("UPDATE schema_meta SET value=? WHERE key='next_node_number'",
-                        (str(reference_number + 1),))
+        self.db.execute("UPDATE schema_meta SET value=? WHERE key=?",
+                        (str(reference_number + 1), number_key))
         node = self.get_node(node_id)
         self._event(actor, "create", "node", node_id, after=node)
         if commit:
@@ -1022,7 +1139,8 @@ class GraphService:
                 continue
             seen.add(current)
             pending.extend(row[0] for row in self.db.execute(
-                "SELECT downstream_id FROM edges WHERE upstream_id=?", (current,)))
+                "SELECT edges.downstream_id FROM edges JOIN nodes ON nodes.id=edges.downstream_id "
+                "WHERE edges.upstream_id=? AND nodes.is_system_state=0", (current,)))
         return False
 
     def create_edge(self, data, actor="user", commit=True):
@@ -1034,7 +1152,7 @@ class GraphService:
             raise GraphError("A node cannot depend on itself")
         if self._one("SELECT id FROM edges WHERE upstream_id=? AND downstream_id=?", (upstream, downstream)):
             raise GraphError("Connection already exists")
-        if self._reachable(downstream, upstream):
+        if not target_node["is_system_state"] and self._reachable(downstream, upstream):
             raise GraphError("Connection would create a dependency cycle")
         transport = self._transport_data(data)
         if source_node["is_system_state"] or target_node["is_system_state"]:
@@ -1046,11 +1164,12 @@ class GraphService:
             "SELECT value FROM schema_meta WHERE key='next_edge_number'")["value"])
         self.db.execute("""INSERT INTO edges
           (id,reference_number,upstream_id,downstream_id,rationale,created_at,transformation,
-           transport_kind,transport_topic,transport_key,payload_schema,transport_headers)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""", (edge_id, reference_number, upstream, downstream,
+           transport_kind,transport_topic,transport_key,payload_schema,transport_headers,consumer_group,branch_label)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (edge_id, reference_number, upstream, downstream,
             str(data.get("rationale", "") or ""), now(),
             str(data.get("transformation", "") or ""), *(transport[key] for key in
-            ("transport_kind", "transport_topic", "transport_key", "payload_schema", "transport_headers"))))
+            ("transport_kind", "transport_topic", "transport_key", "payload_schema", "transport_headers", "consumer_group")),
+            str(data.get("branch_label", "") or "").strip()))
         self.db.execute("UPDATE schema_meta SET value=? WHERE key='next_edge_number'",
                         (str(reference_number + 1),))
         edge = self._one("SELECT * FROM edges WHERE id=?", (edge_id,))
@@ -1067,8 +1186,9 @@ class GraphService:
 
     def update_edge(self, edge_id, data, actor="user"):
         before = self.get_edge(edge_id)
-        changes = {key: str(data[key] or "") for key in ("rationale", "transformation") if key in data}
-        if any(key in data for key in ("transport_kind", "transport_topic", "transport_key", "payload_schema", "transport_headers")):
+        changes = {key: str(data[key] or "").strip() if key == "branch_label" else str(data[key] or "")
+                   for key in ("rationale", "transformation", "branch_label") if key in data}
+        if any(key in data for key in ("transport_kind", "transport_topic", "transport_key", "payload_schema", "transport_headers", "consumer_group")):
             changes.update(self._transport_data({**before, **data}))
         if self.get_node(before["upstream_id"])["is_system_state"] or self.get_node(before["downstream_id"])["is_system_state"]:
             if changes.get("transport_kind") == "redpanda":
@@ -1090,7 +1210,7 @@ class GraphService:
             raise GraphError("Invalid transport kind")
         if kind != "redpanda":
             return {"transport_kind": kind, "transport_topic": "", "transport_key": "",
-                    "payload_schema": "", "transport_headers": "[]"}
+                    "payload_schema": "", "transport_headers": "[]", "consumer_group": ""}
         topic = str(data.get("transport_topic", "") or "").strip()
         if not topic:
             raise GraphError("Redpanda topic is required")
@@ -1110,6 +1230,7 @@ class GraphService:
         return {"transport_kind": kind, "transport_topic": topic,
                 "transport_key": str(data.get("transport_key", "") or "").strip(),
                 "payload_schema": str(data.get("payload_schema", "") or "").strip(),
+                "consumer_group": str(data.get("consumer_group", "") or "").strip(),
                 "transport_headers": json.dumps([{"name": item["name"].strip(),
                     "description": item.get("description", "").strip(),
                     "consumed": item.get("consumed", False)} for item in headers], ensure_ascii=False)}

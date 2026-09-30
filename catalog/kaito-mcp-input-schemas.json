@@ -1,0 +1,852 @@
+{
+  "source": "Kaito online MCP tools/list",
+  "endpoint": "https://bff.kaito.ai/api/mcp",
+  "observed_at": "2026-09-28T08:20:35.107001+00:00",
+  "tool_count": 21,
+  "tools": [
+    {
+      "name": "kaito_entities",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Optional project name, token value, symbol, or CoinGecko slug to search for."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Maximum matches to return."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_search",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A plain-language search request."
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Optional number of final results to return (default: 20)."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_feeds",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Optional resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID). Omit for whole-market feeds."
+          },
+          "min_created_at": {
+            "type": "string",
+            "description": "Optional min creation date ISO 8601 timestamp (default: 24 hours ago)"
+          },
+          "max_created_at": {
+            "type": "string",
+            "description": "Optional max creation date ISO 8601 timestamp"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Number of top results to return (default: 20)"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_narratives",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Optional narrative ID or display name to search for."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Maximum matches to return."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_advanced_search",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "rerank": {
+            "type": "boolean",
+            "description": "Set false to keep the original search order for this MCP call."
+          },
+          "rerank_query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000,
+            "description": "Optional full research question for server-side relevance reranking. Requires explicit UTC dates, relevance sort, from=0, size<=20. No provider key is accepted from callers."
+          },
+          "tokens": {
+            "type": "string",
+            "description": "Comma-separated resolved token values from kaito_entities for entity disambiguation or entity-scoped filtering (e.g. BTC,ETH,HYPERLIQUID)"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "Original-compatible primary text query. Use the same style as query: 2-6 high-signal words or a short phrase cluster."
+          },
+          "query": {
+            "type": "string",
+            "description": "Primary text query. Can be 1-6 high-signal words (e.g. 'validator hack', 'etf inflow'). Omit entirely when tokens alone is sufficient. Avoid filler words and time expressions."
+          },
+          "usernames": {
+            "type": "string",
+            "description": "Comma-separated Twitter usernames (Twitter source only)"
+          },
+          "sources": {
+            "type": "string",
+            "description": "Comma-separated: Twitter, News (default: Twitter,News)"
+          },
+          "min_created_at": {
+            "type": "string",
+            "description": "Min creation date ISO 8601 (default: 90 days ago)"
+          },
+          "max_created_at": {
+            "type": "string",
+            "description": "Max creation date ISO 8601"
+          },
+          "from": {
+            "type": "number",
+            "description": "Pagination offset 0-500 (default: 0)"
+          },
+          "size": {
+            "type": "number",
+            "description": "Use 1-20 for reranking (default: 20). Larger requests preserve original search behavior."
+          },
+          "languages": {
+            "type": "string",
+            "description": "Comma-separated: en, zh, ko, others (default: en)"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "created_at",
+              "engagement",
+              "smart_engagement",
+              "author",
+              "length",
+              "bookmark",
+              "sentiment",
+              "views"
+            ],
+            "description": "Sort field (default: relevance). NOTE: [smart_engagement, engagement, sentiment, bookmark, views, author] are only supported when sources=Twitter (not compatible with News)"
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "description": "Sort order (default: desc). asc is mainly useful with created_at and sentiment"
+          },
+          "tweet_length_type": {
+            "type": "string",
+            "enum": [
+              "short",
+              "long",
+              "thread",
+              "article"
+            ],
+            "description": "Twitter only: tweet length type"
+          },
+          "tweet_type": {
+            "type": "string",
+            "enum": [
+              "tweet",
+              "quote",
+              "reply"
+            ],
+            "description": "Twitter only: tweet type"
+          },
+          "sentiment_type": {
+            "type": "string",
+            "enum": [
+              "bullish",
+              "bearish",
+              "neutral"
+            ],
+            "description": "Twitter only: sentiment filter. Filters on overall tweet sentiment, not sentiment about a specific token. Pair with tokens to scope."
+          },
+          "author_type": {
+            "type": "string",
+            "enum": [
+              "Organization",
+              "Individual"
+            ],
+            "description": "Twitter only: author type"
+          },
+          "min_bookmark_count": {
+            "type": "number",
+            "description": "Twitter only: min bookmarks"
+          },
+          "max_bookmark_count": {
+            "type": "number",
+            "description": "Twitter only: max bookmarks"
+          },
+          "min_view_count": {
+            "type": "number",
+            "description": "Twitter only: min views"
+          },
+          "max_view_count": {
+            "type": "number",
+            "description": "Twitter only: max views"
+          },
+          "min_smart_engagement_count": {
+            "type": "number",
+            "description": "Twitter only: min smart engagements"
+          },
+          "max_smart_engagement_count": {
+            "type": "number",
+            "description": "Twitter only: max smart engagements"
+          },
+          "min_like_count": {
+            "type": "number",
+            "description": "Twitter only: min likes"
+          },
+          "max_like_count": {
+            "type": "number",
+            "description": "Twitter only: max likes"
+          },
+          "min_reply_count": {
+            "type": "number",
+            "description": "Twitter only: min replies"
+          },
+          "max_reply_count": {
+            "type": "number",
+            "description": "Twitter only: max replies"
+          },
+          "min_retweet_count": {
+            "type": "number",
+            "description": "Twitter only: min retweets"
+          },
+          "max_retweet_count": {
+            "type": "number",
+            "description": "Twitter only: max retweets"
+          },
+          "min_quote_count": {
+            "type": "number",
+            "description": "Twitter only: min quotes"
+          },
+          "max_quote_count": {
+            "type": "number",
+            "description": "Twitter only: max quotes"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_tweet_engagement_info",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tweet_id": {
+            "type": "string",
+            "description": "Twitter tweet ID (numeric string)"
+          }
+        },
+        "required": [
+          "tweet_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_sentiment_entity",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD (default: 1 year ago, earliest practical history starts in 2020-01-01)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date YYYY-MM-DD (default: now or tomorrow depending on granularity)"
+          },
+          "adjusted": {
+            "type": "boolean",
+            "description": "Include replies/quotes, exclude org accounts, and weight by smart engagement (default: true)"
+          },
+          "average": {
+            "type": "boolean",
+            "description": "Return average sentiment -1 to +1 instead of absolute volume-weighted totals (default: false)"
+          },
+          "gaussian": {
+            "type": "boolean",
+            "description": "Apply Gaussian smoothing to the returned series (default: true)"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "all",
+              "en",
+              "zh",
+              "ko",
+              "others"
+            ],
+            "description": "Language filter (default: all)"
+          },
+          "version": {
+            "type": "string",
+            "enum": [
+              "2",
+              "3"
+            ],
+            "description": "Sentiment model version (default: 3)"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_engagement",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "Search keyword when you want topic-based engagement instead of token-scoped engagement"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD (default: 30 days ago, earliest practical history starts in 2023)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date YYYY-MM-DD (default: tomorrow)"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_mentions",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "Search keyword when you want mention counts for a topic instead of a token"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD (default: 30 days ago, earliest practical history starts in 2023)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date YYYY-MM-DD (default: tomorrow)"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_mindshare_entity",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Resolved token value from kaito_entities."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD."
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date YYYY-MM-DD."
+          },
+          "scope": {
+            "type": "string",
+            "description": "Set to 'pretge' to filter for Pre-TGE projects only."
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_mindshare_entity_arena",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "duration": {
+            "type": "string",
+            "enum": [
+              "all",
+              "24h",
+              "48h",
+              "7d",
+              "30d",
+              "3m",
+              "6m",
+              "12m"
+            ],
+            "description": "Time window (default: 24h)"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "all",
+              "en",
+              "zh",
+              "ko",
+              "others"
+            ],
+            "description": "Language filter (default: all)"
+          },
+          "categories": {
+            "type": "string",
+            "enum": [
+              "EXCHANGE",
+              "INFOMKT"
+            ],
+            "description": "Category filter: EXCHANGE or INFOMKT"
+          },
+          "pre_tge": {
+            "type": "boolean",
+            "description": "Set true to filter Pre-TGE projects"
+          },
+          "ex_official": {
+            "type": "boolean",
+            "description": "Exclude official project accounts (default: false)"
+          },
+          "weighted": {
+            "type": "boolean",
+            "description": "Weight by smart engagement (default: true)"
+          },
+          "nft": {
+            "type": "boolean",
+            "description": "Include NFT projects (default: false)"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_mindshare_entity_delta",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "duration": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "48h",
+              "7d",
+              "30d",
+              "3m",
+              "6m",
+              "12m",
+              "all"
+            ],
+            "description": "Time window (default: 24h)"
+          },
+          "sort_type": {
+            "type": "string",
+            "enum": [
+              "desc",
+              "asc"
+            ],
+            "description": "'desc' for gainers, 'asc' for losers (default: desc)"
+          },
+          "limit": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Number of results to return"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_smart_following_market",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "duration": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "48h",
+              "7d",
+              "30d",
+              "all_dates"
+            ],
+            "description": "Time range (default: 24h). all_dates covers from 2024-01-01"
+          },
+          "from": {
+            "type": "number",
+            "description": "Pagination offset (default: 0)"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "earliest_time",
+              "smart_followers",
+              "followers_change",
+              "change_ratio"
+            ],
+            "description": "Field to sort by"
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "description": "Sort direction (default: desc when sort_by is set)"
+          },
+          "filter_smart_followers_operator": {
+            "type": "string",
+            "enum": [
+              "gte",
+              "lte"
+            ],
+            "description": "Filter operator for smart follower count. Must be paired with filter_smart_followers_value"
+          },
+          "filter_smart_followers_value": {
+            "type": "number",
+            "description": "Integer threshold for smart follower count. Must be paired with filter_smart_followers_operator"
+          },
+          "user_status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "existing",
+              "all"
+            ],
+            "description": "Filter by user status: new, existing, or all"
+          },
+          "user_tag_individual_or_organization": {
+            "type": "string",
+            "enum": [
+              "Individual",
+              "Organization",
+              "all"
+            ],
+            "description": "Filter by account type"
+          },
+          "user_type": {
+            "type": "string",
+            "enum": [
+              "kkol",
+              "non_kkol",
+              "all"
+            ],
+            "description": "Filter by KOL classification"
+          },
+          "user_web3_relevance": {
+            "type": "string",
+            "enum": [
+              "relevant",
+              "irrelevant"
+            ],
+            "description": "Filter by Web3 relevance"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_smart_followers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Twitter user ID. One of user_id or username is required"
+          },
+          "username": {
+            "type": "string",
+            "description": "Twitter username. One of user_id or username is required"
+          },
+          "date": {
+            "type": "string",
+            "description": "Date YYYY-MM-DD (default: yesterday, must be >= 2024-01-01)"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "count",
+              "users"
+            ],
+            "description": "'count' for cumulative count, 'users' for follower list (default: count)"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_smart_following",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Twitter user ID. One of user_id or username is required"
+          },
+          "username": {
+            "type": "string",
+            "description": "Twitter username. One of user_id or username is required"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "Organization",
+              "Individual"
+            ],
+            "description": "Filter by followed account type"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_mindshare_entity_by_account",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "48h",
+              "7d",
+              "30d",
+              "3m",
+              "6m",
+              "12m",
+              "all"
+            ],
+            "description": "Time window for mindshare calculation (default: 12m)"
+          },
+          "top_n": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Number of top KOLs to return (default: 100)"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_twitter_user_metadata",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Twitter user ID to look up."
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_events",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Resolved token value from kaito_entities (e.g. BTC, ETH, HYPERLIQUID)"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Filter events whose end_date is on or after this date YYYY-MM-DD"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "Filter events ending on or before this date YYYY-MM-DD"
+          },
+          "min_announcement_date": {
+            "type": "string",
+            "description": "Announcement date lower bound YYYY-MM-DD"
+          },
+          "max_announcement_date": {
+            "type": "string",
+            "description": "Announcement date upper bound YYYY-MM-DD"
+          },
+          "event_types": {
+            "type": "string",
+            "description": "Comma-separated event types such as Mainnet Release, Testnet Release, Token Unlock, Proposal and Voting, Conference Attendance, Tokenomics Update"
+          },
+          "sources": {
+            "type": "string",
+            "description": "Comma-separated sources such as Twitter, Twitter Space, Podcast, Conference, Vote, Governance, DefiLlama, Token Unlocks"
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "event_date",
+              "project_name",
+              "market_cap",
+              "announcement_date"
+            ],
+            "description": "Sort field"
+          },
+          "sort_order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "description": "Sort order"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_mindshare_narrative",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "narrative": {
+            "type": "string",
+            "description": "Narrative ID from kaito_narratives (e.g. AI, DeFi, TopicPerpDEX)"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD (default: 30 days ago)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date YYYY-MM-DD (default: tomorrow)"
+          }
+        },
+        "required": [
+          "narrative"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_ict_impressions",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "author_id": {
+            "type": "string",
+            "description": "Twitter user ID of the author (numeric string)"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD (default: 30 days ago)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date YYYY-MM-DD (default: today)"
+          }
+        },
+        "required": [
+          "author_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "name": "kaito_market_sentiment",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD (default: 2023-01-01)"
+          },
+          "average": {
+            "type": "boolean",
+            "description": "Return averaged sentiment tone instead of absolute volume-weighted totals (default: false)"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  ]
+}

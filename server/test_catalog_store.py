@@ -133,8 +133,8 @@ class CatalogStoreTest(unittest.TestCase):
                          ["observed_upstream_field_count"], 12)
         market_id = "kaito-social-spider.kaito_smart_following_market"
         market = self.catalog.get_spider("kaito-social-spider", entity_id=market_id)
-        self.assertIsNone(next(item for item in market["entities"] if item["entity_id"] == market_id)
-                          ["observed_upstream_field_count"])
+        self.assertEqual(next(item for item in market["entities"] if item["entity_id"] == market_id)
+                         ["observed_upstream_field_count"], 16)
         self.assertEqual({tool["name"] for tool in self.catalog.kaito_mcp_tools
                           if tool["entity_id"] is None},
                          {"kaito_market_sentiment", "kaito_ict_impressions"})

@@ -4,7 +4,7 @@ import './source-field-card.css';
 const compactValue = value => JSON.stringify(value);
 
 export function SourceFieldCard({ name, path, purpose, useCase, exampleValue,
-  exampleLabel, exampleStatus, exampleUrl, observed = false, showNullValue = false, language }) {
+  exampleLabel, exampleStatus, exampleUrl, number, observed = false, showNullValue = false, language }) {
   const zh = language === 'zh-CN';
   const say = (cn, en) => zh ? cn : en;
   const hasValue = exampleValue !== undefined && (exampleValue !== null || showNullValue);
@@ -14,6 +14,7 @@ export function SourceFieldCard({ name, path, purpose, useCase, exampleValue,
   const guidance = useCase || purpose || say('用途待核实', 'Usage needs review');
   const provenance = !observed && hasValue && exampleLabel ? ` · ${exampleLabel}` : '';
   return <article className="source-field-card" title={`${path}${purpose ? ` · ${purpose}` : ''}`}>
+    {number != null && <span className="source-field-number">{say('字段', 'Field')} {String(number).padStart(2, '0')}</span>}
     <div className="source-field-line"><span>{say('名称', 'Name')}</span>
       {exampleUrl ? <a href={exampleUrl} target="_blank" rel="noopener noreferrer">{name}</a> : <strong>{name}</strong>}</div>
     <div className="source-field-line"><span>{say('具体数据', 'Data')}</span><code title={`${value}${provenance}`}>{value}{provenance && <em>{provenance}</em>}</code></div>

@@ -63,7 +63,7 @@ export function KaitoMcpObserved({ data, language, compact = false }) {
     && data.tools.every(tool => SEARCH_OPERATION_NOTES[tool.name]);
   return <section className={`kaito-observed ${compact ? 'kaito-observed-compact' : ''}`} aria-label={word('Kaito MCP 实测返回字段', 'Observed Kaito MCP response fields')}>
     <div className="kaito-observed-head"><strong>{compact ? word('API 实际返回了什么', 'What the API returned') : word('Kaito MCP 实测返回字段', 'Observed Kaito MCP fields')}</strong><span>{new Date(data.observed_at).toLocaleDateString(zh ? 'zh-CN' : 'en-US')}</span></div>
-    {sharedSearchResult && <p className="kaito-tool-shape">{word('这是两种搜索功能，共用 #028 搜索结果记录类型。下面两张卡分别是各自的 API 返回样本，不能拼成一次查询。', 'These are two search operations sharing the #028 search-result record type. The cards show separate API samples, not one combined query.')}</p>}
+    {sharedSearchResult && <p className="kaito-tool-shape">{word('这是两种搜索功能，共用 #2024 搜索结果记录类型。下面两张卡分别是各自的 API 返回样本，不能拼成一次查询。', 'These are two search operations sharing the #2024 search-result record type. The cards show separate API samples, not one combined query.')}</p>}
     {data.tools.map(tool => <details key={tool.name} className="kaito-tool" open={compact || data.tools.length <= 2 ? true : undefined}>
       <summary><code>{tool.name}</code>{tool.sample_status !== 'observed' && <span>{word('本次无记录', 'No rows returned')}</span>}</summary>
       {sharedSearchResult && <p className="kaito-tool-shape">{SEARCH_OPERATION_NOTES[tool.name][zh ? 'zh' : 'en']}</p>}

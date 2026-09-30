@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,6 +40,10 @@ class SignalContractStoreTest(unittest.TestCase):
         self.assertEqual(line["reference"], "L001")
         self.assertEqual(line["payload"]["payload_policy"], "preserve_complete_upstream_record")
         self.assertEqual(line["transport"]["message_key"], "data.id")
+        self.assertEqual(line["transport"]["consumer_group"],
+                         "signalstudio.coingecko_market_turnover_candidate")
+        self.assertEqual([header["name"] for header in line["transport"]["headers"]],
+                         ["schema_version", "operation_id"])
         self.assertNotIn("consumed_fields", line)
         self.assertNotIn("consumer_output", line)
         self.assertEqual(len(line["declared_upstream_field_inventory"]), 34)
@@ -50,6 +55,46 @@ class SignalContractStoreTest(unittest.TestCase):
         self.assertEqual(processor["consumed_fields"][2]["message_path"], "data.total_volume")
         self.assertEqual(processor["processing"]["calculation"]["output"], "turnover_ratio_24h")
         self.assertEqual(self.signals.processor(self.graph, self.node["id"])["processor"], processor)
+
+    def test_topic_card_preserves_signal_transport_and_field_lineage(self):
+        self.graph.group_node_references_once()
+        source = self.graph.find_name("coingecko.coins_markets")
+        edge = next(item for item in self.graph.graph()["edges"]
+                    if item["upstream_id"] == source["id"] and item["downstream_id"] == self.node["id"])
+        topic = self.graph.create_node({
+            "name": "CoinGecko market topic", "type": "Redpanda Topic",
+            "notes": json.dumps({"topic": edge["transport_topic"],
+                                 "message_key": edge["transport_key"],
+                                 "payload_schema": edge["payload_schema"],
+                                 "headers": json.loads(edge["transport_headers"]),
+                                 "consumers": {self.node["name"]: edge["consumer_group"]}})})
+        self.assertEqual(topic["reference_number"], 5001)
+        producer_edge = self.graph.create_edge({"upstream_id": source["id"],
+                                                "downstream_id": topic["id"],
+                                                "transport_kind": "direct"})
+        source_fields = {field["id"]: field for field in self.graph.get_fields(source["id"])}
+        topic_fields = {}
+        for field in source_fields.values():
+            topic_fields[field["name"]] = self.graph.create_field(topic["id"], {
+                "name": field["name"], "data_type": field["data_type"]})
+            self.graph.create_field_usage(producer_edge["id"], {
+                "source_field_id": field["id"],
+                "target_field_id": topic_fields[field["name"]]["id"]})
+        with self.graph.db:
+            self.graph.db.execute("""UPDATE edges SET upstream_id=?, transport_kind='direct',
+                                   transport_topic='', transport_key='', payload_schema='',
+                                   transport_headers='[]', consumer_group='' WHERE id=?""",
+                                  (topic["id"], edge["id"]))
+            for usage in self.graph.get_field_usages(edge["id"]):
+                source_field = source_fields[usage["source_field_id"]]
+                self.graph.db.execute("UPDATE edge_field_usages SET source_field_id=? WHERE id=?",
+                                      (topic_fields[source_field["name"]]["id"], usage["id"]))
+        package = self.signals.package(self.graph, self.node["signal_key"])
+        self.assertEqual(package["implementation_readiness"], {"status": "ready", "issues": []})
+        self.assertEqual(package["connection_contracts"][0]["edge_id"], edge["id"])
+        self.assertEqual(package["connection_contracts"][0]["transport"]["consumer_group"],
+                         "signalstudio.coingecko_market_turnover_candidate")
+        self.assertEqual(len(package["processor_contract"]["consumed_fields"]), 4)
 
     def test_graph_drift_is_reported_and_layout_does_not_change_revision(self):
         original = self.signals.package(self.graph, self.node["id"])
