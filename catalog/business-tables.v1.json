@@ -190,19 +190,21 @@
     },
     "asset_score_events": {
       "label_zh": "资产评分流水",
-      "purpose_zh": "汇集各评分程序已经确认的加分事实；每笔分引用详细判定记录，并使用稳定 event_key 防重。事件先进入 Redpanda，再分别写入 Redis 近期窗口与 Delta/Parquet 长期流水；Redis 不是唯一账本。",
-      "storage_plan": {"ingress": "redpanda_score_event", "archive": "delta_parquet_asset_score_events", "hot_window": "redis_recent_score_events", "fan_out": "independent_consumers", "status": "planned_not_executed"},
+      "purpose_zh": "汇集各评分程序已经确认的加分事实；每笔分引用详细判定记录，并使用稳定 event_key 防重。规划经待评审的评分事件 Topic 分别投影至 Redis 与 Delta/Parquet 长期流水；Redis 不是唯一账本。",
+      "storage_plan": {"ingress": "proposed_score_events_topic", "topic_proposal_ref": "score-event-topic-proposal.v1", "archive": "delta_parquet_asset_score_events", "hot_window": "redis_recent_score_events", "fan_out": "independent_consumers", "status": "planned_not_executed"},
       "columns": [
         { "name": "asset_id", "type": "TEXT", "format": "uuidv7", "label_zh": "引用 #1001 的内部资产 ID", "required": true },
         { "name": "event_key", "type": "TEXT", "label_zh": "由资产 ID、评分维度和判定记录引用稳定生成的去重键", "required": true },
-        { "name": "score_key", "type": "TEXT", "label_zh": "本次加分所属维度，如 KOL 热度、热度变化或看空证据；新维度需先定义口径", "required": true },
+        { "name": "score_key", "type": "TEXT", "label_zh": "本次加分所属指标；全量热度 Demo 固定为 total_heat，新指标需另行定义", "required": true },
         { "name": "decision_ref", "type": "TEXT", "label_zh": "评分程序命名空间和其详细判定记录 ID；据此查询原始输入、命中原因和规则版本", "required": true },
         { "name": "score_delta", "type": "REAL", "label_zh": "本次入账的分数变化量；看空证据通常给看空维度加正分，明确扣分或冲销可为负数", "required": true },
-        { "name": "created_at", "type": "TEXT", "label_zh": "评分事件被系统接受时确定的入账时间，UTC；实时窗口和归档沿用同一时间", "required": true }
+        { "name": "created_at", "type": "TEXT", "label_zh": "评分事件被系统接受时确定的入账时间，UTC；实时窗口和归档沿用同一时间", "required": true },
+        { "name": "decay_policy_ref", "type": "TEXT", "label_zh": "该笔事件首次接受时确定的不可变衰减规则版本；用于校验与追溯", "required": true },
+        { "name": "half_life_minutes", "type": "REAL", "label_zh": "该笔事件首次接受时确定的正数半衰期分钟数；Demo 为 10080，归档与缓存沿用", "required": true, "minimum_exclusive": 0 }
       ],
       "primary_key": ["event_key"],
       "unique_keys": [["asset_id", "score_key", "decision_ref"]],
-      "create_sql": "CREATE TABLE asset_score_events (asset_id TEXT NOT NULL REFERENCES assets(asset_id), event_key TEXT PRIMARY KEY, score_key TEXT NOT NULL, decision_ref TEXT NOT NULL, score_delta REAL NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (asset_id, score_key, decision_ref))",
+      "create_sql": "CREATE TABLE asset_score_events (asset_id TEXT NOT NULL REFERENCES assets(asset_id), event_key TEXT PRIMARY KEY, score_key TEXT NOT NULL, decision_ref TEXT NOT NULL, score_delta REAL NOT NULL, created_at TEXT NOT NULL, decay_policy_ref TEXT NOT NULL, half_life_minutes REAL NOT NULL CHECK (half_life_minutes > 0), UNIQUE (asset_id, score_key, decision_ref))",
       "purpose_en": "Collect deduplicated score contributions from program-owned decision records by asset and score dimension."
     },
     "asset_scores_current": {

@@ -1,0 +1,71 @@
+{
+  "version": "score-event-topic-proposal.v1",
+  "status": "design_proposal_not_approved_or_created",
+  "scope": "SignalStudio defines accepted scoring-event semantics; fewunderstand reviews and implements the transport and storage details.",
+  "registry_basis": {
+    "source": "user_supplied_fewunderstand_topic_registry_2026-10-01",
+    "independently_verified": false,
+    "naming_rule": "<domain>.<type>",
+    "header_convention": ["source", "type", "category"],
+    "existing_topics": ["market.snapshot", "derivatives.metrics", "indicator.data", "social.data", "market.kline", "market.microstructure", "onchain.data", "entity.labels", "project.metadata", "signal.data"]
+  },
+  "reuse_assessment": [
+    {"topics": ["signal.data"], "decision": "do_not_reuse", "reason_zh": "策略信号是规则判定或候选输出；已接受的评分贡献是需要稳定 event_key、独立归档、去重和长期恢复的账本事实。消费者、保留和重放责任不同。"},
+    {"topics": ["indicator.data"], "decision": "do_not_reuse", "reason_zh": "指标值是计算结果，不是不可变的逐笔评分贡献；按指标语义保留或重算不能替代评分流水重放。"},
+    {"topics": ["entity.labels", "project.metadata"], "decision": "do_not_reuse", "reason_zh": "这些 Topic 表达对象标签或项目元数据状态，不承载逐笔已接受评分账本。"},
+    {"topics": ["market.snapshot", "derivatives.metrics", "social.data", "market.kline", "market.microstructure", "onchain.data"], "decision": "do_not_reuse", "reason_zh": "这些是行情、衍生品、社交或链上观测；它们可作为评分判定输入，但不是已经接受的评分贡献。"}
+  ],
+  "topic_choice": {
+    "candidate": "score.events",
+    "status": "candidate_requires_fewunderstand_review",
+    "reason_zh": "现有宽 Topic 均不同时满足已接受评分账本的语义、Redis 投影与长期归档双消费、完整事件保留和重放要求；这是一个宽粒度评分事件流，不按指标、资产、规则或计算引擎拆 Topic。",
+    "same_family_future_events": ["accepted_score_contribution", "accepted_score_correction", "accepted_score_reversal"],
+    "excluded_families": ["strategy_signal", "raw_market_or_social_observation", "computed_current_score"],
+    "retention_requirement": "Preserve every accepted event until the archive consumer can durably commit and the agreed recovery/replay horizon is covered; fewunderstand selects and verifies the concrete retention period. Do not compact away distinct events."
+  },
+  "value_contract": {
+    "schema_ref": "score.asset_score_contribution.v1",
+    "envelope_fields": ["data"],
+    "data_fields": [
+      {"name": "asset_id", "type": "TEXT", "meaning_zh": "#1001 的内部资产 ID"},
+      {"name": "event_key", "type": "TEXT", "meaning_zh": "由 asset_id、score_key、decision_ref 稳定生成的逐笔去重键；重试不变"},
+      {"name": "score_key", "type": "TEXT", "meaning_zh": "Demo 固定为 total_heat"},
+      {"name": "decision_ref", "type": "TEXT", "meaning_zh": "指向可持久查询的详细判定和规则版本"},
+      {"name": "score_delta", "type": "REAL", "meaning_zh": "本次已接受的评分贡献；Demo 首次成功建档为 +100"},
+      {"name": "created_at", "type": "UTC_TIMESTAMP", "meaning_zh": "事件首次被接受的 UTC 时间；重试、Redis 投影和归档沿用"},
+      {"name": "decay_policy_ref", "type": "TEXT", "meaning_zh": "这笔事件不可变的衰减规则版本；Demo 为 asset_initial_score/v1"},
+      {"name": "half_life_minutes", "type": "REAL", "constraint": "finite_and_greater_than_zero", "meaning_zh": "这笔事件首次接受时确定的半衰期分钟数；Demo 为 10080，重试不得改变，须与 decay_policy_ref 的规则版本一致"}
+    ],
+    "business_field_authority": "value.data",
+    "decay_parameter_rule": "On first acceptance, freeze decay_policy_ref and a finite positive half_life_minutes in Value.data. The publisher validates the number against the immutable referenced policy; retries and both consumers preserve it unchanged. The half-life is an event fact, not a Header or a Consumer default.",
+    "demo_constraints": ["only_total_heat", "created_asset_gets_one_initial_plus_100", "reused_asset_or_retry_gets_no_new_initial_contribution", "no_new_heat_source_or_rule_defined"]
+  },
+  "headers": [
+    {"name": "source", "value": "signalstudio", "purpose": "identify_logical_business_origin_after_read", "description_zh": "定义并提交该评分事件的逻辑业务来源（#3006）；不表示 SignalStudio 进程已运行，也不是 Kaito 等原始观测来源"},
+    {"name": "type", "value": "score_event", "purpose": "identify_event_family_after_read", "description_zh": "已接受评分事件家族；不同于策略信号和原始观测"},
+    {"name": "category", "value": "asset_score_contribution", "purpose": "identify_concrete_business_category_after_read", "description_zh": "逐笔已接受的资产评分贡献；不随资产或评分维度变化"}
+  ],
+  "header_registry_proposal": {
+    "owner": "fewunderstand",
+    "status": "design_intent_not_implemented",
+    "lookup_key_fields": ["source", "type", "category"],
+    "proposed_entry": {"source": "signalstudio", "type": "score_event", "category": "asset_score_contribution", "topic_candidate": "score.events", "value_schema_ref": "score.asset_score_contribution.v1", "meaning_zh": "已接受的逐笔资产评分贡献", "processing_purpose": "按 event_key 去重后分别投影当前评分与归档评分流水", "consumer_cards": [3007, 3008], "destinations": ["#6001 Redis", "#1005 Delta/Parquet"]},
+    "dispatch_after_read": "Each independent consumer group reads the record, matches the exact source/type/category tuple to its registered handler and Value schema, validates Value.data, then writes its own destination idempotently by event_key before committing its own offset.",
+    "unknown_tuple_handling": "Reject or durably quarantine after read according to fewunderstand policy; do not silently parse as a known scoring event.",
+    "schema_evolution": "The tuple maps to the pinned v1 Value schema in this demo. Before an incompatible Value change, fewunderstand must register a distinct compatible category or agree on an explicit version discriminator; no schema_version Header is proposed now."
+  },
+  "header_rule": "Use fewunderstand's existing exact (source, type, category) tuple for identification after read. Redpanda does not filter or create partitions by header. record_type is represented by category and is not another Header; schema_version is pinned in the registry's Value schema reference, not another Header. Headers carry no asset, score, decision provenance, or decay facts; Value.data is authoritative for business facts including half_life_minutes.",
+  "message_key": {
+    "required": false,
+    "value": null,
+    "status": "intentionally_unset_for_single_partition_demo",
+    "reason_zh": "当前只有一个 Partition，Topic 内所有消息本就在同一 Partition；评分贡献按 event_key 幂等处理，不需要借 Message Key 保证当前 Demo 的正确性。",
+    "revisit_when": "If fewunderstand expands to multiple partitions and needs per-asset ordering, propose a deterministic asset_id-derived key before rollout.",
+    "avoid": "Do not fill one constant key such as total_heat or a Chinese event label; it would route all records together without per-asset meaning."
+  },
+  "consumer_groups": [
+    {"card": 3007, "purpose": "redis_score_projection", "group_id_proposal": "signalstudio.score_events.redis_window", "reads": "all_topic_records_independently", "selection": "after_read_exact_header_registry_lookup", "dedupe": "event_key", "retry": "idempotent_redis_write_then_commit_own_offset", "output": "#6001_and_trigger_#3005"},
+    {"card": 3008, "purpose": "delta_parquet_archive", "group_id_proposal": "signalstudio.score_events.delta_archive", "reads": "all_topic_records_independently", "selection": "after_read_exact_header_registry_lookup", "dedupe": "event_key", "retry": "idempotent_durable_archive_write_then_commit_own_offset", "output": "#1005_all_eight_value_data_fields_including_immutable_decay_parameters"}
+  ],
+  "replay_requirement": "Each group owns its offset and retries independently. Replay of Redis projection uses retained Topic events or the durable #1005 archive including the original decay_policy_ref and half_life_minutes; decision_ref still locates detailed evidence. Retries must not regenerate event_key, created_at, or the frozen decay parameters. No Topic, consumer, Redis key, or archive row is claimed to exist."
+}

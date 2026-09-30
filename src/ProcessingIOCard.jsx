@@ -6,6 +6,7 @@ import { displayCaseValue, flattenAccount, SMART_FOLLOWING_OPERATION } from './s
 import { IdentityPilotStep, MatchedIdentityResult } from './IdentityPilotCase';
 import businessTables from '../catalog/business-tables.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
+import scoreTopicProposal from '../catalog/score-event-topic-proposal.v1.json';
 import identityPilot from '../catalog/identity-flow-case.v1.json';
 import publicCalls from '../catalog/public-call-examples.json';
 import signalContracts from '../catalog/signal-contracts.v1.json';
@@ -27,9 +28,11 @@ const scoreCase = (index, language) => {
     ['decision_ref', decisionRef],
     ['score_delta', `+${policy.score_delta}`],
     ['created_at', zh ? '待 #3006 首次接受事件时写入 UTC 时间' : 'UTC time to be set by #3006 on first acceptance'],
+    ['decay_policy_ref', policy.decay_policy_ref],
+    ['half_life_minutes', policy.decay.half_life_minutes],
   ];
-  return { selected, policy, assetId, decisionRef, eventRows,
-    cacheRows: [...eventRows, ['decay_policy_ref', policy.decay_policy_ref]] };
+  const topicRows = eventRows;
+  return { selected, policy, assetId, decisionRef, eventRows, topicRows, cacheRows: topicRows };
 };
 
 function CasePicker({ value, setValue, language, label }) {
@@ -46,6 +49,10 @@ function CaseRows({ rows }) {
   </div>)}</dl>;
 }
 
+function ScoreTopicHeaders() {
+  return <p className="processing-io-case-caption">Headers · {scoreTopicProposal.headers.map((header, index) => <React.Fragment key={header.name}>{index > 0 && ' · '}<code>{header.name}</code> = <code>{header.value}</code></React.Fragment>)}</p>;
+}
+
 export function NodeCaseExplanation({ language, purpose, caseSummary, recordGuide, kind = 'node' }) {
   const zh = language === 'zh-CN';
   return <section className="source-case-inspector-explanation node-case-explanation">
@@ -60,30 +67,33 @@ export function NodeCaseExplanation({ language, purpose, caseSummary, recordGuid
 
 function RedpandaTopicCard({ node, graph, language }) {
   const zh = language === 'zh-CN';
+  const scoringProposal = node.reference_number === 5001;
   const [caseIndex, setCaseIndex] = useState(0);
   let settings = {};
   try { settings = JSON.parse(node.notes || '{}'); } catch { /* Keep incomplete designs readable. */ }
   const fields = graph.fields.filter(field => field.node_id === node.id).sort((a, b) => a.ordinal - b.ordinal);
-  const headers = settings.headers || [];
+  const headers = scoringProposal ? scoreTopicProposal.headers : settings.headers || [];
   const consumers = Object.entries(settings.consumers || {});
   return <div className="redpanda-topic-card">
-    <div className="source-case-inspector-heading"><h3>{zh ? 'Redpanda 数据通道' : 'Redpanda data channel'}</h3><span>{zh ? '规划 · 尚无真实消息' : 'Planned · no emitted message'}</span></div>
+    <div className="source-case-inspector-heading"><h3>{zh ? 'Redpanda 数据通道' : 'Redpanda data channel'}</h3><span>{scoringProposal ? zh ? 'Topic 候选 · 尚未批准或创建' : 'Topic candidate · not approved or created' : zh ? '规划 · 尚无真实消息' : 'Planned · no emitted message'}</span></div>
     <dl className="source-case-inspector-fields">
-      <div><dt><code>topic</code></dt><dd>{settings.topic || (zh ? '待定义' : 'To define')}</dd></div>
-      <div><dt><code>message_key</code></dt><dd>{settings.message_key || (zh ? '待定义' : 'To define')}</dd></div>
-      <div><dt><code>payload_schema</code></dt><dd>{settings.payload_schema || (zh ? '待定义' : 'To define')}</dd></div>
+      <div><dt><code>{scoringProposal ? 'topic_candidate' : 'topic'}</code></dt><dd>{scoringProposal ? scoreTopicProposal.topic_choice.candidate : settings.topic || (zh ? '待定义' : 'To define')}</dd></div>
+      <div><dt><code>message_key</code></dt><dd>{scoringProposal ? zh ? '不填（当前单 Partition）' : 'Unset (single partition)' : settings.message_key || (zh ? '待定义' : 'To define')}</dd></div>
+      {!scoringProposal && <div><dt><code>payload_schema</code></dt><dd>{settings.payload_schema || (zh ? '待定义' : 'To define')}</dd></div>}
     </dl>
-    <div className="message-payload-fields"><strong>data · {fields.length} {zh ? '个已列字段' : 'listed fields'}</strong>
+    {scoringProposal && <p className="processing-io-case-caption">{zh ? '推荐 score.events 作为唯一新增宽 Topic 候选：已接受的评分贡献需要独立的账本、归档和重放语义；signal.data 保留策略信号语义。候选名仍待 fewunderstand 评审。当前只有一个 Partition，Message Key 留空；Value.data 的 event_key 负责逐笔去重。' : 'score.events is the sole proposed broad Topic candidate for accepted score ledger events; signal.data remains for strategy signals. fewunderstand must review the candidate. The current single-partition demo leaves Message Key unset; event_key in Value.data handles deduplication.'}</p>}
+    <div className="message-payload-fields"><strong>{scoringProposal ? 'Value.data' : 'data'} · {fields.length} {zh ? '个已列字段' : 'listed fields'}</strong>
       {fields.map(field => <div key={field.id}><code>{field.name}</code><span>{field.data_type}</span></div>)}
     </div>
     <div className="message-payload-fields"><strong>Headers · {headers.length}</strong>
-      {headers.length ? headers.map(header => <div key={header.name}><code>{header.name}</code><span>{header.description}</span></div>) : <p>{zh ? '尚未定义 Headers。' : 'No headers defined.'}</p>}
+      {headers.length ? headers.map(header => <div key={header.name}><code>{header.name}</code><span>{header.description || `${header.value} · ${zh ? header.description_zh : header.purpose}`}</span></div>) : <p>{zh ? '尚未定义 Headers。' : 'No headers defined.'}</p>}
     </div>
+    {scoringProposal && <p className="processing-io-case-caption">{zh ? '沿用 fewunderstand 的 source / type / category：逻辑业务来源 / 事件家族 / 业务类别。两个 Consumer 各自读后查拟建注册表，再按 Value 结构校验和处理；Redpanda 不在服务端按 Header 筛选。结构版本绑定在注册表，衰减规则引用仍在 Value.data。' : 'Use fewunderstand’s source / type / category convention: logical business origin / event family / business category. Each consumer looks up the proposed registry after read, then validates and handles Value. Redpanda does not filter by header. The registry binds the schema version; the decay policy reference stays in Value.data.'}</p>}
     {node.reference_number === 5001 && <div className="processing-input-source">
       <CasePicker value={caseIndex} setValue={setCaseIndex} language={language} label={zh ? '贯通案例 · 评分事件' : 'Through-line case · score event'} />
-      <p className="processing-io-case-caption">{zh ? `#2030 实际返回 ${scoreCase(caseIndex, language).selected.source_record.name}，但 #3009、#3006 尚未执行。下面是 #3006 应向此 Topic 发送的一条消息，当前没有真实 Redpanda 消息或 offset。` : `#2030 returned ${scoreCase(caseIndex, language).selected.source_record.name}, but #3009 and #3006 have not run. This is the intended message, not an observed Redpanda record or offset.`}</p>
-      <CaseRows rows={scoreCase(caseIndex, language).eventRows} />
-      <p className="processing-io-case-caption">Header · <code>schema_version</code> = <code>asset_score_events.v1</code> · <code>decay_policy_ref</code> = <code>{scoreCase(caseIndex, language).policy.decay_policy_ref}</code> · {zh ? '该规则版本固定为 7 天 / 10080 分钟半衰期' : 'This rule version fixes a seven-day / 10,080-minute half-life'}</p>
+      <p className="processing-io-case-caption">{zh ? `#2030 实际返回 ${scoreCase(caseIndex, language).selected.source_record.name}，但 #3009、#3006 尚未执行。下面是候选 Topic 的 Value.data 目标字段，没有真实 Redpanda 消息或 offset。` : `#2030 returned ${scoreCase(caseIndex, language).selected.source_record.name}, but #3009 and #3006 have not run. These are intended Value.data fields for the candidate Topic, not an observed message or offset.`}</p>
+      <CaseRows rows={scoreCase(caseIndex, language).topicRows} />
+      <ScoreTopicHeaders />
     </div>}
     {node.reference_number === 5002 && <div className="processing-input-source">
       <strong>{zh ? '上游调用案例 · 预计进入 Topic 的数据' : 'Upstream call case · intended Topic data'}</strong>
@@ -97,7 +107,12 @@ function RedpandaTopicCard({ node, graph, language }) {
     </div>}
     <details className="processing-advanced"><summary>{zh ? '其他设置 · 消费者组' : 'Other settings · consumer groups'}</summary>
       {consumers.length ? consumers.map(([name, group]) => <p key={name}>{name} · <code>{group}</code></p>) : <p>{zh ? '尚未定义消费者组。' : 'No consumer groups defined.'}</p>}
+      {scoringProposal && <p>{zh ? '两个独立 Group 各自读取全部事件、按 event_key 幂等写入后才提交自己的 offset；一个 Group 的失败不阻塞另一个。' : 'Each independent group reads all records and commits its own offset only after an idempotent event_key write; one group does not block the other.'}</p>}
     </details>
+    {scoringProposal && <details className="processing-advanced"><summary>{zh ? '其他设置 · 现有 Topic 复用分析' : 'Other settings · existing Topic reuse'}</summary>
+      {scoreTopicProposal.reuse_assessment.map(item => <p key={item.topics.join(',')}><code>{item.topics.join(', ')}</code> · {zh ? item.reason_zh : item.decision}</p>)}
+      <p>{zh ? '具体保留期和 Topic 注册由 fewunderstand 评审；业务要求是归档完成与约定重放期内保留全部已接受事件，不按 asset_id Key 压缩。' : scoreTopicProposal.topic_choice.retention_requirement}</p>
+    </details>}
   </div>;
 }
 
@@ -118,7 +133,7 @@ function RedisWindowCard({ node, graph, language }) {
       {fields.map(field => <div key={field.id}><code>{field.name}</code><span>{field.data_type}</span></div>)}
     </div>
     <div className="processing-input-source"><CasePicker value={caseIndex} setValue={setCaseIndex} language={language} label={zh ? '贯通案例 · 预期 Redis 记录' : 'Through-line case · intended Redis record'} />
-      <p className="processing-io-case-caption">{zh ? `#3007 独立消费 #5001 后，应缓存 ${scoreCase(caseIndex, language).selected.source_record.name} 的这笔起始评分及 Header 衰减规则。event_key、created_at 需沿用实际评分事件；规则版本指向 7 天 / 10080 分钟半衰期。当前尚无消息或真实 Redis 键。` : `After independently consuming #5001, #3007 should cache this initial award for ${scoreCase(caseIndex, language).selected.source_record.name} and its decay policy. event_key and created_at must come from the actual score event; the rule version fixes a seven-day / 10,080-minute half-life. No message or Redis key exists yet.`}</p>
+      <p className="processing-io-case-caption">{zh ? `#3007 独立消费 #5001 后，应缓存 ${scoreCase(caseIndex, language).selected.source_record.name} 的这笔起始评分及 Value.data 中的衰减规则引用和半衰期分钟数。event_key、created_at 需沿用实际评分事件；规则版本指向 7 天 / 10080 分钟半衰期。当前尚无消息或真实 Redis 键。` : `After independently consuming #5001, #3007 should cache this initial award for ${scoreCase(caseIndex, language).selected.source_record.name} and its decay policy reference and half-life in Value.data. event_key and created_at must come from the actual score event; the rule version fixes a seven-day / 10,080-minute half-life. No message or Redis key exists yet.`}</p>
       <CaseRows rows={scoreCase(caseIndex, language).cacheRows} /></div>
     <details className="processing-advanced"><summary>{zh ? '其他设置 · 去重与恢复' : 'Other settings · deduplication and recovery'}</summary>
       <p>{zh ? '去重键' : 'Deduplication key'}：<code>{settings.dedupe_key || '—'}</code></p>
@@ -180,16 +195,16 @@ function ScoreEventConsumerCard({ node, graph, openNode, language }) {
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '预期 Topic 事件' : 'Intended Topic event'}</span></div>
         <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '来自' : 'From'}</span><button onClick={() => openNode(topic.id)}>{nodeRef(topic)} {topic.name}</button></div>
           <p className="processing-io-case-caption">{zh ? `以真实上游账号 ${example.selected.source_record.name} 为来源。#5001 还没有实际消息，以下是要被两个独立消费者读取的目标事件。` : `Anchored to the observed upstream account ${example.selected.source_record.name}. #5001 has no actual message; this is the intended event for two independent consumers.`}</p>
-          <CaseRows rows={example.eventRows} /><p className="processing-io-case-caption">Header · <code>decay_policy_ref</code> = <code>{example.policy.decay_policy_ref}</code></p></div>
+          <CaseRows rows={example.topicRows} /><ScoreTopicHeaders /></div>
       </section>
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '本消费者的目标记录' : 'This consumer’s intended record'}</span></div>
         <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '送往' : 'To'}</span><button onClick={() => openNode(target.id)}>{nodeRef(target)} {target.name}</button></div>
-          <p className="processing-io-case-caption">{zh ? isRedis ? '按 event_key 去重后写入 Redis 的七项字段，并触发 #3005 计算该资产当前分。尚无真实缓存。' : '按 event_key 幂等归档六项原始字段到 #1005；沿用事件入账时间，不用归档时间替换。尚无真实表行。' : isRedis ? 'Dedupe by event_key, cache seven fields, then trigger #3005 for this asset. No cache record exists.' : 'Archive the six original fields idempotently by event_key. Keep the score-entry time, not archive time. No real table row exists.'}</p>
+          <p className="processing-io-case-caption">{zh ? isRedis ? '按 event_key 去重后写入 Redis 的八项字段，并触发 #3005 计算该资产当前分。尚无真实缓存。' : '按 event_key 幂等归档八项原始字段到 #1005；沿用事件入账时间，不用归档时间替换。尚无真实表行。' : isRedis ? 'Dedupe by event_key, cache eight fields, then trigger #3005 for this asset. No cache record exists.' : 'Archive all eight original fields idempotently by event_key. Keep the score-entry time, not archive time. No real table row exists.'}</p>
           <CaseRows rows={isRedis ? example.cacheRows : example.eventRows} /></div>
       </section>
     </div><NodeCaseExplanation language={language} purpose={node.definition}
       caseSummary={zh ? `#2030 的账号输入真实存在；#5001 发消息、#${node.reference_number} 消费和写入均尚未执行。` : `The #2030 upstream account was observed. #5001 publication, this consumption, and storage have not run.`}
-      recordGuide={zh ? isRedis ? 'Redis 多保存来自 Header 的 decay_policy_ref；event_key 和 created_at 必须等真实评分事件确定。' : '#1005 保留原评分事件的六项字段；decay_policy_ref 可经 decision_ref 找回，不额外添加表列。' : isRedis ? 'Redis adds decay_policy_ref from the header. event_key and created_at await the actual score event.' : '#1005 keeps the six original fields. Recover decay_policy_ref through decision_ref without another table column.'} />
+      recordGuide={zh ? isRedis ? 'Redis 从 Value.data 保存 decay_policy_ref 与 half_life_minutes；event_key 和 created_at 必须等真实评分事件确定。重试按 event_key 去重。' : '#1005 保留原评分事件的八项字段，包括衰减规则引用和半衰期分钟数；decision_ref 可追溯判定。重试按 event_key 幂等归档。' : isRedis ? 'Redis stores decay_policy_ref and half_life_minutes from Value.data. event_key and created_at await the actual event; retries dedupe by event_key.' : '#1005 archives all eight event fields, including the frozen decay parameters. decision_ref traces the decision. Archive retries are idempotent by event_key.'} />
   </>;
 }
 
@@ -239,6 +254,8 @@ function InitialScoreCard({ node, graph, openNode, language }) {
     ['decision_ref', policy.decision_ref_template.replace('{asset_id}', created.asset_id)],
     ['score_delta', `+${policy.score_delta}`],
     ['created_at', zh ? '待 #3006 首次接受事件时写入 UTC 时间' : 'To be set by #3006 when the event is first accepted'],
+    ['decay_policy_ref', policy.decay_policy_ref],
+    ['half_life_minutes', policy.decay.half_life_minutes],
   ];
   return <><label className="source-case-inspector-picker">{zh ? '真实上游账号案例' : 'Observed upstream account case'}
     <select value={caseIndex} onChange={event => setCaseIndex(Number(event.target.value))}>{identityPilot.cases.map((item, index) =>
@@ -257,7 +274,7 @@ function InitialScoreCard({ node, graph, openNode, language }) {
     </section>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '按新建 / 已有分支' : 'By created / existing route'}</span></div>
       <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '仅新建时送往' : 'Only on creation to'}</span>{link(3006)}</div>
-        <p className="processing-io-case-caption">{zh ? `对 ${account.name}，仅在首次建档成功时，#3009 向 total_heat 交付起始 +100 的评分决定；#3006 补齐 event_key、created_at，再把六项字段写入 #5001。Header 带 decay_policy_ref=${policy.decay_policy_ref}。下方是目标事件格式，尚无真实评分事件。` : `For ${account.name}, only first creation makes #3009 submit an initial +100 contribution to total_heat. #3006 adds event_key and created_at, then writes the six fields to #5001 with decay_policy_ref=${policy.decay_policy_ref} in the header. This is a target event, not an emitted one.`}</p>
+        <p className="processing-io-case-caption">{zh ? `对 ${account.name}，仅在首次建档成功时，#3009 向 total_heat 交付起始 +100 的评分决定；#3006 补齐 event_key、首次接受的 created_at，再向 #5001 的候选通道提交 Value.data 八项字段。三个 Header 标识逻辑业务来源、事件家族和业务类别；尚无真实评分事件。` : `For ${account.name}, only first creation makes #3009 submit an initial +100 contribution to total_heat. #3006 adds event_key and the first-acceptance created_at, then proposes eight Value.data fields for #5001. Three headers identify logical business origin, event family, and business category. No score event has been emitted.`}</p>
         <dl className="source-case-inspector-fields">{eventFields.map(([name, value], index) => field(name, value, index))}</dl>
       </div>
       <div className="processing-input-source"><strong>{zh ? '已有资产：不提交起始事件' : 'Existing asset: no initial event'}</strong><p className="processing-io-case-caption">{zh ? '已有资产不新增起始贡献，原有 total_heat 仍随时间衰减；这里不产生新的 #1005 流水。旧资产缺分要单独补录，不能在每次命中时自动加 100。' : 'An existing asset receives no new initial contribution; its total_heat continues to decay. No new #1005 event is produced here. A missing legacy score needs a separate backfill, never an automatic 100-point award on every match.'}</p></div>
@@ -288,13 +305,13 @@ function ScoreEventPublisherCard({ node, graph, openNode, language }) {
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '具体评分决定示例' : 'Concrete score-decision example'}</span></div>
       <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '来自' : 'From'}</span>{link(3009)}</div>
         <p className="processing-io-case-caption">{zh ? `以 #2030 实际返回的 ${account.name}（X ID ${account.id}）为来源；以下是首次建档成功后 #3009 应提交的决定，并非真实已提交记录。已有资产不向 #3006 提交起始评分。` : `Based on the observed #2030 account ${account.name} (X ID ${account.id}). This is the decision #3009 should submit after first creation, not an observed submission. Existing assets send no initial award.`}</p>
-        {fields([['asset_id', assetId], ['score_key', policy.input_score_key], ['score_delta', `+${policy.score_delta}`], ['decision_ref', decisionRef], ['decay_policy_ref', policy.decay_policy_ref]])}</div>
+        {fields([['asset_id', assetId], ['score_key', policy.input_score_key], ['score_delta', `+${policy.score_delta}`], ['decision_ref', decisionRef], ['decay_policy_ref', policy.decay_policy_ref], ['half_life_minutes', policy.decay.half_life_minutes]])}</div>
     </section>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '目标评分事件' : 'Target score event'}</span></div>
       <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '送往' : 'To'}</span>{link(5001)}</div>
-        <p className="processing-io-case-caption">{zh ? '统一生成 event_key 与首次接受时间；其余决定字段沿用输入。decay_policy_ref 放在 Topic Header。尚无实际发布的消息。' : 'Generate the stable event_key and first-acceptance time; carry forward the other decision fields. Put decay_policy_ref in the Topic header. No message has been published.'}</p>
-        {fields([['asset_id', assetId], ['event_key', zh ? '待按 asset_id + score_key + decision_ref 稳定生成' : 'To be generated from asset_id + score_key + decision_ref'], ['score_key', policy.input_score_key], ['decision_ref', decisionRef], ['score_delta', `+${policy.score_delta}`], ['created_at', zh ? '待首次接受事件时写入 UTC 时间' : 'UTC time on first acceptance']])}
-        <p className="processing-io-case-caption">Header · <code>decay_policy_ref</code> = <code>{policy.decay_policy_ref}</code></p></div>
+        <p className="processing-io-case-caption">{zh ? '稳定生成 event_key 与首次接受时间；重试沿用。decay_policy_ref 与 half_life_minutes 是 Value.data 中这笔贡献冻结的规则版本和数值参数。尚无实际发布的消息，Topic 名仍待评审。' : 'Generate a stable event_key and first-acceptance time, reusing both on retries. decay_policy_ref and half_life_minutes are frozen with this contribution in Value.data. No message has been published; the Topic name awaits review.'}</p>
+        {fields([['asset_id', assetId], ['event_key', zh ? '待按 asset_id + score_key + decision_ref 稳定生成' : 'To be generated from asset_id + score_key + decision_ref'], ['score_key', policy.input_score_key], ['decision_ref', decisionRef], ['score_delta', `+${policy.score_delta}`], ['created_at', zh ? '待首次接受事件时写入 UTC 时间' : 'UTC time on first acceptance'], ['decay_policy_ref', policy.decay_policy_ref], ['half_life_minutes', policy.decay.half_life_minutes]])}
+        <ScoreTopicHeaders /></div>
     </section>
   </div><NodeCaseExplanation language={language} purpose={node.definition}
     caseSummary={zh ? `这条真实上游账号只提供案例来源；#3009 的起始评分决定及 #3006 的事件发布均未执行。#3006 也可接收以后其他评分规则的决定。` : `The observed upstream account anchors this case. Neither #3009's decision nor #3006's publication has run. #3006 may also accept other scoring rules later.`}
