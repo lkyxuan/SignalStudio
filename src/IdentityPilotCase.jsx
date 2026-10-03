@@ -50,8 +50,8 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
   const identifier = tableRow('asset_identifiers', selected.create_result.asset_id);
   const initialScore = pilot.initial_score_policy;
   const lookupRows = [...Object.entries(selected.lookup_key), ['row_count', selected.lookup_result.row_count],
-    ['asset_id', selected.lookup_result.asset_id]];
-  const output44 = [...accountRows, ['asset_id', null], ['match_status', 'unmatched']];
+    ['asset_id', selected.lookup_result.asset_id], ['asset_name', selected.lookup_result.asset_name]];
+  const output44 = [...accountRows, ['asset_id', null], ['asset_name', null], ['match_status', 'unmatched']];
   return <><Picker index={index} setIndex={setIndex} zh={zh} />
     <div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{step44 ? 2 : 1} {zh ? '个来源' : 'sources'}</span></div>
@@ -70,7 +70,7 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
           <Source source={findNode(graph, IDENTITY_REFS.identifiers)} openNode={openNode} language={language}
             caption={zh ? '规定同一次操作写入 #1002 的标识行：X 用户 ID 指向 #1001 刚创建的同一个 UUIDv7 asset_id。' : 'Specified #1002 identifier row in the same operation: the X ID points to the same UUIDv7 asset_id created in #1001.'} rows={Object.entries(identifier)} />
           <Target target={findNode(graph, 3009)} openNode={openNode} language={language}
-            caption={zh ? '首次建档结果交 #3009 处理起始评分；#3002 本身不生成评分事件。这里是目标交接格式，尚未执行。' : 'Pass the first-creation result to #3009 for initial scoring. #3002 does not generate the score event itself. This is a planned handoff.'} rows={[["asset_id", selected.create_result.asset_id], ["action", "created"]]} />
+            caption={zh ? '首次建档结果交 #3009 处理起始评分；#3002 本身不生成评分事件。这里是目标交接格式，尚未执行。' : 'Pass the first-creation result to #3009 for initial scoring. #3002 does not generate the score event itself. This is a planned handoff.'} rows={[["asset_id", selected.create_result.asset_id], ["asset_name", selected.create_result.asset_name], ["action", "created"]]} />
         </>}
       </section>
     </div>
@@ -98,7 +98,7 @@ export function MatchedIdentityResult({ node, graph, openNode, language }) {
   const selected = pilot.cases[index];
   const account = selected.source_record;
   const existing = selected.repeat_result;
-  const accountRows = [...flattenAccount(account), ['asset_id', existing.asset_id],
+  const accountRows = [...flattenAccount(account), ['asset_id', existing.asset_id], ['asset_name', existing.asset_name],
     ['match_status', existing.match_status], ['identity_status', existing.identity_status]];
   return <><Picker index={index} setIndex={setIndex} zh={zh} />
     <div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
@@ -110,7 +110,7 @@ export function MatchedIdentityResult({ node, graph, openNode, language }) {
         <p className="processing-io-case-caption">{zh ? '规定的命中结果：复用已有映射，并把已有资产交 #3009 检查评分；#3004 不负责加分。项目身份仍待识别。' : 'Specified matched result: reuse the mapping and pass the existing asset to #3009 for score handling. #3004 does not award points.'}</p>
         <Fields rows={accountRows} />
         <Target target={findNode(graph, 3009)} openNode={openNode} language={language}
-          caption={zh ? '已有资产交 #3009 跳过起始加分；当前分留在 #1006，本步骤不查询它。' : 'Pass the existing asset to #3009 to skip the initial award. Its current score stays in #1006 and is not read by this step.'} rows={[["asset_id", existing.asset_id], ["action", "reused"]]} />
+          caption={zh ? '已有资产交 #3009 跳过起始加分；当前分留在 #1006，本步骤不查询它。' : 'Pass the existing asset to #3009 to skip the initial award. Its current score stays in #1006 and is not read by this step.'} rows={[["asset_id", existing.asset_id], ["asset_name", existing.asset_name], ["action", "reused"]]} />
       </section>
     </div>
     <NodeCaseExplanation language={language} purpose={node.definition}

@@ -82,15 +82,17 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 | 07 | `review_id` | TEXT | 是 | 批准记录 ID |
 | 08 | `effective_at` | TEXT | 是 | 生效时间 |
 
+资产交接记录在 `asset_id` 后带 `asset_name`，从 `assets.name` 复制，供展示和调试。评分事件、Redis 和 #1005 保存事件名称快照，重试沿用；#1006 与排名响应沿用最新非空事件名称（created_at 降序，同时间按 event_key 升序），名称缺失不阻塞评分。名称不参与关联、唯一键、去重或评分；旧记录可为空，未匹配资产的名称为 NULL。
+
 ## asset_score_events · 资产评分流水
 
 各评分程序先保存自己的详细判定记录，包含使用的输入、规则版本、关键计算值、触发原因和判定时间；确认加分后，再提交一笔统一的评分贡献事件，最终归档到 #1005。#1005 不复制程序的判定过程或原始数据。`decision_ref` 使用“程序命名空间/记录 ID”定位详细记录；对应记录必须能够持久读取，不能只留下一个无法解析的哈希。规则和证据可从详细记录继续追溯。程序写入失败后可以重试；同一判定对同一资产、同一维度只入账一次，`event_key` 应由这三项稳定生成，数据库另以这三项的组合唯一约束防重。若详细记录与 #1005 分处不同存储，需保证成功保存的判定能可靠重试入账。
 
 `created_at` 在评分事件被系统接受时确定，随同一事件进入 Redpanda；Redis 缓存与 Delta/Parquet 归档沿用该时间，不在归档时重新计时。它表示分数何时进入系统；原始推文的发布时间、爬虫获取时间和程序判定时间保留在上游记录中，用于排查延迟，不作为 #1005 的入账时间。时间流逝本身不新增流水；连续衰减由读取或刷新时按原事件时间折算。明确扣分或纠错可另写负分流水，保留原行。当前没有计算过的贡献案例，程序详细判定表也尚未实现。
 
-#1005 是逻辑流水，不要求评分程序同时写 Redis 和 Parquet。#5001 的 Topic 选择见 [`catalog/score-event-topic-proposal.v1.json`](../catalog/score-event-topic-proposal.v1.json)：fewunderstand 现有宽 Topic 中，`signal.data` 的策略信号与已接受评分账本不同，`indicator.data` 是指标结果，上游数据及元数据 Topic 也不适合承担评分流水的保留和重放。因此只提出一个待评审的宽 Topic 候选 `score.events`，不表示已经注册或创建。沿用 fewunderstand 现有的三个 Headers：`source=signalstudio` 表示 #3006 的逻辑业务来源，不表示已有 SignalStudio 发布进程，`type=score_event` 表示已接受的评分事件家族，`category=asset_score_contribution` 表示逐笔资产评分贡献。三元组合查拟建注册表，映射到 v1 Value 结构、处理程序和目标位置；两个独立 Consumer 各自读到消息后识别并校验，Redpanda 不会在服务端按 Header 筛选。`record_type` 的作用已由 `category` 承担；结构版本是注册表中绑定的 schema 引用，不新增 `schema_version` Header。将来如有不兼容结构，先与 fewunderstand 约定新的可识别注册项。Value.data 与 #1005 均保存完整八项字段，其中 `decay_policy_ref` 和正数 `half_life_minutes` 是逐事件冻结的业务事实；不再增加 `payload_schema` 等重复 Header。当前单 Partition Demo 有意不填 Message Key，Value.data 的 `event_key` 用于逐笔去重；将来扩为多 Partition 且确需同一资产顺序时，再由 fewunderstand 设计稳定的资产 Key。注册表和处理链路仍是设计意图，并无运行事实。
+#1005 是逻辑流水，不要求评分程序同时写 Redis 和 Parquet。#5001 的 Topic 选择见 [`catalog/score-event-topic-proposal.v1.json`](../catalog/score-event-topic-proposal.v1.json)：fewunderstand 现有宽 Topic 中，`signal.data` 的策略信号与已接受评分账本不同，`indicator.data` 是指标结果，上游数据及元数据 Topic 也不适合承担评分流水的保留和重放。因此只提出一个待评审的宽 Topic 候选 `score.events`，不表示已经注册或创建。沿用 fewunderstand 现有的三个 Headers：`source=signalstudio` 表示 #3006 的逻辑业务来源，不表示已有 SignalStudio 发布进程，`type=score_event` 表示已接受的评分事件家族，`category=asset_score_contribution` 表示逐笔资产评分贡献。三元组合查拟建注册表，映射到 v1 Value 结构、处理程序和目标位置；两个独立 Consumer 各自读到消息后识别并校验，Redpanda 不会在服务端按 Header 筛选。`record_type` 的作用已由 `category` 承担；结构版本是注册表中绑定的 schema 引用，不新增 `schema_version` Header。将来如有不兼容结构，先与 fewunderstand 约定新的可识别注册项。Value.data 与 #1005 均保存完整九项字段，其中 `decay_policy_ref` 和正数 `half_life_minutes` 是逐事件冻结的业务事实；不再增加 `payload_schema` 等重复 Header。当前单 Partition Demo 有意不填 Message Key，Value.data 的 `event_key` 用于逐笔去重；将来扩为多 Partition 且确需同一资产顺序时，再由 fewunderstand 设计稳定的资产 Key。注册表和处理链路仍是设计意图，并无运行事实。
 
-规划链路为“#3006 提交评分事件 → #5001 候选 Topic → #3007 与 #3008 两个独立 Consumer Group”：两组各自读取全部事件，读后按 source/type/category 三元组选择处理并校验 Value 结构，不能互相分摊消息。#3007 按 `event_key` 幂等维护 #6001 Redis，成功后提交自己的 offset，再触发 #3005；#3008 按同一 `event_key` 幂等归档完整八个字段到 Delta/Parquet 中的 #1005，持久写入成功后提交自己的 offset。一个组延迟或失败不阻塞另一个，重试沿用 `event_key`、`created_at`、`decay_policy_ref` 和 `half_life_minutes`。#1005 保存原始衰减参数，重放时不依赖当前规则重新赋值；`decision_ref` 继续追溯判定。Topic 必须在归档延迟和约定重放期内保留完整已接受事件，不可压缩掉不同事件；具体保留期和技术实现由 fewunderstand 评审。Redis 丢失时可从仍保留的 Topic 事件或含原始衰减参数的完整归档重建。上述均为设计意图，尚无真实 Topic、消息、Consumer、Redis 投影或归档结果。
+规划链路为“#3006 提交评分事件 → #5001 候选 Topic → #3007 与 #3008 两个独立 Consumer Group”：两组各自读取全部事件，读后按 source/type/category 三元组选择处理并校验 Value 结构，不能互相分摊消息。#3007 按 `event_key` 幂等维护 #6001 Redis，成功后提交自己的 offset，再触发 #3005；#3008 按同一 `event_key` 幂等归档完整九个字段到 Delta/Parquet 中的 #1005，持久写入成功后提交自己的 offset。一个组延迟或失败不阻塞另一个，重试沿用 `event_key`、`created_at`、`decay_policy_ref` 和 `half_life_minutes`。#1005 保存原始衰减参数，重放时不依赖当前规则重新赋值；`decision_ref` 继续追溯判定。Topic 必须在归档延迟和约定重放期内保留完整已接受事件，不可压缩掉不同事件；具体保留期和技术实现由 fewunderstand 评审。Redis 丢失时可从仍保留的 Topic 事件或含原始衰减参数的完整归档重建。上述均为设计意图，尚无真实 Topic、消息、Consumer、Redis 投影或归档结果。
 
 #1005 面板在空原表下方展示同一条 #2030 账号的目标归档行。账号 ID 与名称来自真实 Kaito MCP 返回；内部 `asset_id` 是目标案例值，`event_key` 和 `created_at` 要等首次实际提交才可确定。这个预览不是已归档表行。
 
@@ -101,13 +103,14 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
 | 01 | `asset_id` | TEXT | 是 | 引用 #1001 的资产 ID |
-| 02 | `event_key` | TEXT | 是 | 同一资产、维度、判定的稳定去重键 |
-| 03 | `score_key` | TEXT | 是 | Demo 固定为 `total_heat`；以后新增指标须另行定义口径 |
-| 04 | `decision_ref` | TEXT | 是 | 程序命名空间与详细判定记录 ID |
-| 05 | `score_delta` | REAL | 是 | 本次入账的分数变化量 |
-| 06 | `created_at` | TEXT | 是 | 评分事件被系统接受时确定的入账时间，UTC；缓存和归档沿用 |
-| 07 | `decay_policy_ref` | TEXT | 是 | 该笔事件冻结的衰减规则版本引用；用于校验和追溯 |
-| 08 | `half_life_minutes` | REAL | 是 | 该笔事件冻结的正数半衰期分钟数；起始 +100 为 10080 |
+| 02 | `asset_name` | TEXT | 否 | 随记录传递的资产名称，供展示和调试 |
+| 03 | `event_key` | TEXT | 是 | 同一资产、维度、判定的稳定去重键 |
+| 04 | `score_key` | TEXT | 是 | Demo 固定为 `total_heat`；以后新增指标须另行定义口径 |
+| 05 | `decision_ref` | TEXT | 是 | 程序命名空间与详细判定记录 ID |
+| 06 | `score_delta` | REAL | 是 | 本次入账的分数变化量 |
+| 07 | `created_at` | TEXT | 是 | 评分事件被系统接受时确定的入账时间，UTC；缓存和归档沿用 |
+| 08 | `decay_policy_ref` | TEXT | 是 | 该笔事件冻结的衰减规则版本引用；用于校验和追溯 |
+| 09 | `half_life_minutes` | REAL | 是 | 该笔事件冻结的正数半衰期分钟数；起始 +100 为 10080 |
 
 ## asset_scores_current · 资产当前评分
 
@@ -124,6 +127,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
 | 01 | `asset_id` | TEXT | 是 | 引用 #1001 的资产 ID |
-| 02 | `score_key` | TEXT | 是 | 当前指标的唯一键；本次 Demo 固定为 `total_heat` |
-| 03 | `score_value` | REAL | 是 | 该资产在此指标于 `calculated_at` 时刻的分数；连续衰减指标读取时需折算 |
-| 04 | `calculated_at` | TEXT | 是 | `score_value` 对应的 UTC 时间 |
+| 02 | `asset_name` | TEXT | 否 | 随记录传递的资产名称，供展示和调试 |
+| 03 | `score_key` | TEXT | 是 | 当前指标的唯一键；本次 Demo 固定为 `total_heat` |
+| 04 | `score_value` | REAL | 是 | 该资产在此指标于 `calculated_at` 时刻的分数；连续衰减指标读取时需折算 |
+| 05 | `calculated_at` | TEXT | 是 | `score_value` 对应的 UTC 时间 |

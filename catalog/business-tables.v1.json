@@ -194,6 +194,7 @@
       "storage_plan": {"ingress": "proposed_score_events_topic", "topic_proposal_ref": "score-event-topic-proposal.v1", "archive": "delta_parquet_asset_score_events", "hot_window": "redis_recent_score_events", "fan_out": "independent_consumers", "status": "planned_not_executed"},
       "columns": [
         { "name": "asset_id", "type": "TEXT", "format": "uuidv7", "label_zh": "引用 #1001 的内部资产 ID", "required": true },
+        { "name": "asset_name", "type": "TEXT", "label_zh": "随事件传递的资产名称快照，供展示和调试；不参与主键、去重或计算，旧记录可为空", "required": false },
         { "name": "event_key", "type": "TEXT", "label_zh": "由资产 ID、评分维度和判定记录引用稳定生成的去重键", "required": true },
         { "name": "score_key", "type": "TEXT", "label_zh": "本次加分所属指标；全量热度 Demo 固定为 total_heat，新指标需另行定义", "required": true },
         { "name": "decision_ref", "type": "TEXT", "label_zh": "评分程序命名空间和其详细判定记录 ID；据此查询原始输入、命中原因和规则版本", "required": true },
@@ -204,7 +205,7 @@
       ],
       "primary_key": ["event_key"],
       "unique_keys": [["asset_id", "score_key", "decision_ref"]],
-      "create_sql": "CREATE TABLE asset_score_events (asset_id TEXT NOT NULL REFERENCES assets(asset_id), event_key TEXT PRIMARY KEY, score_key TEXT NOT NULL, decision_ref TEXT NOT NULL, score_delta REAL NOT NULL, created_at TEXT NOT NULL, decay_policy_ref TEXT NOT NULL, half_life_minutes REAL NOT NULL CHECK (half_life_minutes > 0), UNIQUE (asset_id, score_key, decision_ref))",
+      "create_sql": "CREATE TABLE asset_score_events (asset_id TEXT NOT NULL REFERENCES assets(asset_id), asset_name TEXT, event_key TEXT PRIMARY KEY, score_key TEXT NOT NULL, decision_ref TEXT NOT NULL, score_delta REAL NOT NULL, created_at TEXT NOT NULL, decay_policy_ref TEXT NOT NULL, half_life_minutes REAL NOT NULL CHECK (half_life_minutes > 0), UNIQUE (asset_id, score_key, decision_ref))",
       "purpose_en": "Collect deduplicated score contributions from program-owned decision records by asset and score dimension."
     },
     "asset_scores_current": {
@@ -213,12 +214,13 @@
       "storage_plan": {"current_view": "redis_asset_scores_current", "derived_from": "redis_recent_score_events", "status": "planned_not_executed"},
       "columns": [
         { "name": "asset_id", "type": "TEXT", "format": "uuidv7", "label_zh": "引用 #1001 的内部资产 ID", "required": true },
+        { "name": "asset_name", "type": "TEXT", "label_zh": "随评分结果传递的资产名称快照，供展示和调试；旧记录可为空", "required": false },
         { "name": "score_key", "type": "TEXT", "label_zh": "评分指标唯一键；本次 Demo 固定为 total_heat（全量热度）", "required": true },
         { "name": "score_value", "type": "REAL", "label_zh": "该资产在此指标上的当前分数；内部保留计算精度，仅展示保留两位小数", "required": true, "display_decimal_places": 2 },
         { "name": "calculated_at", "type": "TEXT", "label_zh": "score_value 对应的 UTC 时刻；连续指数衰减指标读取时折算到实际查询时刻", "required": true }
       ],
       "primary_key": ["asset_id", "score_key"],
-      "create_sql": "CREATE TABLE asset_scores_current (asset_id TEXT NOT NULL REFERENCES assets(asset_id), score_key TEXT NOT NULL, score_value REAL NOT NULL, calculated_at TEXT NOT NULL, PRIMARY KEY (asset_id, score_key))",
+      "create_sql": "CREATE TABLE asset_scores_current (asset_id TEXT NOT NULL REFERENCES assets(asset_id), asset_name TEXT, score_key TEXT NOT NULL, score_value REAL NOT NULL, calculated_at TEXT NOT NULL, PRIMARY KEY (asset_id, score_key))",
       "purpose_en": "Materialize the latest value of each program-owned score metric for each asset; calculate ranks when querying."
     }
   }

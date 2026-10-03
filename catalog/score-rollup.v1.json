@@ -13,7 +13,7 @@
     {
       "table": "asset_score_events",
       "source_node": "Redis 近期评分窗口",
-      "read_fields": ["asset_id", "score_key", "decision_ref", "score_delta", "created_at", "half_life_minutes"],
+      "read_fields": ["asset_id", "asset_name", "event_key", "score_key", "decision_ref", "score_delta", "created_at", "half_life_minutes"],
       "cache_metadata_fields": [{"name": "decay_policy_ref", "type": "TEXT", "note_zh": "Redis 保留的不可变衰减规则版本引用；来自 #5001 Value.data，定位指数模型并校验 half_life_minutes。#1005 也归档这两个值。", "note_en": "Immutable policy reference from #5001 Value.data; locates the exponential model and validates half_life_minutes. #1005 archives both."}],
       "storage": "redis_recent_score_events",
       "note_zh": "从 Redis 缓存读取受影响资产与维度，不等待 Delta/Parquet 归档；created_at 是衰减时间基准，half_life_minutes 是随事件冻结的参数，decay_policy_ref 定位当时的模型与版本，event_key 用于去重；长期归档保留这两个衰减字段。"
@@ -22,6 +22,7 @@
   "output_table": "asset_scores_current",
   "output_fields": [
     {"name": "asset_id", "rule_zh": "沿用 #1005 的资产 ID", "rule_en": "Reuse the #1005 asset ID"},
+    {"name": "asset_name", "rule_zh": "沿用输入事件的资产名称快照供展示和调试；多笔事件取 created_at 最新且名称非空的一笔，同时间按 event_key 升序；无名称则为空，不阻塞评分", "rule_en": "Carry the name snapshot from the latest named input event by created_at, then event_key ascending on ties; use null if absent and never block scoring"},
     {"name": "score_key", "rule_zh": "Demo 固定为 total_heat；asset_initial_score/v1 是贡献规则，不是单独评分维度", "rule_en": "Use total_heat for this demo; asset_initial_score/v1 identifies a contribution rule, not another score dimension"},
     {"name": "score_value", "rule_zh": "同一资产的 total_heat 原始贡献各按自己的规则衰减后求和", "rule_en": "Sum the asset's total_heat contributions after applying each event's decay policy"},
     {"name": "calculated_at", "rule_zh": "该资产和指标本次计算使用的 UTC 时间", "rule_en": "UTC time used for this asset and metric calculation"}

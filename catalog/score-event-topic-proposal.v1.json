@@ -28,6 +28,7 @@
     "envelope_fields": ["data"],
     "data_fields": [
       {"name": "asset_id", "type": "TEXT", "meaning_zh": "#1001 的内部资产 ID"},
+      {"name": "asset_name", "type": "TEXT", "required": false, "meaning_zh": "交接时从 assets.name 复制的资产名称快照；用于展示和调试，不参与关联、去重或计算；重试沿用，旧记录可缺省"},
       {"name": "event_key", "type": "TEXT", "meaning_zh": "由 asset_id、score_key、decision_ref 稳定生成的逐笔去重键；重试不变"},
       {"name": "score_key", "type": "TEXT", "meaning_zh": "Demo 固定为 total_heat"},
       {"name": "decision_ref", "type": "TEXT", "meaning_zh": "指向可持久查询的详细判定和规则版本"},
@@ -65,7 +66,7 @@
   },
   "consumer_groups": [
     {"card": 3007, "purpose": "redis_score_projection", "group_id_proposal": "signalstudio.score_events.redis_window", "reads": "all_topic_records_independently", "selection": "after_read_exact_header_registry_lookup", "dedupe": "event_key", "retry": "idempotent_redis_write_then_commit_own_offset", "output": "#6001_and_trigger_#3005"},
-    {"card": 3008, "purpose": "delta_parquet_archive", "group_id_proposal": "signalstudio.score_events.delta_archive", "reads": "all_topic_records_independently", "selection": "after_read_exact_header_registry_lookup", "dedupe": "event_key", "retry": "idempotent_durable_archive_write_then_commit_own_offset", "output": "#1005_all_eight_value_data_fields_including_immutable_decay_parameters"}
+    {"card": 3008, "purpose": "delta_parquet_archive", "group_id_proposal": "signalstudio.score_events.delta_archive", "reads": "all_topic_records_independently", "selection": "after_read_exact_header_registry_lookup", "dedupe": "event_key", "retry": "idempotent_durable_archive_write_then_commit_own_offset", "output": "#1005_all_nine_value_data_fields_including_asset_name_and_immutable_decay_parameters"}
   ],
   "replay_requirement": "Each group owns its offset and retries independently. Replay of Redis projection uses retained Topic events or the durable #1005 archive including the original decay_policy_ref and half_life_minutes; decision_ref still locates detailed evidence. Retries must not regenerate event_key, created_at, or the frozen decay parameters. No Topic, consumer, Redis key, or archive row is claimed to exist."
 }

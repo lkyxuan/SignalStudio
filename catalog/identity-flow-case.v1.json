@@ -149,19 +149,22 @@
       "lookup_result": {
         "row_count": 0,
         "asset_id": null,
-        "match_status": "unmatched"
+        "match_status": "unmatched",
+        "asset_name": null
       },
       "create_result": {
         "action": "created",
         "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
         "match_status": "unmatched",
-        "identity_status": "pending_identity"
+        "identity_status": "pending_identity",
+        "asset_name": "Stake | Bonus"
       },
       "repeat_result": {
         "action": "reused",
         "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
         "match_status": "matched",
-        "identity_status": "pending_identity"
+        "identity_status": "pending_identity",
+        "asset_name": "Stake | Bonus"
       }
     },
     {
@@ -194,21 +197,31 @@
       "lookup_result": {
         "row_count": 0,
         "asset_id": null,
-        "match_status": "unmatched"
+        "match_status": "unmatched",
+        "asset_name": null
       },
       "create_result": {
         "action": "created",
         "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
         "match_status": "unmatched",
-        "identity_status": "pending_identity"
+        "identity_status": "pending_identity",
+        "asset_name": "KASUN"
       },
       "repeat_result": {
         "action": "reused",
         "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
         "match_status": "matched",
-        "identity_status": "pending_identity"
+        "identity_status": "pending_identity",
+        "asset_name": "KASUN"
       }
     }
   ],
-  "limits": "Only source_record and #2030 request/response metadata come from an observed Kaito MCP call. Lookup results, #1001/#1002 rows, asset IDs, and repeat outcomes specify required product behavior; they are not executed database results. No Redpanda message, AI identity decision, or approval was observed."
+  "limits": "Only source_record and #2030 request/response metadata come from an observed Kaito MCP call. Lookup results, #1001/#1002 rows, asset IDs, and repeat outcomes specify required product behavior; they are not executed database results. No Redpanda message, AI identity decision, or approval was observed.",
+  "asset_name_policy": {
+    "source": "assets.name",
+    "purpose": "display_and_debug_only",
+    "identity_key": "asset_id",
+    "unmatched_value": null,
+    "event_policy": "Copy the asset name at handoff; freeze the accepted event snapshot on retries and preserve it through Redis and archive. Names never participate in identity, deduplication or score calculation. Legacy records may omit the name."
+  }
 }
