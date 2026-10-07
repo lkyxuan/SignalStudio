@@ -12,6 +12,8 @@ import scoreTopicProposal from '../catalog/score-event-topic-proposal.v1.json';
 import identityPilot from '../catalog/identity-flow-case.v1.json';
 import publicCalls from '../catalog/public-call-examples.json';
 import signalContracts from '../catalog/signal-contracts.v1.json';
+import { ProcessingCardFrame } from './ProcessingCardFrame';
+import { AssetReviewCase } from './AssetReviewCase';
 import './source-case-inspector.css';
 import './processing-io-card.css';
 
@@ -279,7 +281,7 @@ function ScoreEventConsumerCard({ node, graph, openNode, language }) {
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '预期 Topic 事件' : 'Intended Topic event'}</span></div>
         <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '来自' : 'From'}</span><button onClick={() => openNode(topic.id)}>{nodeRef(topic)} {topic.name}</button></div>
           <p className="processing-io-case-caption">{zh ? `以真实上游账号 ${example.selected.source_record.name} 为来源。#5001 还没有实际消息，以下是要被两个独立消费者读取的目标事件。` : `Anchored to the observed upstream account ${example.selected.source_record.name}. #5001 has no actual message; this is the intended event for two independent consumers.`}</p>
-          <CaseRows rows={example.topicRows} /><ScoreTopicHeaders /></div>
+          <p className="processing-io-case-caption">{zh ? '本步骤逐项保存以下九个字段，因此这些字段都属于本步骤使用的输入。' : 'This step persists all nine fields below, so each is a used input.'}</p><CaseRows rows={example.topicRows} /><ScoreTopicHeaders /></div>
       </section>
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '本消费者的目标记录' : 'This consumer’s intended record'}</span></div>
         <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '送往' : 'To'}</span><button onClick={() => openNode(target.id)}>{nodeRef(target)} {target.name}</button></div>
@@ -301,8 +303,8 @@ function MarketTurnoverCaseCard({ node, graph, openNode, language }) {
   return <><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '上游实测值 · Topic 未验证' : 'Observed upstream values · Topic unverified'}</span></div>
       <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '预计来自' : 'Intended source'}</span><button onClick={() => openNode(topic.id)}>{nodeRef(topic)} {topic.name}</button></div>
-        <p className="processing-io-case-caption">{zh ? `CoinGecko 真实 HTTP 调用于 ${coinGeckoCase.observed_at} 返回 1 条；只保存以下 4 个字段。#5002 尚无已验证消息；#3001 实际需要的 id 和 last_updated 不在这条保存的响应中。` : `A real CoinGecko HTTP call at ${coinGeckoCase.observed_at} returned one row. Only these four fields were saved. #5002 has no verified message, and this sample lacks the id and last_updated needed by #3001.`}</p>
-        <CaseRows rows={Object.entries(coinGeckoCase.response)} /></div>
+        <p className="processing-io-case-caption">{zh ? `CoinGecko 真实 HTTP 调用于 ${coinGeckoCase.observed_at} 返回 1 条；保存了 4 个字段，这里只列计算使用的成交额和市值。#5002 尚无已验证消息；#3001 实际需要的 id 和 last_updated 不在这条保存的响应中。` : `A real CoinGecko HTTP call at ${coinGeckoCase.observed_at} returned one row. Four fields were saved; only volume and market cap are used here. #5002 has no verified message, and this sample lacks the id and last_updated needed by #3001.`}</p>
+        <CaseRows rows={Object.entries(coinGeckoCase.response).filter(([name]) => ['total_volume', 'market_cap'].includes(name))} /></div>
     </section>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '手工代入设计规则' : 'Apply the design rule to saved values'}</span></div>
       <div className="processing-input-source"><p className="processing-io-case-caption">{zh ? `成交额/市值 = ${volume} / ${marketCap} = ${ratio.toFixed(5)}，低于设计阈值 ${threshold}。即便补齐身份和时间字段，这条样本也不会触发候选；当前没有程序运行或发出的信号。` : `Volume/market cap = ${volume} / ${marketCap} = ${ratio.toFixed(5)}, below the design threshold ${threshold}. Even with identity and time fields, this sample would not trigger a candidate. No program run or signal emission exists.`}</p>
@@ -315,7 +317,7 @@ function MarketTurnoverCaseCard({ node, graph, openNode, language }) {
     </section>
   </div><NodeCaseExplanation language={language} purpose={node.definition}
     caseSummary={zh ? '这只验证了保存的两个数可以代入公式；没有 #5002 消息、完整必需输入、真实计算运行或候选产出。阈值仍是待验证的设计选择。' : 'Only the saved numbers can be substituted into the formula. There is no #5002 message, complete input, executed calculation, or candidate output. The threshold remains unvalidated.'}
-    recordGuide={zh ? '价格 82917 美元不是这条成交额/市值比公式的输入。请求参数 ids=bitcoin 只能说明查询了什么，不能证明响应中的 data.id。' : 'The $82,917 price is not used in this turnover ratio. The requested ids=bitcoin says what was queried, not what data.id the saved response contained.'} /></>;
+    recordGuide={zh ? '本例只用成交额和市值计算比例，完整响应请查看来源卡片。请求参数 ids=bitcoin 只能说明查询了什么，不能证明响应中的 data.id。' : 'Only volume and market cap are used for this ratio; the full response is on the source card. The requested ids=bitcoin says what was queried, not what data.id the saved response contained.'} /></>;
 }
 
 function InitialScoreCard({ node, graph, openNode, language }) {
@@ -333,11 +335,9 @@ function InitialScoreCard({ node, graph, openNode, language }) {
   const created = selected.create_result;
   const eventFields = [
     ['asset_id', created.asset_id], ['asset_name', created.asset_name],
-    ['event_key', zh ? '待 #3006 按 asset_id + score_key + decision_ref 稳定生成' : 'To be generated by #3006 from asset_id + score_key + decision_ref'],
     ['score_key', policy.input_score_key],
     ['decision_ref', policy.decision_ref_template.replace('{asset_id}', created.asset_id)],
     ['score_delta', `+${policy.score_delta}`],
-    ['created_at', zh ? '待 #3006 首次接受事件时写入 UTC 时间' : 'To be set by #3006 when the event is first accepted'],
     ['decay_policy_ref', policy.decay_policy_ref],
     ['half_life_minutes', policy.decay.half_life_minutes],
   ];
@@ -346,11 +346,6 @@ function InitialScoreCard({ node, graph, openNode, language }) {
       <option value={index} key={item.source_record.id}>{index + 1} · {item.source_record.name} · @{item.source_record.username}</option>)}</select>
   </label><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '两条资产路径汇合' : 'Two asset routes converge'}</span></div>
-      <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '真实上游返回' : 'Observed upstream response'}</span>{link(2030)}</div>
-        <p className="processing-io-case-caption">{zh ? `Kaito MCP 查询 duration=${identityPilot.source.request.duration}，返回 ${identityPilot.source.response_count} 条；这里保存其中 2 条。以下是所选账号的真实字段，仅用于追踪来源；是否加 100 分取决于资产是否首次建档。` : `Kaito MCP returned ${identityPilot.source.response_count} rows for duration=${identityPilot.source.request.duration}; two were saved. These observed fields trace the account. The award depends on first asset creation.`}</p>
-        <dl className="source-case-inspector-fields">{[
-          ['id', account.id], ['name', account.name], ['username', account.username], ['observed_at', identityPilot.source.observed_at],
-        ].map(([name, value], index) => field(name, value, index))}</dl></div>
       <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '新建路径 · 规定交接' : 'Created route · planned handoff'}</span>{link(3002)}</div><p className="processing-io-case-caption">{zh ? '若 #1002 查无这个 X ID，#3002 应先完成 #1001/#1002 建档，再交以下值；这些不是实际写入结果。' : 'If #1002 has no mapping for this X ID, #3002 should create #1001/#1002 records before passing these values. No write has been observed.'}</p>
         <dl className="source-case-inspector-fields">{[['asset_id', created.asset_id], ['asset_name', created.asset_name], ['action', created.action]].map(([name, value], index) => field(name, value, index))}</dl></div>
       <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '已有路径 · 规定交接' : 'Existing route · planned handoff'}</span>{link(3004)}</div><p className="processing-io-case-caption">{zh ? '若这个 X ID 已有映射，#3004 应传原 asset_id 与 action=reused；这一路不重新发起起始加分。尚无实际查表结果。' : 'If this X ID is already mapped, #3004 should pass the existing asset_id and action=reused. No initial award is sent. No table lookup has run.'}</p>
@@ -402,7 +397,14 @@ function ScoreEventPublisherCard({ node, graph, openNode, language }) {
     recordGuide={zh ? 'asset_id 和 decision_ref 是当前案例规定的目标值；event_key 与 created_at 必须在首次实际提交时生成，不能拿 #2030 的采集时间冒充入账时间。' : 'asset_id and decision_ref are planned values. event_key and created_at must be produced on first actual submission; the #2030 observation time is not the score-entry time.'} /></>;
 }
 
-export function ProcessingIOCard({ node, graph, openNode, language, nodeLabel, purpose }) {
+export function ProcessingIOCard(props) {
+  const { node } = props;
+  const content = <ProcessingCardContent key={node.id} {...props} />;
+  if (['Redpanda Topic', 'Redis Window'].includes(node.type) || node.name === scoreRollup.node.name) return content;
+  return <ProcessingCardFrame {...props}>{content}</ProcessingCardFrame>;
+}
+
+function ProcessingCardContent({ node, graph, openNode, language, nodeLabel, purpose }) {
   if (node.type === 'Redpanda Topic') {
     return <RedpandaTopicCard node={node} graph={graph} openNode={openNode} language={language} />;
   }
@@ -414,6 +416,9 @@ export function ProcessingIOCard({ node, graph, openNode, language, nodeLabel, p
   }
   if ([3007, 3008].includes(node.reference_number)) {
     return <ScoreEventConsumerCard node={node} graph={graph} openNode={openNode} language={language} />;
+  }
+  if ([3003, 4002, 4003].includes(node.reference_number)) {
+    return <AssetReviewCase node={node} graph={graph} openNode={openNode} language={language} />;
   }
   if (node.reference_number === 3001) {
     return <MarketTurnoverCaseCard node={node} graph={graph} openNode={openNode} language={language} />;
@@ -461,9 +466,9 @@ export function ProcessingIOCard({ node, graph, openNode, language, nodeLabel, p
   }, [isSmartFollowing]);
   const example = observedCase?.response?.[0];
   const exampleFields = new Map(flattenAccount(example));
-  const caseRows = [...exampleFields, ['asset_id', undefined], ['asset_name', undefined], ['match_status', undefined]];
+  const caseRows = fields.map(field => [field.name, exampleFields.get(field.name.replace(/^data\./, ''))]);
   const caseIsComplete = isSmartFollowing && Boolean(example);
-  const mappingIsComplete = inputFieldCount === exampleFields.size && fields.length === caseRows.length;
+  const mappingIsComplete = inputFieldCount > 0 && inputs.filter(input => input.origin?.name === SMART_FOLLOWING_OPERATION).every(input => input.fields.length > 0 && input.fields.every(field => exampleFields.has(field.name.replace(/^data\./, ''))));
   const caseLabel = example ? `${example.name || example.username || example.id} · ${observedCase.response.length} ${zh ? '条上游返回中的第 1 条' : 'upstream rows, first shown'}` : null;
   const caseField = ([path, value], index) => <div key={path}><dt><span className="source-case-field-number">{String(index + 1).padStart(2, '0')}</span>{zh && (fieldLabels[path] || (path === 'asset_id' ? '资产 ID' : path === 'asset_name' ? '资产名称' : path === 'match_status' ? '匹配状态' : ''))} <code>{path}</code></dt><dd>{(path === 'asset_id' || path === 'asset_name' || path === 'match_status') && value === undefined ? zh ? '未知（尚未查表，非实际结果）' : 'Unknown (no table lookup; not an observed result)' : typeof value === 'string' && /^https:\/\//.test(value) ? <a href={value} target="_blank" rel="noopener noreferrer">{value}</a> : displayCaseValue(value)}</dd></div>;
   if (caseIsComplete) return <><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
@@ -475,7 +480,7 @@ export function ProcessingIOCard({ node, graph, openNode, language, nodeLabel, p
         return <div className="processing-input-source" key={edge.id}>
           <div className="processing-input-source-heading"><span>{zh ? '来自' : 'From'}</span><button onClick={() => source && openNode(source.id)}>{nodeRef(source)} {sourceName}</button></div>
           {isObservedSource ? <><p className="processing-io-case-caption">{caseLabel} · {zh ? '真实上游返回；#4001 尚无实际消费记录。' : 'Observed upstream response; #4001 has no observed consumed record.'}</p>
-            <dl className="source-case-inspector-fields">{[...exampleFields].map(caseField)}</dl></>
+            <dl className="source-case-inspector-fields">{inputFields.map(field => [field.name, exampleFields.get(field.name.replace(/^data\./, ''))]).map(caseField)}</dl></>
             : isIdentifierTable ? <><p className="processing-io-case-caption">{zh ? '规划读取 asset_identifiers；查询方式和真实表行仍待确认。' : 'Planned asset_identifiers read; lookup method and actual table rows remain unverified.'}</p>
               <dl className="source-case-inspector-fields">
                 <div><dt><span className="source-case-field-number">01</span>{zh ? '候选查询值' : 'Candidate lookup value'} <code>data.id</code></dt><dd>{displayCaseValue(example.id)}</dd></div>
@@ -489,13 +494,13 @@ export function ProcessingIOCard({ node, graph, openNode, language, nodeLabel, p
       })}
     </section>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{caseRows.length} {zh ? '个字段 · 规则示意' : 'fields · illustration'}</span></div>
-      <p className="processing-io-case-caption">{zh ? '输出结构示意：保留账号字段，并增加 asset_id、asset_name 和 match_status。精确匹配到已有资产时才填 asset_id；当前没有实际查表结果。' : 'Output shape only: preserve account fields and add asset_id, asset_name and match_status. Fill asset_id only after an exact existing-asset match; no table result is observed.'}</p>
+      <p className="processing-io-case-caption">{zh ? '输出结构示意：仅列本步骤声明的输出字段。精确匹配到已有资产时才填 asset_id；当前没有实际查表结果。' : 'Output illustration: only fields declared by this step are listed. Fill asset_id only after an exact existing-asset match; no table result is observed.'}</p>
       <dl className="source-case-inspector-fields">{caseRows.map(caseField)}</dl>
       {!mappingIsComplete && <p className="processing-io-case-note">{zh ? '当前案例字段与图中的字段映射数量不一致；请检查消息与 #4001 定义。' : 'The case fields and saved graph mappings differ; review the message and #4001 definition.'}</p>}
     </section>
   </div><NodeCaseExplanation language={language} purpose={purpose || node.definition}
     caseSummary={zh ? `这里展示 #2030 返回的第 1 条账号记录（${example.name || example.username || example.id}）。#4001 尚无实际消费、查表或处理结果；右侧输出只是结构示意。` : `The first #2030 account row (${example.name || example.username || example.id}) is shown. #4001 has no observed consumption, table lookup, or processed result; the output is a shape illustration.`}
-    recordGuide={zh ? `前 ${exampleFields.size} 项是上游账号字段；末尾的 asset_id、asset_name 和 match_status 是拟输出字段，当前都没有实际匹配结果。` : `The first ${exampleFields.size} fields come from the upstream account. asset_id, asset_name and match_status are planned output fields with no observed match yet.`} /></>;
+    recordGuide={zh ? '仅展示声明的输入与输出字段；完整账号记录请到来源卡片查看。当前没有实际匹配结果。' : 'Only declared input and output fields are shown; open the source card for the full account. No actual match has been observed.'} /></>;
   const plannedValue = field => field.example_value || (zh ? '尚无实际处理结果' : 'No observed processed result');
   return <><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{inputs.length} {zh ? '个来源' : 'sources'}</span></div>

@@ -96,3 +96,8 @@
 .score-rollup-numeric-case h4{color:#37766e;font-size:12px;margin:18px 0 8px}
 .score-rollup-numeric-case .business-table-schema-scroll{max-width:100%;margin:8px 0}
 .score-rollup-numeric-case li{font-size:11px;line-height:1.8;overflow-wrap:anywhere}
+
+.processing-source-links{margin:16px 0;flex-wrap:wrap}
+.processing-card-frame,.processing-review-case{min-width:0}
+.processing-card-frame .business-table-raw,.score-rollup-numeric-case .business-table-raw{border-collapse:collapse;min-width:100%;font-size:11px}
+.processing-card-frame .business-table-raw th,.processing-card-frame .business-table-raw td,.score-rollup-numeric-case .business-table-raw th,.score-rollup-numeric-case .business-table-raw td{padding:9px 11px;border-bottom:1px solid #edf1f2;text-align:left;vertical-align:top;white-space:nowrap}

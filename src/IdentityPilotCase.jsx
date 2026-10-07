@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import pilot from '../catalog/identity-flow-case.v1.json';
-import { flattenAccount, displayCaseValue } from './smartFollowingCase';
+import { displayCaseValue } from './smartFollowingCase';
 import { NodeCaseExplanation } from './ProcessingIOCard';
 import { nodeRef, IDENTITY_REFS } from './graphRefs';
 import './source-case-inspector.css';
@@ -13,9 +13,7 @@ const tableRow = (table, assetId) => pilot.tables[table].rows.find(row => row.as
 function Fields({ rows }) {
   return <dl className="source-case-inspector-fields">{rows.map(([name, value], index) =>
     <div key={name}><dt><span className="source-case-field-number">{NUMBER(index)}</span><code>{name}</code></dt>
-      <dd>{value && typeof value === 'object' && !Array.isArray(value)
-        ? <details className="identity-nested-record"><summary>{flattenAccount(value).length} 个原始字段</summary><Fields rows={flattenAccount(value)} /></details>
-        : typeof value === 'string' && value.startsWith('https://') ? <a href={value} target="_blank" rel="noopener noreferrer">{value}</a> : displayCaseValue(value)}</dd></div>)}</dl>;
+      <dd>{typeof value === 'string' && value.startsWith('https://') ? <a href={value} target="_blank" rel="noopener noreferrer">{value}</a> : displayCaseValue(value)}</dd></div>)}</dl>;
 }
 
 function Picker({ index, setIndex, zh }) {
@@ -44,7 +42,7 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
   const [index, setIndex] = useState(0);
   const selected = pilot.cases[index];
   const record = selected.source_record;
-  const accountRows = flattenAccount(record);
+  const accountRows = [['id', record.id], ['name', record.name]];
   const step44 = node.reference_number === IDENTITY_REFS.lookup;
   const asset = tableRow('assets', selected.create_result.asset_id);
   const identifier = tableRow('asset_identifiers', selected.create_result.asset_id);
@@ -61,7 +59,7 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
           <Source source={findNode(graph, IDENTITY_REFS.identifiers)} openNode={openNode} language={language}
             caption={zh ? '此案例设定 #1002 暂无该 X ID；0 行是判断分支的预期查表结果，尚未连接后台表。' : 'This case assumes #1002 has no such X ID. Zero rows specifies the expected lookup result; no backend table is connected.'} rows={lookupRows} />
         </> : <Source source={findNode(graph, IDENTITY_REFS.lookup)} openNode={openNode} language={language}
-          caption={zh ? `#4001 对真实账号 ${record.name} 的未命中分支，以下是规定的输入格式。` : `The unmatched branch for real account ${record.name}; this specifies its input format.`} rows={output44} />}
+          caption={zh ? `#4001 对真实账号 ${record.name} 的未命中分支，以下是规定的输入格式。` : `The unmatched branch for real account ${record.name}; this specifies its input format.`} rows={[...accountRows, ['match_status', 'unmatched']]} />}
       </section>
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '规定的目标结果' : 'Specified target result'}</span></div>
         {step44 ? <><p className="processing-io-case-caption">{zh ? '若 X ID 未命中，asset_id 为空，转 #3002；同一账号后续再进入时，应走 #3004 命中分支。' : 'If the X ID is missing, asset_id is empty and the row goes to #3002. A later pass of the same account should follow #3004.'}</p><Fields rows={output44} /></> : <>
@@ -86,9 +84,9 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
         : `按此规则，#3002 应给 ${record.name} 建立 ${asset.asset_id}、写入 #1002，再交 #3009 判断起始 ${initialScore.score_delta} 分；再次收到这个 X ID，应复用原 ID。这里展示的是目标结果。`
         : step44 ? `The observed account ${record.name} supplies input. A missing X ID should route to #3002; later passes should reuse the asset ID. Table operations have not run.` : `#3002 should create ${asset.asset_id} and its X mapping. A later pass should reuse that ID; these are specified outcomes.`}
       recordGuide={zh ? step44
-        ? '首次输出保留账号字段，asset_id 为 NULL；已有映射才返回内部 asset_id，项目名可能仍未知。'
+        ? '这里只展示外部 ID、供后续建档使用的名称与匹配结果，透传的其他账号字段去来源卡片查看；未命中时 asset_id 为 NULL；已有映射才返回内部 asset_id，项目名可能仍未知。'
         : 'asset_id 是内部主键；name 暂用 X 名称，pending_identity 表示尚未确认它代表哪个对象。#3002 只交付新建事实；#3009 再决定是否发起始评分。'
-        : step44 ? 'The first output keeps the account row with no asset_id; a repeat can reuse a pending internal ID.' : 'asset_id is the stable internal key; name uses the X label provisionally, pending_identity means the represented object is unresolved, and #1002 stores only the external-to-internal ID mapping.'} />
+        : step44 ? 'This view shows the external ID, provisional name and match result; other pass-through fields belong on the source card. The first output has no asset_id; a repeat can reuse a pending internal ID.' : 'asset_id is the stable internal key; name uses the X label provisionally, pending_identity means the represented object is unresolved, and #1002 stores only the external-to-internal ID mapping.'} />
   </>;
 }
 
@@ -98,8 +96,8 @@ export function MatchedIdentityResult({ node, graph, openNode, language }) {
   const selected = pilot.cases[index];
   const account = selected.source_record;
   const existing = selected.repeat_result;
-  const accountRows = [...flattenAccount(account), ['asset_id', existing.asset_id], ['asset_name', existing.asset_name],
-    ['match_status', existing.match_status], ['identity_status', existing.identity_status]];
+  const accountRows = [ ['asset_id', existing.asset_id], ['asset_name', existing.asset_name],
+    ['match_status', existing.match_status]];
   return <><Picker index={index} setIndex={setIndex} zh={zh} />
     <div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '同一账号再次送入' : 'Same account, second pass'}</span></div>
