@@ -148,7 +148,6 @@ function RedisWindowCard({ node, graph, language }) {
 
 // Presentation subset only; the execution contract retains validation and deduplication fields.
 const scoreRollupVisibleInputs = {
-  assets: ['asset_id', 'name'],
   asset_score_events: ['asset_id', 'asset_name', 'score_delta', 'created_at', 'half_life_minutes'],
 };
 
@@ -156,7 +155,6 @@ function ScoreRollupNumericCase({ language, graph, openNode }) {
   const zh = language === 'zh-CN';
   const assumptions = tableCases.score_case_assumptions;
   const policy = identityPilot.initial_score_policy.decay_policy_ref;
-  const assets = assumptions.events.map(({ asset_id, asset_name }) => ({ asset_id, name: asset_name }));
   const events = assumptions.events.map(event => ({
     asset_id: event.asset_id, asset_name: event.asset_name,
     event_key: `case:initial:${event.asset_id}`, score_key: 'total_heat',
@@ -168,28 +166,25 @@ function ScoreRollupNumericCase({ language, graph, openNode }) {
     const minutes = Math.max(0, (Date.parse(assumptions.calculated_at) - Date.parse(event.created_at)) / 60000);
     return { ...event, minutes, value: event.score_delta * 2 ** (-minutes / event.half_life_minutes) };
   });
-  const results = assets.map(asset => ({
-    asset_id: asset.asset_id,
-    asset_name: events.find(event => event.asset_id === asset.asset_id)?.asset_name ?? null,
+  const results = [...new Set(events.map(event => event.asset_id))].map(assetId => ({
+    asset_id: assetId,
+    asset_name: events.find(event => event.asset_id === assetId)?.asset_name ?? null,
     score_key: 'total_heat',
-    score_value: calculations.filter(event => event.asset_id === asset.asset_id).reduce((sum, event) => sum + event.value, 0),
+    score_value: calculations.filter(event => event.asset_id === assetId).reduce((sum, event) => sum + event.value, 0),
     calculated_at: assumptions.calculated_at,
   }));
-  const assetTable = { ...businessTables.tables.assets, columns: businessTables.tables.assets.columns.filter(column => scoreRollupVisibleInputs.assets.includes(column.name)) };
   const eventTable = {
     ...businessTables.tables.asset_score_events,
     columns: businessTables.tables.asset_score_events.columns.filter(column => scoreRollupVisibleInputs.asset_score_events.includes(column.name)),
   };
   return <section className="processing-goal-readonly score-rollup-numeric-case">
-    <h3>{zh ? '数值案例 · 两张输入表 → 一张结果表' : 'Numeric case · two input tables → one result table'}</h3>
-    <p>{zh ? '沿用 #1006 的同一组五个案例。以下资产记录、评分事件和时间均为演算假设，不是后台采集记录；目前只有独立的 #1006 真实结果快照，尚无配套的 #6001 原始事件快照。' : 'The same five cases shown in #1006. Asset rows, events and times are illustrative assumptions, not collected records. A separate actual #1006 snapshot exists, but no paired #6001 event snapshot is available.'}</p>
+    <h3>{zh ? '数值案例 · 评分事件 → 资产得分' : 'Numeric case · score events → asset scores'}</h3>
+    <p>{zh ? '沿用 #1006 的同一组五个案例。以下评分事件和时间均为演算假设，不是后台采集记录；目前只有独立的 #1006 真实结果快照，尚无配套的 #6001 原始事件快照。' : 'The same five cases shown in #1006. Events and times are illustrative assumptions, not collected records. A separate actual #1006 snapshot exists, but no paired #6001 event snapshot is available.'}</p>
     <p>{zh ? '本例评分维度 score_key：total_heat；统一计算时刻 calculated_at：' : 'Case score_key: total_heat; common calculated_at: '}<code>{assumptions.calculated_at}</code></p>
-    <h4>{zh ? '输入表一 · #1001 资产（本步骤读取的两列）' : 'Input table 1 · #1001 assets (two selected columns)'}</h4>
-    <BusinessTableRows table={assetTable} rows={assets} language={language} />
-    <h4>{zh ? '输入表二 · #6001 评分事件（计算与输出使用的五列）' : 'Input table 2 · #6001 score events (five columns used for calculation and output)'}</h4>
+    <h4>{zh ? '输入表 · #6001 评分事件（计算与输出使用的五列）' : 'Input table · #6001 score events (five columns used for calculation and output)'}</h4>
     <BusinessTableRows table={eventTable} rows={events} language={language} />
-    <p>{zh ? '按 asset_id 对应两张表。本例每个资产只有一笔 +100，半衰期均为 10080 分钟；名称和时间可以逐行对照。' : 'Match both tables by asset_id. Each asset has one +100 contribution with a 10,080-minute half-life; compare names and times row by row.'}</p>
-    <div className="processing-input-source-heading"><span>{zh ? '查看来源卡片的完整字段：' : 'Full fields on source cards: '}</span>{[1001, 6001].map(ref => {
+    <p>{zh ? '直接按事件自带的 asset_id 分组。本例每个资产只有一笔 +100，半衰期均为 10080 分钟；名称和时间可以逐行对照。' : 'Group events by their existing asset_id. Each asset has one +100 contribution with a 10,080-minute half-life; compare names and times row by row.'}</p>
+    <div className="processing-input-source-heading"><span>{zh ? '查看来源卡片的完整字段：' : 'Full fields on source cards: '}</span>{[6001].map(ref => {
       const source = graph.nodes.find(item => item.reference_number === ref);
       return source && <button key={ref} onClick={() => openNode(source.id)}>#{ref} {displayNodeName(language, source.name)}</button>;
     })}</div>
@@ -197,7 +192,7 @@ function ScoreRollupNumericCase({ language, graph, openNode }) {
     <ul>{calculations.map(event => <li key={event.event_key}>{event.asset_name}: +{event.score_delta} → {event.minutes} {zh ? '分钟' : 'minutes'} → {event.value.toFixed(2)}</li>)}</ul>
     <h4>{zh ? '输出表 · #1006 当前资产评分' : 'Output table · #1006 current asset scores'}</h4>
     <BusinessTableRows table={businessTables.tables.asset_scores_current} rows={results} language={language} />
-    <p>{zh ? '例如 Ethereum：从 10 月 8 日到 10 月 15 日经过 10080 分钟，原始 100 分剩下一半，因此输出 50.00；Solana 经过两个半衰期，输出 25.00。本例没有多笔贡献；若有，则分别衰减后相加，无事件的资产输出 0.00。' : 'Ethereum: October 8 to October 15 is 10,080 minutes, so its original 100 points halve to 50.00. Solana has elapsed two half-lives and yields 25.00. This case has one event per asset; multiple events would decay separately and then sum, while assets without events receive 0.00.'}</p>
+    <p>{zh ? '例如 Ethereum：从 10 月 8 日到 10 月 15 日经过 10080 分钟，原始 100 分剩下一半，因此输出 50.00；Solana 经过两个半衰期，输出 25.00。本例没有多笔贡献；若有，则分别衰减后相加，无事件的资产不生成结果。' : 'Ethereum: October 8 to October 15 is 10,080 minutes, so its original 100 points halve to 50.00. Solana has elapsed two half-lives and yields 25.00. This case has one event per asset; multiple events would decay separately and then sum, while assets without events produce no result.'}</p>
   </section>;
 }
 
@@ -209,7 +204,7 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
   const outputColumns = businessTables.tables[scoreRollup.output_table].columns;
   return <><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
     <section className="source-case-inspector-section">
-      <div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{scoreRollup.inputs.length} {zh ? '项输入 · 资产与评分事件' : 'inputs · assets and score events'}</span></div>
+      <div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{scoreRollup.inputs.length} {zh ? '项输入 · 评分事件' : 'inputs · score events'}</span></div>
       {scoreRollup.inputs.map(input => {
         const source = graph.nodes.find(item => item.name === (input.source_node || input.table));
         const columns = businessTables.tables[input.table].columns;
@@ -233,17 +228,17 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
       })}</dl>
     </section>
   </div><ScoreRollupNumericCase language={language} graph={graph} openNode={openNode} /><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '运行触发' : 'Execution trigger'}>
-    <h3>{zh ? '当前实现 · 运行触发' : 'Current implementation · execution trigger'}</h3>
+    <h3>{zh ? '运行触发与计算范围' : 'Execution trigger and calculation scope'}</h3>
     <CaseRows rows={[
       [zh ? '触发方式' : 'Trigger', zh ? '定时执行' : 'Scheduled'],
       [zh ? '执行频率' : 'Frequency', zh ? `每 ${scoreRollup.configuration.schedule.interval_seconds} 秒一轮` : `Every ${scoreRollup.configuration.schedule.interval_seconds} seconds`],
-      [zh ? '计算范围' : 'Scope', zh ? '#1001 全部已登记资产（含待确认身份、无评分事件的资产）' : 'All #1001 registered assets, including pending identities and zero-event assets'],
+      [zh ? '计算范围' : 'Scope', zh ? '#6001 中有 total_heat 评分事件的资产；按已有 asset_id 分组' : 'Assets with total_heat events in #6001, grouped by existing asset_id'],
       [zh ? '计算时刻' : 'Calculation time', zh ? '本轮所有资产使用同一个 UTC 时刻' : 'One UTC instant for every asset in this cycle'],
-      [zh ? '写入结果' : 'Output', zh ? '#1006 · total_heat 当前分；无贡献写 0' : '#1006 · current total_heat; zero when no contributions exist'],
+      [zh ? '写入结果' : 'Output', zh ? '#1006 · 有事件资产的 total_heat 当前分；不补零' : '#1006 · current total_heat for event assets; no zero filling'],
       [zh ? '新事件' : 'New events', zh ? '进入 #6001 后由后续定时轮次计入' : 'Included in a scheduled cycle after reaching #6001'],
     ]} />
     <p>{zh ? '没有新事件也会重算衰减；打开页面不触发这项定时任务。' : 'Decay is recalculated even without new events. Opening the page does not trigger this job.'}</p>
-    <p>{zh ? '设计已定义；fewunderstand 代码也配置为每分钟。线上调度是否持续正常运行，仍需运行记录核验。' : 'Defined in the design and configured every minute in fewunderstand code. Continuous runtime health still requires execution evidence.'}</p>
+    <p>{zh ? '每分钟调度已有 fewunderstand 代码参考；仅按事件资产计算是本次更新的目标，后端仍待同步。线上持续运行仍需核验。' : 'A minute scheduler exists in the implementation reference; event-only scope is the updated target and awaits backend alignment. Continuous runtime health remains unverified.'}</p>
     <details className="processing-technical"><summary>{zh ? '定义与实现依据' : 'Design and implementation references'}</summary>
       <p><code>catalog/score-rollup.v1.json → configuration.schedule</code></p>
       <p><code>{scoreRollup.implementation_reference.schedule_file} → serve()</code></p>
@@ -264,7 +259,7 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
   </section><section className="processing-goal-readonly execution-trigger">
     <h3>{zh ? '算法说明 · 用自然语言读公式' : 'Algorithm · the formula in plain language'}</h3>
     <p>{zh ? '先固定本轮的计算时刻，按 asset_id 找到每个资产的所有 total_heat 事件，并按 event_key 去重。对每笔事件，计算从原始入账时间到本轮时刻经过了多少分钟，再用这段时间除以该笔事件的半衰期，得到经过了几个半衰期。每经过一个半衰期，原始贡献就剩下一半；不足一个周期也连续衰减，不等到整天才扣分。若入账时间晚于计算时刻，经过时间按零处理。' : 'Fix one calculation time, match each asset’s total_heat events by asset_id and deduplicate by event_key. Divide elapsed minutes since original entry by that event’s half-life. Each full half-life halves the original contribution; fractional periods decay continuously. Future entry times use zero elapsed minutes.'}</p>
-    <p>{zh ? '把同一资产各笔剩余贡献相加，得到当前分；没有事件就记零。半衰期和规则版本沿用原事件参数，计算时校验，不拿上一轮合计分代替原始明细。结果保存同一个 calculated_at，内部保留完整精度，界面显示两位小数；时间经过本身不产生新的负分事件。' : 'Sum the remaining contributions for each asset, or write zero if none exist. Validate and retain each event’s frozen half-life and rule version; do not replace original events with the previous total. Save the common calculated_at and full precision; display two decimals. Time passing creates no negative score event.'}</p>
+    <p>{zh ? '把同一资产各笔剩余贡献相加，得到当前分；没有事件的资产不生成结果；有事件但合计为零仍保存。半衰期和规则版本沿用原事件参数，计算时校验，不拿上一轮合计分代替原始明细。结果保存同一个 calculated_at，内部保留完整精度，界面显示两位小数；时间经过本身不产生新的负分事件。' : 'Sum the remaining contributions for each asset, produce no result for assets without events, and retain zero totals when events exist. Validate and retain each event’s frozen half-life and rule version; do not replace original events with the previous total. Save the common calculated_at and full precision; display two decimals. Time passing creates no negative score event.'}</p>
   </section></>;
 }
 

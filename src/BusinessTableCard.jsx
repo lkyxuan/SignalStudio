@@ -67,7 +67,7 @@ export function BusinessTableCard({ node, language }) {
           <dt><span className="source-case-field-number">{number(index)}</span><code>{name}</code></dt><dd>{value}</dd>
         </div>)}</dl>
       </div>}
-      {scoreAssumptions && <p>{zh ? `更新来源：#3005 · 每 ${scoreRollup.configuration.schedule.interval_seconds} 秒重算全部已登记资产。这里的固定快照按取样与 Git 同步更新。` : `Updated by #3005 every ${scoreRollup.configuration.schedule.interval_seconds} seconds for all registered assets. This fixed snapshot changes through sampling and Git synchronization.`}</p>}
+      {scoreAssumptions && <p>{zh ? `更新来源：#3005 · 每 ${scoreRollup.configuration.schedule.interval_seconds} 秒重算 #6001 中有评分事件的资产。这里的固定快照按取样与 Git 同步更新。` : `Updated by #3005 every ${scoreRollup.configuration.schedule.interval_seconds} seconds for assets with score events in #6001. This fixed snapshot changes through sampling and Git synchronization.`}</p>}
       {node.name === 'asset_scores_current' && <TableBackfillCard table={table} language={language} />}
       <details className="business-table-technical"><summary>{zh ? '其他设置 · 字段说明' : 'Other settings · field definitions'}</summary>
         <div className="business-table-schema-scroll"><table>

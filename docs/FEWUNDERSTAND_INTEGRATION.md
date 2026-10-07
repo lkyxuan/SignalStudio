@@ -135,3 +135,5 @@ Cloudflare 也可承载整套服务：Workers/静态资源托管 + D1。D1 提�
 fewunderstand 的 `common/asset_score/redis_projection.py` 定义默认前缀 `fu:asset_heat:v1`，通过 `:active` 选择 generation，再读取 `{prefix}:{generation}:events` hash。实际取样应沿用已配置前缀，记录环境、采样时间、真实键、generation 和 event_key，并保存事件的 asset_id、score_key、decision_ref、score_delta、created_at、decay_policy_ref、half_life_minutes。其当前事件契约不含 asset_name；若 Studio 展示名称，应标注关联自资产表或为空，不能声称原事件自带名称。代码布局不证明某环境已有具体 Redis 行。
 
 下一步若扩展 #6001，可新增事件快照校验/展示和 Git 同步文件，由 fewunderstand Agent 只读取样后回填。不能从 #1006 合计分反推原事件，也不能为补展示案例向来源 Redis 直接注入评分事件。本轮只实现 #3005 触发定义与展示，未写入 Redis 或扩展 #6001 接口。
+
+2026-10-08 评分范围更新：用户已明确取消 #3005 的 #1001 读取及无评分事件资产补零。实施时以 `catalog/score-rollup.v1.json` 的最新 `configuration.asset_scope` 和 `implementation_request` 为准，只从 #6001 的 total_heat 事件得到资产集合并计算；空集合不产生结果，有事件但合计为 0 仍保存。保留既有每分钟衰减和待实现的事件触发要求。旧实现和历史结果快照不代表这个新范围已上线；Studio 本轮只同步定义、图和案例。
