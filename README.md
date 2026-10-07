@@ -1,5 +1,7 @@
 # SignalStudio
 
+**English** | [Chinese](README.zh-CN.md)
+
 A local-first design workspace for the definitions, formulas, reasons, caveats and dependencies behind a data product.
 
 ## Run
@@ -32,14 +34,14 @@ Then open [http://127.0.0.1:8787](http://127.0.0.1:8787).
 - Signal-first planning: create a signal node, describe each input data need and its expected example, then match a crawler field when one exists. Unmatched needs remain visible on the graph and can be copied as a request for the crawler team. Matching a field creates the Source, connection, and field usage while retaining the original need.
 - A signal design guide in each signal node keeps the decision question, observation window, calculation, trigger rule, output contract, validation plan, and recorded observations together. Its checklist counts documented design elements; it does not claim the signal works until real data has been evaluated.
 - Per-operation field catalogs backed by `catalog/source-contracts.v1.json`. The contract defines 8 upstream sources, 36 operations, 2 Kaito MCP reference resources, and currently 265 field entries selected from official references and saved API/MCP responses. Each operation and reference resource has its own Source node. Sample paths are lower bounds or planned selections, never proof of exhaustive output or live crawler emission.
-- The **字段用途与案例** view reads the same app-owned contract as the field picker and source-node details. It shows each field's original path, purpose, evidence class, and labeled example value. The legacy V2 record-type directory is no longer loaded by the product.
+- The **Field guide and examples** view reads the same app-owned contract as the field picker and source-node details. It shows each field's original path, purpose, evidence class, and labeled example value. The legacy V2 record-type directory is no longer loaded by the product.
 - The [source field audit](docs/SOURCE_FIELD_AUDIT.md) tracks all eight upstreams against their documentation and pinned crawler code. The [source input audit](docs/SOURCE_INPUT_AUDIT.md) lists required and optional call parameters for every upstream operation, with unknown contracts marked explicitly. The [Few Understand integration contract](docs/FEWUNDERSTAND_INTEGRATION.md) specifies how that crawler project should consume the app-owned contract and report implementation evidence back. Each source node shows its input and output evidence. The saved DEX Screener response expands one `pairs[0]` object into individual cards; it is an upstream sample, not evidence of a crawler message.
 - User-created output fields can specify a unit, numeric range, and calculation or normalization rule. Catalog examples come only from labeled API responses, upstream test fixtures, or reviewed v2 illustrations; the app does not invent values at runtime.
 - Field-level connection mappings and transformation explanations showing which inputs produce a downstream output.
 - An input/output summary on each node: incoming fields are grouped by upstream connection, while output fields belong to the node. Field name, type, and optional example value are visible together. Click an input source to inspect its connection, or an output field to see its direct downstream field mappings.
 - Per-connection transport metadata. Mark a connection as direct or Redpanda; Redpanda connections record topic, message key, payload schema reference and named headers. Existing connections remain unspecified until reviewed.
 - Graph, table and editable detail panel over the same persisted model.
-- One-click node arrangement by dependency. Use **整理节点** in the graph toolbar to space out cards, fit the view, and save their positions.
+- One-click node arrangement by dependency. Use **Arrange nodes** in the graph toolbar to space out cards, fit the view, and save their positions.
 - Upstream, downstream, impact and bounded context service operations.
 - Validated node and edge writes, cycle prevention, and an append-only change log.
 - A natural-language draft flow for creating nodes with named dependencies. With `OPENAI_API_KEY` configured, it uses the OpenAI Responses API with a strict JSON schema. Without a key, a limited local parser keeps the MVP usable. Both paths require confirmation before applying changes.
@@ -50,7 +52,7 @@ The architectural decisions and staged implementation plan are in [docs/IMPLEMEN
 
 The app-owned source contract is the product baseline for desired upstream inputs, not proof of crawled business records. Open supplier objects may contain more keys than the saved samples show. Few Understand should implement this contract and report actual run evidence separately. On startup, unused V2 record-type nodes are retired; the migration refuses to discard a node with a design connection or matched data need. Once those nodes are retired, a one-time migration makes surviving node references consecutive while preserving their internal IDs and graph data. Later deletions do not reuse numbers. When changing the upstream contract, regenerate and review its revision before providing it to Few Understand.
 
-To design a new signal, create a Metric or Score node and define the result in its inspector. Under **需要的数据**, list the inputs needed to produce it. Use **去爬虫里找** to search the bundled crawler fields and match one to the need. Keep any unmatched needs as the working backlog for crawler updates; the expandable brief is a draft to copy and discuss, not an automatic request or data collection job.
+To design a new signal, create a Metric or Score node and define the result in its inspector. Under **Data needed**, list the inputs needed to produce it. Use **Find in crawler** to search the bundled crawler fields and match one to the need. Keep any unmatched needs as the working backlog for crawler updates; the expandable brief is a draft to copy and discuss, not an automatic request or data collection job.
 
 The signal inspector now follows four questions: **what should this signal tell us**, **which data does it need**, **how is it calculated and interpreted**, and **how will we test it**. Recording a test plan and observations is a design aid; this application does not compute or backtest the signal yet.
 
