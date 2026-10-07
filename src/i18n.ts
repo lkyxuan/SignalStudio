@@ -341,6 +341,8 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  if (name === 'supabase_asset_scores') return language === 'zh-CN' ? 'Supabase 资产得分表' : 'Supabase asset scores';
+  if (name === '同步资产得分到 Supabase') return language === 'zh-CN' ? name : 'Sync asset scores to Supabase';
   return language === 'zh-CN' && (name === 'Asset Registry' || name === 'Rule Registry' || name === 'Bind source asset' || name === 'Look up related assets' || name === 'Evaluate monitoring rules') ? zh[name] || name : name;
 }
 

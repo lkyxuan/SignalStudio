@@ -1,0 +1,99 @@
+{
+  "version": "supabase-score-sync.v1",
+  "status": "design_not_implemented",
+  "node": {
+    "name": "同步资产得分到 Supabase",
+    "type": "Flow Result",
+    "workflow_lane": "shared",
+    "definition": "读取 #1006 的得分变更，按资产和评分维度合并，仅把最新版本同步到 Supabase。覆盖所有有评分记录的资产，不写排名，不重新评分。尚未部署。",
+    "formula": "同一资产和评分维度在固定窗口内只保留最新来源版本；到期批量写入 Supabase，新版本才能覆盖旧版本。失败保留待同步状态并重试。"
+  },
+  "source_table": "asset_scores_current",
+  "target_table": "supabase_asset_scores",
+  "input_fields": [
+    "asset_id",
+    "asset_name",
+    "score_key",
+    "score_value",
+    "calculated_at"
+  ],
+  "configuration": {
+    "scope": "all_assets_with_score_records",
+    "key": [
+      "asset_id",
+      "score_key"
+    ],
+    "coalescing": "latest_source_version_per_key",
+    "window_seconds_proposal": 5,
+    "window_status": "proposal_not_measured_or_deployed",
+    "store_rank": false,
+    "query_limit": 100,
+    "query_order": [
+      "score_value DESC",
+      "asset_id ASC"
+    ]
+  },
+  "implementation_request": {
+    "status": "requested_not_implemented",
+    "requirements_zh": [
+      "采用可恢复变更捕获或与 #1006 同事务的 outbox，不能仅依赖进程内通知。",
+      "source_version 是待实现的来源变更元数据，当前 #1006 快照没有该字段；必须由权威变更路径提供每个键单调递增版本，不能用同步到达顺序或 calculated_at 代替。",
+      "固定窗口合并每个键的最新完整结果，不叠加分数，不因持续变化无限延后发送；5 秒为试验建议，容量测试后确定。",
+      "按资产和维度幂等 upsert，仅接受更高版本；成功后只确认实际提交的版本，期间新增版本留到下一批。",
+      "失败保留状态并退避重试；设置批量大小、全局写入预算及积压监测。批量请求仍产生逐行写入，数值预算待容量测试。",
+      "保留来源 calculated_at，写入成功时设置 synced_at；同分按 asset_id 排序，查询前 100，不将查询限制当作同步范围。",
+      "前端断线重读当前副本；若需同一计算轮次的一致榜单，另定义发布批次完成协议。"
+    ],
+    "requirements_en": [
+      "Use recoverable change capture or an outbox committed with #1006, not memory-only notifications.",
+      "source_version is proposed change metadata, absent from current #1006 snapshots. Assign monotonic versions per key at the authoritative source, not by arrival order or calculated_at.",
+      "Keep only the latest full result per key in a fixed window. Never sum score snapshots or postpone forever. Five seconds is a trial proposal pending capacity tests.",
+      "Upsert by asset and score key only for newer versions; acknowledge only the submitted version, leaving concurrent updates pending.",
+      "Retain failed work and retry with backoff; set batch and global write budgets and monitor lag. Batch requests still cause row writes; numeric budgets await capacity tests.",
+      "Preserve source calculated_at and assign synced_at on successful persistence. Sort ties by asset ID; the top-100 query limit does not limit synchronization.",
+      "Clients reload the projection after reconnect. A consistent single-cycle leaderboard needs a separate completed-batch publication protocol."
+    ]
+  },
+  "case": {
+    "evidence_kind": "illustrative_not_executed",
+    "note_zh": "假设 5 秒内同一资产得分从 100 → 105 → 108，版本从 1 → 2 → 3。只同步最新 108；这不是新增加分规则或真实 #1006 历史。",
+    "note_en": "Assume one asset changes from 100 to 105 to 108 within five seconds, at versions 1, 2 and 3. Sync 108 only. This is neither a new scoring rule nor observed #1006 history.",
+    "changes": [
+      {
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "asset_name": "Stake | Bonus",
+        "score_key": "total_heat",
+        "score_value": 100,
+        "calculated_at": "2026-10-08T00:00:01Z",
+        "source_version": 1
+      },
+      {
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "asset_name": "Stake | Bonus",
+        "score_key": "total_heat",
+        "score_value": 105,
+        "calculated_at": "2026-10-08T00:00:02Z",
+        "source_version": 2
+      },
+      {
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "asset_name": "Stake | Bonus",
+        "score_key": "total_heat",
+        "score_value": 108,
+        "calculated_at": "2026-10-08T00:00:04Z",
+        "source_version": 3
+      }
+    ],
+    "output": [
+      {
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "asset_name": "Stake | Bonus",
+        "score_key": "total_heat",
+        "score_value": 108,
+        "calculated_at": "2026-10-08T00:00:04Z",
+        "source_version": 3,
+        "synced_at": "2026-10-08T00:00:05Z"
+      }
+    ]
+  }
+}

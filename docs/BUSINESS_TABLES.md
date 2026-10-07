@@ -186,3 +186,9 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 批量请求只减少请求次数，不能消除每行写入。每批行数、全局写入预算与积压监测需按资产数量和实测吞吐确定；5 秒周期不保证总负载足够低。若每分钟所有资产都衰减，单靠合并仍至少面对每分钟一轮资产更新量。初版不采用按两位小数或小幅差值丢弃变化，以免无意改变全精度排名；若以后放宽展示精度，需同时定义最大陈旧时间与榜单规则。一次批次分多次写入可能出现短暂跨资产版本不一致；若榜单需要同一计算时刻快照，应使用发布批次版本/完成标记，前端只读取已完成版本。
 
 若前端必须比持久化副本更实时，可另用 Supabase Realtime Broadcast 发送最新结果，前端使用带版本的消息并在重连时读取已发布快照校正；实时消息和持久化频率分开。Broadcast 不是降低表写入的替代算法，也不能假设数据库触发式广播完全没有数据库工作。官方参考：[Broadcast](https://supabase.com/docs/guides/realtime/broadcast)、[Subscribing to Database Changes](https://supabase.com/docs/guides/realtime/subscribing-to-database-changes)。本轮只记录架构与同步方案，周期、容量、实时性和卡片编号尚未确定。
+
+### Supabase 资产得分副本 · #1007（2026-10-08 用户批准建卡）
+
+新增 #3010 同步模块与 #1007 `supabase_asset_scores`，连接 #1006 → #3010 → #1007。覆盖所有有评分记录的资产；榜单前 100 是查询限制，不是同步限制。目标联合主键为 asset_id + score_key；保存 #1006 的五个得分字段，另加待实现的 source_version 和 synced_at，不保存 rank。得分变化仅更新对应资产，其他资产不因名次改变而重写。
+
+新卡的数值案例以假设的 source_version 1、2、3 展示 100、105、108 三次连续状态，只输出版本 3 的 108；目标表显示同一条演算结果。5 秒仍为试验建议，不是实测容量或已部署配置。可靠变更捕获、源版本产生、新版本条件写入、失败恢复、写入预算等要求保存在模块的 `catalog/supabase-score-sync.v1.json` 中。未创建远程 Supabase 表、未调用写入服务，也未改变 #1006 的现有实测快照。

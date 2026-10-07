@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import contract from '../catalog/business-tables.v1.json';
 import tableCases from '../catalog/business-table-cases.v1.json';
 import identityCase from '../catalog/identity-flow-case.v1.json';
+import supabaseSync from '../catalog/supabase-score-sync.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import './processing-io-card.css';
 import { BusinessTableRows } from './BusinessTableRows';
@@ -10,6 +11,7 @@ import { TableBackfillCard } from './TableBackfillCard';
 const number = index => String(index + 1).padStart(2, '0');
 
 const notes = {
+  supabase_asset_scores: '演算案例，非 Supabase 实际记录。保存所有有评分记录的资产得分副本，只更新变化行；不存排名。100、105、108 三次变化合并后，只写最新 108。来源版本和同步时间属于待实现的同步协议。',
   assets: '前 2 行按真实 #2030 账号定义：暂用 X 名称、类别为社交账号、身份待确认；后 3 行说明已确认资产的表格式。这里展示产品定义，尚无后台写入结果。',
   asset_identifiers: '一条资产可有多行标识：Bitcoin 在 #1001 只有一行；CoinGecko ID bitcoin、中文名“比特币”和简称 BTC 在这里指向同一个 asset_id。前 2 个 X 用户 ID 来自真实 #2030 返回；表内映射均为目标案例，尚无后台写入结果。',
   asset_relationships: '这 3 行用于说明资产关系的目标表格式；关系、证据和审核记录尚未核实。',
@@ -19,6 +21,7 @@ const notes = {
 };
 
 const notesEn = {
+  supabase_asset_scores: 'Illustrative, not observed Supabase records. Stores all scored assets, updating changed rows only without a rank. Coalesce 100, 105 and 108 into one write of 108. Version and sync time belong to the proposed protocol.',
   assets: 'The first two target rows use observed #2030 account names provisionally and remain pending. The other rows show confirmed assets. No backend write is claimed.',
   asset_identifiers: 'One #1001 asset may have multiple identifier rows: CoinGecko ID bitcoin, Chinese name 比特币, and ticker BTC all point to the same Bitcoin asset_id. The first two X IDs were observed in #2030; all mappings are specified case results, not backend writes.',
   asset_relationships: 'These rows specify the target relationship format; the relationships and reviews have not been verified.',
@@ -32,7 +35,7 @@ export function BusinessTableCard({ node, language }) {
   const [caseIndex, setCaseIndex] = useState(0);
   const table = contract.tables[node.name];
   const caseRows = ['assets', 'asset_identifiers'].includes(node.name) ? identityCase.tables[node.name].rows : [];
-  const rows = [...caseRows, ...(tableCases.tables[node.name] || [])];
+  const rows = node.name === supabaseSync.target_table ? supabaseSync.case.output : [...caseRows, ...(tableCases.tables[node.name] || [])];
   const scoreAssumptions = node.name === 'asset_scores_current' ? tableCases.score_case_assumptions : null;
   const scoringTable = ['asset_score_events', 'asset_scores_current'].includes(node.name);
   const scoreCase = identityCase.cases[caseIndex];
@@ -53,6 +56,7 @@ export function BusinessTableCard({ node, language }) {
       {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '模拟案例 · 假设每个资产仅收到一次 +100，半衰期 7 天，统一在 2026-10-15 00:00 UTC 计算；不是实际评分。' : 'Illustrative cases · assume one +100 event per asset, a seven-day half-life, and a common calculation time of 2026-10-15 00:00 UTC. These are not actual scores.'}</p>}
       <p><strong>{rows.length} {zh ? scoreAssumptions ? '行设计案例' : '行产品案例' : scoreAssumptions ? 'design case rows' : 'product case rows'}</strong> · {zh ? notes[node.name] : notesEn[node.name]}</p>
         {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '假设的事件入账时间：' : 'Assumed event entry times: '}{scoreAssumptions.events.map(event => `${event.asset_name}: ${event.assumed_created_at}`).join('；')}</p>}
+      {node.name === supabaseSync.target_table && <p>{zh ? '前端查询：筛选 score_key=total_heat，按 score_value 从高到低、asset_id 从小到大取前 100。这个限制只用于查询，不限制表内资产数量。' : 'Frontend query: filter score_key=total_heat, order by score_value descending then asset_id ascending, and take 100. The limit applies to queries, not stored assets.'}</p>}
       {scoringTable && <div className="processing-input-source">
         <label className="source-case-inspector-picker">{zh ? '贯通案例 · 目标表行' : 'Through-line case · intended table row'}
           <select value={caseIndex} onChange={event => setCaseIndex(Number(event.target.value))}>{identityCase.cases.map((item, index) =>

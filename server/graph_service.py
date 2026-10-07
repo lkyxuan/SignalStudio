@@ -16,7 +16,7 @@ TYPES = ("Source", "Raw Field", "Evidence Check", "Asset Resolution", "Relations
          "Score", "Ranking", "Rule Evaluation", "Flow Result", "Signal Event", "Product Module",
          "Redpanda Topic", "Redis Window",
          "assets", "asset_identifiers", "asset_relationships", "asset_monitoring_rules",
-         "asset_score_events", "asset_scores_current",
+         "asset_score_events", "asset_scores_current", "supabase_asset_scores",
          "Asset Registry", "Rule Registry")
 SYSTEM_TABLES = (
     ("assets", "Internal asset objects and stable IDs, including pending identities; planned backend table.", 340, -220),
@@ -25,6 +25,7 @@ SYSTEM_TABLES = (
     ("asset_monitoring_rules", "Versioned monitoring rules for assets; planned table, not connected to live records.", 1020, -220),
     ("asset_score_events", "Unified score postings by asset and dimension, linked to program-owned decision records; planned table, not calculated results.", 1700, -220),
     ("asset_scores_current", "Latest score metric values by asset; separate score keys identify distinct calculations; rank is derived when querying; planned table, not calculated results.", 1700, 160),
+    ("supabase_asset_scores", "Frontend Supabase projection for all scored assets; changed rows only, no stored rank; planned, not deployed.", 2380, 160),
 )
 LEGACY_STATE_TYPES = ("Asset Registry", "Rule Registry")
 STATE_TYPES = tuple(item[0] for item in SYSTEM_TABLES) + LEGACY_STATE_TYPES

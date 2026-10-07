@@ -109,8 +109,8 @@ class GraphServiceTest(unittest.TestCase):
                                             "downstream_id": result["id"], "branch_label": "matched"})
         self.service.create_edge({"upstream_id": decision["id"],
                                   "downstream_id": review["id"], "branch_label": "conflict"})
-        self.assertEqual(self.service.group_node_references_once(), {"renumbered": 11, "total": 11})
-        self.assertEqual(self.service.group_node_references_once(), {"renumbered": 0, "total": 11})
+        self.assertEqual(self.service.group_node_references_once(), {"renumbered": 12, "total": 12})
+        self.assertEqual(self.service.group_node_references_once(), {"renumbered": 0, "total": 12})
         self.assertEqual(self.service.find_name("assets")["reference_number"], 1001)
         self.assertEqual(self.service.get_node(source["id"])["reference_number"], 2001)
         self.assertEqual(self.service.get_node(metric["id"])["reference_number"], 3001)
@@ -123,7 +123,7 @@ class GraphServiceTest(unittest.TestCase):
         self.service.db.close()
         self.service = GraphService(self.path)
         self.assertEqual(self.service.compact_retired_node_references(),
-                         {"renumbered": 0, "total": 11})
+                         {"renumbered": 0, "total": 12})
         self.assertEqual(self.service.create_node({"name": "Second crawler", "type": "Source"})["reference_number"], 2002)
         self.assertEqual(self.service.create_node({"name": "Check", "type": "Evidence Check"})["reference_number"], 4003)
         self.assertEqual(self.service.create_node({"name": "Second metric", "type": "Score"})["reference_number"], 3003)
@@ -214,12 +214,12 @@ class GraphServiceTest(unittest.TestCase):
                          {1, 2, 3})
 
     def test_business_table_nodes_are_distinct_connectable_references(self):
-        self.assertEqual(self.service.ensure_system_tables(), {"created": 6, "total": 6})
-        self.assertEqual(self.service.ensure_system_tables(), {"created": 0, "total": 6})
+        self.assertEqual(self.service.ensure_system_tables(), {"created": 7, "total": 7})
+        self.assertEqual(self.service.ensure_system_tables(), {"created": 0, "total": 7})
         self.assertEqual(self.service.graph()["edges"], [])
         self.assertEqual({node["name"] for node in self.service.graph()["nodes"]},
                          {"assets", "asset_identifiers", "asset_relationships", "asset_monitoring_rules",
-                          "asset_score_events", "asset_scores_current"})
+                          "asset_score_events", "asset_scores_current", "supabase_asset_scores"})
         state = self.service.find_name("asset_identifiers")
         self.assertEqual((state["type"], state["workflow_lane"], state["is_system_state"]),
                          ("asset_identifiers", "shared", 1))

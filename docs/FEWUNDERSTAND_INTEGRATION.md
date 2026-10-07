@@ -137,3 +137,5 @@ fewunderstand 的 `common/asset_score/redis_projection.py` 定义默认前缀 `f
 下一步若扩展 #6001，可新增事件快照校验/展示和 Git 同步文件，由 fewunderstand Agent 只读取样后回填。不能从 #1006 合计分反推原事件，也不能为补展示案例向来源 Redis 直接注入评分事件。本轮只实现 #3005 触发定义与展示，未写入 Redis 或扩展 #6001 接口。
 
 2026-10-08 评分范围更新：用户已明确取消 #3005 的 #1001 读取及无评分事件资产补零。实施时以 `catalog/score-rollup.v1.json` 的最新 `configuration.asset_scope` 和 `implementation_request` 为准，只从 #6001 的 total_heat 事件得到资产集合并计算；空集合不产生结果，有事件但合计为 0 仍保存。保留既有每分钟衰减和待实现的事件触发要求。旧实现和历史结果快照不代表这个新范围已上线；Studio 本轮只同步定义、图和案例。
+
+2026-10-08 新增前端同步模块：#3010 同步资产得分到 Supabase，输入 #1006，输出 #1007 Supabase 资产得分表。执行要求读取 `catalog/supabase-score-sync.v1.json`，目标字段见 `catalog/business-tables.v1.json` → `supabase_asset_scores`。用户确定全评分资产范围、变化行更新、不存排名；5 秒合并窗口仍为建议。source_version 需在可靠源变更协议中实现，当前 #1006 快照不包含它。卡片与示例已建立，远程建表、同步运行和前端接入均未部署。

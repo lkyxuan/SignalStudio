@@ -6,7 +6,8 @@ import { serverGraph } from './testFixtures';
 
 const graph = serverGraph();
 test('accepts the real Python graph, including fields, mappings, needs and system tables', () => {
-  assert.equal(graph.nodes.length, 8);
+  assert.equal(graph.nodes.length, 9);
+  assert.ok(graph.nodes.some(node => node.type === 'supabase_asset_scores'));
   assert.equal(graph.field_usages.length, 1);
   assert.equal(graph.requirements[0]?.source_field_id, null);
   assert.deepEqual(graphSchema.parse(graph), graph);

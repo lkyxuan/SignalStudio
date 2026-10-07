@@ -13,6 +13,8 @@ import identityPilot from '../catalog/identity-flow-case.v1.json';
 import publicCalls from '../catalog/public-call-examples.json';
 import signalContracts from '../catalog/signal-contracts.v1.json';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
+import { SupabaseScoreSyncCard } from './SupabaseScoreSyncCard';
+import supabaseSync from '../catalog/supabase-score-sync.v1.json';
 import { AssetReviewCase } from './AssetReviewCase';
 import './source-case-inspector.css';
 import './processing-io-card.css';
@@ -394,6 +396,7 @@ function ScoreEventPublisherCard({ node, graph, openNode, language }) {
 
 export function ProcessingIOCard(props) {
   const { node } = props;
+  if (node.name === supabaseSync.node.name) return <SupabaseScoreSyncCard {...props} />;
   const content = <ProcessingCardContent key={node.id} {...props} />;
   if (['Redpanda Topic', 'Redis Window'].includes(node.type) || node.name === scoreRollup.node.name) return content;
   return <ProcessingCardFrame {...props}>{content}</ProcessingCardFrame>;
