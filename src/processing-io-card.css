@@ -90,3 +90,9 @@
 .execution-trigger{margin:16px 0}
 .execution-trigger h3{margin:0 0 10px;color:#27766d;font-size:13px}
 .execution-trigger .source-case-inspector-fields{margin-bottom:10px}
+
+.score-rollup-numeric-case{min-width:0;margin:16px 0}
+.score-rollup-numeric-case h3{color:#27766d;font-size:13px}
+.score-rollup-numeric-case h4{color:#37766e;font-size:12px;margin:18px 0 8px}
+.score-rollup-numeric-case .business-table-schema-scroll{max-width:100%;margin:8px 0}
+.score-rollup-numeric-case li{font-size:11px;line-height:1.8;overflow-wrap:anywhere}
