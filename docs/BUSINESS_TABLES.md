@@ -124,6 +124,10 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 2026-10-08（用户接受并要求先实现 #1006）：表面板保留设计案例，并新增独立的“实际回填 · 固定快照”模块。通过 JSON 导入小批量数据库结果快照或离线回放结果，保存于纳入 Git 同步的 `data/table-1006-backfill.json`；页面打开时读取保存内容，导入替换当前快照。模块展示五个标准字段、采样来源和时间、显式字段映射与原始记录，并按 `asset_id + score_key` 对照可选预期，仅在计算时间相同时比较完整精度分数。计算时间不同、缺少预期或预期无对应实际行均单独说明。模块校验完整字段、时区、有限数值、唯一键和 `total_heat` 指标；名称来源可明确为空。当前未导入真实快照时显示“待回填”。本模块不执行回放计算；离线回放需携带输入与规则的 `derivation_ref`。其他表后续扩展，暂未实现。
 
+2026-10-08 更新频率核对：fewunderstand 的 `consumer/asset_total_heat/minute_materializer_flow.py` 中 `serve()` 配置 `interval=timedelta(minutes=1)`；`run_minute_cycle` 每轮读取全部已登记资产及 Redis 评分事件，固定同一计算时刻重算并写入 PostgreSQL `asset_score.current_score`，不依赖用户查看页面。没有新增事件时，既有贡献仍随时间衰减；新增事件需先进入 Redis 投影，再被后续计算轮读取，代码中的事件即时触发仍是后续优化。该代码配置说明目标周期为每分钟，但本次未查询线上调度运行记录，不能凭一份快照证明持续按分钟正常运行。
+
+当前已导入的真实快照为 4 行，统一 `calculated_at=2026-10-07T19:46:51.754648Z`，采样时间为 `2026-10-07T19:47:46.177622Z`，即北京时间 2026-10-08 03:46:51 计算、03:47:46 取样。SignalStudio 展示固定文件；只有重新取样、提交/拉取快照并重新打开面板才更新显示，没有自动同步周期。注意 Studio 的 `catalog/score-rollup.v1.json` 仍保留旧“事件触发 + 查询时折算”设计，与 fewunderstand 的每分钟全量物化实现存在差异；本次只记录差异，未修改执行契约。
+
 主键：`asset_id + score_key`。
 
 | # | 字段 | 类型 | 必填 | 含义 |
