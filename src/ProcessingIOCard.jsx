@@ -144,7 +144,13 @@ function RedisWindowCard({ node, graph, language }) {
   </div>;
 }
 
-function ScoreRollupNumericCase({ language }) {
+// Presentation subset only; the execution contract retains validation and deduplication fields.
+const scoreRollupVisibleInputs = {
+  assets: ['asset_id', 'name'],
+  asset_score_events: ['asset_id', 'asset_name', 'score_delta', 'created_at', 'half_life_minutes'],
+};
+
+function ScoreRollupNumericCase({ language, graph, openNode }) {
   const zh = language === 'zh-CN';
   const assumptions = tableCases.score_case_assumptions;
   const policy = identityPilot.initial_score_policy.decay_policy_ref;
@@ -167,16 +173,24 @@ function ScoreRollupNumericCase({ language }) {
     score_value: calculations.filter(event => event.asset_id === asset.asset_id).reduce((sum, event) => sum + event.value, 0),
     calculated_at: assumptions.calculated_at,
   }));
-  const assetTable = { ...businessTables.tables.assets, columns: businessTables.tables.assets.columns.filter(column => ['asset_id', 'name'].includes(column.name)) };
+  const assetTable = { ...businessTables.tables.assets, columns: businessTables.tables.assets.columns.filter(column => scoreRollupVisibleInputs.assets.includes(column.name)) };
+  const eventTable = {
+    ...businessTables.tables.asset_score_events,
+    columns: businessTables.tables.asset_score_events.columns.filter(column => scoreRollupVisibleInputs.asset_score_events.includes(column.name)),
+  };
   return <section className="processing-goal-readonly score-rollup-numeric-case">
     <h3>{zh ? '数值案例 · 两张输入表 → 一张结果表' : 'Numeric case · two input tables → one result table'}</h3>
     <p>{zh ? '沿用 #1006 的同一组五个案例。以下资产记录、评分事件和时间均为演算假设，不是后台采集记录；目前只有独立的 #1006 真实结果快照，尚无配套的 #6001 原始事件快照。' : 'The same five cases shown in #1006. Asset rows, events and times are illustrative assumptions, not collected records. A separate actual #1006 snapshot exists, but no paired #6001 event snapshot is available.'}</p>
-    <p>{zh ? '统一计算时刻 calculated_at：' : 'Common calculated_at: '}<code>{assumptions.calculated_at}</code></p>
+    <p>{zh ? '本例评分维度 score_key：total_heat；统一计算时刻 calculated_at：' : 'Case score_key: total_heat; common calculated_at: '}<code>{assumptions.calculated_at}</code></p>
     <h4>{zh ? '输入表一 · #1001 资产（本步骤读取的两列）' : 'Input table 1 · #1001 assets (two selected columns)'}</h4>
     <BusinessTableRows table={assetTable} rows={assets} language={language} />
-    <h4>{zh ? '输入表二 · #6001 评分事件（九个原始字段）' : 'Input table 2 · #6001 score events (nine original fields)'}</h4>
-    <BusinessTableRows table={businessTables.tables.asset_score_events} rows={events} language={language} />
+    <h4>{zh ? '输入表二 · #6001 评分事件（计算与输出使用的五列）' : 'Input table 2 · #6001 score events (five columns used for calculation and output)'}</h4>
+    <BusinessTableRows table={eventTable} rows={events} language={language} />
     <p>{zh ? '按 asset_id 对应两张表。本例每个资产只有一笔 +100，半衰期均为 10080 分钟；名称和时间可以逐行对照。' : 'Match both tables by asset_id. Each asset has one +100 contribution with a 10,080-minute half-life; compare names and times row by row.'}</p>
+    <div className="processing-input-source-heading"><span>{zh ? '查看来源卡片的完整字段：' : 'Full fields on source cards: '}</span>{[1001, 6001].map(ref => {
+      const source = graph.nodes.find(item => item.reference_number === ref);
+      return source && <button key={ref} onClick={() => openNode(source.id)}>#{ref} {displayNodeName(language, source.name)}</button>;
+    })}</div>
     <h4>{zh ? '逐笔计算 · 原始分 → 经过时间 → 剩余贡献' : 'Calculation · original score → elapsed time → remaining contribution'}</h4>
     <ul>{calculations.map(event => <li key={event.event_key}>{event.asset_name}: +{event.score_delta} → {event.minutes} {zh ? '分钟' : 'minutes'} → {event.value.toFixed(2)}</li>)}</ul>
     <h4>{zh ? '输出表 · #1006 当前资产评分' : 'Output table · #1006 current asset scores'}</h4>
@@ -200,10 +214,11 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
         return <div className="processing-input-source" key={input.table}>
           <div className="processing-input-source-heading"><span>{zh ? '来自' : 'From'}</span><button onClick={() => source && openNode(source.id)}>{nodeRef(source)} {input.source_node || input.table}</button></div>
           <p className="processing-io-case-caption">{zh ? input.note_zh : input.note_en}</p>
-          <dl className="source-case-inspector-fields">{input.read_fields.map((name, index) => {
+          <dl className="source-case-inspector-fields">{scoreRollupVisibleInputs[input.table].map((name, index) => {
             const column = columns.find(item => item.name === name);
             return <div key={name}><dt><span className="source-case-field-number">{number(index)}</span><code>{name}</code></dt><dd>{zh ? column?.label_zh : name.replaceAll('_', ' ')}</dd></div>;
-          })}{(input.cache_metadata_fields || []).map((field, index) => <div key={field.name}><dt><span className="source-case-field-number">{number(input.read_fields.length + index)}</span><code>{field.name}</code></dt><dd>{zh ? field.note_zh : field.note_en}</dd></div>)}</dl>
+          })}</dl>
+          <p className="processing-io-case-caption">{zh ? '这里只列本例计算与输出使用的字段；完整字段请点击上方来源卡片。' : 'Only fields used for this case’s calculation and output are listed; open the source card above for the full schema.'}</p>
         </div>;
       })}
     </section>
@@ -215,7 +230,7 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
         return <div key={column.name}><dt><span className="source-case-field-number">{number(index)}</span><code>{column.name}</code></dt><dd>{zh ? rule?.rule_zh : rule?.rule_en}</dd></div>;
       })}</dl>
     </section>
-  </div><ScoreRollupNumericCase language={language} /><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '运行触发' : 'Execution trigger'}>
+  </div><ScoreRollupNumericCase language={language} graph={graph} openNode={openNode} /><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '运行触发' : 'Execution trigger'}>
     <h3>{zh ? '当前实现 · 运行触发' : 'Current implementation · execution trigger'}</h3>
     <CaseRows rows={[
       [zh ? '触发方式' : 'Trigger', zh ? '定时执行' : 'Scheduled'],
