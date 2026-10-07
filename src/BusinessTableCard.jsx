@@ -3,6 +3,8 @@ import contract from '../catalog/business-tables.v1.json';
 import tableCases from '../catalog/business-table-cases.v1.json';
 import identityCase from '../catalog/identity-flow-case.v1.json';
 import './processing-io-card.css';
+import { BusinessTableRows } from './BusinessTableRows';
+import { TableBackfillCard } from './TableBackfillCard';
 
 const number = index => String(index + 1).padStart(2, '0');
 
@@ -12,7 +14,7 @@ const notes = {
   asset_relationships: '这 3 行用于说明资产关系的目标表格式；关系、证据和审核记录尚未核实。',
   asset_monitoring_rules: '这 3 行用于说明监控规则的目标表格式；阈值、状态和审核记录尚未执行。',
   asset_score_events: '规划为各程序先保存详细判定，再将加分事件送入 Redpanda；Redis 保留近期窗口，Delta/Parquet 归档完整流水，二者独立消费。decision_ref 用于回查判定过程。尚无真实写入。',
-  asset_scores_current: '以下 5 行为模拟计算案例，时间均为假设，并非后台写入结果。规划以 Redis 保存当前分；本次 Demo 只使用 total_heat 全量热度。#3005 将新资产的起始 +100 按 7 天半衰期衰减，后续贡献可各按自己的规则汇总。排名把分数折算到同一查询时刻。尚无运行中的程序或计算结果。',
+  asset_scores_current: '以下 5 行为模拟计算案例，时间均为假设，并非后台写入结果。规划以 Redis 保存当前分；本次 Demo 只使用 total_heat 全量热度。#3005 将新资产的起始 +100 按 7 天半衰期衰减，后续贡献可各按自己的规则汇总。排名把分数折算到同一查询时刻。实际回填见下方独立模块。',
 };
 
 const notesEn = {
@@ -21,22 +23,8 @@ const notesEn = {
   asset_relationships: 'These rows specify the target relationship format; the relationships and reviews have not been verified.',
   asset_monitoring_rules: 'These rows specify the target rule format; thresholds and reviews have not been executed.',
   asset_score_events: 'Programs save detailed decisions, then send score events to Redpanda. Independent consumers maintain a recent Redis window and the full Delta/Parquet archive. decision_ref locates the decision. No running write has been observed.',
-  asset_scores_current: 'These five rows are illustrative calculations with assumed timestamps, not backend writes. Redis is planned to hold current scores. This demo uses only total_heat. #3005 decays the initial +100 contribution with a seven-day half-life; future contributions may have their own rules. Ranks compare values at one query time. No running job or result exists yet.',
+  asset_scores_current: 'These five rows are illustrative calculations with assumed timestamps, not backend writes. Redis is planned to hold current scores. This demo uses only total_heat. #3005 decays the initial +100 contribution with a seven-day half-life; future contributions may have their own rules. Ranks compare values at one query time. Actual backfills appear in the separate module below.',
 };
-
-function CellValue({ name, value, displayDecimalPlaces }) {
-  if (value == null) return <span className="business-table-null">NULL</span>;
-  if (typeof value === 'number' && Number.isFinite(value) && displayDecimalPlaces != null) {
-    return <code>{value.toFixed(displayDecimalPlaces)}</code>;
-  }
-  if (name.endsWith('_json')) {
-    let formatted = value;
-    try { formatted = JSON.stringify(JSON.parse(value), null, 2); } catch { /* Show the stored text. */ }
-    return <details className="business-table-json"><summary><code>{value.length > 50 ? `${value.slice(0, 50)}…` : value}</code></summary>
-      <pre>{formatted}</pre></details>;
-  }
-  return <code>{String(value)}</code>;
-}
 
 export function BusinessTableCard({ node, language }) {
   const zh = language === 'zh-CN';
@@ -59,16 +47,11 @@ export function BusinessTableCard({ node, language }) {
       ['score_value', zh ? '100 × 2^(-实际经过分钟数 / 10080)，显示两位小数' : '100 × 2^(-actual_elapsed_minutes / 10080), display to two decimals'],
       ['calculated_at', zh ? '待 #3005 首次实际计算时确定' : 'To be set by #3005 on first calculation']];
   return <div className="business-table-card">
-    <div className="business-table-schema-scroll" role="region" aria-label={zh ? '原表数据' : 'Table rows'}><table className="business-table-raw">
-      <thead><tr>{table.columns.map(column => <th key={column.name} title={zh ? column.label_zh : column.name}><code>{column.name}</code></th>)}</tr></thead>
-      <tbody>{rows.map(row => <tr key={table.primary_key.map(key => row[key]).join(':')}>
-        {table.columns.map(column => <td key={column.name}><CellValue name={column.name} value={row[column.name]} displayDecimalPlaces={column.display_decimal_places} /></td>)}
-      </tr>)}</tbody>
-    </table></div>
+    <BusinessTableRows table={table} rows={rows} language={language} />
     <div className="business-table-afterword">
-    {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '模拟案例 · 假设每个资产仅收到一次 +100，半衰期 7 天，统一在 2026-10-15 00:00 UTC 计算；不是实际评分。' : 'Illustrative cases · assume one +100 event per asset, a seven-day half-life, and a common calculation time of 2026-10-15 00:00 UTC. These are not actual scores.'}</p>}
-      <p><strong>{rows.length} {zh ? '行产品案例' : 'product case rows'}</strong> · {zh ? notes[node.name] : notesEn[node.name]}</p>
-      {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '假设的事件入账时间：' : 'Assumed event entry times: '}{scoreAssumptions.events.map(event => `${event.asset_name}: ${event.assumed_created_at}`).join('；')}</p>}
+      {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '模拟案例 · 假设每个资产仅收到一次 +100，半衰期 7 天，统一在 2026-10-15 00:00 UTC 计算；不是实际评分。' : 'Illustrative cases · assume one +100 event per asset, a seven-day half-life, and a common calculation time of 2026-10-15 00:00 UTC. These are not actual scores.'}</p>}
+      <p><strong>{rows.length} {zh ? scoreAssumptions ? '行设计案例' : '行产品案例' : scoreAssumptions ? 'design case rows' : 'product case rows'}</strong> · {zh ? notes[node.name] : notesEn[node.name]}</p>
+        {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '假设的事件入账时间：' : 'Assumed event entry times: '}{scoreAssumptions.events.map(event => `${event.asset_name}: ${event.assumed_created_at}`).join('；')}</p>}
       {scoringTable && <div className="processing-input-source">
         <label className="source-case-inspector-picker">{zh ? '贯通案例 · 目标表行' : 'Through-line case · intended table row'}
           <select value={caseIndex} onChange={event => setCaseIndex(Number(event.target.value))}>{identityCase.cases.map((item, index) =>
@@ -83,6 +66,7 @@ export function BusinessTableCard({ node, language }) {
           <dt><span className="source-case-field-number">{number(index)}</span><code>{name}</code></dt><dd>{value}</dd>
         </div>)}</dl>
       </div>}
+      {node.name === 'asset_scores_current' && <TableBackfillCard table={table} language={language} />}
       <details className="business-table-technical"><summary>{zh ? '其他设置 · 字段说明' : 'Other settings · field definitions'}</summary>
         <div className="business-table-schema-scroll"><table>
           <thead><tr><th>#</th><th>{zh ? '字段名' : 'Field name'}</th><th>{zh ? '含义' : 'Meaning'}</th><th>{zh ? '类型' : 'Type'}</th><th>{zh ? '约束' : 'Constraint'}</th></tr></thead>

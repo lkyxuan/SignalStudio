@@ -69,3 +69,20 @@
 .processing-technical>p{font-size:11px;line-height:1.5;color:#788e93}
 @media(max-width:1050px){.processing-io-card,.state-io{grid-template-columns:1fr}}
 @media(max-width:1200px){.inspector.business-table-inspector{width:min(580px,calc(100vw - 560px))}}
+.table-backfill-card{margin:18px 0;padding:14px;border:1px solid #dce9e6;border-radius:9px;background:#f9fcfb;min-width:0}
+.table-backfill-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.table-backfill-heading h3{margin:0;color:#27766d;font-size:13px}
+.table-backfill-actions{display:flex;gap:8px;flex-wrap:wrap}
+.table-backfill-actions button{padding:6px 9px;border:1px solid #cfe0dc;border-radius:5px;background:#fff;color:#366b6a;font-size:11px;cursor:pointer}
+.table-backfill-actions button:disabled{opacity:.5;cursor:wait}
+.table-backfill-card>.business-table-schema-scroll{margin-bottom:10px}
+.table-backfill-provenance{margin:0 0 12px}
+.table-backfill-provenance div{display:flex;gap:12px;padding:4px 0}
+.table-backfill-provenance dt{flex:0 0 110px;color:#547b77}
+.table-backfill-provenance dd{margin:0;overflow-wrap:anywhere;min-width:0}
+.table-backfill-detail{margin-top:12px}
+.table-backfill-detail>summary{cursor:pointer;color:#547b77;font-weight:700}
+.table-backfill-detail p,.table-backfill-detail .business-table-schema-scroll{margin-top:8px}
+.table-backfill-detail pre{max-height:260px;overflow:auto;padding:10px;background:#fff;border:1px solid #dce9e6;border-radius:5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.table-backfill-card .table-backfill-error{color:#a34739}
+.table-backfill-empty{padding:12px;background:#fff;border:1px dashed #cfe0dc;border-radius:6px}

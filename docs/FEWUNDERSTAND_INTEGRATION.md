@@ -47,3 +47,17 @@ SignalStudio 维护希望采集的上游来源和字段。Few Understand 读取�
 - 先选三至五个实际资产，覆盖单笔起始贡献、重复事件去重、多事件叠加（仅在真实来源已有这些事件和规则时）、衰减及缺字段等代表情形。7/14 天检查点可对真实事件做明确标注的离线时间回放。来源没有的情形另外使用模拟案例。
 
 预设的匹配目标是字段语义、流程行为和可解释的计算结果，不是修改真实数据来凑预设数值。若实际数据揭示契约不适用，应展示差异并讨论调整设计。具体取样环境、脱敏方式、运行器和界面形态待确定；此次讨论不授权部署或执行契约变更。
+
+## #1006 实际回填模块（2026-10-08，已接受并实现）
+
+用户接受“设计 + 实际回填”双区展示，要求先实现 #1006。`GET /api/table-backfills/1006` 读取本机固定快照；`POST /api/table-backfills/1006` 校验并替换该快照。真实来源取样仍待完成，模块不连接 fewunderstand 数据库，也不执行离线评分程序。快照文件被 `.gitignore` 排除；本地文件不随公开仓库发布。
+
+导入格式（面板提供空模板下载）：
+
+- `version=1`；`evidence_kind=database_snapshot` 或 `offline_replay`。回放结果另需 `derivation_ref` 记录输入/规则依据。
+- `source` 包含 `system`、`environment`、`location`、带时区的 `captured_at`。位置应填写可审查的表/API/样本标识，勿填写含密码的连接串。
+- `field_mapping` 完整指定 #1006 五个字段对应的源记录键；`asset_name` 可映射为 `null`，其他字段不得缺失。不支持隐式改指标名、生成 ID、补事件时间或将已有分数反推成事件。
+- `source_rows` 保存 1–200 条源记录，文件/请求上限为 1 MB。
+- 可选 `expected_rows` 包含 `asset_id`、`score_key=total_heat`、`score_value`、带时区的 `calculated_at`。同资产同指标但时间不同不计算分差。匹配判定用完整精度，浮点误差容差为相对/绝对 `1e-12`；实际和预期显示差额供审查。
+
+数据库 `asset_score.current_score` 没有 `asset_name` 时，可在取样阶段显式关联 `asset_core.assets` 获取名称，或在导入映射中将名称设为 `null`。内部排名 API 有回退计算行为；取样时需核对 `materialized` 及每行 `calculated_at`，不能把回退计算或排名中补零的行当作数据库已存的 #1006 行。

@@ -11,11 +11,13 @@ from urllib.parse import parse_qs, unquote, urlparse
 from graph_service import GraphError, GraphService
 from source_contract_store import SourceContractStore
 from signal_contract_store import SignalContractStore
+from table_backfill_store import TableBackfillStore
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCAL_KAITO_CASE = ROOT / "data" / "kaito-advanced-search-live.json"
 LOCAL_SOURCE_CASES = ROOT / "data" / "source-cases-live.json"
 service = GraphService(os.environ.get("SIGNALSTUDIO_DB"))
+table_backfill = TableBackfillStore()
 source_contracts = SourceContractStore()
 signal_contracts = SignalContractStore(source_contracts)
 service.ensure_system_tables()
@@ -48,6 +50,11 @@ class Handler(BaseHTTPRequestHandler):
         parts = [part for part in url.path.split("/") if part]
         query = parse_qs(url.query)
         method = self.command
+        if parts == ["api", "table-backfills", "1006"]:
+            if method == "GET":
+                return table_backfill.read()
+            if method == "POST":
+                return table_backfill.save(self.body())
         if parts == ["api", "graph"] and method == "GET":
             return service.graph()
         if parts == ["api", "signals"] and method == "GET":
