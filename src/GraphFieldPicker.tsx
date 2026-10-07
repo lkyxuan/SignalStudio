@@ -1,21 +1,21 @@
+import { request } from './api';
+import type { Graph, GraphNode, Language, SourceContracts } from './contracts';
 import React, { useEffect, useState } from 'react';
 import { Check, ExternalLink, Plus, Search, X } from 'lucide-react';
 import { displayNodeName } from './i18n';
 import './graph-field-picker.css';
 
-export function GraphFieldPicker({ language, graph, availableTargets, targetNode, initialOperationId, selectedRequirementId, busy, onUse, onSelectTarget, onSelectRequirement, onClose }) {
+export function GraphFieldPicker({ language, graph, availableTargets, targetNode, initialOperationId, selectedRequirementId, busy, onUse, onSelectTarget, onSelectRequirement, onClose }: GraphFieldPickerProps) {
   const zh = language === 'zh-CN';
-  const word = (cn, en) => zh ? cn : en;
-  const [contract, setContract] = useState(null);
+  const word = (cn: string, en: string) => zh ? cn : en;
+  const [contract, setContract] = useState<SourceContracts | null>(null);
   const [error, setError] = useState('');
   const [operationId, setOperationId] = useState(initialOperationId || '');
   const [query, setQuery] = useState('');
 
   useEffect(() => {
     let active = true;
-    fetch('/api/source-contracts/v1').then(async response => {
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Unable to load upstream contract');
+    request('/source-contracts/v1').then(result => {
       if (active) {
         setContract(result);
         setOperationId(current => current || result.operations[0]?.id || '');
@@ -28,17 +28,17 @@ export function GraphFieldPicker({ language, graph, availableTargets, targetNode
   }, [initialOperationId]);
   useEffect(() => {
     if (contract?.operations.some(operation => operation.id === targetNode?.name))
-      setOperationId(targetNode.name);
+      setOperationId(targetNode!.name);
   }, [contract, targetNode?.id]);
 
   const target = targetNode?.type === 'Source' ? null : targetNode;
   const targetRequirements = (graph.requirements || []).filter(item => item.node_id === target?.id);
-  const requirementId = targetRequirements.some(item => item.id === selectedRequirementId) ? selectedRequirementId : '';
+  const requirementId = targetRequirements.some(item => item.id === selectedRequirementId) ? selectedRequirementId ?? '' : '';
   const importedByCatalogId = new Map((graph.fields || []).filter(field => field.catalog_field_id)
     .map(field => [field.catalog_field_id, field]));
   const activeEdgeBySource = new Map((graph.edges || []).filter(edge => edge.downstream_id === target?.id)
     .map(edge => [edge.upstream_id, edge]));
-  const alreadyUsed = fieldId => {
+  const alreadyUsed = (fieldId: string) => {
     const imported = importedByCatalogId.get(fieldId);
     if (!imported) return false;
     if (!target) return true;
@@ -52,7 +52,7 @@ export function GraphFieldPicker({ language, graph, availableTargets, targetNode
   const coverageLabel = operation?.response_coverage === 'not_inventoried'
     ? word('字段尚未盘点', 'Fields not inventoried')
     : word('字段清单可能不完整', 'Field list may be incomplete');
-  const evidenceLabel = field => field.evidence === 'official_documentation'
+  const evidenceLabel = (field: SourceContracts['operations'][number]['fields'][number]) => field.evidence === 'official_documentation'
     ? word('官方文档', 'Official documentation')
     : field.evidence === 'mcp_sample'
       ? word('MCP 响应样本', 'MCP response sample')
@@ -73,7 +73,7 @@ export function GraphFieldPicker({ language, graph, availableTargets, targetNode
     {error && <div className="picker-error" role="alert">{error}</div>}
     <div className="picker-fields">{!contract && !error && <p className="picker-empty">{word('正在加载上游契约…', 'Loading upstream contract…')}</p>}
       {fields.map(field => {
-        const id = `source-contracts.v1::${operation.id}::${field.path}`;
+        const id = `source-contracts.v1::${operation!.id}::${field.path}`;
         const used = alreadyUsed(id);
         return <div className="picker-field" key={id}><div className="picker-field-title"><strong>{zh ? field.label_zh : field.path}</strong></div>
           <p className="picker-field-explanation">{field.purpose_zh || field.condition || word('上游返回字段', 'Upstream response field')}</p>
@@ -84,4 +84,14 @@ export function GraphFieldPicker({ language, graph, availableTargets, targetNode
       {contract && !fields.length && <p className="picker-empty">{operation?.fields.length ? word('没有匹配字段。', 'No matching fields.') : word('尚无可核对字段；需要第一方说明或返回样本。', 'No verified fields yet.')}</p>}
     </div>
   </aside>;
+}
+
+interface GraphFieldPickerProps {
+  language: Language; graph: Graph; availableTargets: GraphNode[];
+  targetNode?: GraphNode | null; initialOperationId?: string | null;
+  selectedRequirementId?: string | null; busy: boolean;
+  onUse: (field: { id: string }, targetId?: string, requirementId?: string | null) => void;
+  onSelectTarget: (id: string | null) => void;
+  onSelectRequirement: (id: string | null) => void;
+  onClose: () => void;
 }

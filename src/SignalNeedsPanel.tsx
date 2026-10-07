@@ -1,3 +1,4 @@
+import type { NodeContextProps, DataRequirement, Mutate } from './contracts';
 import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { displayNodeName } from './i18n';
@@ -6,9 +7,9 @@ import './signal-needs.css';
 
 const EMPTY = { name: '', purpose: '', expected_example: '' };
 
-export function SignalNeedsPanel({ node, graph, mutate, busy, language }) {
+export function SignalNeedsPanel({ node, graph, mutate, busy, language }: NodeContextProps & { mutate: Mutate; busy: boolean }) {
   const zh = language === 'zh-CN';
-  const word = (cn, en) => zh ? cn : en;
+  const word = (cn: string, en: string) => zh ? cn : en;
   const [draft, setDraft] = useState(EMPTY);
   const [editing, setEditing] = useState(false);
   useEffect(() => { setDraft(EMPTY); setEditing(false); }, [node.id]);
@@ -19,7 +20,7 @@ export function SignalNeedsPanel({ node, graph, mutate, busy, language }) {
       word('数据需求已记录', 'Data need recorded'));
     if (result) { setDraft(EMPTY); setEditing(false); }
   };
-  const remove = async item => {
+  const remove = async (item: DataRequirement) => {
     const message = zh ? '移除数据需求“' + item.name + '”？' : 'Remove data need “' + item.name + '”?';
     if (!confirm(message)) return;
     await mutate('/requirements/' + item.id, 'DELETE', null, word('数据需求已移除', 'Data need removed'));
@@ -54,7 +55,7 @@ export function SignalNeedsPanel({ node, graph, mutate, busy, language }) {
     })}
     {editing && <div className="signal-need-editor">
       <label>{word('需要什么数据', 'Data needed')}<input aria-label={word('需要什么数据', 'Data needed')} autoFocus value={draft.name} placeholder={word('例如：24 小时独立讨论人数', 'e.g. unique authors in 24 hours')} onChange={event => setDraft({ ...draft, name: event.target.value })} /></label>
-      <label>{word('为什么需要', 'Why needed')}<textarea aria-label={word('为什么需要', 'Why needed')} rows="2" value={draft.purpose} placeholder={word('它如何帮助这个处理步骤？', 'How does this help this step?')} onChange={event => setDraft({ ...draft, purpose: event.target.value })} /></label>
+      <label>{word('为什么需要', 'Why needed')}<textarea aria-label={word('为什么需要', 'Why needed')} rows={2} value={draft.purpose} placeholder={word('它如何帮助这个处理步骤？', 'How does this help this step?')} onChange={event => setDraft({ ...draft, purpose: event.target.value })} /></label>
       <label>{word('期望样例', 'Expected example')}<input aria-label={word('期望样例', 'Expected example')} value={draft.expected_example} placeholder={word('例如：1200 人', 'e.g. 1200 authors')} onChange={event => setDraft({ ...draft, expected_example: event.target.value })} /></label>
       <div className="signal-need-editor-actions"><button onClick={() => { setEditing(false); setDraft(EMPTY); }}>{word('取消', 'Cancel')}</button><button disabled={busy || !draft.name.trim()} onClick={save}>{word('保存需求', 'Save need')}</button></div>
     </div>}

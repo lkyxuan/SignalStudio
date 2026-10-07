@@ -1,17 +1,18 @@
+import type { CatalogField, Language } from './contracts';
 import { displayNodeName } from './i18n';
 
-export function displayCatalogNodeName(node, language) {
+export function displayCatalogNodeName(node: { name: string; catalog_record_label_cn?: string } | null | undefined, language: Language) {
   return language === 'zh-CN' && node?.catalog_record_label_cn || displayNodeName(language, node?.name || '');
 }
 
-export function displayFieldName(field, language) {
+export function displayFieldName(field: CatalogField, language: Language) {
   const path = field.catalog_path || field.path || field.name;
   if (language !== 'zh-CN') return path;
   return field.catalog_label_cn || field.label_cn || field.catalog_display_label_cn ||
     field.display_label_cn || path.replaceAll('_', ' ');
 }
 
-export function catalogFieldCopy(field, language) {
+export function catalogFieldCopy(field: CatalogField, language: Language) {
   const zh = language === 'zh-CN';
   const name = displayFieldName(field, language);
   const example = zh ? field.presentation?.example : field.presentation?.example_en || field.presentation?.example;

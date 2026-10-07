@@ -1,3 +1,8 @@
+import type { GraphNode, GraphEdge } from './contracts';
+export type LayoutNode = Pick<GraphNode, 'id' | 'name'> & { type: string; is_system_state?: number };
+type LayoutEdge = Pick<GraphEdge, 'upstream_id' | 'downstream_id'>;
+export type NodePosition = { id: string; position_x: number; position_y: number };
+
 const NODE_WIDTH = 208;
 const NODE_HEIGHT = 104;
 const COLUMN_GAP = 132;
@@ -12,50 +17,50 @@ const TYPE_ORDER = ['Source', 'Raw Field', 'Evidence Check', 'asset_identifiers'
   'asset_relationships', 'Relationship Lookup', 'Ranking',
   'Product Module'];
 
-const compareNodes = (left, right) => {
+const compareNodes = (left: LayoutNode, right: LayoutNode) => {
   const typeDifference = TYPE_ORDER.indexOf(left.type) - TYPE_ORDER.indexOf(right.type);
   return typeDifference || left.name.localeCompare(right.name) || left.id.localeCompare(right.id);
 };
 
-function layoutConnected(nodes, edges) {
+function layoutConnected(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
   const byId = new Map(nodes.map(node => [node.id, node]));
-  const incoming = new Map(nodes.map(node => [node.id, []]));
-  const outgoing = new Map(nodes.map(node => [node.id, []]));
+  const incoming = new Map<string, string[]>(nodes.map(node => [node.id, []]));
+  const outgoing = new Map<string, string[]>(nodes.map(node => [node.id, []]));
   for (const edge of edges) {
     if (!byId.has(edge.upstream_id) || !byId.has(edge.downstream_id)) continue;
     // A write back to a table affects later runs, not this run's dependency order.
-    if (byId.get(edge.downstream_id).is_system_state) continue;
-    incoming.get(edge.downstream_id).push(edge.upstream_id);
-    outgoing.get(edge.upstream_id).push(edge.downstream_id);
+    if (byId.get(edge.downstream_id)!.is_system_state) continue;
+    incoming.get(edge.downstream_id)!.push(edge.upstream_id);
+    outgoing.get(edge.upstream_id)!.push(edge.downstream_id);
   }
 
   const ordered = [...nodes].sort(compareNodes);
-  const remaining = new Map(nodes.map(node => [node.id, incoming.get(node.id).length]));
+  const remaining = new Map(nodes.map(node => [node.id, incoming.get(node.id)!.length]));
   const depth = new Map(nodes.map(node => [node.id, 0]));
   const queue = ordered.filter(node => remaining.get(node.id) === 0);
-  const visited = new Set();
+  const visited = new Set<string>();
   while (queue.length) {
-    const node = queue.shift();
+    const node = queue.shift()!;
     visited.add(node.id);
-    for (const nextId of outgoing.get(node.id)) {
-      depth.set(nextId, Math.max(depth.get(nextId), depth.get(node.id) + 1));
-      remaining.set(nextId, remaining.get(nextId) - 1);
-      if (remaining.get(nextId) === 0) queue.push(byId.get(nextId));
+    for (const nextId of outgoing.get(node.id)!) {
+      depth.set(nextId, Math.max(depth.get(nextId)!, depth.get(node.id)! + 1));
+      remaining.set(nextId, remaining.get(nextId)! - 1);
+      if (remaining.get(nextId) === 0) queue.push(byId.get(nextId)!);
     }
     queue.sort(compareNodes);
   }
   // Existing graphs are acyclic. Keep imported or malformed cyclic graphs usable too.
   for (const node of ordered) if (!visited.has(node.id)) depth.set(node.id, 0);
 
-  const columns = [];
-  for (const node of ordered) (columns[depth.get(node.id)] ||= []).push(node);
-  const sortByNeighbors = (columnIndex, neighborIndex, links) => {
-    const neighborOrder = new Map(columns[neighborIndex].map((node, index) => [node.id, index]));
-    const score = node => {
-      const positions = links.get(node.id).map(id => neighborOrder.get(id)).filter(index => index !== undefined);
+  const columns: LayoutNode[][] = [];
+  for (const node of ordered) (columns[depth.get(node.id)!] ||= []).push(node);
+  const sortByNeighbors = (columnIndex: number, neighborIndex: number, links: Map<string, string[]>) => {
+    const neighborOrder = new Map((columns[neighborIndex] || []).map((node, index) => [node.id, index]));
+    const score = (node: LayoutNode) => {
+      const positions = links.get(node.id)!.map(id => neighborOrder.get(id)).filter(index => index !== undefined);
       return positions.length ? positions.reduce((sum, index) => sum + index, 0) / positions.length : Infinity;
     };
-    columns[columnIndex].sort((a, b) => score(a) - score(b) || compareNodes(a, b));
+    columns[columnIndex]!.sort((a, b) => score(a) - score(b) || compareNodes(a, b));
   };
   for (let column = 1; column < columns.length; column++) sortByNeighbors(column, column - 1, incoming);
   for (let column = columns.length - 2; column >= 0; column--) sortByNeighbors(column, column + 1, outgoing);
@@ -68,18 +73,18 @@ function layoutConnected(nodes, edges) {
   })));
 }
 
-function isolatedGroupKey(node) {
+function isolatedGroupKey(node: LayoutNode) {
   if (node.type === 'Source') return `source:${node.name.split('.')[0]}`;
   if (node.is_system_state) return 'tables';
   return `type:${node.type}`;
 }
 
-function layoutIsolated(nodes) {
-  const groups = new Map();
+function layoutIsolated(nodes: LayoutNode[]): NodePosition[] {
+  const groups = new Map<string, LayoutNode[]>();
   for (const node of nodes) {
     const key = isolatedGroupKey(node);
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(node);
+    groups.get(key)!.push(node);
   }
   const blocks = [...groups].map(([key, members]) => {
     members.sort(compareNodes);
@@ -92,7 +97,7 @@ function layoutIsolated(nodes) {
     };
   }).sort((a, b) => b.members.length - a.members.length || a.key.localeCompare(b.key));
 
-  const positions = [];
+  const positions: NodePosition[] = [];
   let rowX = 0, rowY = 0, rowHeight = 0;
   for (const block of blocks) {
     if (rowX && rowX + block.width > MAX_ROW_WIDTH) {
@@ -111,10 +116,10 @@ function layoutIsolated(nodes) {
   return positions;
 }
 
-export function autoLayout(nodes, edges) {
+export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
   if (!nodes.length) return [];
   const ids = new Set(nodes.map(node => node.id));
-  const connectedIds = new Set();
+  const connectedIds = new Set<string>();
   const validEdges = edges.filter(edge => ids.has(edge.upstream_id) && ids.has(edge.downstream_id));
   for (const edge of validEdges) {
     connectedIds.add(edge.upstream_id);

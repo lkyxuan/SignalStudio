@@ -1,13 +1,14 @@
+import type { Language, GraphNode } from './contracts';
 import React from 'react';
 import { SOURCE_USAGE_DRAFTS } from './sourceUsageDrafts';
 import { sourceCardSummary } from './sourceCardSummaries';
 import './source-usage-guide.css';
 
-export function sourcePurpose(name, language) {
+export function sourcePurpose(name: string, language: Language) {
   return sourceCardSummary(name, language);
 }
 
-export function SourceUsageGuide({ node, language }) {
+export function SourceUsageGuide({ node, language }: { node: Pick<GraphNode, 'name'>; language: Language }) {
   const guide = SOURCE_USAGE_DRAFTS[node.name];
   if (!guide) return null;
   const zh = language === 'zh-CN';

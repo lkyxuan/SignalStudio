@@ -1,4 +1,5 @@
-const zh = {
+import type { Language, GraphNode } from './contracts';
+const zh: Record<string, string> = {
   'Text': '文本',
   'Integer': '整数',
   'Timestamp': '时间戳',
@@ -339,17 +340,17 @@ const zh = {
   'Not found': '未找到资源',
 };
 
-export function displayNodeName(language, name) {
-  return language === 'zh-CN' && (name === 'Asset Registry' || name === 'Rule Registry' || name === 'Bind source asset' || name === 'Look up related assets' || name === 'Evaluate monitoring rules') ? zh[name] : name;
+export function displayNodeName(language: Language, name: string = '') {
+  return language === 'zh-CN' && (name === 'Asset Registry' || name === 'Rule Registry' || name === 'Bind source asset' || name === 'Look up related assets' || name === 'Evaluate monitoring rules') ? zh[name] || name : name;
 }
 
-export function normalizeNodeReferences(language, prompt, nodes) {
+export function normalizeNodeReferences(language: Language, prompt: string, nodes: Pick<GraphNode, 'name' | 'reference_number'>[]) {
   const byRef = new Map(nodes.filter(node => node.reference_number != null)
     .map(node => [`#${String(node.reference_number).padStart(4, '0')}`, node.name]));
   return prompt.replace(/#\d{4}\b/g, ref => byRef.get(ref) || ref);
 }
 
-export function translate(language, text) {
+export function translate(language: Language, text: string) {
   if (language !== 'zh-CN') return text;
   if (text.startsWith('Node already exists: ')) return `节点已存在：${text.slice(21)}`;
   if (text.startsWith('Model referenced an unknown node: ')) return `模型引用了未知节点：${text.slice(34)}`;

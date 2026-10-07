@@ -1,10 +1,11 @@
+import type { Language } from './contracts';
 import React from 'react';
 import './source-provenance.css';
 
-export function SourceProvenance({ provenance, operationNames = [], language }) {
+export function SourceProvenance({ provenance, operationNames = [], language }: { language: Language; operationNames?: string[]; provenance?: { scope_zh: string; scope_en: string; coverage_zh: string; coverage_en: string; upstream_url: string; crawler_url: string } | null }) {
   if (!provenance) return null;
   const zh = language === 'zh-CN';
-  const say = (cn, en) => zh ? cn : en;
+  const say = (cn: string, en: string) => zh ? cn : en;
   return <section className="source-provenance" aria-label={say('字段依据', 'Field basis')}>
     <strong>{say('字段依据与范围', 'Field basis and scope')}</strong>
     <p>{zh ? provenance.scope_zh : provenance.scope_en}</p>

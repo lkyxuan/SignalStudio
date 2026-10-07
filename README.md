@@ -63,10 +63,34 @@ The intended collaboration between the user and a future in-product signal assis
 The first versioned, machine-readable signal package is described in [docs/SIGNAL_EXECUTION_CONTRACT.md](docs/SIGNAL_EXECUTION_CONTRACT.md). Run `python3 scripts/seed_example_signal.py` once to add its graph-backed design to the current SQLite project; `GET /api/signals/coingecko_market_turnover_candidate/package` then returns the complete implementation proposal and its readiness checks. It is a design hypothesis with no observed crawler run or validated signal result.
 The package also marks Few Understand as the target implementation platform and Python + Polars as the preferred calculation stack. These are implementation suggestions; the required calculation and output remain explicit in the signal definition, and implementation reports record the stack actually chosen.
 
+## Frontend types and API boundaries
+
+The frontend is migrating to TypeScript while the Python service remains in place.
+`src/contracts.ts` defines the graph and upstream-contract wire schemas with Zod;
+TypeScript types are inferred from those schemas. `src/api.ts` validates graph and
+upstream-contract reads before the UI consumes them, including graph references
+and field ownership. Extra server metadata is preserved as unknown data.
+
+Shared layout, references, translations, catalog presentation, source usage, and
+the first group of field, need, and navigation components now use `.ts` / `.tsx`.
+These files use strict checking and checked indexed access. The entrypoint
+`src/main.jsx`, processing cards, and remaining case/contract inspectors are still
+JavaScript and are not typechecked yet (`allowJs: true`, `checkJs: false`). Migrate
+them module by module; write new frontend modules in TypeScript without `any` or
+type-check suppression. Do not treat successful checking as coverage of remaining
+JavaScript or as verification of crawler observations or signal effectiveness.
+
+Production builds run typechecking first. The GitHub checks workflow runs the same
+build and regression checks below. Contract tests use the real Python producer
+with a disposable SQLite database and the saved upstream contract; they do not
+modify project data. Mutation responses, source-case responses, and signal execution
+packages still require their own typed validators in subsequent migration batches.
+
 ## Verify
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s server -p 'test_*.py'
 npm run test:layout
+npm run test:contracts
 npm run build
 ```

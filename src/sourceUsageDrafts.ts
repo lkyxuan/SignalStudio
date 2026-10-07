@@ -2,7 +2,7 @@
 // uses, not claims that a crawler has emitted records or a signal is validated.
 // Each entry answers: what to ask, what to supply, what comes back, how to use it,
 // and what to check before trusting a result.
-export const SOURCE_USAGE_DRAFTS = {
+export const SOURCE_USAGE_DRAFTS: Record<string, { ask: string; input: string; output: string; use: string; check: string }> = {
   'binance.usdm.exchangeInfo': {
     ask: '哪些 USDT-M 合约目前可以作为观察对象？',
     input: '获取交易所的合约目录；需要先按交易状态和合约类型筛选，再选择交易对。',

@@ -5,18 +5,26 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k \"python3 server/app.py\" \"vite\"",
-    "build": "vite build",
-    "test:layout": "node --test src/autoLayout.test.js",
-    "preview": "python3 server/app.py"
+    "build": "npm run typecheck && vite build",
+    "test:layout": "tsx --test src/autoLayout.test.ts",
+    "preview": "python3 server/app.py",
+    "typecheck": "tsc --noEmit",
+    "test:contracts": "tsx --test src/contracts.test.ts src/api.test.ts"
   },
   "dependencies": {
     "@xyflow/react": "^12.9.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "concurrently": "^9.2.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
     "vite": "^6.2.0"
   }
 }

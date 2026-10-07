@@ -1,20 +1,20 @@
+import type { Language, SourceContracts } from './contracts';
+import { request } from './api';
 import React, { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import './catalog-translation-table.css';
 
-export function CatalogTranslationTable({ language }) {
+export function CatalogTranslationTable({ language }: { language: Language }) {
   const zh = language === 'zh-CN';
-  const word = (cn, en) => zh ? cn : en;
-  const [contract, setContract] = useState(null);
+  const word = (cn: string, en: string) => zh ? cn : en;
+  const [contract, setContract] = useState<SourceContracts | null>(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [sourceId, setSourceId] = useState('');
 
   useEffect(() => {
     let active = true;
-    fetch('/api/source-contracts/v1').then(async response => {
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Unable to load upstream contract');
+    request('/source-contracts/v1').then(result => {
       if (active) setContract(result);
     }).catch(failure => { if (active) setError(failure.message); });
     return () => { active = false; };

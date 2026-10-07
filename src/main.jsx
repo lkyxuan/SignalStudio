@@ -1,3 +1,4 @@
+import { request } from './api';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, Background, Controls, MiniMap, Handle, Position, MarkerType, useEdgesState, useNodesState, useUpdateNodeInternals } from '@xyflow/react';
@@ -24,7 +25,6 @@ import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
 import './node-ref.css';
 
-const API = '/api';
 const BUSINESS_TABLE_NAMES = new Set(Object.keys(businessTables.tables));
 const SOURCE_NAMES = {
   binance: 'Binance', 'binance-futures': 'Binance', coingecko: 'CoinGecko', dexscreener: 'DexScreener',
@@ -92,14 +92,6 @@ const FLOW_LABELS_ZH = {
   'minimap.ariaLabel': '缩略图',
   'handle.ariaLabel': '连接点',
 };
-
-async function request(path, options = {}) {
-  const response = await fetch(`${API}${path}`, { headers: { 'Content-Type': 'application/json' }, ...options,
-    body: options.body ? JSON.stringify(options.body) : undefined });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
 
 function LogicNode({ id, data, selected }) {
   const t = text => translate(data.language, text);

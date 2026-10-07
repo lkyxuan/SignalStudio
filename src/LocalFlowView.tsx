@@ -1,9 +1,10 @@
+import type { Language, GraphNode, Graph } from './contracts';
 import React from 'react';
 import { ArrowRight, Database, GitBranch } from 'lucide-react';
 import { nodeRef } from './graphRefs';
 import './local-flow-view.css';
 
-function Neighbor({ node, language, onFocus, direction, label }) {
+function Neighbor({ node, language, onFocus, direction, label }: { node: GraphNode; language: Language; onFocus: (id: string) => void; direction: 'input' | 'output'; label: (name: string) => string }) {
   return <div className="local-neighbor">
     <button className="local-neighbor-node" onClick={() => onFocus(node.id)} title={language === 'zh-CN' ? '以这张卡为中心查看' : 'Focus this card'}>
       <span className="local-node-type">{node.is_system_state ? <Database size={14} /> : <GitBranch size={14} />}{node.is_system_state ? language === 'zh-CN' ? '表' : 'Table' : language === 'zh-CN' ? '卡片' : 'Card'}</span>
@@ -16,13 +17,13 @@ function Neighbor({ node, language, onFocus, direction, label }) {
   </div>;
 }
 
-export function LocalFlowView({ graph, focusNode, language, label, onFocus, onOpenNode }) {
+export function LocalFlowView({ graph, focusNode, language, label, onFocus, onOpenNode }: { graph: Graph; focusNode?: GraphNode; language: Language; label: (name: string) => string; onFocus: (id: string) => void; onOpenNode: (id: string) => void }) {
   if (!focusNode) return <div className="local-flow-empty">{language === 'zh-CN' ? '当前筛选下没有卡片。' : 'No cards match the current filter.'}</div>;
   const byId = new Map(graph.nodes.map(node => [node.id, node]));
   const inputs = graph.edges.filter(edge => edge.downstream_id === focusNode.id)
-    .map(edge => ({ edge, node: byId.get(edge.upstream_id) })).filter(item => item.node);
+    .map(edge => ({ edge, node: byId.get(edge.upstream_id) })).filter((item): item is typeof item & { node: GraphNode } => !!item.node);
   const outputs = graph.edges.filter(edge => edge.upstream_id === focusNode.id)
-    .map(edge => ({ edge, node: byId.get(edge.downstream_id) })).filter(item => item.node);
+    .map(edge => ({ edge, node: byId.get(edge.downstream_id) })).filter((item): item is typeof item & { node: GraphNode } => !!item.node);
   const zh = language === 'zh-CN';
   return <div className="local-flow-view">
     <div className="local-flow-intro"><strong>{zh ? '单步关系 · 输入 → 当前卡片 → 输出' : 'One-step view · Input → Current card → Output'}</strong><span>{zh ? '点击相邻卡片继续走流程；线段仅表示卡片连接。' : 'Click a neighboring card to follow the flow; lines only connect cards.'}</span></div>

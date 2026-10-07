@@ -1,6 +1,7 @@
+import type { Language } from './contracts';
 // Compact product descriptions for upstream cards and the graph table.
 // These describe intended use, not observed crawler records or validated signals.
-export const SOURCE_CARD_SUMMARIES = {
+export const SOURCE_CARD_SUMMARIES: Record<string, readonly [string, string]> = {
   'binance.usdm.exchangeInfo': ['列出可交易合约，确定后续行情和持仓要跟踪的交易对。', 'List tradable contracts to choose pairs for price and position tracking.'],
   'binance.usdm.globalLongShortAccountRatio': ['查看多空账户比例，与价格和持仓变化对照。', 'Compare long and short account ratios with price and open interest.'],
   'binance.usdm.klines': ['提供价格和成交量 K 线，用于计算涨跌、放量和波动。', 'Use price and volume candles to measure returns, activity, and volatility.'],
@@ -41,5 +42,5 @@ export const SOURCE_CARD_SUMMARIES = {
   'kaito.resource.narratives': ['列出 Kaito 支持的叙事 ID，查询前用于主题核对。', 'Check supported Kaito narrative IDs before topic queries.'],
 };
 
-export const sourceCardSummary = (name, language) =>
+export const sourceCardSummary = (name: string, language: Language) =>
   SOURCE_CARD_SUMMARIES[name]?.[language === 'zh-CN' ? 0 : 1] || null;
