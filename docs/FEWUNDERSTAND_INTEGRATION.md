@@ -101,3 +101,19 @@ fewunderstand Agent → 经认证的快照接收接口 → 共享案例存储 �
 现有页面只在面板挂载时 GET。即便后端部署在线，已打开的页面也不会自行更新。第一版可增加手动刷新或在页面可见时每 10–30 秒检查版本，有更新再读取；更严格的即时通知可后续评估 SSE。服务端写入成功、页面收到新版本和源数据采样时刻是三个不同时间。
 
 建议 GitHub 继续管理代码、设计契约和明确冻结的案例版本；共享后端管理正在协作的项目状态及回填快照，避免多台电脑各自提交同一活动数据库。正式切换前需明确权威数据位置、迁移/备份方式以及本地开发与共享环境的区分。当前仍按原本地/Git 工作方式运行。部署位置、访问人员与刷新要求待用户进一步选择。
+
+## 托管服务选型（2026-10-08，建议，未选定）
+
+用户进一步询问共享数据库放在哪里，以及 GitHub、Vercel、Cloudflare、Supabase 的角色。共享数据库应位于各客户端都能访问的服务端，可以是托管数据库或自管服务器；GitHub 保存仓库和版本，不替代当前应用的运行时数据库。
+
+本轮建议：若希望减少服务器运维、长期支持跨电脑协作，采用 GitHub 管代码 + Vercel 构建/托管网页及经适配的 API + Supabase 托管 PostgreSQL 与登录。SignalStudio 的设计项目状态、图节点/连线、实际回填快照与历史保存在专用的 SignalStudio 数据空间，fewunderstand 仅通过受限回填接口提交选定案例。网页刷新/轮询或订阅机制负责显示更新；数据回填不触发网站重建。若选 Supabase，应先核对现有账号和项目情况，再决定新建独立项目或其他明确隔离的组织方式，不直接混用 fewunderstand 的业务表。
+
+这是与上一节单服务器方案不同的取舍：单服务器 + 持久磁盘最少改动现有 Python/SQLite/JSON，但需要自行维护运行环境、备份等；托管方案减少这部分运维，却需要把 SQLite/文件读写改成远端存储、适配 API 部署方式并加入身份和权限。当前项目不能只导入 Vercel 就完整上线。
+
+Cloudflare 也可承载整套服务：Workers/静态资源托管 + D1。D1 提供 SQLite SQL 语义，但不等于把现有 Python sqlite3 文件连接原封不动上传；必须改用对应的数据库访问接口并适配后端。它是可行备选，并非 Vercel + Supabase 之外还必须增加的第三个平台。本轮没有比较具体价格、开通账号、创建云资源或部署。
+
+核对依据（官方文档，2026-10-08）：
+- Vercel Git 自动部署：https://vercel.com/docs/git
+- Vercel 的 SQLite 限制：https://vercel.com/kb/guide/is-sqlite-supported-in-vercel
+- Supabase PostgreSQL 与相关服务：https://supabase.com/docs/guides/database/overview
+- Cloudflare D1 与 Workers/HTTP API：https://developers.cloudflare.com/d1/
