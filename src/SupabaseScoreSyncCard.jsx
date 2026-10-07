@@ -10,7 +10,7 @@ export function SupabaseScoreSyncCard({ graph, openNode, language }) {
   const link = node => node && <button onClick={() => openNode(node.id)}>#{node.reference_number} {node.name}</button>;
   const sourceTable = { ...tables.tables[sync.source_table], columns: tables.tables[sync.source_table].columns.filter(column => sync.input_fields.includes(column.name)) };
   return <div className="processing-card-frame">
-    <p className="processing-io-case-caption">{zh ? '演算案例 · 尚未运行同步或写入 Supabase。#1006 变化即处理，只写当前前 100 名；出榜旧行保留。' : 'Illustrative, not deployed. Process #1006 changes immediately; write current top-100 candidates only and retain old rows after exit.'}</p>
+    <p className="processing-io-case-caption">{zh ? '演算案例 · 尚未运行同步或写入 Supabase。#1006 变化即处理，只判断本次变化的资产是否前 100；不补位，出榜旧行保留。' : 'Illustrative, not deployed. Process #1006 changes immediately; evaluate only the changed asset for top-100 eligibility; no backfill, retain old rows.'}</p>
     <div className="source-case-inspector processing-io-case">
       <section className="source-case-inspector-section">
         <h3>{zh ? '输入 · #1006 榜单边界变化' : 'Input · source leaderboard boundary'}</h3>
@@ -19,7 +19,7 @@ export function SupabaseScoreSyncCard({ graph, openNode, language }) {
         <BusinessTableRows table={sourceTable} rows={sync.case.before} language={language} />
         <h4>{zh ? '变化后' : 'After'}</h4>
         <BusinessTableRows table={sourceTable} rows={sync.case.changes} language={language} />
-        <p className="processing-io-case-caption">{zh ? '另有 99 个资产高于 55 分且不变，此处省略。KASUN 原来榜外，升至 55 后进入前 100。来源快照版本假设从 1 变为 2，版本通道仍待实现。' : '99 unchanged assets above 55 are omitted. KASUN enters the top 100 at 55. Assume snapshot version advances from 1 to 2; version transport remains unimplemented.'}</p>
+        <p className="processing-io-case-caption">{zh ? '另有 99 个资产高于 55 分且不变，此处省略。KASUN 原来榜外，升至 55 后进入前 100。该资产来源版本假设从 1 变为 2，版本通道仍待实现。' : '99 unchanged assets above 55 are omitted. KASUN enters the top 100 at 55. Assume this asset’s source version advances from 1 to 2; version transport remains unimplemented.'}</p>
       </section>
       <section className="source-case-inspector-section">
         <h3>{zh ? '输出 · 本次只写 KASUN' : 'Output · write KASUN only'}</h3>
@@ -32,8 +32,14 @@ export function SupabaseScoreSyncCard({ graph, openNode, language }) {
       </section>
     </div>
     <section className="processing-goal-readonly execution-trigger">
+      <h3>{zh ? '降榜案例 · 不补位' : 'Decline case · no backfill'}</h3>
+      <BusinessTableRows table={sourceTable} rows={sync.case.no_backfill.after} language={language} />
+      <p>{zh ? sync.case.no_backfill.note_zh : sync.case.no_backfill.note_en}</p>
+      <p>{zh ? '本次输出：0 行写入。Supabase 中 A 的旧行继续保留；出榜不代表前端自动隐藏 A。' : 'Output: zero writes. A’s old Supabase row remains; leaving the source top 100 does not automatically hide A in the frontend.'}</p>
+    </section>
+    <section className="processing-goal-readonly execution-trigger">
       <h3>{zh ? '同步规则' : 'Synchronization rules'}</h3>
-      <p>{zh ? '触发：#1006 得分变化立即处理，无定时窗口。选取：total_heat 按完整精度得分降序、asset_id 升序取前 100。写入：只新增缺失行或更新变化分数，不存排名。' : 'Trigger: process source changes immediately without a timed window. Select: top 100 total_heat scores by full precision descending, asset_id ascending. Write: insert missing rows or update changed scores; no stored rank.'}</p>
+      <p>{zh ? '触发：#1006 得分变化立即处理，无定时窗口。候选：仅本次发生变化的资产；按 total_heat 完整精度得分降序、asset_id 升序判断它是否前 100。写入：只新增缺失行或更新变化分数，不存排名。' : 'Trigger: process source changes immediately without a timed window. Candidate: only the changed asset; check its top-100 eligibility by full-precision score descending, asset_id ascending. Write: insert missing rows or update changed scores; no stored rank.'}</p>
       <p>{zh ? '保留：出榜资产停止更新，旧行继续存在。前 100 是每次写入的范围，不是 Supabase 总行数上限。' : 'Retention: stop updating exits but keep their old rows. Top 100 limits each write’s candidates, not the target table size.'}</p>
       <p>{zh ? '目标会保留旧分，因此直接对目标所有行排序不一定等于 #1006 此刻的前 100；本次不增加清理或成员标记。' : 'Old scores remain, so sorting all target rows may differ from the current source top 100. No cleanup or membership flag is introduced.'}</p>
       <details className="processing-technical"><summary>{zh ? '实现要求 · 待后端实现' : 'Implementation requirements · pending'}</summary>
@@ -43,7 +49,7 @@ export function SupabaseScoreSyncCard({ graph, openNode, language }) {
     </section>
     <section className="processing-goal-readonly execution-trigger processing-algorithm">
       <h3>{zh ? '算法说明' : 'Algorithm'}</h3>
-      <p>{zh ? '每当后端得分变化，就读取当前前 100 名。逐个用资产 ID 和评分维度查 Supabase：找不到就新增，找到且分数变化就更新，相同则跳过。榜外资产不写也不删。处理成功后确认来源版本；失败恢复重试，旧任务不得覆盖新结果。' : 'Whenever backend scores change, read the current top 100. For each asset and score key, insert if missing, update if its score changed, otherwise skip. Neither write nor delete outsiders. Acknowledge the source version after success; retry recoverably and prevent stale overwrites.'}</p>
+      <p>{zh ? '每当某个资产得分变化，只判断它当前是否前 100。在前 100 才用这个资产 ID 和评分维度查 Supabase：找不到就新增，找到且分数变化就更新，相同则跳过。榜外资产不写也不删；不主动判断或同步未变化资产，不补位。处理成功后确认来源版本；失败恢复重试，旧任务不得覆盖新结果。' : 'Whenever an asset score changes, check only that asset’s current top-100 eligibility. If eligible, for this asset and score key, insert if missing, update if its score changed, otherwise skip. Neither write nor delete outsiders; do not evaluate or backfill unchanged assets. Acknowledge the source version after success; retry recoverably and prevent stale overwrites.'}</p>
       <p>{zh ? '本例只把新入榜 KASUN 的 55 分写过去，Stake | Bonus 原来的 50 分留着。没有 5 秒等待，也不会把分数相加或重新计算。' : 'Here only KASUN’s new 55 is written. Stake | Bonus keeps its old 50. There is no five-second wait, summation or score recalculation.'}</p>
     </section>
   </div>;

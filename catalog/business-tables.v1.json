@@ -225,8 +225,8 @@
     },
     "supabase_asset_scores": {
       "label_zh": "Supabase 资产得分表",
-      "purpose_zh": "供前端查询的得分副本。#1006 变化即只同步当前前 100 名：已有则更新变化分数，没有则新增。出榜旧行保留，总行数可超过 100；不设时间窗口、不写排名。尚未创建实际 Supabase 表。",
-      "purpose_en": "On source changes, upsert only the current top 100 total_heat scores. Retain old out-of-top-100 rows; the table can exceed 100 rows. No time window or stored rank. Not deployed.",
+      "purpose_zh": "供前端查询的得分副本。#1006 某资产得分变化时，只在该资产当前位于前 100 时同步它：已有更新，缺失新增。不主动补位。出榜旧行保留，总行数可超过 100；不设时间窗口、不写排名。尚未创建实际 Supabase 表。",
+      "purpose_en": "On an asset score change, upsert only that asset if currently top 100; never backfill passive entrants. Retain old out-of-top-100 rows; the table can exceed 100 rows. No time window or stored rank. Not deployed.",
       "columns": [
         {
           "name": "asset_id",
@@ -263,7 +263,7 @@
         {
           "name": "source_version",
           "type": "BIGINT",
-          "label_zh": "该行最近变更所属的全局快照发布版本；另需同步控制记录拒绝旧发布（待实现）",
+          "label_zh": "该资产和维度的来源单调版本；按键控制进度防止旧任务覆盖（待实现）",
           "required": true
         },
         {

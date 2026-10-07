@@ -25,7 +25,7 @@ SYSTEM_TABLES = (
     ("asset_monitoring_rules", "Versioned monitoring rules for assets; planned table, not connected to live records.", 1020, -220),
     ("asset_score_events", "Unified score postings by asset and dimension, linked to program-owned decision records; planned table, not calculated results.", 1700, -220),
     ("asset_scores_current", "Latest score metric values by asset; separate score keys identify distinct calculations; rank is derived when querying; planned table, not calculated results.", 1700, 160),
-    ("supabase_asset_scores", "Supabase score projection: realtime top-100 upserts, retain older out-of-top-100 rows, no time window or stored rank; planned, not deployed.", 2380, 160),
+    ("supabase_asset_scores", "Supabase score projection: realtime changed-asset upserts if top 100, no vacancy backfill, retain older rows, no time window or stored rank; planned, not deployed.", 2380, 160),
 )
 LEGACY_STATE_TYPES = ("Asset Registry", "Rule Registry")
 STATE_TYPES = tuple(item[0] for item in SYSTEM_TABLES) + LEGACY_STATE_TYPES
