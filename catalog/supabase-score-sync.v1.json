@@ -50,8 +50,7 @@
       "source_version 是待实现的可靠来源版本，每个 asset_id + score_key 单调递增；不按跨资产通知到达顺序丢弃事件。同步控制记录按键保存已处理版本（含跳过），以事务防止旧任务覆盖新结果，目标行只在实际写入时更新版本。",
       "失败保留通知并幂等重试，重启恢复未确认的资产变更，不扫描补齐完整前 100。重试重新读取该资产最新状态并判断；不丢处理期间产生的变化。仅时间戳或版本变更不单独触发数值同步。",
       "calculated_at 保留本次被复制的得分时间，synced_at 为该行写入成功时间。不写 rank 字段，也不修改 #1006 或历史评分事件。",
-      "Supabase 会积累出榜旧分；直接按所有目标行排序不保证等于 #1006 当前前 100。用户接受保留过期记录，本次不新增成员标记、清理规则或精确榜单查询协议。",
-      "前端仅从 Supabase 查询 total_heat，按已存 score_value 降序、asset_id 升序分页加载（首屏 20 条为示例，最多展示 100）。接受保留旧分造成与 #1006 实时榜单的差异；不自动隐藏出榜行、不回查 #1006 修正前端榜单。"
+      "#3010 不判断展示有效期，不因过期删除或清零，也不为前端筛选等待。#1007 到前端的读取过滤另见 frontend_read；保持来源 calculated_at。"
     ],
     "requirements_en": [
       "Process #1006 changes immediately with no fixed coalescing window or intentional delay. Capture changes recoverably via CDC or a transactional outbox.",
@@ -61,8 +60,7 @@
       "source_version is proposed reliable source metadata, monotonic per asset_id + score_key. Never discard another asset’s event based on cross-asset arrival order. Track processed versions per key, including skips, transactionally rejecting stale tasks; target row versions change only on writes.",
       "Retry retained notifications idempotently and recover unacknowledged asset changes after restart, without a top-100 backfill scan. Re-read the asset’s latest state on retry; retain concurrent changes. Timestamp/version-only updates do not trigger score writes.",
       "Preserve the copied score’s calculated_at and set synced_at on successful row writes. Store no rank and do not modify #1006 or score history.",
-      "Retained stale scores mean sorting all target rows need not match the current source top 100. The user accepts retaining expired rows; no membership flag, cleanup policy or exact current-leaderboard query protocol is added here.",
-      "The frontend queries Supabase total_heat only, ordered by stored score descending and asset ID ascending, with pagination (20 initially is an example, up to 100 displayed). Accept differences from the live #1006 ranking caused by retained scores; do not automatically hide exits or query #1006 to reconcile the frontend list."
+      "#3010 never filters display freshness, deletes or zeros expired rows, or waits for frontend filtering. The #1007-to-frontend read contract is under frontend_read; preserve source calculated_at."
     ],
     "acceptance": [
       "member_score_change_updates",
@@ -83,7 +81,7 @@
       "skip_progress_prevents_stale_write",
       "cross_asset_versions_do_not_drop_other_events",
       "restart_replays_notifications_without_top100_reconciliation",
-      "frontend_paginates_stored_supabase_scores_without_source_reconciliation"
+      "sync_does_not_apply_frontend_freshness_filter"
     ]
   },
   "case": {
@@ -193,8 +191,45 @@
     ],
     "initial_page_size_example": 20,
     "display_limit": 100,
-    "ranking_basis": "stored_supabase_scores_including_retained_stale_rows",
+    "ranking_basis": "fresh_stored_supabase_scores",
     "require_exact_source_top_100": false,
-    "auto_hide_exited_assets": false
+    "auto_hide_exited_assets": false,
+    "freshness_seconds": 180,
+    "freshness_configurable": true,
+    "freshness_field": "calculated_at",
+    "freshness_filter": "calculated_at > query_time_utc - 180 seconds AND calculated_at <= query_time_utc",
+    "filter_before_order_and_limit": true,
+    "auto_hide_expired_rows": true,
+    "refresh_open_page_on_expiry": true,
+    "freshness_example": {
+      "last_calculated_at": "2026-10-08T00:00:00Z",
+      "visible_at": "2026-10-08T00:02:59Z",
+      "hidden_at": "2026-10-08T00:03:00Z",
+      "stored_row_deleted": false
+    },
+    "owner": "1007_to_frontend",
+    "filter_execution": "supabase_query_before_order_and_limit",
+    "request_owner": "frontend_or_its_read_api",
+    "sync_module_applies_freshness_filter": false,
+    "requirements_zh": [
+      "前端从 Supabase 查询 total_heat：先按可信 UTC 查询时刻筛选 calculated_at 在最近 180 秒内且不晚于当前时刻，再按 score_value 降序、asset_id 升序分页（首屏 20 为示例，最多 100）。3 分钟可配置，是展示有效期，不是同步窗口。边界达到 180 秒即过期；旧行仍存库，页面打开期间也须及时移除超时行。",
+      "重试写入不得用 synced_at 或当前时间替换 calculated_at 来续期；查询过滤必须在排序与 limit 之前，后续分页也应用新鲜度过滤。",
+      "上线前验证榜内每 60 秒真实重算后的持续同步能满足 180 秒展示有效期。数值不变而跳过写入、零分或同步故障都可能导致误隐藏；稳定分数的续期方式尚未选定，本次不擅自增加心跳写入。故障导致超时不代表已证实出榜，前端不能把数据陈旧当成资产删除。"
+    ],
+    "requirements_en": [
+      "Read total_heat from Supabase: first filter calculated_at within the last 180 seconds and not in the future at a trusted UTC query time, then order by score descending and asset ID ascending and paginate (20 initially is an example, up to 100). The configurable three minutes is display validity, not a sync window. Age >=180 seconds expires; retain stored rows and expire rows on already-open pages too.",
+      "Retries must not renew freshness by substituting synced_at or the current time for calculated_at. Apply freshness before ordering and limiting and on subsequent pages.",
+      "Before rollout, verify that ongoing delivery of genuine 60-second in-list recalculations satisfies the 180-second validity. Skipped unchanged values, zero scores and sync failures may falsely hide entries. Renewal for stable scores remains undecided; this change does not silently add heartbeat writes. Expiration indicates staleness, not proven exit or asset deletion."
+    ],
+    "acceptance": [
+      "frontend_paginates_stored_supabase_scores_without_source_reconciliation",
+      "freshness_filter_before_limit",
+      "age_180_seconds_expires",
+      "future_timestamp_excluded",
+      "retry_does_not_renew_calculation_time",
+      "open_page_expires_without_new_events",
+      "pagination_applies_freshness",
+      "stable_score_renewal_policy_requires_resolution_before_rollout"
+    ]
   }
 }

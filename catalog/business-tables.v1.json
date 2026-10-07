@@ -225,8 +225,8 @@
     },
     "supabase_asset_scores": {
       "label_zh": "Supabase 资产得分表",
-      "purpose_zh": "供前端查询的得分副本。#1006 某资产得分变化时，只在该资产当前位于前 100 时同步它：已有更新，缺失新增。不主动补位。出榜旧行保留，总行数可超过 100；不设时间窗口、不写排名。尚未创建实际 Supabase 表。",
-      "purpose_en": "On an asset score change, upsert only that asset if currently top 100; never backfill passive entrants. Retain old out-of-top-100 rows; the table can exceed 100 rows. No time window or stored rank. Not deployed.",
+      "purpose_zh": "供前端查询的得分副本。#1006 某资产得分变化时，只在该资产当前位于前 100 时同步它：已有更新，缺失新增。不主动补位。出榜旧行保留，总行数可超过 100；前端先筛选 calculated_at 最近 3 分钟的记录，再排序分页最多 100。同步无等待窗口，不写排名。尚未创建实际 Supabase 表。",
+      "purpose_en": "On an asset score change, upsert only that asset if currently top 100; never backfill passive entrants. Retain old rows; the table can exceed 100 rows. Frontend filters calculated_at to the last three minutes before sorting and pagination up to 100. No sync wait window or stored rank. Not deployed.",
       "columns": [
         {
           "name": "asset_id",

@@ -5,6 +5,7 @@ import identityCase from '../catalog/identity-flow-case.v1.json';
 import supabaseSync from '../catalog/supabase-score-sync.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import './processing-io-card.css';
+import { ScoreFreshnessRule } from './ScoreFreshnessRule';
 import { BusinessTableRows } from './BusinessTableRows';
 import { TableBackfillCard } from './TableBackfillCard';
 
@@ -56,7 +57,8 @@ export function BusinessTableCard({ node, language }) {
       {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '模拟案例 · 假设每个资产仅收到一次 +100，半衰期 7 天，统一在 2026-10-15 00:00 UTC 计算；不是实际评分。' : 'Illustrative cases · assume one +100 event per asset, a seven-day half-life, and a common calculation time of 2026-10-15 00:00 UTC. These are not actual scores.'}</p>}
       <p><strong>{rows.length} {zh ? scoreAssumptions ? '行设计案例' : '行产品案例' : scoreAssumptions ? 'design case rows' : 'product case rows'}</strong> · {zh ? notes[node.name] : notesEn[node.name]}</p>
         {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '假设的事件入账时间：' : 'Assumed event entry times: '}{scoreAssumptions.events.map(event => `${event.asset_name}: ${event.assumed_created_at}`).join('；')}</p>}
-      {node.name === supabaseSync.target_table && <p>{zh ? '案例只列两行，省略另 99 行。#3010 只判断本次变化资产是否前 100，不补位，旧记录保留；前端按 Supabase 已存分数降序、asset_id 升序分页读，例如首屏 20、最多 100；接受旧分，不回查源榜单校正。' : 'Only two illustrative rows are shown; 99 are omitted. #3010 evaluates only the changed asset, without backfilling, and retains old rows. The frontend pages by stored score descending then asset ID ascending, e.g. 20 initially and up to 100 displayed; retained scores are accepted without source reconciliation.'}</p>}
+      {node.name === supabaseSync.target_table && <p>{zh ? '案例只列两行，省略另 99 行。#3010 只判断本次变化资产是否前 100，不补位，旧记录保留；前端按 Supabase 已存分数降序、asset_id 升序分页读，例如首屏 20、最多 100；先过滤最近 3 分钟的 calculated_at，再排序分页；不回查源榜单校正。' : 'Only two illustrative rows are shown; 99 are omitted. #3010 evaluates only the changed asset, without backfilling, and retains old rows. The frontend pages by stored score descending then asset ID ascending, e.g. 20 initially and up to 100 displayed; filter calculated_at to the last three minutes before ordering and pagination, without source reconciliation.'}</p>}
+      {node.name === supabaseSync.target_table && <ScoreFreshnessRule language={language} />}
       {scoringTable && <div className="processing-input-source">
         <label className="source-case-inspector-picker">{zh ? '贯通案例 · 目标表行' : 'Through-line case · intended table row'}
           <select value={caseIndex} onChange={event => setCaseIndex(Number(event.target.value))}>{identityCase.cases.map((item, index) =>
