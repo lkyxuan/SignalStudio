@@ -61,3 +61,21 @@ SignalStudio 维护希望采集的上游来源和字段。Few Understand 读取�
 - 可选 `expected_rows` 包含 `asset_id`、`score_key=total_heat`、`score_value`、带时区的 `calculated_at`。同资产同指标但时间不同不计算分差。匹配判定用完整精度，浮点误差容差为相对/绝对 `1e-12`；实际和预期显示差额供审查。
 
 数据库 `asset_score.current_score` 没有 `asset_name` 时，可在取样阶段显式关联 `asset_core.assets` 获取名称，或在导入映射中将名称设为 `null`。内部排名 API 有回退计算行为；取样时需核对 `materialized` 及每行 `calculated_at`，不能把回退计算或排名中补零的行当作数据库已存的 #1006 行。
+
+## 交给 fewunderstand AI 回填（2026-10-08，推荐方式）
+
+用户询问由哪边的 AI 执行，以及是否需要接口、Prompt、MCP 或 Skill。当前推荐：fewunderstand AI 负责源端只读取样、字段映射和可选回放；SignalStudio 负责快照格式、校验、保存与展示。已有 HTTP 接收接口即可完成第一批，无需新增 MCP。Prompt 负责描述任务，JSON 格式和接口负责稳定交接。频繁重复后可封装 Skill；只有需要跨 AI 客户端提供统一工具入口时，再考虑 MCP。此处为建议，未创建 Skill/MCP 或向其他 AI 发送任务。
+
+接口默认绑定 SignalStudio 所在机器的 `127.0.0.1:8787`。同机 AI 可以 POST；远端运行的 AI 的 localhost 指向远端机器，应返回 JSON 文件，由 SignalStudio 本机导入。不要为了这次快照工作直接公开本地接口。快照验证只能检查格式与数值约束，来源真实性仍依赖取样证据；对照通过也不等同于整个评分链路已验证。
+
+可复制给 fewunderstand AI 的任务：
+
+> 请为 SignalStudio 的 #1006（asset_scores_current）准备一份固定真实案例快照。先读取 SignalStudio 的 docs/FEWUNDERSTAND_INTEGRATION.md 中“#1006 实际回填模块”格式，以及 catalog/business-tables.v1.json 的对应表定义。
+>
+> 在已获授权的 fewunderstand 环境中，只读取样 3–5 个有代表性的 total_heat 当前分记录，优先检查 asset_score.current_score。保存实际资产 ID、完整精度分数、每行 calculated_at、采样时间、环境和来源位置。名称可显式关联 asset_core.assets 获取，并在来源中记下关联；无法取得时按格式映射为 null。确认这些是实际存储的行；不要把内部排名接口的补零行或回退重算当成已存记录。
+>
+> 如果没有可用的当前分，但有可追溯的原始事件和冻结规则，可在固定时间离线回放，标记 evidence_kind=offline_replay，并通过 derivation_ref 引用保存的输入、规则和计算依据；若资料不足，报告缺口。不要生成模拟数据来填充实际回填。
+>
+> 按 version=1 格式输出 JSON。expected_rows 可以先留空；只有独立按明确规则计算出的预期才用于对照，不能复制实际分数作为预期。预期必须对应同一资产、指标和计算时间；不要用 Studio 模拟案例的资产 ID 或分数替换真实值。
+>
+> 若与 SignalStudio 在同一台机器，先将 JSON 保存到 SignalStudio/data/ 下的独立快照文件，GET http://127.0.0.1:8787/api/table-backfills/1006 检查现有快照；若有旧快照，先在本地保留备份，再 POST 新快照（Content-Type: application/json），最后 GET 核对回填行数、来源和数值。若接口不可达，返回 JSON 文件及文件位置供导入。不要写入源数据库，不要部署或变更源表/规则，也不要把原始样本、凭据或连接串提交到公开仓库。完成后报告取样来源、行数、证据类型及任何缺口。
