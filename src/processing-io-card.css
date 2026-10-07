@@ -86,3 +86,7 @@
 .table-backfill-detail pre{max-height:260px;overflow:auto;padding:10px;background:#fff;border:1px solid #dce9e6;border-radius:5px;white-space:pre-wrap;overflow-wrap:anywhere}
 .table-backfill-card .table-backfill-error{color:#a34739}
 .table-backfill-empty{padding:12px;background:#fff;border:1px dashed #cfe0dc;border-radius:6px}
+
+.execution-trigger{margin:16px 0}
+.execution-trigger h3{margin:0 0 10px;color:#27766d;font-size:13px}
+.execution-trigger .source-case-inspector-fields{margin-bottom:10px}

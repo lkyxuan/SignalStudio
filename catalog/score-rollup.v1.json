@@ -1,44 +1,120 @@
 {
   "version": "score-rollup.v1",
-  "status": "planned_not_executed",
+  "status": "design_defined_implementation_reference_available",
   "node": {
     "name": "计算当前资产评分",
     "type": "Score",
     "workflow_lane": "shared",
-    "definition": "规划从 #6001 Redis 读取评分事件，Demo 只计算各资产的 total_heat 全量热度并更新 #1006。#3009 首次建档提交 +100 起始贡献；以后其他评分规则也可向同一 total_heat 写贡献，各笔按自己的衰减规则折算后求和。#1005 长期流水由另一 Redpanda 消费者归档，计算不等待归档；程序尚未运行。",
-    "formula": "每次计算或排名固定同一个 UTC 查询时刻 t。total_heat(asset,t) = Σ[score_delta_i × 2^(-max(0,(t Unix 秒 - created_at_i Unix 秒)/60)/half_life_minutes_i)]，直接使用各事件 Value.data 中冻结并缓存的正数 half_life_minutes；decay_policy_ref 定位模型与规则版本，并用于校验参数。不将经过时间取整。Demo 当前只有 asset_initial_score/v1 起始事件，+100 的 H=10080 分钟（7 天）；第 0、10080、20160 分钟分别为 100、50、25，只是连续曲线上的检查点。时间流逝不向 #1005 写负分。",
-    "caveats": "Demo 每资产只有一笔起始贡献，可按原 created_at 常数时间计算。#6001 必须保留仍参与连续衰减的事件或等价的逐规则状态，不能统一按 24h TTL 删除；仅有 #1006 的合计分与计算时间，未来混入不同半衰期时不能正确继续衰减。每次折算均以原事件时间为基准，内部不舍入；#1006 保存 calculated_at 时刻的完整精度分，榜单在同一查询时刻重新折算未舍入的分数，再按分数降序、asset_id 升序排序，界面显示两位小数。重复消息按 event_key 去重，Redis 丢失时从仍保留的 Redpanda 事件或保存了原始衰减参数的 Delta/Parquet 历史重建；旧计算不得覆盖新结果。其他来源的热度加分规则和半衰期尚未定义；当前没有真实流水、运行中的计算器或热度结果。"
+    "definition": "每 60 秒独立执行一轮：读取 #1001 全部已登记资产和 #6001 Redis 评分事件，在同一 UTC 时刻计算各资产的 total_heat，写入 #1006。没有新事件时仍按原贡献衰减；无贡献的资产写 0 分。计算不等待 #1005 归档。fewunderstand 已有对应实现与结果快照，线上调度持续运行状态尚未核验。",
+    "formula": "每轮定时计算固定同一个 UTC 时刻 t；默认排名读取最近一轮已保存的分数。total_heat(asset,t) = Σ[score_delta_i × 2^(-max(0,(t Unix 秒 - created_at_i Unix 秒)/60)/half_life_minutes_i)]，直接使用各事件 Value.data 中冻结并缓存的正数 half_life_minutes；decay_policy_ref 定位模型与规则版本，并用于校验参数。不将经过时间取整。Demo 当前只有 asset_initial_score/v1 起始事件，+100 的 H=10080 分钟（7 天）；第 0、10080、20160 分钟分别为 100、50、25，只是连续曲线上的检查点。时间流逝不向 #1005 写负分。",
+    "caveats": "Demo 每资产只有一笔起始贡献，可按原 created_at 常数时间计算。#6001 必须保留仍参与连续衰减的事件或等价的逐规则状态，不能统一按 24h TTL 删除；仅有 #1006 的合计分与计算时间，未来混入不同半衰期时不能正确继续衰减。每次折算均以原事件时间为基准，内部不舍入；#1006 保存 calculated_at 时刻的完整精度分，默认榜单读取最近一轮保存的未舍入分数，按分数降序、asset_id 升序排序并展示 calculated_at，界面显示两位小数。重复消息按 event_key 去重，Redis 丢失时从仍保留的 Redpanda 事件或保存了原始衰减参数的 Delta/Parquet 历史重建；旧计算不得覆盖新结果。其他来源的热度加分规则和半衰期尚未定义；已保存 #1006 结果快照；它不证明调度持续按分钟成功。"
   },
   "inputs": [
     {
+      "table": "assets",
+      "source_node": "assets",
+      "read_fields": [
+        "asset_id",
+        "name"
+      ],
+      "storage": "asset_registry",
+      "note_zh": "读取全部已登记资产，包括待确认身份的资产。每个资产都参与本轮计算，没有评分贡献时写 0 分。",
+      "note_en": "Read all registered assets, including pending identities. Every asset participates; assets without contributions receive zero."
+    },
+    {
       "table": "asset_score_events",
       "source_node": "Redis 近期评分窗口",
-      "read_fields": ["asset_id", "asset_name", "event_key", "score_key", "decision_ref", "score_delta", "created_at", "half_life_minutes"],
-      "cache_metadata_fields": [{"name": "decay_policy_ref", "type": "TEXT", "note_zh": "Redis 保留的不可变衰减规则版本引用；来自 #5001 Value.data，定位指数模型并校验 half_life_minutes。#1005 也归档这两个值。", "note_en": "Immutable policy reference from #5001 Value.data; locates the exponential model and validates half_life_minutes. #1005 archives both."}],
+      "read_fields": [
+        "asset_id",
+        "asset_name",
+        "event_key",
+        "score_key",
+        "decision_ref",
+        "score_delta",
+        "created_at",
+        "half_life_minutes"
+      ],
+      "cache_metadata_fields": [
+        {
+          "name": "decay_policy_ref",
+          "type": "TEXT",
+          "note_zh": "Redis 保留的不可变衰减规则版本引用；来自 #5001 Value.data，定位指数模型并校验 half_life_minutes。#1005 也归档这两个值。",
+          "note_en": "Immutable policy reference from #5001 Value.data; locates the exponential model and validates half_life_minutes. #1005 archives both."
+        }
+      ],
       "storage": "redis_recent_score_events",
-      "note_zh": "从 Redis 缓存读取受影响资产与维度，不等待 Delta/Parquet 归档；created_at 是衰减时间基准，half_life_minutes 是随事件冻结的参数，decay_policy_ref 定位当时的模型与版本，event_key 用于去重；长期归档保留这两个衰减字段。"
+      "note_zh": "每轮读取 Redis 中参与 total_heat 的评分事件，不等待 Delta/Parquet 归档；created_at 是衰减基准，half_life_minutes 与 decay_policy_ref 沿用事件冻结值，event_key 用于去重。新事件进入 Redis 后在后续定时轮次计入。",
+      "note_en": "Each cycle reads active total_heat events from Redis without waiting for the archive. Keep original event times and frozen decay parameters; deduplicate by event_key. Newly cached events enter a subsequent scheduled cycle."
     }
   ],
   "output_table": "asset_scores_current",
   "output_fields": [
-    {"name": "asset_id", "rule_zh": "沿用 #1005 的资产 ID", "rule_en": "Reuse the #1005 asset ID"},
-    {"name": "asset_name", "rule_zh": "沿用输入事件的资产名称快照供展示和调试；多笔事件取 created_at 最新且名称非空的一笔，同时间按 event_key 升序；无名称则为空，不阻塞评分", "rule_en": "Carry the name snapshot from the latest named input event by created_at, then event_key ascending on ties; use null if absent and never block scoring"},
-    {"name": "score_key", "rule_zh": "Demo 固定为 total_heat；asset_initial_score/v1 是贡献规则，不是单独评分维度", "rule_en": "Use total_heat for this demo; asset_initial_score/v1 identifies a contribution rule, not another score dimension"},
-    {"name": "score_value", "rule_zh": "同一资产的 total_heat 原始贡献各按自己的规则衰减后求和", "rule_en": "Sum the asset's total_heat contributions after applying each event's decay policy"},
-    {"name": "calculated_at", "rule_zh": "该资产和指标本次计算使用的 UTC 时间", "rule_en": "UTC time used for this asset and metric calculation"}
+    {
+      "name": "asset_id",
+      "rule_zh": "沿用 #1001 已登记资产的 asset_id；无评分事件的资产同样输出",
+      "rule_en": "Use the registered #1001 asset_id, including assets with no score events"
+    },
+    {
+      "name": "asset_name",
+      "rule_zh": "沿用输入事件的资产名称快照供展示和调试；多笔事件取 created_at 最新且名称非空的一笔，同时间按 event_key 升序；无名称则为空，不阻塞评分",
+      "rule_en": "Carry the name snapshot from the latest named input event by created_at, then event_key ascending on ties; use null if absent and never block scoring"
+    },
+    {
+      "name": "score_key",
+      "rule_zh": "Demo 固定为 total_heat；asset_initial_score/v1 是贡献规则，不是单独评分维度",
+      "rule_en": "Use total_heat for this demo; asset_initial_score/v1 identifies a contribution rule, not another score dimension"
+    },
+    {
+      "name": "score_value",
+      "rule_zh": "同一资产的 total_heat 原始贡献各按自己的规则衰减后求和",
+      "rule_en": "Sum the asset's total_heat contributions after applying each event's decay policy"
+    },
+    {
+      "name": "calculated_at",
+      "rule_zh": "本轮全部资产共同使用的固定 UTC 计算时刻",
+      "rule_en": "One fixed UTC calculation time shared by every asset in this cycle"
+    }
   ],
   "configuration": {
     "demo_score_key": "total_heat",
-    "schedule": {"mode": "planned_event_driven_and_query_time_decay", "triggers": ["new_event_materialized_in_redis", "total_heat_read_or_refresh"], "coalesce_by": ["asset_id", "score_key"]},
+    "schedule": {
+      "mode": "scheduled",
+      "interval_seconds": 60,
+      "triggers": [
+        "timer"
+      ],
+      "event_arrival_behavior": "included_in_next_scheduled_cycle",
+      "query_triggers_calculation": false
+    },
     "time_basis": "asset_score_events.created_at",
     "score_formula": "sum(score_delta * 2^(-elapsed_minutes / event_half_life_minutes))",
     "score_dimensions": "demo_total_heat_only",
     "decay_policies": {
-      "asset_initial_score/v1": {"mode": "exponential_half_life", "half_life_minutes": 10080, "parameter_status": "defined_by_user", "output_score_key": "total_heat", "rule_version_source": "redis.decay_policy_ref", "half_life_source": "redis.half_life_minutes", "archive_recovery_source": "asset_score_events.decay_policy_ref_and_half_life_minutes", "time_granularity": "continuous_elapsed_time_from_created_at", "elapsed_minutes_rule": "max(0, (calculated_at_unix_seconds - created_at_unix_seconds) / 60)", "calculation_precision": "full", "display_decimal_places": 2}
+      "asset_initial_score/v1": {
+        "mode": "exponential_half_life",
+        "half_life_minutes": 10080,
+        "parameter_status": "defined_by_user",
+        "output_score_key": "total_heat",
+        "rule_version_source": "redis.decay_policy_ref",
+        "half_life_source": "redis.half_life_minutes",
+        "archive_recovery_source": "asset_score_events.decay_policy_ref_and_half_life_minutes",
+        "time_granularity": "continuous_elapsed_time_from_created_at",
+        "elapsed_minutes_rule": "max(0, (calculated_at_unix_seconds - created_at_unix_seconds) / 60)",
+        "calculation_precision": "full",
+        "display_decimal_places": 2
+      }
     },
-    "asset_scope": "only_affected_asset_id_and_input_score_key",
-    "write_policy": "replace_only_affected_owned_score_if_not_older_than_current_including_zero_or_empty_window",
-    "calculated_at": "one_fixed_utc_timestamp_per_asset_metric_calculation",
-    "rank_policy": "total_heat_all_assets_at_one_query_time_then_unrounded_score_value_desc_asset_id_asc"
+    "asset_scope": "all_registered_assets_including_pending_identity_and_zero_event_assets",
+    "write_policy": "upsert_all_registered_assets_total_heat_if_not_older_including_zero",
+    "calculated_at": "one_fixed_utc_timestamp_per_cycle",
+    "rank_policy": "latest_materialized_cycle_unrounded_score_value_desc_asset_id_asc_with_calculated_at"
+  },
+  "implementation_reference": {
+    "system": "fewunderstand",
+    "schedule_file": "consumer/asset_total_heat/minute_materializer_flow.py",
+    "entrypoint": "serve",
+    "interval_seconds": 60,
+    "runtime_schedule_status": "not_verified",
+    "result_evidence": "data/table-1006-backfill.json"
   }
 }

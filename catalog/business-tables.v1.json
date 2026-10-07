@@ -210,7 +210,7 @@
     },
     "asset_scores_current": {
       "label_zh": "资产当前评分",
-      "purpose_zh": "保存各资产评分在 calculated_at 时刻的值；Demo 只使用 total_heat 全量热度。新资产首次建档贡献 +100，按 7 天（10080 分钟）半衰；后续贡献可按各自规则衰减后汇总。#3005 从 Redis 评分事件更新本表，排名在同一查询时刻计算，尚未运行。",
+      "purpose_zh": "保存各资产评分在 calculated_at 时刻的值；Demo 只使用 total_heat 全量热度。#3005 每 60 秒读取全部已登记资产与 Redis 评分事件，按本轮同一 UTC 时刻衰减汇总，写入包括 0 分在内的当前分。默认排名读取最近一轮保存的分数；实际回填快照与后台调度分别展示。",
       "storage_plan": {"current_view": "redis_asset_scores_current", "derived_from": "redis_recent_score_events", "status": "planned_not_executed"},
       "columns": [
         { "name": "asset_id", "type": "TEXT", "format": "uuidv7", "label_zh": "引用 #1001 的内部资产 ID", "required": true },

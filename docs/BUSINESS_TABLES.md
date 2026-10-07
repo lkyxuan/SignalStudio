@@ -92,7 +92,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 #1005 是逻辑流水，不要求评分程序同时写 Redis 和 Parquet。#5001 的 Topic 选择见 [`catalog/score-event-topic-proposal.v1.json`](../catalog/score-event-topic-proposal.v1.json)：fewunderstand 现有宽 Topic 中，`signal.data` 的策略信号与已接受评分账本不同，`indicator.data` 是指标结果，上游数据及元数据 Topic 也不适合承担评分流水的保留和重放。因此只提出一个待评审的宽 Topic 候选 `score.events`，不表示已经注册或创建。沿用 fewunderstand 现有的三个 Headers：`source=signalstudio` 表示 #3006 的逻辑业务来源，不表示已有 SignalStudio 发布进程，`type=score_event` 表示已接受的评分事件家族，`category=asset_score_contribution` 表示逐笔资产评分贡献。三元组合查拟建注册表，映射到 v1 Value 结构、处理程序和目标位置；两个独立 Consumer 各自读到消息后识别并校验，Redpanda 不会在服务端按 Header 筛选。`record_type` 的作用已由 `category` 承担；结构版本是注册表中绑定的 schema 引用，不新增 `schema_version` Header。将来如有不兼容结构，先与 fewunderstand 约定新的可识别注册项。Value.data 与 #1005 均保存完整九项字段，其中 `decay_policy_ref` 和正数 `half_life_minutes` 是逐事件冻结的业务事实；不再增加 `payload_schema` 等重复 Header。当前单 Partition Demo 有意不填 Message Key，Value.data 的 `event_key` 用于逐笔去重；将来扩为多 Partition 且确需同一资产顺序时，再由 fewunderstand 设计稳定的资产 Key。注册表和处理链路仍是设计意图，并无运行事实。
 
-规划链路为“#3006 提交评分事件 → #5001 候选 Topic → #3007 与 #3008 两个独立 Consumer Group”：两组各自读取全部事件，读后按 source/type/category 三元组选择处理并校验 Value 结构，不能互相分摊消息。#3007 按 `event_key` 幂等维护 #6001 Redis，成功后提交自己的 offset，再触发 #3005；#3008 按同一 `event_key` 幂等归档完整九个字段到 Delta/Parquet 中的 #1005，持久写入成功后提交自己的 offset。一个组延迟或失败不阻塞另一个，重试沿用 `event_key`、`created_at`、`decay_policy_ref` 和 `half_life_minutes`。#1005 保存原始衰减参数，重放时不依赖当前规则重新赋值；`decision_ref` 继续追溯判定。Topic 必须在归档延迟和约定重放期内保留完整已接受事件，不可压缩掉不同事件；具体保留期和技术实现由 fewunderstand 评审。Redis 丢失时可从仍保留的 Topic 事件或含原始衰减参数的完整归档重建。上述均为设计意图，尚无真实 Topic、消息、Consumer、Redis 投影或归档结果。
+规划链路为“#3006 提交评分事件 → #5001 候选 Topic → #3007 与 #3008 两个独立 Consumer Group”：两组各自读取全部事件，读后按 source/type/category 三元组选择处理并校验 Value 结构，不能互相分摊消息。#3007 按 `event_key` 幂等维护 #6001 Redis，成功后提交自己的 offset，供 #3005 后续每 60 秒定时轮次读取；#3008 按同一 `event_key` 幂等归档完整九个字段到 Delta/Parquet 中的 #1005，持久写入成功后提交自己的 offset。一个组延迟或失败不阻塞另一个，重试沿用 `event_key`、`created_at`、`decay_policy_ref` 和 `half_life_minutes`。#1005 保存原始衰减参数，重放时不依赖当前规则重新赋值；`decision_ref` 继续追溯判定。Topic 必须在归档延迟和约定重放期内保留完整已接受事件，不可压缩掉不同事件；具体保留期和技术实现由 fewunderstand 评审。Redis 丢失时可从仍保留的 Topic 事件或含原始衰减参数的完整归档重建。上述均为设计意图，尚无真实 Topic、消息、Consumer、Redis 投影或归档结果。
 
 #1005 面板在空原表下方展示同一条 #2030 账号的目标归档行。账号 ID 与名称来自真实 Kaito MCP 返回；内部 `asset_id` 是目标案例值，`event_key` 和 `created_at` 要等首次实际提交才可确定。这个预览不是已归档表行。
 
@@ -116,9 +116,9 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 一行代表一个资产在一项评分指标上的**当前分数**。本次 Demo 仅使用 `score_key=total_heat`（全量热度）；起始 +100 和未来其他热度贡献进入同一分数，不另设 KOL 热度维度。#1006 保留 `score_key` 字段，以便以后扩展指标。
 
-规划中的 #3005《计算当前资产评分》对每笔 `total_heat` 事件直接使用其不可变 `half_life_minutes`，并按 `decay_policy_ref` 校验指数模型和规则版本，在固定 UTC `calculated_at` 计算 `score_delta × 2^(-实际经过分钟数/半衰期分钟数)`，再按资产求和。实际经过分钟数为 `max(0, (calculated_at Unix 秒 − created_at Unix 秒)/60)`，可为小数。Demo 当前只有新建资产的一笔 +100 起始贡献，半衰期 10080 分钟；以后同一资产的其他热度事件仍写 `total_heat`，可有不同半衰期。#3005 只在新贡献到来时更新受影响资产，读取或排名时把原事件折算到同一查询时刻。Redis 必须保留仍参与衰减的事件或等价的逐规则状态，不能统一按 24h TTL 删除；若以后混用半衰期，不能仅凭 #1006 的一个合计分和 `calculated_at` 正确继续衰减。时间流逝不向 #1005 写负分。旧异步计算不得覆盖新结果。
+规划中的 #3005《计算当前资产评分》对每笔 `total_heat` 事件直接使用其不可变 `half_life_minutes`，并按 `decay_policy_ref` 校验指数模型和规则版本，在固定 UTC `calculated_at` 计算 `score_delta × 2^(-实际经过分钟数/半衰期分钟数)`，再按资产求和。实际经过分钟数为 `max(0, (calculated_at Unix 秒 − created_at Unix 秒)/60)`，可为小数。Demo 当前只有新建资产的一笔 +100 起始贡献，半衰期 10080 分钟；以后同一资产的其他热度事件仍写 `total_heat`，可有不同半衰期。#3005 每 60 秒独立执行，读取 #1001 全部已登记资产与 #6001 事件，在本轮同一 UTC 时刻重算并保存；没有新事件仍重算衰减，无贡献资产写 0 分。默认读取或排名使用最近一轮保存的分数和 calculated_at。Redis 必须保留仍参与衰减的事件或等价的逐规则状态，不能统一按 24h TTL 删除；若以后混用半衰期，不能仅凭 #1006 的一个合计分和 `calculated_at` 正确继续衰减。时间流逝不向 #1005 写负分。旧异步计算不得覆盖新结果。
 
-#3005 的规则保存在 [`catalog/score-rollup.v1.json`](../catalog/score-rollup.v1.json)。#1006 不存 `rank_position`：Demo 榜单读取 `total_heat`，固定同一 UTC 查询时刻，把所有资产的贡献折算到该时刻，再按未舍入分数降序、`asset_id` 升序生成名次；界面显示两位小数。第一次 Demo 排所有已建档资产，包括待确认的社交账号；若页面要只显示已确认项目，应另加身份和类别筛选。这个排序需要后台读取接口，前端不直接访问 Redis。应监测消费者延迟，并用归档历史校验、恢复 Redis 事件和当前分。除起始 +100 外，其他热度来源的加分规则和半衰期尚未定义；当前没有评分流水、运行中的计算器、排名接口或实际结果。
+#3005 的规则保存在 [`catalog/score-rollup.v1.json`](../catalog/score-rollup.v1.json)。#1006 不存 `rank_position`：Demo 榜单读取 `total_heat`，读取最近一轮保存的分数与 calculated_at，按未舍入分数降序、`asset_id` 升序生成名次；界面显示两位小数。第一次 Demo 排所有已建档资产，包括待确认的社交账号；若页面要只显示已确认项目，应另加身份和类别筛选。这个排序需要后台读取接口，前端不直接访问 Redis。应监测消费者延迟，并用归档历史校验、恢复 Redis 事件和当前分。除起始 +100 外，其他热度来源的加分规则和半衰期尚未定义；已有 fewunderstand 实现参考及 #1006 结果快照，线上调度持续健康状态尚未核验。
 
 2026-10-08：用户要求补充 #1006 案例行，因此面板增加 5 行明确标注的模拟计算，复用 #1001 案例资产；统一假设在 2026-10-15 00:00 UTC 计算，每资产仅一笔 +100，经过 0、1、3.5、7、14 天后分别显示 100.00、90.57、70.71、50.00、25.00。完整精度数值及假设入账时间保存在 `catalog/business-table-cases.v1.json`，不代表真实事件或后台运行。原有 #2030 贯通案例继续展示公式，因为其真实入账时间和计算时间仍未生成。这次变更只补充产品案例，不改变评分执行契约。
 
@@ -126,7 +126,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 2026-10-08 更新频率核对：fewunderstand 的 `consumer/asset_total_heat/minute_materializer_flow.py` 中 `serve()` 配置 `interval=timedelta(minutes=1)`；`run_minute_cycle` 每轮读取全部已登记资产及 Redis 评分事件，固定同一计算时刻重算并写入 PostgreSQL `asset_score.current_score`，不依赖用户查看页面。没有新增事件时，既有贡献仍随时间衰减；新增事件需先进入 Redis 投影，再被后续计算轮读取，代码中的事件即时触发仍是后续优化。该代码配置说明目标周期为每分钟，但本次未查询线上调度运行记录，不能凭一份快照证明持续按分钟正常运行。
 
-当前已导入的真实快照为 4 行，统一 `calculated_at=2026-10-07T19:46:51.754648Z`，采样时间为 `2026-10-07T19:47:46.177622Z`，即北京时间 2026-10-08 03:46:51 计算、03:47:46 取样。SignalStudio 展示固定文件；只有重新取样、提交/拉取快照并重新打开面板才更新显示，没有自动同步周期。注意 Studio 的 `catalog/score-rollup.v1.json` 仍保留旧“事件触发 + 查询时折算”设计，与 fewunderstand 的每分钟全量物化实现存在差异；本次只记录差异，未修改执行契约。
+当前已导入的真实快照为 4 行，统一 `calculated_at=2026-10-07T19:46:51.754648Z`，采样时间为 `2026-10-07T19:47:46.177622Z`，即北京时间 2026-10-08 03:46:51 计算、03:47:46 取样。SignalStudio 展示固定文件；只有重新取样、提交/拉取快照并重新打开面板才更新显示，没有自动同步周期。随后用户要求修改：Studio 的 `catalog/score-rollup.v1.json` 与 #3005 卡片现已统一为每 60 秒全量计算，替代旧“事件触发 + 查询时折算”设计；默认榜单读取物化结果。
 
 主键：`asset_id + score_key`。
 

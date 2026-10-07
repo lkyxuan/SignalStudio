@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import contract from '../catalog/business-tables.v1.json';
 import tableCases from '../catalog/business-table-cases.v1.json';
 import identityCase from '../catalog/identity-flow-case.v1.json';
+import scoreRollup from '../catalog/score-rollup.v1.json';
 import './processing-io-card.css';
 import { BusinessTableRows } from './BusinessTableRows';
 import { TableBackfillCard } from './TableBackfillCard';
@@ -14,7 +15,7 @@ const notes = {
   asset_relationships: '这 3 行用于说明资产关系的目标表格式；关系、证据和审核记录尚未核实。',
   asset_monitoring_rules: '这 3 行用于说明监控规则的目标表格式；阈值、状态和审核记录尚未执行。',
   asset_score_events: '规划为各程序先保存详细判定，再将加分事件送入 Redpanda；Redis 保留近期窗口，Delta/Parquet 归档完整流水，二者独立消费。decision_ref 用于回查判定过程。尚无真实写入。',
-  asset_scores_current: '以下 5 行为模拟计算案例，时间均为假设，并非后台写入结果。规划以 Redis 保存当前分；本次 Demo 只使用 total_heat 全量热度。#3005 将新资产的起始 +100 按 7 天半衰期衰减，后续贡献可各按自己的规则汇总。排名把分数折算到同一查询时刻。实际回填见下方独立模块。',
+  asset_scores_current: '以下 5 行为模拟计算案例，时间均为假设，并非后台写入结果。当前分由 #3005 定时更新；本次 Demo 只使用 total_heat 全量热度。#3005 将新资产的起始 +100 按 7 天半衰期衰减，后续贡献可各按自己的规则汇总。默认排名读取最近一轮保存的分数。实际回填见下方独立模块。',
 };
 
 const notesEn = {
@@ -23,7 +24,7 @@ const notesEn = {
   asset_relationships: 'These rows specify the target relationship format; the relationships and reviews have not been verified.',
   asset_monitoring_rules: 'These rows specify the target rule format; thresholds and reviews have not been executed.',
   asset_score_events: 'Programs save detailed decisions, then send score events to Redpanda. Independent consumers maintain a recent Redis window and the full Delta/Parquet archive. decision_ref locates the decision. No running write has been observed.',
-  asset_scores_current: 'These five rows are illustrative calculations with assumed timestamps, not backend writes. Redis is planned to hold current scores. This demo uses only total_heat. #3005 decays the initial +100 contribution with a seven-day half-life; future contributions may have their own rules. Ranks compare values at one query time. Actual backfills appear in the separate module below.',
+  asset_scores_current: 'These five rows are illustrative calculations with assumed timestamps, not backend writes. Current scores are updated by the scheduled #3005 job. This demo uses only total_heat. #3005 decays the initial +100 contribution with a seven-day half-life; future contributions may have their own rules. Default rankings read the latest stored cycle. Actual backfills appear in the separate module below.',
 };
 
 export function BusinessTableCard({ node, language }) {
@@ -66,6 +67,7 @@ export function BusinessTableCard({ node, language }) {
           <dt><span className="source-case-field-number">{number(index)}</span><code>{name}</code></dt><dd>{value}</dd>
         </div>)}</dl>
       </div>}
+      {scoreAssumptions && <p>{zh ? `更新来源：#3005 · 每 ${scoreRollup.configuration.schedule.interval_seconds} 秒重算全部已登记资产。这里的固定快照按取样与 Git 同步更新。` : `Updated by #3005 every ${scoreRollup.configuration.schedule.interval_seconds} seconds for all registered assets. This fixed snapshot changes through sampling and Git synchronization.`}</p>}
       {node.name === 'asset_scores_current' && <TableBackfillCard table={table} language={language} />}
       <details className="business-table-technical"><summary>{zh ? '其他设置 · 字段说明' : 'Other settings · field definitions'}</summary>
         <div className="business-table-schema-scroll"><table>

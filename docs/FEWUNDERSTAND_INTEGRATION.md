@@ -125,3 +125,11 @@ Cloudflare 也可承载整套服务：Workers/静态资源托管 + D1。D1 提�
 日常交接保持简单：fewunderstand Agent 在最新契约下取样，校验并保存 data/table-1006-backfill.json，提交并推送；另一台电脑拉取相应版本，重新打开 #1006 面板读取。涉及代码更新时按开发流程重新构建或重启本地服务；涉及 data/logic.db 同步时沿用 README 的停服同步约定。代码、契约与对应样本可以随同一次提交交接，便于还原某个设计版本下的案例。
 
 将来若协作主要变成持续回填、需要无需拉取即可看到新结果，或多人同时写入导致频繁冲突，再重新评估共享后端。网站不必完全定型才能部署；是否迁移以协作需求和维护成本为依据。当前未创建任何云端资源或更改运行架构。
+
+## #6001 实际数据回填问题（2026-10-08，已核对，尚未扩展接口）
+
+用户在授权修改 #3005 触发机制的同时询问 #6001 是否可回填真实数据。可沿用固定快照方式，但 #6001 对应 Redis 原始评分事件，而非 #1006 当前合计分。现有 `/api/table-backfills/1006` 仅校验当前分格式，不能用于接收事件；#6001 目前没有实际回填模块。
+
+fewunderstand 的 `common/asset_score/redis_projection.py` 定义默认前缀 `fu:asset_heat:v1`，通过 `:active` 选择 generation，再读取 `{prefix}:{generation}:events` hash。实际取样应沿用已配置前缀，记录环境、采样时间、真实键、generation 和 event_key，并保存事件的 asset_id、score_key、decision_ref、score_delta、created_at、decay_policy_ref、half_life_minutes。其当前事件契约不含 asset_name；若 Studio 展示名称，应标注关联自资产表或为空，不能声称原事件自带名称。代码布局不证明某环境已有具体 Redis 行。
+
+下一步若扩展 #6001，可新增事件快照校验/展示和 Git 同步文件，由 fewunderstand Agent 只读取样后回填。不能从 #1006 合计分反推原事件，也不能为补展示案例向来源 Redis 直接注入评分事件。本轮只实现 #3005 触发定义与展示，未写入 Redis 或扩展 #6001 接口。

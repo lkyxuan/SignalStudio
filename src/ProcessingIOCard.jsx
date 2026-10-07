@@ -149,13 +149,13 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
   const outputColumns = businessTables.tables[scoreRollup.output_table].columns;
   return <><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
     <section className="source-case-inspector-section">
-      <div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{scoreRollup.inputs.length} {zh ? '张逻辑表 · Redis 评分事件' : 'logical table · Redis score events'}</span></div>
+      <div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{scoreRollup.inputs.length} {zh ? '项输入 · 资产与评分事件' : 'inputs · assets and score events'}</span></div>
       {scoreRollup.inputs.map(input => {
         const source = graph.nodes.find(item => item.name === (input.source_node || input.table));
         const columns = businessTables.tables[input.table].columns;
         return <div className="processing-input-source" key={input.table}>
           <div className="processing-input-source-heading"><span>{zh ? '来自' : 'From'}</span><button onClick={() => source && openNode(source.id)}>{nodeRef(source)} {input.source_node || input.table}</button></div>
-          <p className="processing-io-case-caption">{zh ? input.note_zh : 'Read only the affected asset and metric from Redis. created_at anchors the decay; decision_ref identifies the original rule version and half-life. The Delta/Parquet archive is not on the live path.'}</p>
+          <p className="processing-io-case-caption">{zh ? input.note_zh : input.note_en}</p>
           <dl className="source-case-inspector-fields">{input.read_fields.map((name, index) => {
             const column = columns.find(item => item.name === name);
             return <div key={name}><dt><span className="source-case-field-number">{number(index)}</span><code>{name}</code></dt><dd>{zh ? column?.label_zh : name.replaceAll('_', ' ')}</dd></div>;
@@ -165,21 +165,37 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
     </section>
     <section className="source-case-inspector-section">
       <div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{nodeRef(graph.nodes.find(item => item.name === scoreRollup.output_table))} · {zh ? '规划写入' : 'planned write'}</span></div>
-      <p className="processing-io-case-caption">{zh ? '以下是 #1006 的目标字段和生成规则；没有实际计算出的表行。' : 'These are the target #1006 columns and derivation rules; no row has been calculated.'}</p>
+      <p className="processing-io-case-caption">{zh ? '以下是 #1006 的输出字段和生成规则；已保存的实际结果快照见 #1006 回填模块。' : 'These are the #1006 output columns and derivation rules. Saved actual results appear in its backfill module.'}</p>
       <dl className="source-case-inspector-fields">{outputColumns.map((column, index) => {
         const rule = scoreRollup.output_fields.find(item => item.name === column.name);
         return <div key={column.name}><dt><span className="source-case-field-number">{number(index)}</span><code>{column.name}</code></dt><dd>{zh ? rule?.rule_zh : rule?.rule_en}</dd></div>;
       })}</dl>
     </section>
-  </div><div className="processing-input-source"><CasePicker value={caseIndex} setValue={setCaseIndex} language={language} label={zh ? '贯通案例 · 当前分计算' : 'Through-line case · current score'} />
-    <p className="processing-io-case-caption">{zh ? `#6001 若收到 ${scoreCase(caseIndex, language).selected.source_record.name} 的起始 +100 事件，#3005 只计算该 asset_id 的 total_heat 全量热度。半衰期已定为 7 天（10080 分钟）；实际入账时间尚未确定，因此不能伪造当前数值分。` : `If #6001 receives the initial +100 event for ${scoreCase(caseIndex, language).selected.source_record.name}, #3005 calculates only that asset's total_heat. The half-life is seven days (10,080 minutes). The actual entry time is unknown, so there is no numeric current score yet.`}</p>
+  </div><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '运行触发' : 'Execution trigger'}>
+    <h3>{zh ? '运行触发' : 'Execution trigger'}</h3>
+    <CaseRows rows={[
+      [zh ? '触发方式' : 'Trigger', zh ? '定时执行' : 'Scheduled'],
+      [zh ? '执行频率' : 'Frequency', zh ? `每 ${scoreRollup.configuration.schedule.interval_seconds} 秒一轮` : `Every ${scoreRollup.configuration.schedule.interval_seconds} seconds`],
+      [zh ? '计算范围' : 'Scope', zh ? '#1001 全部已登记资产（含待确认身份、无评分事件的资产）' : 'All #1001 registered assets, including pending identities and zero-event assets'],
+      [zh ? '计算时刻' : 'Calculation time', zh ? '本轮所有资产使用同一个 UTC 时刻' : 'One UTC instant for every asset in this cycle'],
+      [zh ? '写入结果' : 'Output', zh ? '#1006 · total_heat 当前分；无贡献写 0' : '#1006 · current total_heat; zero when no contributions exist'],
+      [zh ? '新事件' : 'New events', zh ? '进入 #6001 后由后续定时轮次计入' : 'Included in a scheduled cycle after reaching #6001'],
+    ]} />
+    <p>{zh ? '没有新事件也会重算衰减；打开页面不触发这项定时任务。' : 'Decay is recalculated even without new events. Opening the page does not trigger this job.'}</p>
+    <p>{zh ? '设计已定义；fewunderstand 代码也配置为每分钟。线上调度是否持续正常运行，仍需运行记录核验。' : 'Defined in the design and configured every minute in fewunderstand code. Continuous runtime health still requires execution evidence.'}</p>
+    <details className="processing-technical"><summary>{zh ? '定义与实现依据' : 'Design and implementation references'}</summary>
+      <p><code>catalog/score-rollup.v1.json → configuration.schedule</code></p>
+      <p><code>{scoreRollup.implementation_reference.schedule_file} → serve()</code></p>
+    </details>
+  </section><div className="processing-input-source"><CasePicker value={caseIndex} setValue={setCaseIndex} language={language} label={zh ? '贯通案例 · 当前分计算' : 'Through-line case · current score'} />
+    <p className="processing-io-case-caption">{zh ? `#6001 若收到 ${scoreCase(caseIndex, language).selected.source_record.name} 的起始 +100 事件，#3005 会在全量定时轮次中计算该 asset_id 的 total_heat；这里单独展示这一资产。半衰期已定为 7 天（10080 分钟）；实际入账时间尚未确定，因此不能伪造当前数值分。` : `If #6001 receives the initial +100 event for ${scoreCase(caseIndex, language).selected.source_record.name}, #3005 includes that asset in the full scheduled cycle; this preview shows that asset alone. The half-life is seven days (10,080 minutes). The actual entry time is unknown, so there is no numeric current score yet.`}</p>
     <CaseRows rows={[
       ['asset_id', scoreCase(caseIndex, language).assetId], ['asset_name', scoreCase(caseIndex, language).selected.repeat_result.asset_name], ['score_key', identityPilot.initial_score_policy.current_score_key],
       ['score_value', zh ? '100 × 2^(-实际经过分钟数 / 10080)，显示两位小数' : '100 × 2^(-actual_elapsed_minutes / 10080), display to two decimals'],
       ['calculated_at', zh ? '待首次实际计算时确定 UTC 时间' : 'UTC time to be set on first calculation'],
     ]} /></div><NodeCaseExplanation language={language} purpose={node.definition}
-    caseSummary={zh ? '规划在新热度贡献到来时更新受影响资产的 total_heat；读取或排名时按同一查询时刻折算各笔贡献。程序尚未运行。' : 'The plan updates the affected asset’s total_heat on a new contribution and advances all contributions to one query time when reading or ranking. The program has not run.'}
-    recordGuide={zh ? 'Demo 只有新资产的起始 +100 贡献，它连续平滑衰减：1 分钟后约 99.9931（显示 99.99），7 天 50.00、14 天 25.00 只是曲线上的检查点。今后的热度事件仍写 total_heat，各笔按自己的半衰期折算后求和。内部保留完整精度，界面显示两位小数；排名使用同一查询时刻未舍入的分数。' : 'The demo currently has only the initial +100 contribution. It decays smoothly: about 99.9931 after one minute (displayed as 99.99). Seven days at 50.00 and fourteen days at 25.00 are checkpoints. Future heat events also contribute to total_heat, each with its own half-life. Keep full precision internally; show two decimals and rank unrounded values at one query time.'} /></>;
+    caseSummary={zh ? `每 ${scoreRollup.configuration.schedule.interval_seconds} 秒重算全部已登记资产并写入 #1006；默认排名读取最近一轮保存的分数。实际案例见 #1006，当前贯通预览仍使用假设输入。` : `Every ${scoreRollup.configuration.schedule.interval_seconds} seconds, recompute all registered assets and write #1006. Default rankings read the latest stored cycle. Actual snapshots are in #1006; this through-line preview still uses assumed inputs.`}
+    recordGuide={zh ? 'Demo 只有新资产的起始 +100 贡献，它连续平滑衰减：1 分钟后约 99.9931（显示 99.99），7 天 50.00、14 天 25.00 只是曲线上的检查点。今后的热度事件仍写 total_heat，各笔按自己的半衰期折算后求和。内部保留完整精度，界面显示两位小数；排名使用最近一轮保存的未舍入分数，并展示计算时间。' : 'The demo currently has only the initial +100 contribution. It decays smoothly: about 99.9931 after one minute (displayed as 99.99). Seven days at 50.00 and fourteen days at 25.00 are checkpoints. Future heat events also contribute to total_heat, each with its own half-life. Keep full precision internally; show two decimals and rank the latest stored, unrounded values and show their calculation time.'} /></>;
 }
 
 function ScoreEventConsumerCard({ node, graph, openNode, language }) {
@@ -199,7 +215,7 @@ function ScoreEventConsumerCard({ node, graph, openNode, language }) {
       </section>
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '本消费者的目标记录' : 'This consumer’s intended record'}</span></div>
         <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '送往' : 'To'}</span><button onClick={() => openNode(target.id)}>{nodeRef(target)} {target.name}</button></div>
-          <p className="processing-io-case-caption">{zh ? isRedis ? '按 event_key 去重后写入 Redis 的九项字段，并触发 #3005 计算该资产当前分。尚无真实缓存。' : '按 event_key 幂等归档九项原始字段到 #1005；沿用事件入账时间，不用归档时间替换。尚无真实表行。' : isRedis ? 'Dedupe by event_key, cache nine fields, then trigger #3005 for this asset. No cache record exists.' : 'Archive all nine original fields idempotently by event_key. Keep the score-entry time, not archive time. No real table row exists.'}</p>
+          <p className="processing-io-case-caption">{zh ? isRedis ? '按 event_key 去重后写入 Redis 的九项字段，供 #3005 后续定时轮次计算。此处展示目标案例。' : '按 event_key 幂等归档九项原始字段到 #1005；沿用事件入账时间，不用归档时间替换。尚无真实表行。' : isRedis ? 'Dedupe by event_key, cache nine fields, make them available to a subsequent #3005 scheduled cycle. This is an intended case.' : 'Archive all nine original fields idempotently by event_key. Keep the score-entry time, not archive time. No real table row exists.'}</p>
           <CaseRows rows={isRedis ? example.cacheRows : example.eventRows} /></div>
       </section>
     </div><NodeCaseExplanation language={language} purpose={node.definition}
