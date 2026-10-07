@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "evidence_kind": "database_snapshot",
+  "source": {
+    "system": "fewunderstand",
+    "environment": "testnet",
+    "location": "postgres asset_score.current_score LEFT JOIN asset_core.assets (testnet computer 46.224.9.67)",
+    "captured_at": "2026-10-07T19:47:46.177622Z"
+  },
+  "field_mapping": {
+    "asset_id": "asset_id",
+    "asset_name": "name",
+    "score_key": "score_key",
+    "score_value": "score_value",
+    "calculated_at": "calculated_at"
+  },
+  "source_rows": [
+    {
+      "asset_id": "01a1172b-2300-7937-b4b4-043832681628",
+      "name": "GemHUB",
+      "canonical_key": "coingecko:gemhub",
+      "score_key": "total_heat",
+      "score_value": 98.5949783943184,
+      "calculated_at": "2026-10-07T19:46:51.754648Z",
+      "updated_at": "2026-10-07T19:46:51.835780Z"
+    },
+    {
+      "asset_id": "01a113f6-2d70-7629-9316-783d488a7f41",
+      "name": "Verified Emeralds",
+      "canonical_key": "coingecko:verified-emeralds",
+      "score_key": "total_heat",
+      "score_value": 92.69909148868851,
+      "calculated_at": "2026-10-07T19:46:51.754648Z",
+      "updated_at": "2026-10-07T19:46:51.835780Z"
+    },
+    {
+      "asset_id": "01a113f5-e5c4-72ce-9d02-83aa3ef2ede6",
+      "name": "Beam",
+      "canonical_key": "coingecko:beam-2",
+      "score_key": "total_heat",
+      "score_value": 92.69714244148219,
+      "calculated_at": "2026-10-07T19:46:51.754648Z",
+      "updated_at": "2026-10-07T19:46:51.835780Z"
+    },
+    {
+      "asset_id": "01a0f530-c19a-71c1-9a76-c6d9a2974c77",
+      "name": "Bitcoin",
+      "canonical_key": "coingecko:bitcoin",
+      "score_key": "total_heat",
+      "score_value": 0,
+      "calculated_at": "2026-10-07T19:46:51.754648Z",
+      "updated_at": "2026-10-07T19:46:51.835780Z"
+    }
+  ],
+  "expected_rows": []
+}
