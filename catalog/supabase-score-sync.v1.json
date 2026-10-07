@@ -50,7 +50,8 @@
       "source_version 是待实现的可靠来源版本，每个 asset_id + score_key 单调递增；不按跨资产通知到达顺序丢弃事件。同步控制记录按键保存已处理版本（含跳过），以事务防止旧任务覆盖新结果，目标行只在实际写入时更新版本。",
       "失败保留通知并幂等重试，重启恢复未确认的资产变更，不扫描补齐完整前 100。重试重新读取该资产最新状态并判断；不丢处理期间产生的变化。仅时间戳或版本变更不单独触发数值同步。",
       "calculated_at 保留本次被复制的得分时间，synced_at 为该行写入成功时间。不写 rank 字段，也不修改 #1006 或历史评分事件。",
-      "Supabase 会积累出榜旧分；直接按所有目标行排序不保证等于 #1006 当前前 100。用户接受保留过期记录，本次不新增成员标记、清理规则或精确榜单查询协议。"
+      "Supabase 会积累出榜旧分；直接按所有目标行排序不保证等于 #1006 当前前 100。用户接受保留过期记录，本次不新增成员标记、清理规则或精确榜单查询协议。",
+      "前端仅从 Supabase 查询 total_heat，按已存 score_value 降序、asset_id 升序分页加载（首屏 20 条为示例，最多展示 100）。接受保留旧分造成与 #1006 实时榜单的差异；不自动隐藏出榜行、不回查 #1006 修正前端榜单。"
     ],
     "requirements_en": [
       "Process #1006 changes immediately with no fixed coalescing window or intentional delay. Capture changes recoverably via CDC or a transactional outbox.",
@@ -60,7 +61,8 @@
       "source_version is proposed reliable source metadata, monotonic per asset_id + score_key. Never discard another asset’s event based on cross-asset arrival order. Track processed versions per key, including skips, transactionally rejecting stale tasks; target row versions change only on writes.",
       "Retry retained notifications idempotently and recover unacknowledged asset changes after restart, without a top-100 backfill scan. Re-read the asset’s latest state on retry; retain concurrent changes. Timestamp/version-only updates do not trigger score writes.",
       "Preserve the copied score’s calculated_at and set synced_at on successful row writes. Store no rank and do not modify #1006 or score history.",
-      "Retained stale scores mean sorting all target rows need not match the current source top 100. The user accepts retaining expired rows; no membership flag, cleanup policy or exact current-leaderboard query protocol is added here."
+      "Retained stale scores mean sorting all target rows need not match the current source top 100. The user accepts retaining expired rows; no membership flag, cleanup policy or exact current-leaderboard query protocol is added here.",
+      "The frontend queries Supabase total_heat only, ordered by stored score descending and asset ID ascending, with pagination (20 initially is an example, up to 100 displayed). Accept differences from the live #1006 ranking caused by retained scores; do not automatically hide exits or query #1006 to reconcile the frontend list."
     ],
     "acceptance": [
       "member_score_change_updates",
@@ -80,7 +82,8 @@
       "only_notified_keys_are_written",
       "skip_progress_prevents_stale_write",
       "cross_asset_versions_do_not_drop_other_events",
-      "restart_replays_notifications_without_top100_reconciliation"
+      "restart_replays_notifications_without_top100_reconciliation",
+      "frontend_paginates_stored_supabase_scores_without_source_reconciliation"
     ]
   },
   "case": {
@@ -180,5 +183,18 @@
       "note_zh": "另 99 个资产得分更高。只有 A（Stake | Bonus）从 50 降到 45：A 现为第 101，跳过；B（KASUN）保持 49，虽被动成为第 100，本次也不写。等 B 自己变化，例如升到 55，再按上面的案例判断并写入。",
       "note_en": "99 assets score higher. Only A (Stake | Bonus) falls from 50 to 45: it is now 101st, so skip. B (KASUN) stays at 49; though passively 100th, it is not written. Wait for B’s own change, such as rising to 55, then evaluate it as in the case above."
     }
+  },
+  "frontend_read": {
+    "source_table": "supabase_asset_scores",
+    "score_key": "total_heat",
+    "order_by": [
+      "score_value DESC",
+      "asset_id ASC"
+    ],
+    "initial_page_size_example": 20,
+    "display_limit": 100,
+    "ranking_basis": "stored_supabase_scores_including_retained_stale_rows",
+    "require_exact_source_top_100": false,
+    "auto_hide_exited_assets": false
   }
 }
