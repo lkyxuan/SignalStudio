@@ -12,7 +12,7 @@ const notes = {
   asset_relationships: '这 3 行用于说明资产关系的目标表格式；关系、证据和审核记录尚未核实。',
   asset_monitoring_rules: '这 3 行用于说明监控规则的目标表格式；阈值、状态和审核记录尚未执行。',
   asset_score_events: '规划为各程序先保存详细判定，再将加分事件送入 Redpanda；Redis 保留近期窗口，Delta/Parquet 归档完整流水，二者独立消费。decision_ref 用于回查判定过程。尚无真实写入。',
-  asset_scores_current: '规划以 Redis 保存当前分；本次 Demo 只使用 total_heat 全量热度。#3005 将新资产的起始 +100 按 7 天半衰期衰减，后续贡献可各按自己的规则汇总。排名把分数折算到同一查询时刻。尚无运行中的程序或计算结果。',
+  asset_scores_current: '以下 5 行为模拟计算案例，时间均为假设，并非后台写入结果。规划以 Redis 保存当前分；本次 Demo 只使用 total_heat 全量热度。#3005 将新资产的起始 +100 按 7 天半衰期衰减，后续贡献可各按自己的规则汇总。排名把分数折算到同一查询时刻。尚无运行中的程序或计算结果。',
 };
 
 const notesEn = {
@@ -21,7 +21,7 @@ const notesEn = {
   asset_relationships: 'These rows specify the target relationship format; the relationships and reviews have not been verified.',
   asset_monitoring_rules: 'These rows specify the target rule format; thresholds and reviews have not been executed.',
   asset_score_events: 'Programs save detailed decisions, then send score events to Redpanda. Independent consumers maintain a recent Redis window and the full Delta/Parquet archive. decision_ref locates the decision. No running write has been observed.',
-  asset_scores_current: 'Redis is planned to hold current scores. This demo uses only total_heat. #3005 decays the initial +100 contribution with a seven-day half-life; future contributions may have their own rules. Ranks compare values at one query time. No running job or result exists yet.',
+  asset_scores_current: 'These five rows are illustrative calculations with assumed timestamps, not backend writes. Redis is planned to hold current scores. This demo uses only total_heat. #3005 decays the initial +100 contribution with a seven-day half-life; future contributions may have their own rules. Ranks compare values at one query time. No running job or result exists yet.',
 };
 
 function CellValue({ name, value, displayDecimalPlaces }) {
@@ -44,6 +44,7 @@ export function BusinessTableCard({ node, language }) {
   const table = contract.tables[node.name];
   const caseRows = ['assets', 'asset_identifiers'].includes(node.name) ? identityCase.tables[node.name].rows : [];
   const rows = [...caseRows, ...(tableCases.tables[node.name] || [])];
+  const scoreAssumptions = node.name === 'asset_scores_current' ? tableCases.score_case_assumptions : null;
   const scoringTable = ['asset_score_events', 'asset_scores_current'].includes(node.name);
   const scoreCase = identityCase.cases[caseIndex];
   const policy = identityCase.initial_score_policy;
@@ -65,7 +66,9 @@ export function BusinessTableCard({ node, language }) {
       </tr>)}</tbody>
     </table></div>
     <div className="business-table-afterword">
+    {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '模拟案例 · 假设每个资产仅收到一次 +100，半衰期 7 天，统一在 2026-10-15 00:00 UTC 计算；不是实际评分。' : 'Illustrative cases · assume one +100 event per asset, a seven-day half-life, and a common calculation time of 2026-10-15 00:00 UTC. These are not actual scores.'}</p>}
       <p><strong>{rows.length} {zh ? '行产品案例' : 'product case rows'}</strong> · {zh ? notes[node.name] : notesEn[node.name]}</p>
+      {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '假设的事件入账时间：' : 'Assumed event entry times: '}{scoreAssumptions.events.map(event => `${event.asset_name}: ${event.assumed_created_at}`).join('；')}</p>}
       {scoringTable && <div className="processing-input-source">
         <label className="source-case-inspector-picker">{zh ? '贯通案例 · 目标表行' : 'Through-line case · intended table row'}
           <select value={caseIndex} onChange={event => setCaseIndex(Number(event.target.value))}>{identityCase.cases.map((item, index) =>

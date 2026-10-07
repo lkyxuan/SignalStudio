@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dataset_kind": "product_case_rows",
-  "note": "Case rows specify table formats in the SignalStudio product. Bitcoin, Ethereum, Solana, and CoinGecko IDs appear in saved live Kaito entity responses; 比特币 and BTC are proposed aliases of Bitcoin in #1002. All internal IDs, review IDs, relationships, bindings, and rules here are specified case values, not deployed records or approved decisions. The score tables have no case rows because no score contribution or ranking has been calculated.",
+  "note": "Case rows specify table formats in the SignalStudio product. Bitcoin, Ethereum, Solana, and CoinGecko IDs appear in saved live Kaito entity responses; 比特币 and BTC are proposed aliases of Bitcoin in #1002. All internal IDs, review IDs, relationships, bindings, and rules here are specified case values, not deployed records or approved decisions. #1006 contains illustrative calculations from explicitly assumed event timestamps, not backend results. #1005 still has no event rows.",
   "source_refs": [
     "catalog/kaito-mcp-call-examples.json",
     "catalog/identity-source-case-034.v1.json"
@@ -119,6 +119,75 @@
       }
     ],
     "asset_score_events": [],
-    "asset_scores_current": []
+    "asset_scores_current": [
+      {
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "asset_name": "Stake | Bonus",
+        "score_key": "total_heat",
+        "score_value": 100.0,
+        "calculated_at": "2026-10-15T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+        "asset_name": "KASUN",
+        "score_key": "total_heat",
+        "score_value": 90.57236642639067,
+        "calculated_at": "2026-10-15T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "asset_name": "Bitcoin",
+        "score_key": "total_heat",
+        "score_value": 70.71067811865476,
+        "calculated_at": "2026-10-15T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "asset_name": "Ethereum",
+        "score_key": "total_heat",
+        "score_value": 50.0,
+        "calculated_at": "2026-10-15T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "asset_name": "Solana",
+        "score_key": "total_heat",
+        "score_value": 25.0,
+        "calculated_at": "2026-10-15T00:00:00Z"
+      }
+    ]
+  },
+  "score_case_assumptions": {
+    "status": "illustrative_not_executed",
+    "calculated_at": "2026-10-15T00:00:00Z",
+    "score_delta": 100,
+    "half_life_minutes": 10080,
+    "events": [
+      {
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "asset_name": "Stake | Bonus",
+        "assumed_created_at": "2026-10-15T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+        "asset_name": "KASUN",
+        "assumed_created_at": "2026-10-14T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "asset_name": "Bitcoin",
+        "assumed_created_at": "2026-10-11T12:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "asset_name": "Ethereum",
+        "assumed_created_at": "2026-10-08T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "asset_name": "Solana",
+        "assumed_created_at": "2026-10-01T00:00:00Z"
+      }
+    ]
   }
 }
