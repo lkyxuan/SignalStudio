@@ -50,7 +50,7 @@ SignalStudio 维护希望采集的上游来源和字段。Few Understand 读取�
 
 ## #1006 实际回填模块（2026-10-08，已接受并实现）
 
-用户接受“设计 + 实际回填”双区展示，要求先实现 #1006。`GET /api/table-backfills/1006` 读取本机固定快照；`POST /api/table-backfills/1006` 校验并替换该快照。真实来源取样仍待完成，模块不连接 fewunderstand 数据库，也不执行离线评分程序。快照文件被 `.gitignore` 排除；本地文件不随公开仓库发布。
+用户接受“设计 + 实际回填”双区展示，要求先实现 #1006。`GET /api/table-backfills/1006` 读取本机固定快照；`POST /api/table-backfills/1006` 校验并替换该快照。真实来源取样仍待完成，模块不连接 fewunderstand 数据库，也不执行离线评分程序。快照文件 `data/table-1006-backfill.json` 纳入 Git 同步；导入只保存文件，由 Agent 或用户提交并推送。
 
 导入格式（面板提供空模板下载）：
 
@@ -66,7 +66,7 @@ SignalStudio 维护希望采集的上游来源和字段。Few Understand 读取�
 
 用户询问由哪边的 AI 执行，以及是否需要接口、Prompt、MCP 或 Skill。当前推荐：fewunderstand AI 负责源端只读取样、字段映射和可选回放；SignalStudio 负责快照格式、校验、保存与展示。已有 HTTP 接收接口即可完成第一批，无需新增 MCP。Prompt 负责描述任务，JSON 格式和接口负责稳定交接。频繁重复后可封装 Skill；只有需要跨 AI 客户端提供统一工具入口时，再考虑 MCP。此处为建议，未创建 Skill/MCP 或向其他 AI 发送任务。
 
-接口默认绑定 SignalStudio 所在机器的 `127.0.0.1:8787`。同机 AI 可以 POST；远端运行的 AI 的 localhost 指向远端机器，应返回 JSON 文件，由 SignalStudio 本机导入。不要为了这次快照工作直接公开本地接口。快照验证只能检查格式与数值约束，来源真实性仍依赖取样证据；对照通过也不等同于整个评分链路已验证。
+接口默认绑定 SignalStudio 所在机器的 `127.0.0.1:8787`。同机 AI 可以 POST；远端运行的 AI 的 localhost 指向远端机器，可以在 SignalStudio 仓库副本中生成并校验快照，提交并推送；另一台机器拉取仓库后重新打开面板即可读取。不要为了这次快照工作直接公开本地接口。快照验证只能检查格式与数值约束，来源真实性仍依赖取样证据；对照通过也不等同于整个评分链路已验证。
 
 可复制给 fewunderstand AI 的任务：
 
@@ -78,4 +78,12 @@ SignalStudio 维护希望采集的上游来源和字段。Few Understand 读取�
 >
 > 按 version=1 格式输出 JSON。expected_rows 可以先留空；只有独立按明确规则计算出的预期才用于对照，不能复制实际分数作为预期。预期必须对应同一资产、指标和计算时间；不要用 Studio 模拟案例的资产 ID 或分数替换真实值。
 >
-> 若与 SignalStudio 在同一台机器，先将 JSON 保存到 SignalStudio/data/ 下的独立快照文件，GET http://127.0.0.1:8787/api/table-backfills/1006 检查现有快照；若有旧快照，先在本地保留备份，再 POST 新快照（Content-Type: application/json），最后 GET 核对回填行数、来源和数值。若接口不可达，返回 JSON 文件及文件位置供导入。不要写入源数据库，不要部署或变更源表/规则，也不要把原始样本、凭据或连接串提交到公开仓库。完成后报告取样来源、行数、证据类型及任何缺口。
+> 在 SignalStudio 仓库副本中工作，先同步当前分支并保留未提交的改动。若本机接口可用，GET http://127.0.0.1:8787/api/table-backfills/1006 检查已有快照，再 POST 新快照（Content-Type: application/json），最后 GET 核对回填行数、来源和数值。若接口不可达，直接使用 server/table_backfill_store.py 的 TableBackfillStore().save(payload) 校验并写入默认文件 data/table-1006-backfill.json。只提交这一份已校验快照及本次必要的说明，推送到当前分支，并报告提交号。另一台电脑拉取仓库、重新打开 #1006 面板即可显示。不要写入源数据库、部署或变更源表/规则；凭据和含密码的连接串不写入快照。完成后报告取样来源、行数、证据类型及任何缺口。
+
+## 跨电脑同步（2026-10-08，用户明确要求）
+
+此前实现将实际回填文件与临时采样一同忽略，未覆盖跨电脑工作需求。用户明确要求用 GitHub 同步回填数据，现将 `data/table-1006-backfill.json` 加入 `.gitignore` 例外。设计案例 `catalog/business-table-cases.v1.json` 原本已在 GitHub；实际快照在首次生成后提交。此次检查默认位置尚无真实快照，未用模拟记录填充该文件。
+
+默认流程为：fewunderstand Agent 取样 → 在 SignalStudio 仓库写入并校验 JSON → commit/push → 另一台电脑 pull → 重新打开 #1006 面板。接收端每次 GET 都从文件读取，不需要另做一次导入或数据库迁移。现有面板不会轮询 Git 或自动刷新已打开的快照。API 保存不自动提交或推送；Agent 需完成 Git 同步。若设置 `SIGNALSTUDIO_BACKFILL_PATH` 自定义路径，则需自行安排该路径的同步；跨电脑协作推荐使用默认路径。
+
+只对当前 #1006 快照增加 Git 例外，临时文件、备份和其他未指定数据仍按既有忽略规则处理。两台电脑同时修改同一快照时应先处理 Git 差异，不能用强制推送或静默覆盖代替合并判断。

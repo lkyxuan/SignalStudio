@@ -71,7 +71,7 @@ export function TableBackfillCard({ table, language }) {
       </div>
     </div>
     {error && <p role="alert" className="table-backfill-error">{zh ? '快照读取或导入失败：' : 'Snapshot read or import failed: '}{error}</p>}
-    {loading ? <p role="status">{zh ? '正在读取本地快照…' : 'Loading local snapshot…'}</p> : snapshot ? <>
+    {loading ? <p role="status">{zh ? '正在读取仓库快照…' : 'Loading repository snapshot…'}</p> : snapshot ? <>
       <BusinessTableRows table={table} rows={data.rows} language={language} />
       <p><strong>{data.rows.length} {zh ? '行实际回填' : 'backfilled rows'}</strong> · {snapshot.evidence_kind === 'database_snapshot' ? zh ? '数据库结果快照' : 'Database result snapshot' : zh ? '基于真实样本的离线回放' : 'Offline replay from real samples'}</p>
       <dl className="table-backfill-provenance">
@@ -96,7 +96,7 @@ export function TableBackfillCard({ table, language }) {
     <details className="table-backfill-detail"><summary>{zh ? '如何准备快照' : 'Prepare a snapshot'}</summary>
       <p>{zh ? '导出少量 fewunderstand 记录，填写采样环境、来源位置和带时区的采样时间。按模板填入 source_rows，并用 field_mapping 对应五个表字段。名称可以映射为 null，其他字段需有真实来源值。' : 'Export a small set of fewunderstand records. Fill in the environment, source location and capture time with a timezone. Put records in source_rows and map the five table fields using field_mapping. The name mapping may be null; other fields require source values.'}</p>
       <p>{zh ? '需要对照时，expected_rows 填 asset_id、score_key、score_value、calculated_at。离线回放使用 evidence_kind=offline_replay，并填写 derivation_ref 以追溯输入和规则；本模块展示导入结果。' : 'For comparisons, expected_rows contains asset_id, score_key, score_value and calculated_at. For an offline replay, use evidence_kind=offline_replay and derivation_ref to trace inputs and rules. This module displays imported results.'}</p>
-      <p>{zh ? '快照保存在本机，刷新后保留；导入会替换当前快照。页面打开时读取已保存的快照。' : 'Snapshots are saved locally across reloads. Import replaces the current snapshot. Opening the page reads the saved snapshot.'}</p>
+      <p>{zh ? '快照保存到仓库的 data/table-1006-backfill.json。提交并推送后，另一台电脑拉取仓库、重新打开本面板即可读取；导入会替换当前快照。' : 'Snapshots are saved to data/table-1006-backfill.json in the repository. Commit and push, then pull on another computer and reopen this panel to read them. Import replaces the current snapshot.'}</p>
     </details>
   </section>;
 }

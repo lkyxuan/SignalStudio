@@ -1,4 +1,4 @@
-"""Local fixed snapshots for #1006; never connects to or writes a source database."""
+"""Git-synced fixed snapshots for #1006; never connects to or writes a source database."""
 import json
 import math
 import os

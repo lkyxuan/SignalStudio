@@ -17,6 +17,8 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API runs on port 8787. 
 
 To use the same project data on another computer, stop the local server before committing or pulling changes to `data/logic.db` with GitHub Desktop. Start the server again after the sync. The database is included in this public repository.
 
+The actual-backfill snapshot `data/table-1006-backfill.json` also syncs through Git. After importing or validating and saving it, the sampling agent commits and pushes the file. Pull on another computer and reopen the #1006 panel to read it; no second import is needed. Saving through the UI does not automatically commit to Git.
+
 Vite also listens on network interfaces. To open the development site from another device in the same Tailscale network, run `tailscale ip -4` on this machine and visit `http://<that-ip>:5173` on the other device. The API continues to run locally behind Vite's `/api` proxy.
 
 For a single-server build:

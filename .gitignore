@@ -2,6 +2,7 @@ node_modules/
 dist/
 data/*
 !data/logic.db
+!data/table-1006-backfill.json
 __pycache__/
 .DS_Store
 .env
