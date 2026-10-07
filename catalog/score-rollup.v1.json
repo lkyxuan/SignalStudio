@@ -116,5 +116,98 @@
     "interval_seconds": 60,
     "runtime_schedule_status": "not_verified",
     "result_evidence": "data/table-1006-backfill.json"
+  },
+  "implementation_request": {
+    "module_reference": 3005,
+    "updated_at": "2026-10-08",
+    "status": "requested_not_implemented",
+    "owner": "fewunderstand",
+    "summary": {
+      "zh": "新增评分贡献进入 #6001 后立即触发 #3005，更新受影响资产分数；保留每 60 秒的定时衰减刷新。当前只有分钟触发实现，即时触发待实现。",
+      "en": "Trigger #3005 immediately after a new contribution reaches #6001 and update the affected asset. Retain the 60-second decay refresh. Only the minute trigger is currently implemented; event triggering is requested."
+    },
+    "target_triggers": [
+      {
+        "kind": "event",
+        "after": "3007_successfully_updates_6001",
+        "scope": "affected_asset",
+        "wait_for_timer": false
+      },
+      {
+        "kind": "timer",
+        "interval_seconds": 60,
+        "scope": "all_registered_assets"
+      }
+    ],
+    "requirements": [
+      {
+        "zh": "#3007 校验并按 event_key 去重，成功写入 #6001 后可靠通知 #3005；#6001 不因时间流逝自行改变，也不会自动触发计算。",
+        "en": "#3007 validates and deduplicates by event_key, then reliably requests #3005 after updating #6001. Stored events neither change with time nor automatically trigger computation."
+      },
+      {
+        "zh": "#6001 保留每笔原始贡献、created_at、half_life_minutes 和 decay_policy_ref。#3005 在同一 UTC 时刻分别衰减后求和；事件触发与定时触发复用同一公式。",
+        "en": "#6001 retains each original contribution, created_at, half_life_minutes and decay_policy_ref. Both triggers use the same decay-and-sum formula at a fixed UTC instant."
+      },
+      {
+        "zh": "新事件不等下一分钟，优先只重算受影响资产；没有新事件时仍每 60 秒刷新衰减。时间流逝不生成扣分流水。",
+        "en": "New events do not wait for the next minute; preferentially recompute only the affected asset. Refresh decay every 60 seconds even without events, without emitting time-based debit events."
+      },
+      {
+        "zh": "通知可重试、可恢复；覆盖 Redis 写成功后通知失败的情况，重复事件不重复加分。短时间触发可合并，但必须有最大等待，不能一直攒批。",
+        "en": "Make triggering retryable and recoverable across failures after Redis writes. Deduplicate contributions. Coalescing is allowed only with a bounded wait."
+      },
+      {
+        "zh": "事件计算与定时计算并发时，旧任务或基于旧贡献集合的结果不得覆盖新状态；记录采用的串行化或版本策略。",
+        "en": "Prevent older tasks or results based on stale contribution sets from overwriting newer state; document serialization or versioning."
+      },
+      {
+        "zh": "明确计算、写入 #1006 和前端通知的衔接，让实际产品分数及排名及时更新并支持断线重同步。若数据库仍按分钟保存，前端须读取实时结果通道；#6001 原始贡献不等于结果缓存。",
+        "en": "Connect computation, #1006 persistence and frontend notifications, including ranking updates and reconnect recovery. If persistence stays minute-based, the frontend must use live results; #6001 contributions are not a score-result cache."
+      },
+      {
+        "zh": "归档 #3008 → #1005 保持独立，不阻塞计算。沿用现有评分规则与精度；本次不新增普通信息的加分规则。",
+        "en": "Keep #3008 → #1005 archival independent. Preserve scoring rules and precision; this request adds no business contribution rules."
+      }
+    ],
+    "acceptance": [
+      {
+        "zh": "在分钟任务刚结束后注入合法贡献，验证无需等下一轮即可触发 #3005，并观察实际前端分数更新。",
+        "en": "Inject a valid contribution just after a minute cycle; verify immediate #3005 triggering and an actual frontend update before the next cycle."
+      },
+      {
+        "zh": "固定时钟验证多种半衰期及无新事件时的定时衰减；保留原始分值，内部不舍入。",
+        "en": "Use a fixed clock to verify mixed half-lives and timer-only decay. Preserve original contributions and full calculation precision."
+      },
+      {
+        "zh": "验证重复消息、通知失败重试、并发任务及旧任务晚完成，不重复加分、不漏计算、不覆盖新结果。",
+        "en": "Verify duplicates, notification recovery, concurrent tasks and late completion without double counting, lost work or stale overwrites."
+      },
+      {
+        "zh": "检查消费攒批的最大等待；报告事件接受、Redis 可见、计算完成和前端显示的时间，不用配置频率冒充实测延迟。",
+        "en": "Bound consumer batching delay and report acceptance, Redis visibility, computation and display timestamps rather than treating configured cadence as measured latency."
+      },
+      {
+        "zh": "回报实现文件、提交、测试、触发机制和计算/持久化/推送节奏；代码完成、部署完成、线上持续运行分别记录。前端或环境未验证须明确说明。",
+        "en": "Report files, commits, tests, trigger mechanism and computation/persistence/push cadence. Distinguish implementation, deployment and ongoing runtime evidence; disclose unverified frontend or environments."
+      }
+    ],
+    "implementation_notes": [
+      {
+        "zh": "当前消费配置批量 100、空闲刷新 2 秒；持续低速消息可能重置空闲时间，2 秒不是每条消息的等待上限。",
+        "en": "Current consumption batches 100 records or flushes after 2 idle seconds. Continuous low-volume traffic can reset idleness; 2 seconds is not a per-record bound."
+      },
+      {
+        "zh": "可靠触发、前端协议及持久化节奏由 fewunderstand 在现有架构内选择并记录；未指定毫秒级 SLA，也没有数据库必须限为每分钟写入的性能证据。",
+        "en": "fewunderstand chooses and documents reliable triggering, frontend protocol and persistence cadence. No millisecond SLA or proven database requirement for minute-only writes is established."
+      }
+    ],
+    "reference_files": [
+      "consumer/asset_total_heat/minute_materializer_flow.py",
+      "common/asset_score/materializer.py",
+      "common/asset_score/heat.py",
+      "consumer/asset_total_heat/runner.py",
+      "consumer/asset_total_heat/config.redis_window.yaml",
+      "consumer/base/confluent/consumer.py"
+    ]
   }
 }

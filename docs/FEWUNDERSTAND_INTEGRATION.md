@@ -4,6 +4,8 @@ SignalStudio 维护希望采集的上游来源和字段。Few Understand 读取�
 
 一条具体信号如何使用这些来源、怎样计算和输出，见[信号执行包](SIGNAL_EXECUTION_CONTRACT.md)。来源契约与信号执行包有独立修订号，Few Understand 实现时需同时记录。
 
+2026-10-08：评分触发实现要求直接保存在 #3005「计算当前资产评分」模块的“实现要求 · 待 fewunderstand 实现”中。实现 AI 读取该模块对应的 [`catalog/score-rollup.v1.json`](../catalog/score-rollup.v1.json) → `implementation_request`，结合现有输入、输出、公式和 `configuration` 实现。该字段是用户要求的目标，当前分钟实现与运行证据另行标注；不另设交接文档。
+
 ## 读取方式
 
 - 版本文件：[`catalog/source-contracts.v1.json`](../catalog/source-contracts.v1.json)。可以直接复制到 Few Understand 的工作区或通过版本化仓库地址读取。

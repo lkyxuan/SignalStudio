@@ -144,6 +144,8 @@ function RedisWindowCard({ node, graph, language }) {
 
 function ScoreRollupCard({ node, graph, openNode, language }) {
   const zh = language === 'zh-CN';
+  const implementationRequest = scoreRollup.implementation_request;
+  const requestText = item => item[zh ? 'zh' : 'en'];
   const [caseIndex, setCaseIndex] = useState(0);
   const number = index => String(index + 1).padStart(2, '0');
   const outputColumns = businessTables.tables[scoreRollup.output_table].columns;
@@ -172,7 +174,7 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
       })}</dl>
     </section>
   </div><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '运行触发' : 'Execution trigger'}>
-    <h3>{zh ? '运行触发' : 'Execution trigger'}</h3>
+    <h3>{zh ? '当前实现 · 运行触发' : 'Current implementation · execution trigger'}</h3>
     <CaseRows rows={[
       [zh ? '触发方式' : 'Trigger', zh ? '定时执行' : 'Scheduled'],
       [zh ? '执行频率' : 'Frequency', zh ? `每 ${scoreRollup.configuration.schedule.interval_seconds} 秒一轮` : `Every ${scoreRollup.configuration.schedule.interval_seconds} seconds`],
@@ -186,6 +188,19 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
     <details className="processing-technical"><summary>{zh ? '定义与实现依据' : 'Design and implementation references'}</summary>
       <p><code>catalog/score-rollup.v1.json → configuration.schedule</code></p>
       <p><code>{scoreRollup.implementation_reference.schedule_file} → serve()</code></p>
+    </details>
+  </section><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '实现要求' : 'Implementation requirements'}>
+    <h3>{zh ? '实现要求 · 待 fewunderstand 实现' : 'Implementation requirements · pending fewunderstand'}</h3>
+    <p>{requestText(implementationRequest.summary)}</p>
+    <p>{zh ? '新贡献：#3007 写入 #6001 成功 → 触发 #3005。时间衰减：每 60 秒 → 触发同一个 #3005。' : 'New contribution: #3007 updates #6001 → trigger #3005. Time decay: every 60 seconds → trigger the same #3005.'}</p>
+    <details className="processing-technical"><summary>{zh ? '实现规则与验收条件' : 'Implementation rules and acceptance criteria'}</summary>
+      <h4>{zh ? '实现规则' : 'Requirements'}</h4>
+      <ol>{implementationRequest.requirements.map((item, index) => <li key={index}><p>{requestText(item)}</p></li>)}</ol>
+      <h4>{zh ? '验收条件' : 'Acceptance criteria'}</h4>
+      <ol>{implementationRequest.acceptance.map((item, index) => <li key={index}><p>{requestText(item)}</p></li>)}</ol>
+      {implementationRequest.implementation_notes.map((item, index) => <p key={index}>{requestText(item)}</p>)}
+      <p>{zh ? 'AI 读取本模块：' : 'AI module source: '}<code>catalog/score-rollup.v1.json → implementation_request</code></p>
+      <p>{zh ? '记录日期：' : 'Recorded: '}{implementationRequest.updated_at}</p>
     </details>
   </section><div className="processing-input-source"><CasePicker value={caseIndex} setValue={setCaseIndex} language={language} label={zh ? '贯通案例 · 当前分计算' : 'Through-line case · current score'} />
     <p className="processing-io-case-caption">{zh ? `#6001 若收到 ${scoreCase(caseIndex, language).selected.source_record.name} 的起始 +100 事件，#3005 会在全量定时轮次中计算该 asset_id 的 total_heat；这里单独展示这一资产。半衰期已定为 7 天（10080 分钟）；实际入账时间尚未确定，因此不能伪造当前数值分。` : `If #6001 receives the initial +100 event for ${scoreCase(caseIndex, language).selected.source_record.name}, #3005 includes that asset in the full scheduled cycle; this preview shows that asset alone. The half-life is seven days (10,080 minutes). The actual entry time is unknown, so there is no numeric current score yet.`}</p>

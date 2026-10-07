@@ -150,6 +150,8 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 ### 2026-10-08：用户明确端到端实时变化的目标
 
+后续交接（2026-10-08 用户明确要求）：实现说明直接放在 #3005 模块下面，不新建独立交接文档。模块从 `catalog/score-rollup.v1.json` 的 `implementation_request` 展示目标、职责和验收条件；fewunderstand agent 读取 #3005 即可获取本次待实现要求。以下保留讨论理由，不表示已实施。
+
 用户进一步澄清，关注的是前面信息如何触发分数变化，希望信息出现后前端分数能实时变化，每一步连续传递，而不只是存在一个 Topic。该产品目标已明确；延迟指标、触发规则和具体实施方案尚未确定，本次讨论不修改现有执行契约。
 
 本次代码核对发现以下边界（均非线上延迟测量）：
