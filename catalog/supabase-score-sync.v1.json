@@ -5,8 +5,8 @@
     "name": "同步资产得分到 Supabase",
     "type": "Flow Result",
     "workflow_lane": "shared",
-    "definition": "读取 #1006 的得分变更，按资产和评分维度合并，仅把最新版本同步到 Supabase。覆盖所有有评分记录的资产，不写排名，不重新评分。尚未部署。",
-    "formula": "同一资产和评分维度在固定窗口内只保留最新来源版本；到期批量写入 Supabase，新版本才能覆盖旧版本。失败保留待同步状态并重试。"
+    "definition": "#1006 得分变化即触发，读取 total_heat 当前前 100 名，只同步其中变化的得分。Supabase 已有资产则更新，没有则新增；出榜资产停止更新但保留旧行。不设时间窗口，不写排名。尚未部署。",
+    "formula": "从 #1006 按 score_value 降序、asset_id 升序取前 100；对这些资产按 asset_id + score_key 查目标，已有且得分变化则更新，没有则新增。榜外不写、不删除；失败可恢复重试，旧版本不能覆盖新结果。"
   },
   "source_table": "asset_scores_current",
   "target_table": "supabase_asset_scores",
@@ -18,81 +18,119 @@
     "calculated_at"
   ],
   "configuration": {
-    "scope": "all_assets_with_score_records",
+    "scope": "write_current_top_100_retain_previous_rows",
+    "score_key": "total_heat",
     "key": [
       "asset_id",
       "score_key"
     ],
-    "coalescing": "latest_source_version_per_key",
-    "window_seconds_proposal": 5,
-    "window_status": "proposal_not_measured_or_deployed",
+    "trigger": "source_change",
+    "intentional_delay_seconds": 0,
+    "selection_limit": 100,
     "store_rank": false,
     "query_limit": 100,
     "query_order": [
       "score_value DESC",
       "asset_id ASC"
-    ]
+    ],
+    "write_policy": "upsert_changed_top_100_only_no_deletes",
+    "retention": "retain_out_of_top_100_rows",
+    "target_row_limit": null
   },
   "implementation_request": {
     "status": "requested_not_implemented",
     "requirements_zh": [
-      "采用可恢复变更捕获或与 #1006 同事务的 outbox，不能仅依赖进程内通知。",
-      "source_version 是待实现的来源变更元数据，当前 #1006 快照没有该字段；必须由权威变更路径提供每个键单调递增版本，不能用同步到达顺序或 calculated_at 代替。",
-      "固定窗口合并每个键的最新完整结果，不叠加分数，不因持续变化无限延后发送；5 秒为试验建议，容量测试后确定。",
-      "按资产和维度幂等 upsert，仅接受更高版本；成功后只确认实际提交的版本，期间新增版本留到下一批。",
-      "失败保留状态并退避重试；设置批量大小、全局写入预算及积压监测。批量请求仍产生逐行写入，数值预算待容量测试。",
-      "保留来源 calculated_at，写入成功时设置 synced_at；同分按 asset_id 排序，查询前 100，不将查询限制当作同步范围。",
-      "前端断线重读当前副本；若需同一计算轮次的一致榜单，另定义发布批次完成协议。"
+      "#1006 的得分变更立即触发，不设定时合并窗口或人为等待；通过可靠 CDC 或同事务 outbox 捕获并恢复变更。",
+      "从 #1006 全部 total_heat 得分按完整精度 score_value 降序、asset_id 升序取前 100；不足 100 时取全部。榜外资产变化也要重新判断是否进入前 100。",
+      "只对选中的资产执行 upsert：asset_id + score_key 已存在且分数或名称变化则更新，不存在则新增一行。没有变化不写；仅时间或版本变化不单独刷新该行。",
+      "出榜资产不删除、不清零、不标记过期，保留此前得分和时间；当前前 100 仅限制本次写入候选，不限制 Supabase 总行数。源表为空时没有候选，也不清空目标。",
+      "source_version 是权威一致快照的全局单调版本，属于待实现的变更元数据，当前 #1006 快照没有该字段；不得用消息到达顺序代替。目标同步控制记录记录已处理版本，拒绝旧任务，行写入与控制进度在同一事务完成。",
+      "更新仅接受较新版本，重试幂等；失败保留待处理进度，重启可从快照恢复。不得漏掉处理期间新增的变化。",
+      "calculated_at 保留本次被复制的得分时间，synced_at 为该行写入成功时间。不写 rank 字段，也不修改 #1006 或历史评分事件。",
+      "Supabase 会积累出榜旧分；直接按所有目标行排序不保证等于 #1006 当前前 100。用户接受保留过期记录，本次不新增成员标记、清理规则或精确榜单查询协议。"
     ],
     "requirements_en": [
-      "Use recoverable change capture or an outbox committed with #1006, not memory-only notifications.",
-      "source_version is proposed change metadata, absent from current #1006 snapshots. Assign monotonic versions per key at the authoritative source, not by arrival order or calculated_at.",
-      "Keep only the latest full result per key in a fixed window. Never sum score snapshots or postpone forever. Five seconds is a trial proposal pending capacity tests.",
-      "Upsert by asset and score key only for newer versions; acknowledge only the submitted version, leaving concurrent updates pending.",
-      "Retain failed work and retry with backoff; set batch and global write budgets and monitor lag. Batch requests still cause row writes; numeric budgets await capacity tests.",
-      "Preserve source calculated_at and assign synced_at on successful persistence. Sort ties by asset ID; the top-100 query limit does not limit synchronization.",
-      "Clients reload the projection after reconnect. A consistent single-cycle leaderboard needs a separate completed-batch publication protocol."
+      "Process #1006 changes immediately with no fixed coalescing window or intentional delay. Capture changes recoverably via CDC or a transactional outbox.",
+      "Select up to 100 total_heat rows from all #1006 scores by full-precision score descending and asset ID ascending. Outsider changes must also be evaluated for entry.",
+      "Upsert selected rows by asset_id + score_key: insert missing assets; update changed scores or names. Skip unchanged rows and timestamp/version-only changes.",
+      "Retain exits without deletion, zeroing or expiry flags. Top 100 limits write candidates, not total target rows. Empty source means no writes, not target truncation.",
+      "source_version is a proposed global monotonic authoritative snapshot version, absent from current #1006 snapshots. Do not use arrival order. Guard against stale jobs with a target sync-control record, committed atomically with row writes.",
+      "Accept newer versions only and retry idempotently. Persist recovery progress and retain changes arriving during processing.",
+      "Preserve the copied score’s calculated_at and set synced_at on successful row writes. Store no rank and do not modify #1006 or score history.",
+      "Retained stale scores mean sorting all target rows need not match the current source top 100. The user accepts retaining expired rows; no membership flag, cleanup policy or exact current-leaderboard query protocol is added here."
+    ],
+    "acceptance": [
+      "member_score_change_updates",
+      "outsider_remains_out_no_writes",
+      "new_entrant_inserted_existing_entrant_updated",
+      "exit_retained_unchanged",
+      "target_can_exceed_100_rows",
+      "ties_by_asset_id",
+      "fewer_than_100",
+      "empty_source_no_target_deletes",
+      "stale_task_rejected",
+      "duplicate_notification_no_writes",
+      "timestamp_only_no_row_writes",
+      "restart_recovery"
     ]
   },
   "case": {
     "evidence_kind": "illustrative_not_executed",
-    "note_zh": "假设 5 秒内同一资产得分从 100 → 105 → 108，版本从 1 → 2 → 3。只同步最新 108；这不是新增加分规则或真实 #1006 历史。",
-    "note_en": "Assume one asset changes from 100 to 105 to 108 within five seconds, at versions 1, 2 and 3. Sync 108 only. This is neither a new scoring rule nor observed #1006 history.",
+    "note_zh": "演算假设：另有 99 个资产得分高于 55 且不变，省略展示。KASUN 从 49 升至 55 进入前 100，目标若没有它就新增 55，已有则更新。Stake | Bonus 的 50 分旧行保留，不删除、不更新；目标此后可有 101 行。",
+    "note_en": "Illustrative: 99 unchanged assets score above 55 and are omitted. KASUN rises from 49 to 55 into the top 100; insert 55 if missing, otherwise update it. Retain Stake | Bonus at its old 50 unchanged. The target can now contain 101 rows.",
+    "unchanged_member_count": 99,
+    "before": [
+      {
+        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
+        "asset_name": "Stake | Bonus",
+        "score_key": "total_heat",
+        "score_value": 50,
+        "calculated_at": "2026-10-08T00:00:00Z"
+      },
+      {
+        "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+        "asset_name": "KASUN",
+        "score_key": "total_heat",
+        "score_value": 49,
+        "calculated_at": "2026-10-08T00:00:00Z"
+      }
+    ],
     "changes": [
       {
         "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
         "asset_name": "Stake | Bonus",
         "score_key": "total_heat",
-        "score_value": 100,
-        "calculated_at": "2026-10-08T00:00:01Z",
-        "source_version": 1
+        "score_value": 50,
+        "calculated_at": "2026-10-08T00:00:00Z"
       },
       {
-        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
-        "asset_name": "Stake | Bonus",
+        "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+        "asset_name": "KASUN",
         "score_key": "total_heat",
-        "score_value": 105,
-        "calculated_at": "2026-10-08T00:00:02Z",
-        "source_version": 2
-      },
-      {
-        "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
-        "asset_name": "Stake | Bonus",
-        "score_key": "total_heat",
-        "score_value": 108,
-        "calculated_at": "2026-10-08T00:00:04Z",
-        "source_version": 3
+        "score_value": 55,
+        "calculated_at": "2026-10-08T00:00:01Z"
       }
     ],
     "output": [
       {
+        "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
+        "asset_name": "KASUN",
+        "score_key": "total_heat",
+        "score_value": 55,
+        "calculated_at": "2026-10-08T00:00:01Z",
+        "source_version": 2,
+        "synced_at": "2026-10-08T00:00:01.100Z"
+      }
+    ],
+    "retained_output": [
+      {
         "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
         "asset_name": "Stake | Bonus",
         "score_key": "total_heat",
-        "score_value": 108,
-        "calculated_at": "2026-10-08T00:00:04Z",
-        "source_version": 3,
-        "synced_at": "2026-10-08T00:00:05Z"
+        "score_value": 50,
+        "calculated_at": "2026-10-08T00:00:00Z",
+        "source_version": 1,
+        "synced_at": "2026-10-08T00:00:00.100Z"
       }
     ]
   }
