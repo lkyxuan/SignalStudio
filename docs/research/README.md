@@ -86,3 +86,12 @@ fewunderstand 面向加密货币交易者，目标是尽早呈现少数人知道
 用户询问当前 Redis 使用方式是否为 Stream。核对本仓库：新增五榜骨架的 `redis_type` 均为 null，尚未选型；现有 #6001 卡片声明缓存有效评分事件，未声明 Streams。已有[集成记录](../FEWUNDERSTAND_INTEGRATION.md)引用 fewunderstand 的 `common/asset_score/redis_projection.py`，其实现参考使用 `{prefix}:{generation}:events` Hash，由 `:active` 指向 generation；这是先前代码核对记录，本轮没有重新访问远端代码或运行 Redis 检查。
 
 概念澄清：Redis Streams 是追加事件、按进度消费的日志结构；Hash 可按事件 ID 存取记录；Sorted Set 可存资产与分数并按分数排序。持续收到数据或定时重算，不自动意味着采用 Redis Streams。现有设计将消息传输放在 Redpanda，Redis 承担计算所需状态缓存，因此不必仅因“实时”再增加一层 Stream。Sorted Set 仅为未来保存有序结果时的候选，不是本轮选型决定。参考 [Redis 数据类型比较](https://redis.io/docs/latest/develop/data-types/compare-data-types/)。本轮仅澄清概念，未修改执行契约或部署。
+
+
+## 2026-10-09：Redis 必须有退出规则，不能靠选 Stream 代替生命周期设计
+
+用户明确提出持续写入而无退出不可接受，并询问 Stream 是否因此优于 Hash。这是容量与生命周期要求，尚未批准改用 Stream 或某个具体清理阈值。现有五榜骨架的 retention 仍为 null；#6001 要求保留有效贡献或等价状态，但尚无完整退出实施方案。
+
+助手建议继续用 Hash 承担按事件 ID 查询、去重及评分计算状态，Redpanda 承担消息流；若以后需要 Redis 自己管理顺序消费与消费进度，再考虑 Streams。Stream 的 MAXLEN/MINID 裁剪需要主动配置或执行，并不自动理解业务贡献是否失效；时间裁剪按 Stream ID，不能把补采入流时间当成原始事件时间。Hash 同样可以逐字段 HDEL；Redis 7.4 起支持字段 TTL，但实际服务版本未核验，不能依赖整张 Hash 的 EXPIRE 代替每条记录的生命周期。参考 [XTRIM](https://redis.io/docs/latest/commands/xtrim/) 与 [HEXPIRE](https://redis.io/docs/latest/commands/hexpire/)。
+
+待讨论的退出方案：固定窗口算法可在超窗且不再被其他计算需要后清理；指数衰减算法需另定义截断和可接受误差，或在满足线性可加且同一衰减策略等条件下合并为等价状态。7 天半衰期意味着原 100 分剩 50 分，不是过期；未经批准不能裁剪成零。删除前需保证约定的持久归档/恢复依据可用，清理后重放也不能使旧事件重复加分；清理任务、重试、索引一致性和容量监控后续补齐。资产出榜、前端显示过期与原始贡献退出 Redis 是不同事项。以上是助手建议，未修改卡片执行契约、实际 Redis 或算法。
