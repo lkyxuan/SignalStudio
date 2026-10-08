@@ -5,7 +5,7 @@ export const nodeTypes = [
   'Source', 'Raw Field', 'Evidence Check', 'Asset Resolution', 'Relationship Lookup',
   'Relationship Discovery', 'Review Decision', 'Derived Field', 'Metric', 'Score',
   'Ranking', 'Rule Evaluation', 'Flow Result', 'Signal Event', 'Product Module',
-  'Redpanda Topic', 'Redis Window', 'assets', 'asset_identifiers', 'asset_relationships',
+  'Redpanda Topic', 'Redis Window', 'Ranking Table', 'assets', 'asset_identifiers', 'asset_relationships',
   'asset_monitoring_rules', 'asset_score_events', 'asset_scores_current', 'supabase_asset_scores',
   'Asset Registry', 'Rule Registry',
 ] as const;

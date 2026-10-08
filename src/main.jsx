@@ -6,6 +6,7 @@ import '@xyflow/react/dist/style.css';
 import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, CircleHelp, Database, GitBranch, Layers3, LayoutGrid, List, Maximize2, Network, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { EdgeMappingPanel, FieldCatalog } from './FieldPanels';
 import { NodeCaseExplanation, ProcessingIOCard } from './ProcessingIOCard';
+import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldCard';
 import { BusinessTableCard } from './BusinessTableCard';
 import { LocalFlowView } from './LocalFlowView';
 import businessTables from '../catalog/business-tables.v1.json';
@@ -48,7 +49,7 @@ const NODE_GROUPS = [
   { name: 'Data sources', types: ['Source', 'Raw Field'] },
   { name: 'Processing steps', types: ['Evidence Check', 'Asset Resolution', 'Relationship Lookup', 'Relationship Discovery', 'Review Decision', 'Derived Field', 'Metric', 'Score', 'Rule Evaluation'] },
   { name: 'Data infrastructure', types: ['Redpanda Topic', 'Redis Window'] },
-  { name: 'Business tables', types: ['assets', 'asset_identifiers', 'asset_relationships', 'asset_monitoring_rules', 'asset_score_events', 'asset_scores_current'] },
+  { name: 'Business tables', types: ['Ranking Table', 'assets', 'asset_identifiers', 'asset_relationships', 'asset_monitoring_rules', 'asset_score_events', 'asset_scores_current'] },
   { name: 'Outputs', types: ['Flow Result', 'Signal Event', 'Ranking', 'Product Module'] },
 ];
 const CREATABLE_GROUPS = NODE_GROUPS.filter(group => group.name !== 'Business tables');
@@ -62,7 +63,7 @@ const DEFAULT_LANES = { Source: 'shared', 'Raw Field': 'shared', 'Redpanda Topic
 const defaultLane = type => DEFAULT_LANES[type] || 'signal';
 const nodeLane = node => node.workflow_lane || defaultLane(node.type);
 const SIGNAL_TYPES = new Set(['Derived Field', 'Metric', 'Score', 'Ranking', 'Product Module']);
-const KIND = { Source: 'source', 'Raw Field': 'raw', 'Redpanda Topic': 'topic', 'Redis Window': 'cache', 'Evidence Check': 'evidence', 'Asset Resolution': 'identity', 'Relationship Lookup': 'relationship', 'Relationship Discovery': 'relationship', 'Review Decision': 'review', 'Derived Field': 'derived', Metric: 'metric', Score: 'score', Ranking: 'ranking', 'Rule Evaluation': 'rule', 'Flow Result': 'event', 'Signal Event': 'event', 'Product Module': 'product', assets: 'state', asset_identifiers: 'state', asset_relationships: 'state', asset_monitoring_rules: 'state', asset_score_events: 'state', asset_scores_current: 'state', supabase_asset_scores: 'state', 'Asset Registry': 'state', 'Rule Registry': 'state' };
+const KIND = { Source: 'source', 'Raw Field': 'raw', 'Redpanda Topic': 'topic', 'Redis Window': 'cache', 'Ranking Table': 'state', 'Evidence Check': 'evidence', 'Asset Resolution': 'identity', 'Relationship Lookup': 'relationship', 'Relationship Discovery': 'relationship', 'Review Decision': 'review', 'Derived Field': 'derived', Metric: 'metric', Score: 'score', Ranking: 'ranking', 'Rule Evaluation': 'rule', 'Flow Result': 'event', 'Signal Event': 'event', 'Product Module': 'product', assets: 'state', asset_identifiers: 'state', asset_relationships: 'state', asset_monitoring_rules: 'state', asset_score_events: 'state', asset_scores_current: 'state', supabase_asset_scores: 'state', 'Asset Registry': 'state', 'Rule Registry': 'state' };
 const OUTPUT_TYPES = new Set(['Flow Result', 'Signal Event', 'Ranking', 'Product Module']);
 const TYPE_HELP = {
   'Evidence Check': 'Check source coverage, freshness and provenance before treating observations as evidence.',
@@ -126,6 +127,7 @@ function GroupLabel({ data }) {
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
 
 function StateNodeDetails({ node, upstream, downstream, openNode, language }) {
+  if (leaderboardCard(node.name)) return <LeaderboardScaffoldCard node={node} language={language} />;
   if (BUSINESS_TABLE_NAMES.has(node.name)) {
     return <BusinessTableCard node={node} language={language} />;
   }

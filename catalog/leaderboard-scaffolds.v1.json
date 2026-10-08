@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "status": "design_scaffold",
+  "redis_service": "shared",
+  "primary_key": [
+    "asset_id"
+  ],
+  "columns": [
+    {
+      "name": "asset_id",
+      "data_type": "string",
+      "label_zh": "内部资产 ID",
+      "meaning_en": "Internal asset ID"
+    },
+    {
+      "name": "asset_name",
+      "data_type": "string | null",
+      "label_zh": "资产名称，仅供展示",
+      "meaning_en": "Asset name for display only"
+    },
+    {
+      "name": "score",
+      "data_type": "number",
+      "label_zh": "本榜独立分数，算法待定",
+      "meaning_en": "Independent board score; algorithm pending"
+    },
+    {
+      "name": "calculated_at",
+      "data_type": "UTC timestamp",
+      "label_zh": "实际计算时间",
+      "meaning_en": "Actual calculation time"
+    },
+    {
+      "name": "algorithm_version",
+      "data_type": "string",
+      "label_zh": "产生此分数的算法版本",
+      "meaning_en": "Version of the algorithm producing this score"
+    }
+  ],
+  "boards": [
+    {
+      "key": "warming",
+      "label_zh": "升温",
+      "label_en": "Warming",
+      "cache_name": "Redis · 升温榜数据区",
+      "calculator_name": "计算升温榜得分",
+      "table_name": "leaderboard_warming",
+      "key_prefix": "fewunderstand:leaderboards:warming:",
+      "algorithm": null,
+      "input_schema": null,
+      "schedule": null,
+      "retention": null,
+      "redis_type": null
+    },
+    {
+      "key": "hottest",
+      "label_zh": "最热",
+      "label_en": "Hottest",
+      "cache_name": "Redis · 最热榜数据区",
+      "calculator_name": "计算最热榜得分",
+      "table_name": "leaderboard_hottest",
+      "key_prefix": "fewunderstand:leaderboards:hottest:",
+      "algorithm": null,
+      "input_schema": null,
+      "schedule": null,
+      "retention": null,
+      "redis_type": null
+    },
+    {
+      "key": "emerging",
+      "label_zh": "新出现",
+      "label_en": "Emerging",
+      "cache_name": "Redis · 新出现榜数据区",
+      "calculator_name": "计算新出现榜得分",
+      "table_name": "leaderboard_emerging",
+      "key_prefix": "fewunderstand:leaderboards:emerging:",
+      "algorithm": null,
+      "input_schema": null,
+      "schedule": null,
+      "retention": null,
+      "redis_type": null
+    },
+    {
+      "key": "cooling",
+      "label_zh": "降温",
+      "label_en": "Cooling",
+      "cache_name": "Redis · 降温榜数据区",
+      "calculator_name": "计算降温榜得分",
+      "table_name": "leaderboard_cooling",
+      "key_prefix": "fewunderstand:leaderboards:cooling:",
+      "algorithm": null,
+      "input_schema": null,
+      "schedule": null,
+      "retention": null,
+      "redis_type": null
+    },
+    {
+      "key": "divergence",
+      "label_zh": "分歧",
+      "label_en": "Divergence",
+      "cache_name": "Redis · 分歧榜数据区",
+      "calculator_name": "计算分歧榜得分",
+      "table_name": "leaderboard_divergence",
+      "key_prefix": "fewunderstand:leaderboards:divergence:",
+      "algorithm": null,
+      "input_schema": null,
+      "schedule": null,
+      "retention": null,
+      "redis_type": null
+    }
+  ]
+}

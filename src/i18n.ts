@@ -36,6 +36,7 @@ const zh: Record<string, string> = {
   'Persistent monitoring-rule state; the node is a design reference, not live data.': '持续保存监控规则的状态节点；目前仅是设计引用。',
   'Data sources': '数据来源',
   'Processing steps': '处理步骤',
+  'Ranking Table': '榜单结果表',
   'Shared state': '共享状态',
   'Business tables': '业务表',
   'Business table': '业务表',
@@ -341,6 +342,9 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  const boardNames = { warming: '升温', hottest: '最热', emerging: '新出现', cooling: '降温', divergence: '分歧' };
+  const boardKey = name.replace(/^leaderboard_/, '') as keyof typeof boardNames;
+  if (name.startsWith('leaderboard_') && boardNames[boardKey]) return language === 'zh-CN' ? `${boardNames[boardKey]}榜结果表` : `${boardKey} leaderboard results`;
   if (name === 'supabase_asset_scores') return language === 'zh-CN' ? 'Supabase 资产得分表' : 'Supabase asset scores';
   if (name === '同步资产得分到 Supabase') return language === 'zh-CN' ? name : 'Sync asset scores to Supabase';
   return language === 'zh-CN' && (name === 'Asset Registry' || name === 'Rule Registry' || name === 'Bind source asset' || name === 'Look up related assets' || name === 'Evaluate monitoring rules') ? zh[name] || name : name;

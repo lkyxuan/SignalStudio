@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 TYPES = ("Source", "Raw Field", "Evidence Check", "Asset Resolution", "Relationship Lookup",
          "Relationship Discovery", "Review Decision", "Derived Field", "Metric",
          "Score", "Ranking", "Rule Evaluation", "Flow Result", "Signal Event", "Product Module",
-         "Redpanda Topic", "Redis Window",
+         "Redpanda Topic", "Redis Window", "Ranking Table",
          "assets", "asset_identifiers", "asset_relationships", "asset_monitoring_rules",
          "asset_score_events", "asset_scores_current", "supabase_asset_scores",
          "Asset Registry", "Rule Registry")
@@ -28,7 +28,7 @@ SYSTEM_TABLES = (
     ("supabase_asset_scores", "Supabase score projection: realtime changed-asset upserts if top 100, no vacancy backfill, retain older rows, no time window or stored rank; planned, not deployed.", 2380, 160),
 )
 LEGACY_STATE_TYPES = ("Asset Registry", "Rule Registry")
-STATE_TYPES = tuple(item[0] for item in SYSTEM_TABLES) + LEGACY_STATE_TYPES
+STATE_TYPES = tuple(item[0] for item in SYSTEM_TABLES) + LEGACY_STATE_TYPES + ("Ranking Table",)
 DECISION_TYPES = {"Evidence Check", "Review Decision", "Rule Evaluation"}
 CHOOSABLE_REFERENCE_GROUP_TYPES = {"Asset Resolution", "Relationship Lookup"}
 GROUPED_NODE_REFERENCE_MARKER = "grouped_node_references_v1"

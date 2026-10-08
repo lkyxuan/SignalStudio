@@ -224,3 +224,10 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 2026-10-08 用户批准记录到 #3010/#1007：前端展示有效期初始为 180 秒（3 分钟），可配置。先过滤 total_heat 且 query_time−180秒 < calculated_at ≤ query_time，再按完整精度分降序、asset_id 升序分页，首屏 20 为示例、最多 100。达到 180 秒即隐藏，旧行不删除，打开中的页面也须按时移除过期记录。这替代无期限展示旧分的前端约定，不改变实时触发、不补位、不删旧行的同步规则。重试不得用 synced_at 或当前时间给旧 calculated_at 续期。榜内应持续获得真实分钟计算和同步；稳定数值跳过写入仍可能误隐藏，续期方式尚待明确，本次未擅自加入心跳。卡片及契约已记录，实际同步和前端仍未部署。
 
 2026-10-08 展示有效期职责确认：3 分钟规则只放在 #1007「读取规则 · #1007 → 前端」中，不属于 #3010 → #1007 同步算法。前端或读取接口提供过滤条件，由 Supabase 查询在排序/limit 之前执行；页面也要移除已加载的过期记录。#3010 不判断此有效期，仍立即同步符合源前 100 条件的变化资产。契约 frontend_read 独立保存 180 秒配置、读取要求和验收；同步 implementation_request 不再混入前端过期规则。尚未部署实际查询或同步。
+
+
+## 2026-10-08：五榜逻辑结果表骨架
+
+新增 `leaderboard_warming`、`leaderboard_hottest`、`leaderboard_emerging`、`leaderboard_cooling`、`leaderboard_divergence` 五张设计表卡片。共同预留 `asset_id`（逻辑主键）、`asset_name`（可空展示名称）、`score`（各榜独立分数）、`calculated_at`（UTC 实际计算时间）、`algorithm_version`（计算版本）。定义保存在 `catalog/leaderboard-scaffolds.v1.json`。
+
+用户授权先建结构，算法、输入、加分规则与部署后续补齐。卡片不含虚构结果行，空白不等于远端空表；未创建实际业务表或 Redis key。各榜的计算与数据区分别独立成卡，物理存储方案未定。现有 `asset_scores_current` / `supabase_asset_scores` 演示定义不受影响。

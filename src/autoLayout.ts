@@ -14,7 +14,7 @@ const MAX_ROW_WIDTH = 1800;
 const TYPE_ORDER = ['Source', 'Raw Field', 'Evidence Check', 'asset_identifiers', 'assets',
   'Asset Resolution', 'Relationship Discovery', 'Review Decision', 'Derived Field',
   'Metric', 'Score', 'Redpanda Topic', 'Redis Window', 'asset_monitoring_rules', 'Rule Evaluation', 'asset_score_events', 'asset_scores_current', 'supabase_asset_scores', 'Flow Result', 'Signal Event',
-  'asset_relationships', 'Relationship Lookup', 'Ranking',
+  'asset_relationships', 'Relationship Lookup', 'Ranking', 'Ranking Table',
   'Product Module'];
 
 const compareNodes = (left: LayoutNode, right: LayoutNode) => {

@@ -12,6 +12,7 @@ import scoreTopicProposal from '../catalog/score-event-topic-proposal.v1.json';
 import identityPilot from '../catalog/identity-flow-case.v1.json';
 import publicCalls from '../catalog/public-call-examples.json';
 import signalContracts from '../catalog/signal-contracts.v1.json';
+import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldCard';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
 import { SupabaseScoreSyncCard } from './SupabaseScoreSyncCard';
 import supabaseSync from '../catalog/supabase-score-sync.v1.json';
@@ -397,6 +398,7 @@ function ScoreEventPublisherCard({ node, graph, openNode, language }) {
 
 export function ProcessingIOCard(props) {
   const { node } = props;
+  if (leaderboardCard(node.name)) return <LeaderboardScaffoldCard {...props} />;
   if (isCoinGeckoReference(node.name)) return <CoinGeckoReferenceCard {...props} />;
   if (node.name === supabaseSync.node.name) return <SupabaseScoreSyncCard {...props} />;
   const content = <ProcessingCardContent key={node.id} {...props} />;
