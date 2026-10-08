@@ -79,3 +79,10 @@ fewunderstand 面向加密货币交易者，目标是尽早呈现少数人知道
 用户要求先建立五榜对应的后端卡片，数据如何进入、具体算法与加分依据以后逐榜完善。已在工作台建立五条独立的「Redis 数据区 → 计算程序 → 结果表」设计链路，共 15 张卡片。助手采用一个共享 Redis 服务、五个 key 前缀的骨架设计；这不意味着五种 Redis 原生类型，具体类型和字段未定。详见[产品流程](../PRODUCT_WORKFLOW.md#five-leaderboard-scaffolds--2026-10-08)与 `catalog/leaderboard-scaffolds.v1.json`。
 
 这次授权将前面的“未批准实施”推进到卡片结构层，不批准任何候选评分公式。结合新出现讨论中的用户澄清，各榜可独立使用新资产条件，无须都复用同一 total_heat 或同一笔贡献。保留现有演示及实际回填；新骨架无来源接入、真实计算结果或部署。下一步逐榜补齐数据输入、资格、贡献、算法与读取规则。
+
+
+## 2026-10-08：Redis 数据区不等于 Redis Streams
+
+用户询问当前 Redis 使用方式是否为 Stream。核对本仓库：新增五榜骨架的 `redis_type` 均为 null，尚未选型；现有 #6001 卡片声明缓存有效评分事件，未声明 Streams。已有[集成记录](../FEWUNDERSTAND_INTEGRATION.md)引用 fewunderstand 的 `common/asset_score/redis_projection.py`，其实现参考使用 `{prefix}:{generation}:events` Hash，由 `:active` 指向 generation；这是先前代码核对记录，本轮没有重新访问远端代码或运行 Redis 检查。
+
+概念澄清：Redis Streams 是追加事件、按进度消费的日志结构；Hash 可按事件 ID 存取记录；Sorted Set 可存资产与分数并按分数排序。持续收到数据或定时重算，不自动意味着采用 Redis Streams。现有设计将消息传输放在 Redpanda，Redis 承担计算所需状态缓存，因此不必仅因“实时”再增加一层 Stream。Sorted Set 仅为未来保存有序结果时的候选，不是本轮选型决定。参考 [Redis 数据类型比较](https://redis.io/docs/latest/develop/data-types/compare-data-types/)。本轮仅澄清概念，未修改执行契约或部署。
