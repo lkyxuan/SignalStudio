@@ -16,6 +16,7 @@ import { ProcessingCardFrame } from './ProcessingCardFrame';
 import { SupabaseScoreSyncCard } from './SupabaseScoreSyncCard';
 import supabaseSync from '../catalog/supabase-score-sync.v1.json';
 import { AssetReviewCase } from './AssetReviewCase';
+import { CoinGeckoReferenceCard, isCoinGeckoReference } from './CoinGeckoReferenceCard';
 import './source-case-inspector.css';
 import './processing-io-card.css';
 
@@ -396,6 +397,7 @@ function ScoreEventPublisherCard({ node, graph, openNode, language }) {
 
 export function ProcessingIOCard(props) {
   const { node } = props;
+  if (isCoinGeckoReference(node.name)) return <CoinGeckoReferenceCard {...props} />;
   if (node.name === supabaseSync.node.name) return <SupabaseScoreSyncCard {...props} />;
   const content = <ProcessingCardContent key={node.id} {...props} />;
   if (['Redpanda Topic', 'Redis Window'].includes(node.type) || node.name === scoreRollup.node.name) return content;

@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "status": "implementation_reference_pending_design_review",
+  "reviewed_at": "2026-10-08",
+  "source_revision": "e094b4aa17db188626eb7d7909e10db0f32d764e",
+  "source_paths": [
+    "consumer/coingecko_market_signal_scorer/scorer.py",
+    "consumer/coingecko_market_signal_scorer/processor.py",
+    "consumer/coingecko_market_signal_scorer/main.py",
+    "consumer/coingecko_market_signal_scorer/config.example.yaml",
+    "spider/coingecko/spider.py",
+    "common/asset_canonical/promotion.py",
+    "spider/base/spider_base.py",
+    "spider/base/redpanda_client.py",
+    "spider/coingecko/config.dev.yaml"
+  ],
+  "evidence_note": "只读核对 fewunderstand 本地干净工作树；代码实现参考，阈值尚待用户逐卡确认。以下均为假设输入和按代码推导的输出，未观察 Redpanda 消息或部署运行。不是 total_heat 加分事件。",
+  "cards": [
+    {
+      "key": "price_move_up",
+      "name": "CoinGecko · 24 小时大涨",
+      "type": "Metric",
+      "condition": "price_change_percentage_24h ≥ 10%",
+      "algorithm": "读取上游给出的 24 小时涨幅，达到或超过 10% 就发出上涨提醒。没有在这里用价格历史重新计算涨幅。",
+      "confidence_formula": "confidence = min(0.95, 0.6 + (abs(pct) − 10) × 0.01)，保留 3 位小数。",
+      "input": {
+        "id": "example-coin",
+        "symbol": "EXM",
+        "name": "Example Coin",
+        "last_updated": "2026-10-08T00:00:00Z",
+        "asset_id": "illustrative-asset-id",
+        "asset_type": "crypto",
+        "tradability_status": "unknown",
+        "price_change_percentage_24h": 12
+      },
+      "output": {
+        "signal_type": "price_move_up",
+        "rule_id": "coingecko_market.price_move_up",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "medium",
+        "confidence": 0.62,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "price_change_percentage_24h": 12
+        }
+      },
+      "negative_input": {
+        "price_change_percentage_24h": 9.99
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。"
+    },
+    {
+      "key": "price_move_down",
+      "name": "CoinGecko · 24 小时大跌",
+      "type": "Metric",
+      "condition": "price_change_percentage_24h ≤ −10%",
+      "algorithm": "读取上游给出的 24 小时跌幅，达到或低于 −10% 就发出下跌提醒。",
+      "confidence_formula": "confidence = min(0.95, 0.6 + (abs(pct) − 10) × 0.01)，保留 3 位小数。",
+      "input": {
+        "id": "example-coin",
+        "symbol": "EXM",
+        "name": "Example Coin",
+        "last_updated": "2026-10-08T00:00:00Z",
+        "asset_id": "illustrative-asset-id",
+        "asset_type": "crypto",
+        "tradability_status": "unknown",
+        "price_change_percentage_24h": -15
+      },
+      "output": {
+        "signal_type": "price_move_down",
+        "rule_id": "coingecko_market.price_move_down",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "high",
+        "confidence": 0.65,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "price_change_percentage_24h": -15
+        }
+      },
+      "negative_input": {
+        "price_change_percentage_24h": -9.99
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。"
+    },
+    {
+      "key": "volume_spike",
+      "name": "CoinGecko · 成交量市值比偏高",
+      "type": "Metric",
+      "condition": "market_cap > 0 且 total_volume / market_cap ≥ 0.2",
+      "algorithm": "先确认市值大于零，再用 24 小时成交额除以市值。本例 2500 万 ÷ 1 亿 = 0.25，达到 0.2，生成 volume_spike 提醒。它没有比较过去的成交量，不能由此证明成交量突然放大。",
+      "confidence_formula": "confidence = min(0.95, max(0.6, 0.6 + ratio − 0.2))，保留 3 位；输出比例保留 6 位，条件比较用未舍入值。",
+      "input": {
+        "id": "example-coin",
+        "symbol": "EXM",
+        "name": "Example Coin",
+        "last_updated": "2026-10-08T00:00:00Z",
+        "asset_id": "illustrative-asset-id",
+        "asset_type": "crypto",
+        "tradability_status": "unknown",
+        "total_volume": 25000000,
+        "market_cap": 100000000
+      },
+      "output": {
+        "signal_type": "volume_spike",
+        "rule_id": "coingecko_market.volume_spike",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "medium",
+        "confidence": 0.65,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "total_volume": 25000000,
+          "market_cap": 100000000,
+          "volume_to_market_cap": 0.25
+        }
+      },
+      "negative_input": {
+        "total_volume": 25000000,
+        "market_cap": 0
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。"
+    },
+    {
+      "key": "near_ath",
+      "name": "CoinGecko · 接近历史高点",
+      "type": "Metric",
+      "condition": "ath_change_percentage ≥ −5%",
+      "algorithm": "读取上游相对历史最高价的百分比，达到或超过 −5% 就提醒接近历史高点。本例 −2% 满足条件；代码没有额外限制该数值必须不大于零。",
+      "confidence_formula": "confidence = min(0.95, 0.7 + (pct + 5) × 0.02)，保留 3 位小数。",
+      "input": {
+        "id": "example-coin",
+        "symbol": "EXM",
+        "name": "Example Coin",
+        "last_updated": "2026-10-08T00:00:00Z",
+        "asset_id": "illustrative-asset-id",
+        "asset_type": "crypto",
+        "tradability_status": "unknown",
+        "ath_change_percentage": -2
+      },
+      "output": {
+        "signal_type": "near_ath",
+        "rule_id": "coingecko_market.near_ath",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "medium",
+        "confidence": 0.76,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "ath_change_percentage": -2
+        }
+      },
+      "negative_input": {
+        "ath_change_percentage": -5.01
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。"
+    },
+    {
+      "key": "deep_from_ath",
+      "name": "CoinGecko · 较历史高点深度回撤",
+      "type": "Metric",
+      "condition": "ath_change_percentage ≤ −80%",
+      "algorithm": "读取上游相对历史最高价的百分比，达到或低于 −80% 就提醒深度回撤。本例 −90% 满足条件，不表示已见底或出现买入机会。",
+      "confidence_formula": "confidence = min(0.95, 0.65 + (−80 − pct) × 0.015)，保留 3 位小数。",
+      "input": {
+        "id": "example-coin",
+        "symbol": "EXM",
+        "name": "Example Coin",
+        "last_updated": "2026-10-08T00:00:00Z",
+        "asset_id": "illustrative-asset-id",
+        "asset_type": "crypto",
+        "tradability_status": "unknown",
+        "ath_change_percentage": -90
+      },
+      "output": {
+        "signal_type": "deep_from_ath",
+        "rule_id": "coingecko_market.deep_from_ath",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "high",
+        "confidence": 0.8,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "ath_change_percentage": -90
+        }
+      },
+      "negative_input": {
+        "ath_change_percentage": -79.99
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。"
+    },
+    {
+      "key": "new_asset_discovered",
+      "name": "CoinGecko · 首次收录新资产",
+      "type": "Flow Result",
+      "condition": "启用 promotion writer，身份未命中且无冲突，可信来源校验通过，promote 返回 promoted",
+      "algorithm": "先解析 CoinGecko 身份。已匹配资产进入行情判断；冲突隔离。启用写入器后，对未匹配记录验证 ID、symbol、name、正市值与可解析时间，尝试可信来源建档。只有返回 promoted 才发 new_asset_discovered；返回 resolved 只复用资产、不再发发现通知。未启用写入器时未匹配记录走候选发现流程。",
+      "confidence_formula": "固定 confidence=0.99，是代码常量，不是统计验证过的概率。",
+      "input": {
+        "id": "example-coin",
+        "symbol": "EXM",
+        "name": "Example Coin",
+        "market_cap": 100000000,
+        "last_updated": "2026-10-08T00:00:00Z",
+        "resolution_status": "unresolved",
+        "promotion_writer": "enabled",
+        "promotion_status": "promoted"
+      },
+      "output": {
+        "signal_type": "new_asset_discovered",
+        "rule_id": "coingecko_discovery.trusted_source",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "info",
+        "confidence": 0.99,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "market_cap": 100000000,
+          "provider": "coingecko",
+          "coin_id": "example-coin",
+          "symbol": "EXM",
+          "asset_id": "illustrative-asset-id"
+        }
+      },
+      "negative_input": {
+        "promotion_status": "resolved"
+      },
+      "negative_result": "重复遇到已建档资产，不再发发现通知；行情规则可以继续执行。"
+    }
+  ],
+  "topics": [
+    {
+      "name": "Few Understand · market.snapshot",
+      "topic": "market.snapshot",
+      "type": "Redpanda Topic",
+      "definition": "现有 CoinGecko 行情消息输入的代码参考；与 Studio 原设计 Topic 分开。",
+      "fields": [
+        "id",
+        "symbol",
+        "name",
+        "current_price",
+        "market_cap",
+        "market_cap_rank",
+        "fully_diluted_valuation",
+        "total_volume",
+        "high_24h",
+        "low_24h",
+        "price_change_24h",
+        "price_change_percentage_24h",
+        "market_cap_change_24h",
+        "market_cap_change_percentage_24h",
+        "circulating_supply",
+        "total_supply",
+        "max_supply",
+        "ath_change_percentage",
+        "ath_date",
+        "atl_change_percentage",
+        "atl_date",
+        "last_updated",
+        "sparkline_in_7d.price",
+        "price_change_percentage_1h_in_currency",
+        "price_change_percentage_24h_in_currency",
+        "price_change_percentage_7d_in_currency",
+        "price_change_percentage_14d_in_currency",
+        "price_change_percentage_30d_in_currency",
+        "price_change_percentage_200d_in_currency",
+        "price_change_percentage_1y_in_currency",
+        "collected_at"
+      ],
+      "notes": "spider/base/spider_base.py 直接批量发送 transform 后的单币种对象，没有在此处添加 data 包装。所列字段由 Studio 上游契约与 transform 删除列表对照得到，是可用字段参考，不证明每条消息都含有。spider 保留 id、symbol、name、total_volume、market_cap、price_change_percentage_24h、ath_change_percentage、last_updated 等；移除 roi/image/ath/atl，增加 collected_at。dev 配置只保留 market_cap > 10000000 的币种。schema 文档中的 coin_id/volume_24h 别名不是 transform 重命名的证据。scorer 同时兼容裸对象及 data 包装。",
+      "consumer_group": "coingecko-market-signal-scorer-group（example）；testnet 配置后缀为 testnet-v1",
+      "schema": "单币种原始行情对象，经 transform 过滤字段并增加 collected_at；开放对象",
+      "headers": {
+        "source": "coingecko",
+        "type": "market",
+        "category": "spot",
+        "meta_api": "coins/markets",
+        "meta_version": "1.0.0",
+        "timestamp": "发送时添加的秒级时间字符串（dev 配置与发送器代码）"
+      }
+    },
+    {
+      "name": "Few Understand · signal.data",
+      "topic": "signal.data",
+      "type": "Redpanda Topic",
+      "definition": "六条规则的信号记录输出参考；不接入 total_heat 评分链。",
+      "fields": [
+        "source",
+        "timestamp",
+        "strategy_id",
+        "rule_id",
+        "rule_version",
+        "signal_name",
+        "signal_type",
+        "symbol",
+        "coin_id",
+        "risk_level",
+        "confidence",
+        "trigger_reason",
+        "title",
+        "title_zh",
+        "title_en",
+        "summary",
+        "summary_zh",
+        "summary_en",
+        "observed_at",
+        "generated_at",
+        "source_topic",
+        "output_topic",
+        "schema_version",
+        "evidence",
+        "asset_id",
+        "asset_type",
+        "tradability_status",
+        "name"
+      ],
+      "notes": "列出 scorer 生成的信号对象字段；name 仅发现通知包含。title/summary 由代码生成中英文展示文案；asset_id/asset_type/tradability_status 来自身份处理。scorer 单独调用时身份字段可为空，部署处理器先执行身份路由。未核验公共发布器最终 wire envelope、Headers、key 和保留期。后续 supabase_sync → app_signals 为仓库 README 所述链路，此轮未审计其实现。",
+      "consumer_group": "未在此轮核对下游消费者配置",
+      "schema": "coingecko-market-signal/v1；发现通知为 coingecko-discovery-signal/v1"
+    }
+  ],
+  "shared_notes": [
+    "执行触发为消费 market.snapshot 后批处理；示例配置 batch_size=500、poll=1 秒、idle_flush=5 秒，不表示每分钟定时。main.py 使用默认阈值构建处理器。",
+    "五条行情条件独立判断，一条快照可以产生多条提醒。当前 scorer 未实现跨快照冷却、跨阈值检测或去重，不能把持续满足条件描述为只提醒一次。",
+    "身份处理前置：无写入器时未知身份进入候选、冲突进入隔离；启用写入器需 ASSET_DISCOVERY_DSN。建档通知不等于新币发行，也不自动产生 Studio 的 +100。",
+    "观测时间按 last_updated → collected_at → timestamp → generated_at 回退；缺值或无法解析的指标跳过对应规则。代码未全面拒绝 NaN/Infinity，后续调整时应审查。",
+    "confidence 是启发式强度值，未校准；修改阈值时置信度公式仍含固定基准 10/0.2/−5/−80，二者不会自动联动。",
+    "旧 #3001 是独立设计候选，原 Topic 为 source.coingecko.coins_markets.v1；本批忠实呈现 fewunderstand 实现，不替换旧设计，不改执行包。"
+  ]
+}

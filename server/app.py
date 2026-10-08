@@ -12,6 +12,7 @@ from graph_service import GraphError, GraphService
 from source_contract_store import SourceContractStore
 from signal_contract_store import SignalContractStore
 from table_backfill_store import TableBackfillStore
+from coingecko_reference_cards import ensure_coingecko_reference_cards
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCAL_KAITO_CASE = ROOT / "data" / "kaito-advanced-search-live.json"
@@ -25,6 +26,7 @@ service.ensure_source_contract_sources(source_contracts.contract["operations"] +
 service.retire_legacy_record_types()
 service.compact_retired_node_references()
 service.group_node_references_once()
+ensure_coingecko_reference_cards(service)
 
 
 class Handler(BaseHTTPRequestHandler):

@@ -14,10 +14,10 @@ const algorithms = {
   4003: ['人核对建议、证据和受影响的表行，决定批准、暂缓或驳回。只有批准且明确了具体修改才交给执行步骤；暂缓和驳回都不触发写表。', 'A person checks the proposal, evidence and affected rows, then approves, holds or rejects it. Only an approval with a specific change routes to execution; hold and reject never write tables.'],
 };
 
-export function ProcessingCardFrame({ node, graph, openNode, language, children }) {
+export function ProcessingCardFrame({ node, graph, openNode, language, children, algorithm: explicitAlgorithm }) {
   const zh = language === 'zh-CN';
   const sources = graph.nodes.filter(source => graph.edges.some(edge => edge.downstream_id === node.id && edge.upstream_id === source.id));
-  const algorithm = algorithms[node.reference_number]?.[zh ? 0 : 1] || node.formula;
+  const algorithm = explicitAlgorithm || algorithms[node.reference_number]?.[zh ? 0 : 1] || node.formula;
   return <div className="processing-card-frame">
     {children}
     <div className="processing-input-source-heading processing-source-links"><span>{zh ? '完整输入字段请到来源卡片查看：' : 'Full input fields are on the source cards:'}</span>
