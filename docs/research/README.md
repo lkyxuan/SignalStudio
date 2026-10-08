@@ -58,6 +58,18 @@
 
 官方资料核对：Bases 可按文件夹、属性、标签筛选，并不要求大量标签；OneDrive 可用于 Windows/macOS 的文件库同步，库应保持本地可用；iOS 的 OneDrive 文件库同步并非官方支持路径。同步会传播修改，独立的历史快照仍应与同步分开设计。用户只表达 OneDrive 使用计划，本轮未访问或配置 OneDrive，未建立备份作业。参考：[Bases 视图](https://obsidian.md/help/bases/views)、[Obsidian 同步指引](https://obsidian.md/help/sync-notes)、[OneDrive 恢复](https://support.microsoft.com/en-us/onedrive/restore-your-onedrive-files)。
 
+### 2026-10-09：跨对话任务展示、关系与苹果应用联动
+
+用户明确核心缺口：一个 Codex 对话可能产生三四个任务，侧栏对话不能提供任务归属、历史完成情况和统一概览。希望评估 MD / Obsidian 展示层的实现难度，以及子任务、依赖、时间线、归档；同时比较 Notion 的现成管理能力与 MD 为底层、苹果日历/提醒事项/备忘录作为前端的可行性。本轮为方案讨论，未授权开发或迁移。
+
+助手判断：除前端展示外，还需把任务从对话中提取成独立、有稳定标识的记录，并回链来源与研究正文；一个对话可关联多个任务，一个任务也可延续于多个对话。候选 MD 主本方案是一项可独立跟踪的任务对应一个任务文件，任务属性存状态、父任务、依赖和可选日期；索引可重建，完成与归档是状态或视图变化，保留结果与来源，不复制新正文。父子关系表示拆分，依赖表示先后约束；截止日期与安排执行的时段分开。
+
+官方核对：Notion 已提供子项、依赖、时间线中的展示及依赖日期调整设置；这些属于数据库能力，不要求使用此前受限的原生 Dashboard 小组件。Obsidian Bases 有表格、卡片、列表等视图及扩展机制，但不能因此声称完整的任务依赖调度已经现成。Apple Calendar 可显示和完成有日期的提醒事项；EventKit 可在授权后创建和编辑事件及提醒事项。MD 的日期属性不会自动产生苹果日历事件，需另建桥接及标识映射。备忘录若也独立编辑正文，会重新产生双主本问题。
+
+复杂度判断是设计估计、尚无原型验证：只读任务概览较小；可编辑看板、子任务与依赖校验需要持续维护；双向苹果同步、重复任务、并发修改和失败恢复明显更复杂。AI 能辅助提取与实现，但不能代替稳定的数据规则与同步验证。建议将“尽快用上成熟任务管理”与“坚持 MD 是包括任务状态在内的唯一主本”作为两条明确路线；后者先验证一个本地工作台，不同时把 Notion 和苹果应用都变成可独立写入的主本。苹果应用适合作为提醒与时间安排入口，整体研究/项目概览仍需要统一工作台。本轮未承诺自动同步、自动读取全部 Codex 对话或具体开发工期。
+
+参考：[Notion 子项与依赖](https://www.notion.com/help/tasks-and-dependencies)、[Bases 视图](https://obsidian.md/help/bases/views)、[Mac 日历中的提醒事项](https://support.apple.com/en-ca/guide/calendar/icl873b9a527/mac)、[EventKit 创建事件和提醒事项](https://developer.apple.com/documentation/eventkit/creating-events-and-reminders)。
+
 ## 已确定的产品范围
 
 fewunderstand 面向加密货币交易者，目标是尽早呈现少数人知道的非标准信息。终端有升温、最热、新出现、降温、分歧五个资产榜单，各按自己的分数显示前 50 名。只用免费数据源与自建爬虫，不购买付费 API。
