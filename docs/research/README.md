@@ -70,6 +70,10 @@
 
 参考：[Notion 子项与依赖](https://www.notion.com/help/tasks-and-dependencies)、[Bases 视图](https://obsidian.md/help/bases/views)、[Mac 日历中的提醒事项](https://support.apple.com/en-ca/guide/calendar/icl873b9a527/mac)、[EventKit 创建事件和提醒事项](https://developer.apple.com/documentation/eventkit/creating-events-and-reminders)。
 
+2026-10-09 后续澄清：用户将 Notion 理解为成熟的多端前端，并考虑先用现成系统、以后再迁入 Obsidian 或开发专属产品。助手纠正：Notion 提供的不只是文本展示，还包括块与数据库属性、关系、视图、权限和同步；Obsidian 以本地 MD 为笔记存储，同时承担编辑、索引、链接与扩展能力。MD 是可选的内容存储格式，不是所有文件系统或后端数据的本体。自建 MD 工作台可以是面向本人工作流的窄产品，无需复制完整 Obsidian。
+
+暂定建议仍为先验证现成工作流；迁移触发条件应是明确的体验、可控性、集成或性能限制，不应仅以数据量大小判断，更不能假定更多数据自动适合 MD。Notion 支持桌面和手机应用及联网同步，离线能力需按页面下载与支持范围使用。导出的 Markdown / CSV 可以保留部分内容与属性，但关系、视图和自动化需要迁移核验或重建，迁移不是无损更换前端。先采用 Notion 不代表数据已经永久锁定，也不意味着以后迁移没有成本。本轮未收到全量迁移或自建的执行授权。参考：[Notion 离线与同步](https://www.notion.com/en-gb/help/use-pages-offline)、[Notion 导出](https://www.notion.com/help/export-your-content)、[Obsidian 存储](https://obsidian.md/help/data-storage)。
+
 ## 已确定的产品范围
 
 fewunderstand 面向加密货币交易者，目标是尽早呈现少数人知道的非标准信息。终端有升温、最热、新出现、降温、分歧五个资产榜单，各按自己的分数显示前 50 名。只用免费数据源与自建爬虫，不购买付费 API。
