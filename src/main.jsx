@@ -301,17 +301,23 @@ function App() {
   const visibleInView = node => laneView === 'knowledge' ? knowledgeVisibleIds.has(node.id) : visibleForLane(node, laneView);
   const query = filter.trim().toLowerCase();
   const isNodeReferenceQuery = /^#\d{1,4}$/.test(query);
+  const cardReferenceQuery = /^#?\d{1,4}$/.test(query) ? `#${query.replace(/^#/, '')}` : null;
   const connectedIds = new Set(graph.edges.flatMap(edge => [edge.upstream_id, edge.downstream_id]));
   const referenceMatchEdges = query ? graph.edges.filter(edge =>
     (graph.field_usages || []).some(usage => usage.edge_id === edge.id && usageRef(usage).toLowerCase() === query)) : [];
   const referenceMatchNodes = new Set(referenceMatchEdges.flatMap(edge => [edge.upstream_id, edge.downstream_id]));
+  const matchesQuery = n => referenceMatchNodes.has(n.id) || `${nodeRef(n)} ${n.name} ${displayName(n.name)} ${sourcePurpose(n.name, language) || ''} ${n.definition} ${n.decision_question || ''} ${n.trigger_rule || ''} ${t(n.type)} ${(graph.fields || []).filter(field => field.node_id === n.id).map(field => `${field.name} ${field.definition}`).join(' ')} ${(graph.requirements || []).filter(item => item.node_id === n.id).map(item => `${item.name} ${item.purpose}`).join(' ')}`.toLowerCase().includes(query);
   const filtered = graph.nodes.filter(n => (visibleInView(n) || referenceMatchNodes.has(n.id) || isNodeReferenceQuery) &&
     (typeFilter === 'All types' || n.type === typeFilter || referenceMatchNodes.has(n.id) || isNodeReferenceQuery) &&
-    (referenceMatchNodes.has(n.id) || `${nodeRef(n)} ${n.name} ${displayName(n.name)} ${sourcePurpose(n.name, language) || ''} ${n.definition} ${n.decision_question || ''} ${n.trigger_rule || ''} ${t(n.type)} ${(graph.fields || []).filter(field => field.node_id === n.id).map(field => `${field.name} ${field.definition}`).join(' ')} ${(graph.requirements || []).filter(item => item.node_id === n.id).map(item => `${item.name} ${item.purpose}`).join(' ')}`.toLowerCase().includes(query))).sort((a, b) => a.reference_number - b.reference_number);
+    matchesQuery(n)).sort((a, b) => a.reference_number - b.reference_number);
   const tableRows = filtered;
-  // Card-number search navigates the complete canvas; table/name/relation searches still filter.
-  const locatingCard = view === 'graph' && isNodeReferenceQuery;
-  const searchTarget = locatingCard ? graph.nodes.find(node => nodeRef(node).toLowerCase() === query) : null;
+  // Every graph search navigates the complete canvas; table searches still filter.
+  const locatingCard = view === 'graph' && Boolean(query);
+  const searchMatches = locatingCard ? graph.nodes.filter(node => cardReferenceQuery
+    ? nodeRef(node).toLowerCase() === cardReferenceQuery : matchesQuery(node)) : [];
+  const searchMatchIds = new Set(searchMatches.map(node => node.id));
+  const searchMatchKey = searchMatches.map(node => node.id).join(',');
+  const searchTarget = searchMatches.length === 1 ? searchMatches[0] : null;
   const canvasNodes = locatingCard ? graph.nodes : filtered;
   const filteredIds = new Set(canvasNodes.map(n => n.id));
   const localFocus = graph.nodes.find(node => node.id === focusNodeId) || filtered.find(node => node.reference_number === IDENTITY_REFS.lookup) || filtered.find(node => connectedIds.has(node.id)) || filtered[0];
@@ -343,11 +349,11 @@ function App() {
     }
   }
   const hasGraphFocus = Boolean(focusNode || relatedEdgeIds.size);
-  const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: searchTarget?.id === n.id ? 'graph-search-target' : hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : '' })), ...groupLabels];
+  const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: searchMatchIds.has(n.id) ? 'graph-search-target' : hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : '' })), ...groupLabels];
   const displayEdges = edges.map(e => ({
     ...e,
     hidden: !filteredIds.has(e.source) || !filteredIds.has(e.target),
-    className: hasGraphFocus ? relatedEdgeIds.has(e.id) ? 'graph-related' : 'graph-dimmed' : '',
+    className: referenceMatchEdges.some(edge => edge.id === e.id) ? 'graph-related' : hasGraphFocus ? relatedEdgeIds.has(e.id) ? 'graph-related' : 'graph-dimmed' : '',
     label: '',
   }));
   const visibleNodeIds = filtered.map(node => node.id).join(',');
@@ -357,8 +363,12 @@ function App() {
     wasLocatingCard.current = locatingCard;
     if (view !== 'graph' || graphDisplayMode !== 'full' || !flowInstance) return;
     if (locatingCard) {
-      if (!searchTarget) return;
+      if (!searchMatches.length) return;
       const frame = requestAnimationFrame(() => {
+        if (!searchTarget) {
+          flowInstance.fitView({ nodes: searchMatches.map(node => ({ id: node.id })), padding: 0.2, maxZoom: 0.85, duration: 250 });
+          return;
+        }
         const target = flowInstance.getNode(searchTarget.id);
         if (!target) return;
         flowInstance.setCenter(target.position.x + (target.measured?.width ?? 286) / 2,
@@ -372,7 +382,7 @@ function App() {
       nodes: visibleNodeIds.split(',').map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 250,
     }));
     return () => cancelAnimationFrame(frame);
-  }, [filter, typeFilter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchTarget?.id]);
+  }, [filter, typeFilter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchMatchKey]);
 
   const mutate = async (path, method, body, success, saveMain = false) => {
     try { setBusy(true); const preserve = !saveMain && draft && selected && JSON.stringify(draft) !== JSON.stringify(selected); const result = await live.write(path, method, body, preserve); if (success) flash(success); return result; }
@@ -453,7 +463,7 @@ function App() {
       <section className="workspace-head"><div><div className="eyebrow"><span className="eyebrow-line" /> {t('DESIGN STUDIO')}</div><h1>{t('Signal design graph')}</h1><p>{language === 'zh-CN' ? '编号：#1xxx 表 · #2xxx 来源 · #3xxx 程序与结果 · #4xxx 校验与判断 · #5xxx Redpanda Topic · #6xxx Redis 窗口。可按编号搜索。' : 'Card numbers: #1xxx tables · #2xxx sources · #3xxx programs and results · #4xxx checks and decisions · #5xxx Redpanda topics · #6xxx Redis windows.'}</p></div><div className="workspace-stats"><div><strong>{contractSummary?.entries ?? '—'}</strong><span>{language === 'zh-CN' ? '上游入口' : 'UPSTREAM ENTRIES'}</span></div><i /><div><strong>{contractSummary?.fields ?? '—'}</strong><span title={language === 'zh-CN' ? '当前已列出的样本字段和文档计划字段；并非完整返回字段总数' : 'Sample paths and planned documented fields; not a complete output schema'}>{language === 'zh-CN' ? '已列字段定义' : 'LISTED FIELD DEFINITIONS'}</span></div><i /><div><strong>{graph.edges.length}</strong><span>{t('CONNECTIONS')}</span></div></div></section>
       <section className="work-card">
         <div className="workflow-tabs" role="tablist" aria-label={t('Workflow paths')}>{WORKFLOW_VIEWS.map(item => <button key={item.id} role="tab" aria-selected={laneView === item.id} className={laneView === item.id ? 'active' : ''} onClick={() => { setLaneView(item.id); setTypeFilter('All types'); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); }}>{t(item.name)}</button>)}<p>{language === 'zh-CN' ? '总览和两条路径使用同一张设计图' : 'Overview and both paths use the same design graph'}</p></div>
-        <div className="view-toolbar"><div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right">{view === 'graph' && <div className="local-view-switch" role="group" aria-label={language === 'zh-CN' ? '连线展示方式' : 'Connection display mode'}><button className={graphDisplayMode === 'full' ? 'active' : ''} aria-pressed={graphDisplayMode === 'full'} onClick={() => setGraphDisplayMode('full')}>{language === 'zh-CN' ? '完整图' : 'Full graph'}</button></div>}<div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '搜索名称、#卡片或R字段关系' : 'Search name, # card, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{t(type)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Group unconnected nodes; arrange dependencies left to right') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
+        <div className="view-toolbar"><div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right">{view === 'graph' && <div className="local-view-switch" role="group" aria-label={language === 'zh-CN' ? '连线展示方式' : 'Connection display mode'}><button className={graphDisplayMode === 'full' ? 'active' : ''} aria-pressed={graphDisplayMode === 'full'} onClick={() => setGraphDisplayMode('full')}>{language === 'zh-CN' ? '完整图' : 'Full graph'}</button></div>}<div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '定位编号、名称或R字段关系' : 'Locate number, name, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{t(type)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Group unconnected nodes; arrange dependencies left to right') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
         {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={graph} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap"><ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onNodeClick={(_, node) => openNode(node.id)} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { setSelectedId(null); setSelectedEdgeId(null); }}
           onNodeDragStart={live.beginDrag}
@@ -461,7 +471,7 @@ function App() {
           onConnect={connect} onEdgeClick={(_, edge) => openEdge(edge.id)} onInit={setFlowInstance} deleteKeyCode={null}
           fitView fitViewOptions={{ padding: 0.16, maxZoom: 0.75 }} minZoom={0.15} maxZoom={1.5} defaultEdgeOptions={{ type: 'default' }}>
           <Background color="var(--ss-grid)" gap={22} size={1} /><Controls showInteractive={false} />{canvasNodes.length > 0 && <MiniMap pannable zoomable nodeColor={node => ({ source: 'var(--ss-blue)', raw: 'var(--ss-neutral)', evidence: 'var(--ss-blue)', identity: 'var(--ss-blue)', relationship: 'var(--ss-blue)', review: 'var(--ss-purple)', derived: 'var(--ss-purple)', metric: 'var(--ss-success)', score: 'var(--ss-accent)', ranking: 'var(--ss-pink)', rule: 'var(--ss-warning)', event: 'var(--ss-warning)', product: 'var(--ss-error)', state: 'var(--ss-blue)', topic: 'var(--ss-purple)', cache: 'var(--ss-pink)' })[KIND[node.data.type]] || 'var(--ss-neutral)'} />}</ReactFlow>
-          {locatingCard && <div className="graph-search-status" role="status">{searchTarget ? (language === 'zh-CN' ? `已定位 ${nodeRef(searchTarget)} · 保留完整图谱` : `Located ${nodeRef(searchTarget)} · Full graph preserved`) : (language === 'zh-CN' ? `未找到卡片 ${query}` : `Card ${query} not found`)}</div>}
+          {locatingCard && <div className="graph-search-status" role="status">{searchTarget ? (language === 'zh-CN' ? `已定位 ${nodeRef(searchTarget)} · 保留完整图谱` : `Located ${nodeRef(searchTarget)} · Full graph preserved`) : (language === 'zh-CN' ? searchMatches.length ? `已定位 ${searchMatches.length} 张卡片 · 保留完整图谱` : `未找到匹配项 ${query} · 保留完整图谱` : searchMatches.length ? `Located ${searchMatches.length} cards · Full graph preserved` : `No matches for ${query} · Full graph preserved`)}</div>}
           {canvasNodes.length > 0 && <div className="graph-hint"><span className="hint-dot" /> {language === 'zh-CN' ? '悬停或选中卡片，高亮直接上下游' : 'Hover or select a card to highlight direct neighbors'} <span className="hint-sep">·</span> {t('Drag from a node handle to create a dependency')}</div>}</div>
           : <div className="table-wrap"><table><thead><tr><th>{t('NAME')}</th><th>{t('TYPE')}</th><th>{t('PATH')}</th><th>{t('FIELDS')}</th><th>{t('FORMULA / DEFINITION')}</th><th>{t('UPSTREAM')}</th><th>{t('DOWNSTREAM')}</th><th>{t('PRODUCT')}</th><th></th></tr></thead><tbody>{tableRows.map(n => {
             const up = graph.edges.filter(e => e.downstream_id === n.id).length, down = graph.edges.filter(e => e.upstream_id === n.id).length;
