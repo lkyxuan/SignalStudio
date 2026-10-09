@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "design_scaffold",
+  "status": "defined_v1_unvalidated",
   "redis_service": "shared",
   "primary_key": [
     "asset_id"
@@ -21,8 +21,8 @@
     {
       "name": "score",
       "data_type": "number",
-      "label_zh": "本榜独立分数，算法待定",
-      "meaning_en": "Independent board score; algorithm pending"
+      "label_zh": "本榜独立分数，不截断、不跨榜比较",
+      "meaning_en": "Independent score; unbounded and not comparable across boards"
     },
     {
       "name": "calculated_at",
@@ -35,6 +35,30 @@
       "data_type": "string",
       "label_zh": "产生此分数的算法版本",
       "meaning_en": "Version of the algorithm producing this score"
+    },
+    {
+      "name": "cycle_id",
+      "data_type": "string",
+      "label_zh": "本次完整计算批次",
+      "meaning_en": "cycle_id"
+    },
+    {
+      "name": "coverage_key",
+      "data_type": "string",
+      "label_zh": "参与计算的来源集合及版本",
+      "meaning_en": "coverage_key"
+    },
+    {
+      "name": "evidence_refs_json",
+      "data_type": "JSON array",
+      "label_zh": "可追溯的证据 ID",
+      "meaning_en": "evidence_refs_json"
+    },
+    {
+      "name": "details_json",
+      "data_type": "JSON object",
+      "label_zh": "资格、输入摘要与判定理由",
+      "meaning_en": "details_json"
     }
   ],
   "boards": [
@@ -46,11 +70,184 @@
       "calculator_name": "计算升温榜得分",
       "table_name": "leaderboard_warming",
       "key_prefix": "fewunderstand:leaderboards:warming:",
-      "algorithm": null,
-      "input_schema": null,
-      "schedule": null,
-      "retention": null,
-      "redis_type": null
+      "algorithm": {
+        "version": "warming/v1",
+        "description_zh": "最近1小时关注相对自身历史基线的增长。",
+        "formula": "max(0, ln((A + 2) / (B + 2))) * ln(1 + A)",
+        "parameters": {
+          "current_hours": 1,
+          "baseline_hours": 168,
+          "smoothing": 2,
+          "min_count": 3,
+          "min_authors": 2,
+          "min_publishers": 2
+        },
+        "eligibility_zh": "此前168个完整小时和最近1小时均有同口径健康覆盖；A>=3、A>B，最近1小时独立作者>=2且独立发布方>=2。",
+        "explanation_zh": "用最近1小时有效贡献数与之前168个不重叠小时的中位数比较。加2平滑避免极小基数倍数夸大，再乘当前规模。只在历史齐全、来源可比、当前至少3条且两位作者/两个发布方时计分；历史不足等待积累，不宣称从零增长。",
+        "status": "v1 初始参数，可校准，未验证信号有效性；不是已运行结果。"
+      },
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "内部资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "A",
+          "data_type": "number",
+          "label_zh": "最近1小时有效贡献数",
+          "meaning_en": "A"
+        },
+        {
+          "name": "B",
+          "data_type": "number",
+          "label_zh": "此前168个完整小时贡献中位数",
+          "meaning_en": "B"
+        },
+        {
+          "name": "baseline_hours",
+          "data_type": "integer",
+          "label_zh": "完整可比较历史小时数",
+          "meaning_en": "baseline_hours"
+        },
+        {
+          "name": "author_count",
+          "data_type": "integer",
+          "label_zh": "当前独立作者",
+          "meaning_en": "author_count"
+        },
+        {
+          "name": "publisher_count",
+          "data_type": "integer",
+          "label_zh": "当前独立发布方",
+          "meaning_en": "publisher_count"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "固定来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "计算依据",
+          "meaning_en": "evidence_refs_json"
+        }
+      ],
+      "schedule": {
+        "type": "scheduled",
+        "interval_seconds": 300,
+        "clock": "UTC",
+        "execution_observed": false
+      },
+      "retention": "原文、覆盖、观点、关注历史和批次审计至少保留30天以支持回放；首次发现状态长期保留，不能由30天清理重置。Redis只作可重建缓存，恢复保留原时间、版本和证据引用。",
+      "redis_type": "Hash",
+      "input_datasets": [
+        "evidence",
+        "attention_history",
+        "coverage"
+      ],
+      "cache_rule_zh": "使用版本化 generation 的 Hash 保存本榜就绪输入，完成后原子切换 active 指针。5分钟更新，缓存最多保留最近24小时的generation；不能按TTL删除持久证据或首次发现状态。源数据不足标 unavailable，不使用上次输入充数。 缓存保留所需数据集的完整记录与共同截止时间；输入案例的数值是计算器从记录推导的摘要，不是已经观察的Redis行。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "A": 10,
+          "B": 2,
+          "baseline_hours": 168,
+          "author_count": 3,
+          "publisher_count": 2,
+          "coverage_key": "demo-coverage-v1",
+          "evidence_refs_json": [
+            "demo-evidence"
+          ]
+        },
+        "score": 2.6343572136354596,
+        "explanation_zh": "A=10、B=2：ln(12/4) × ln(11) ≈ 2.6344。历史未知不能填B=0。"
+      },
+      "validation_zh": "历史不足、覆盖切换、1到2的微小增长、168小时中位数和未来数据泄漏。",
+      "cache_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "cutoff_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "缓存共同截止时间",
+          "meaning_en": "cutoff_at"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "enum",
+          "label_zh": "ready / unavailable",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "quality_reason",
+          "data_type": "string",
+          "label_zh": "缺失原因",
+          "meaning_en": "quality_reason"
+        },
+        {
+          "name": "evidence_records_json",
+          "data_type": "JSON array",
+          "label_zh": "evidence 的完整记录",
+          "meaning_en": "evidence_records_json"
+        },
+        {
+          "name": "attention_history_records_json",
+          "data_type": "JSON array",
+          "label_zh": "attention_history 的完整记录",
+          "meaning_en": "attention_history_records_json"
+        },
+        {
+          "name": "coverage_records_json",
+          "data_type": "JSON array",
+          "label_zh": "coverage 的完整记录",
+          "meaning_en": "coverage_records_json"
+        }
+      ],
+      "implementation_request": {
+        "status": "pending_backend_implementation",
+        "target": "fewunderstand",
+        "requirements_zh": [
+          "此前168个完整小时和最近1小时均有同口径健康覆盖；A>=3、A>B，最近1小时独立作者>=2且独立发布方>=2。",
+          "同批使用一个 UTC 截止时间；published_at、collected_at、available_at 都不得晚于截止时间。缺失不是零；所需窗口必须有全部配置来源的完整 healthy 覆盖。来源集合变化不混用基线。",
+          "只计已归一且有原文的证据；同资产同文转载只用最早可用原文，作者身份不能核实时不计独立作者。每资产每作者每UTC小时最多3条原创，每条基础权重1。点赞、价格、建档+100不自动计入这个v1；不限制未来各榜独立使用新资产条件。",
+          "各榜独立生成完整批次，按未舍入 score 降序、asset_id 升序取最多50条，不强凑名额。整批原子替换本榜当前指针；出榜不保留为当前结果。计算失败/覆盖不足发布 unavailable 批次及原因，历史结果只留作审计；读取仅展示 ready 且 calculated_at 距查询时间小于900秒的当前批次，页面移除过期条目。旧批次不能覆盖新批次。",
+          "从缓存完整记录推导数值摘要，严格使用本榜公式和参数；保存所有参与证据、淘汰原因与批次manifest。",
+          "manifest包含cycle_id、cutoff_at、algorithm_version、coverage_key、status、reason及结果数；ready空结果与unavailable要区分；以cutoff_at防止旧批次覆盖。"
+        ],
+        "acceptance_zh": [
+          "历史不足、覆盖切换、1到2的微小增长、168小时中位数和未来数据泄漏。",
+          "提供实际采集run_id、输入快照、输出批次和配对记录；设计案例通过不代表真实信号有效。"
+        ]
+      }
     },
     {
       "key": "hottest",
@@ -60,11 +257,166 @@
       "calculator_name": "计算最热榜得分",
       "table_name": "leaderboard_hottest",
       "key_prefix": "fewunderstand:leaderboards:hottest:",
-      "algorithm": null,
-      "input_schema": null,
-      "schedule": null,
-      "retention": null,
-      "redis_type": null
+      "algorithm": {
+        "version": "hottest/v1",
+        "description_zh": "监测范围内最近24小时的有效关注规模。",
+        "formula": "H = sum(2 ** (-age_hours / 6))",
+        "parameters": {
+          "window_hours": 24,
+          "half_life_hours": 6,
+          "weight": 1
+        },
+        "eligibility_zh": "最近24小时至少1条有效原创贡献；24小时覆盖完整。",
+        "explanation_zh": "先归一并去重原文，每条基础权重1，按原文时间连续衰减，6小时剩一半；只合计最近24小时。健康覆盖且有贡献的资产参与排序。不用建档演示分替代真实关注。",
+        "status": "v1 初始参数，可校准，未验证信号有效性；不是已运行结果。"
+      },
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "内部资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "ages_hours_json",
+          "data_type": "JSON array",
+          "label_zh": "三条有效贡献距截止时间的小时数",
+          "meaning_en": "Contribution ages in hours"
+        },
+        {
+          "name": "heat",
+          "data_type": "number",
+          "label_zh": "24小时贡献按6小时半衰期之和",
+          "meaning_en": "heat"
+        },
+        {
+          "name": "contribution_count",
+          "data_type": "integer",
+          "label_zh": "有效贡献数",
+          "meaning_en": "contribution_count"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "固定来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "计算依据",
+          "meaning_en": "evidence_refs_json"
+        }
+      ],
+      "schedule": {
+        "type": "scheduled",
+        "interval_seconds": 300,
+        "clock": "UTC",
+        "execution_observed": false
+      },
+      "retention": "原文、覆盖、观点、关注历史和批次审计至少保留30天以支持回放；首次发现状态长期保留，不能由30天清理重置。Redis只作可重建缓存，恢复保留原时间、版本和证据引用。",
+      "redis_type": "Hash",
+      "input_datasets": [
+        "evidence",
+        "coverage"
+      ],
+      "cache_rule_zh": "使用版本化 generation 的 Hash 保存本榜就绪输入，完成后原子切换 active 指针。5分钟更新，缓存最多保留最近24小时的generation；不能按TTL删除持久证据或首次发现状态。源数据不足标 unavailable，不使用上次输入充数。 缓存保留所需数据集的完整记录与共同截止时间；输入案例的数值是计算器从记录推导的摘要，不是已经观察的Redis行。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "heat": 1.75,
+          "contribution_count": 3,
+          "coverage_key": "demo-coverage-v1",
+          "evidence_refs_json": [
+            "demo-e0",
+            "demo-e6",
+            "demo-e12"
+          ],
+          "ages_hours_json": [
+            0,
+            6,
+            12
+          ]
+        },
+        "score": 1.75,
+        "explanation_zh": "示例3条贡献分别在0、6、12小时前：1 + 0.5 + 0.25 = 1.75。"
+      },
+      "validation_zh": "同文转载、单作者刷屏、24小时边界、衰减检查；抽查前十与漏榜候选。",
+      "cache_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "cutoff_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "缓存共同截止时间",
+          "meaning_en": "cutoff_at"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "enum",
+          "label_zh": "ready / unavailable",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "quality_reason",
+          "data_type": "string",
+          "label_zh": "缺失原因",
+          "meaning_en": "quality_reason"
+        },
+        {
+          "name": "evidence_records_json",
+          "data_type": "JSON array",
+          "label_zh": "evidence 的完整记录",
+          "meaning_en": "evidence_records_json"
+        },
+        {
+          "name": "coverage_records_json",
+          "data_type": "JSON array",
+          "label_zh": "coverage 的完整记录",
+          "meaning_en": "coverage_records_json"
+        }
+      ],
+      "implementation_request": {
+        "status": "pending_backend_implementation",
+        "target": "fewunderstand",
+        "requirements_zh": [
+          "最近24小时至少1条有效原创贡献；24小时覆盖完整。",
+          "同批使用一个 UTC 截止时间；published_at、collected_at、available_at 都不得晚于截止时间。缺失不是零；所需窗口必须有全部配置来源的完整 healthy 覆盖。来源集合变化不混用基线。",
+          "只计已归一且有原文的证据；同资产同文转载只用最早可用原文，作者身份不能核实时不计独立作者。每资产每作者每UTC小时最多3条原创，每条基础权重1。点赞、价格、建档+100不自动计入这个v1；不限制未来各榜独立使用新资产条件。",
+          "各榜独立生成完整批次，按未舍入 score 降序、asset_id 升序取最多50条，不强凑名额。整批原子替换本榜当前指针；出榜不保留为当前结果。计算失败/覆盖不足发布 unavailable 批次及原因，历史结果只留作审计；读取仅展示 ready 且 calculated_at 距查询时间小于900秒的当前批次，页面移除过期条目。旧批次不能覆盖新批次。",
+          "从缓存完整记录推导数值摘要，严格使用本榜公式和参数；保存所有参与证据、淘汰原因与批次manifest。",
+          "manifest包含cycle_id、cutoff_at、algorithm_version、coverage_key、status、reason及结果数；ready空结果与unavailable要区分；以cutoff_at防止旧批次覆盖。"
+        ],
+        "acceptance_zh": [
+          "同文转载、单作者刷屏、24小时边界、衰减检查；抽查前十与漏榜候选。",
+          "提供实际采集run_id、输入快照、输出批次和配对记录；设计案例通过不代表真实信号有效。"
+        ]
+      }
     },
     {
       "key": "emerging",
@@ -74,11 +426,169 @@
       "calculator_name": "计算新出现榜得分",
       "table_name": "leaderboard_emerging",
       "key_prefix": "fewunderstand:leaderboards:emerging:",
-      "algorithm": null,
-      "input_schema": null,
-      "schedule": null,
-      "retention": null,
-      "redis_type": null
+      "algorithm": {
+        "version": "emerging/v1",
+        "description_zh": "本系统首次有效发现的新鲜程度；显示具体出现类型。",
+        "formula": "100 * 2 ** (-age_hours / 12) * (1 + 0.25 * min(max(confirmations - 1, 0), 2))",
+        "parameters": {
+          "window_hours": 72,
+          "half_life_hours": 12,
+          "base_score": 100,
+          "confirmation_bonus": 0.25,
+          "max_extra_confirmations": 2
+        },
+        "eligibility_zh": "首次有效发现或已核对的具体出现事件年龄小于72小时；至少1个有原文的独立佐证；从所选事件到本次截止的采集窗口完整健康。",
+        "explanation_zh": "v1先展示本系统首次有效发现；其他出现类型必须有专门证据。每资产选最早的系统首次发现，若存在已核实发行优先该类，否则来源新收录，再否则系统首次发现，不能重置时间。基础分100只属于本榜这套独立规则，12小时减半，额外两份独立佐证各加25%，最大1.5倍；72小时退出。转载不算独立佐证，补采老消息只能标系统首次发现，不能冒充新发行。",
+        "status": "v1 初始参数，可校准，未验证信号有效性；不是已运行结果。"
+      },
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "内部资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "event_kind",
+          "data_type": "enum",
+          "label_zh": "明确首次发现/新收录/核实发行",
+          "meaning_en": "event_kind"
+        },
+        {
+          "name": "age_hours",
+          "data_type": "number",
+          "label_zh": "距离该事件最早有效时间",
+          "meaning_en": "age_hours"
+        },
+        {
+          "name": "confirmations",
+          "data_type": "integer",
+          "label_zh": "独立佐证数量",
+          "meaning_en": "confirmations"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "固定来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "计算依据",
+          "meaning_en": "evidence_refs_json"
+        }
+      ],
+      "schedule": {
+        "type": "scheduled",
+        "interval_seconds": 300,
+        "clock": "UTC",
+        "execution_observed": false
+      },
+      "retention": "原文、覆盖、观点、关注历史和批次审计至少保留30天以支持回放；首次发现状态长期保留，不能由30天清理重置。Redis只作可重建缓存，恢复保留原时间、版本和证据引用。",
+      "redis_type": "Hash",
+      "input_datasets": [
+        "evidence",
+        "discoveries",
+        "coverage"
+      ],
+      "cache_rule_zh": "使用版本化 generation 的 Hash 保存本榜就绪输入，完成后原子切换 active 指针。5分钟更新，缓存最多保留最近24小时的generation；不能按TTL删除持久证据或首次发现状态。源数据不足标 unavailable，不使用上次输入充数。 缓存保留所需数据集的完整记录与共同截止时间；输入案例的数值是计算器从记录推导的摘要，不是已经观察的Redis行。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "event_kind": "system_first_seen",
+          "age_hours": 12,
+          "confirmations": 3,
+          "coverage_key": "demo-coverage-v1",
+          "evidence_refs_json": [
+            "demo-evidence"
+          ]
+        },
+        "score": 75,
+        "explanation_zh": "12小时、3个独立佐证：100 × 0.5 × 1.5 = 75；不是资产刚发行的证明。"
+      },
+      "validation_zh": "老币新池、老消息补采、重试与新来源不得重置首次时间；各出现类型分开解释。",
+      "cache_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "cutoff_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "缓存共同截止时间",
+          "meaning_en": "cutoff_at"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "enum",
+          "label_zh": "ready / unavailable",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "quality_reason",
+          "data_type": "string",
+          "label_zh": "缺失原因",
+          "meaning_en": "quality_reason"
+        },
+        {
+          "name": "discoveries_records_json",
+          "data_type": "JSON array",
+          "label_zh": "discoveries 的完整记录",
+          "meaning_en": "discoveries_records_json"
+        },
+        {
+          "name": "coverage_records_json",
+          "data_type": "JSON array",
+          "label_zh": "coverage 的完整记录",
+          "meaning_en": "coverage_records_json"
+        },
+        {
+          "name": "evidence_records_json",
+          "data_type": "JSON array",
+          "label_zh": "evidence 的完整记录",
+          "meaning_en": "Full evidence records"
+        }
+      ],
+      "implementation_request": {
+        "status": "pending_backend_implementation",
+        "target": "fewunderstand",
+        "requirements_zh": [
+          "首次有效发现或已核对的具体出现事件年龄小于72小时；至少1个有原文的独立佐证；从所选事件到本次截止的采集窗口完整健康。",
+          "同批使用一个 UTC 截止时间；published_at、collected_at、available_at 都不得晚于截止时间。缺失不是零；所需窗口必须有全部配置来源的完整 healthy 覆盖。来源集合变化不混用基线。",
+          "只计已归一且有原文的证据；同资产同文转载只用最早可用原文，作者身份不能核实时不计独立作者。每资产每作者每UTC小时最多3条原创，每条基础权重1。点赞、价格、建档+100不自动计入这个v1；不限制未来各榜独立使用新资产条件。",
+          "各榜独立生成完整批次，按未舍入 score 降序、asset_id 升序取最多50条，不强凑名额。整批原子替换本榜当前指针；出榜不保留为当前结果。计算失败/覆盖不足发布 unavailable 批次及原因，历史结果只留作审计；读取仅展示 ready 且 calculated_at 距查询时间小于900秒的当前批次，页面移除过期条目。旧批次不能覆盖新批次。",
+          "从缓存完整记录推导数值摘要，严格使用本榜公式和参数；保存所有参与证据、淘汰原因与批次manifest。",
+          "manifest包含cycle_id、cutoff_at、algorithm_version、coverage_key、status、reason及结果数；ready空结果与unavailable要区分；以cutoff_at防止旧批次覆盖。"
+        ],
+        "acceptance_zh": [
+          "老币新池、老消息补采、重试与新来源不得重置首次时间；各出现类型分开解释。",
+          "提供实际采集run_id、输入快照、输出批次和配对记录；设计案例通过不代表真实信号有效。"
+        ]
+      }
     },
     {
       "key": "cooling",
@@ -88,11 +598,169 @@
       "calculator_name": "计算降温榜得分",
       "table_name": "leaderboard_cooling",
       "key_prefix": "fewunderstand:leaderboards:cooling:",
-      "algorithm": null,
-      "input_schema": null,
-      "schedule": null,
-      "retention": null,
-      "redis_type": null
+      "algorithm": {
+        "version": "cooling/v1",
+        "description_zh": "曾经热门、当前仍在退潮的关注回落。",
+        "formula": "((P - H) / P) * ln(1 + P)",
+        "parameters": {
+          "peak_hours": 24,
+          "previous_hours": 1,
+          "min_peak": 5,
+          "min_top50_cycles": 2,
+          "min_drop_ratio": 0.25
+        },
+        "eligibility_zh": "同版本24小时完整历史，过去24小时至少2个5分钟快照在最热前50；P>=5、(P-H)/P>=25%、H<H_prev；全部来源覆盖正常。出榜资产仍读取真实当前热度。",
+        "explanation_zh": "从完整历史挑出过去24小时至少两次进入最热前50的资产，继续跟踪它们即使当前已出榜。峰值至少5、回落至少25%且比1小时前更低才入榜。回落比例乘峰值规模的对数。断采、版本改变和缺当前值暂停判断；该v1包含自然衰减导致的回落，不承诺识别异常退潮或价格下跌。",
+        "status": "v1 初始参数，可校准，未验证信号有效性；不是已运行结果。"
+      },
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "内部资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "P",
+          "data_type": "number",
+          "label_zh": "过去24小时最高热度",
+          "meaning_en": "P"
+        },
+        {
+          "name": "H",
+          "data_type": "number",
+          "label_zh": "当前热度",
+          "meaning_en": "H"
+        },
+        {
+          "name": "H_prev",
+          "data_type": "number",
+          "label_zh": "1小时前热度",
+          "meaning_en": "H_prev"
+        },
+        {
+          "name": "top50_cycles",
+          "data_type": "integer",
+          "label_zh": "过去24小时最热前50快照数",
+          "meaning_en": "top50_cycles"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "固定来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "计算依据",
+          "meaning_en": "evidence_refs_json"
+        }
+      ],
+      "schedule": {
+        "type": "scheduled",
+        "interval_seconds": 300,
+        "clock": "UTC",
+        "execution_observed": false
+      },
+      "retention": "原文、覆盖、观点、关注历史和批次审计至少保留30天以支持回放；首次发现状态长期保留，不能由30天清理重置。Redis只作可重建缓存，恢复保留原时间、版本和证据引用。",
+      "redis_type": "Hash",
+      "input_datasets": [
+        "attention_history",
+        "coverage"
+      ],
+      "cache_rule_zh": "使用版本化 generation 的 Hash 保存本榜就绪输入，完成后原子切换 active 指针。5分钟更新，缓存最多保留最近24小时的generation；不能按TTL删除持久证据或首次发现状态。源数据不足标 unavailable，不使用上次输入充数。 缓存保留所需数据集的完整记录与共同截止时间；输入案例的数值是计算器从记录推导的摘要，不是已经观察的Redis行。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "P": 20,
+          "H": 10,
+          "H_prev": 12,
+          "top50_cycles": 3,
+          "coverage_key": "demo-coverage-v1",
+          "evidence_refs_json": [
+            "demo-evidence"
+          ]
+        },
+        "score": 1.5222612188617115,
+        "explanation_zh": "峰值20、当前10、1小时前12：回落50%，0.5 × ln(21) ≈ 1.5223。"
+      },
+      "validation_zh": "掉出前50仍可降温；断采不能降温；反弹、峰值不足、缺历史退出。",
+      "cache_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "cutoff_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "缓存共同截止时间",
+          "meaning_en": "cutoff_at"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "enum",
+          "label_zh": "ready / unavailable",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "quality_reason",
+          "data_type": "string",
+          "label_zh": "缺失原因",
+          "meaning_en": "quality_reason"
+        },
+        {
+          "name": "attention_history_records_json",
+          "data_type": "JSON array",
+          "label_zh": "attention_history 的完整记录",
+          "meaning_en": "attention_history_records_json"
+        },
+        {
+          "name": "coverage_records_json",
+          "data_type": "JSON array",
+          "label_zh": "coverage 的完整记录",
+          "meaning_en": "coverage_records_json"
+        }
+      ],
+      "implementation_request": {
+        "status": "pending_backend_implementation",
+        "target": "fewunderstand",
+        "requirements_zh": [
+          "同版本24小时完整历史，过去24小时至少2个5分钟快照在最热前50；P>=5、(P-H)/P>=25%、H<H_prev；全部来源覆盖正常。出榜资产仍读取真实当前热度。",
+          "同批使用一个 UTC 截止时间；published_at、collected_at、available_at 都不得晚于截止时间。缺失不是零；所需窗口必须有全部配置来源的完整 healthy 覆盖。来源集合变化不混用基线。",
+          "只计已归一且有原文的证据；同资产同文转载只用最早可用原文，作者身份不能核实时不计独立作者。每资产每作者每UTC小时最多3条原创，每条基础权重1。点赞、价格、建档+100不自动计入这个v1；不限制未来各榜独立使用新资产条件。",
+          "各榜独立生成完整批次，按未舍入 score 降序、asset_id 升序取最多50条，不强凑名额。整批原子替换本榜当前指针；出榜不保留为当前结果。计算失败/覆盖不足发布 unavailable 批次及原因，历史结果只留作审计；读取仅展示 ready 且 calculated_at 距查询时间小于900秒的当前批次，页面移除过期条目。旧批次不能覆盖新批次。",
+          "从缓存完整记录推导数值摘要，严格使用本榜公式和参数；保存所有参与证据、淘汰原因与批次manifest。",
+          "manifest包含cycle_id、cutoff_at、algorithm_version、coverage_key、status、reason及结果数；ready空结果与unavailable要区分；以cutoff_at防止旧批次覆盖。"
+        ],
+        "acceptance_zh": [
+          "掉出前50仍可降温；断采不能降温；反弹、峰值不足、缺历史退出。",
+          "提供实际采集run_id、输入快照、输出批次和配对记录；设计案例通过不代表真实信号有效。"
+        ]
+      }
     },
     {
       "key": "divergence",
@@ -102,11 +770,833 @@
       "calculator_name": "计算分歧榜得分",
       "table_name": "leaderboard_divergence",
       "key_prefix": "fewunderstand:leaderboards:divergence:",
-      "algorithm": null,
-      "input_schema": null,
-      "schedule": null,
-      "retention": null,
-      "redis_type": null
+      "algorithm": {
+        "version": "divergence/v1",
+        "description_zh": "同议题、同时间尺度下有实质理由的多空对立。",
+        "formula": "4 * L * S / (L + S) ** 2 * ln(1 + L + S)",
+        "parameters": {
+          "window_hours": 24,
+          "half_life_hours": 6,
+          "min_authors_per_side": 2,
+          "min_weak_share": 0.2,
+          "min_confidence": 0.8
+        },
+        "eligibility_zh": "同asset_id/topic_key/horizon；每侧>=2个独立作者；方向置信度>=0.8且有原文理由；弱侧贡献占比>=20%；24小时覆盖完整。",
+        "explanation_zh": "把最近24小时观点按资产、议题、时间尺度分组。同作者只保留最新一条合格立场，每侧至少两位独立作者。原文方向置信度至少0.8且有具体理由，按6小时半衰期合计L和S；弱侧至少20%才用均衡度乘规模计分。每资产取最高合格议题得分，平分按topic_key/horizon字典序，保留双方原文和议题说明。不同议题或短空长多不混算。",
+        "status": "v1 初始参数，可校准，未验证信号有效性；不是已运行结果。"
+      },
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "内部资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "topic_key",
+          "data_type": "string",
+          "label_zh": "具体可比较议题",
+          "meaning_en": "topic_key"
+        },
+        {
+          "name": "horizon",
+          "data_type": "enum",
+          "label_zh": "观点时间尺度",
+          "meaning_en": "horizon"
+        },
+        {
+          "name": "L",
+          "data_type": "number",
+          "label_zh": "多方按6小时半衰期的贡献",
+          "meaning_en": "L"
+        },
+        {
+          "name": "S",
+          "data_type": "number",
+          "label_zh": "空方按6小时半衰期的贡献",
+          "meaning_en": "S"
+        },
+        {
+          "name": "long_authors",
+          "data_type": "integer",
+          "label_zh": "多方独立作者",
+          "meaning_en": "long_authors"
+        },
+        {
+          "name": "short_authors",
+          "data_type": "integer",
+          "label_zh": "空方独立作者",
+          "meaning_en": "short_authors"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "固定来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "计算依据",
+          "meaning_en": "evidence_refs_json"
+        }
+      ],
+      "schedule": {
+        "type": "scheduled",
+        "interval_seconds": 300,
+        "clock": "UTC",
+        "execution_observed": false
+      },
+      "retention": "原文、覆盖、观点、关注历史和批次审计至少保留30天以支持回放；首次发现状态长期保留，不能由30天清理重置。Redis只作可重建缓存，恢复保留原时间、版本和证据引用。",
+      "redis_type": "Hash",
+      "input_datasets": [
+        "evidence",
+        "opinions",
+        "coverage"
+      ],
+      "cache_rule_zh": "使用版本化 generation 的 Hash 保存本榜就绪输入，完成后原子切换 active 指针。5分钟更新，缓存最多保留最近24小时的generation；不能按TTL删除持久证据或首次发现状态。源数据不足标 unavailable，不使用上次输入充数。 缓存保留所需数据集的完整记录与共同截止时间；输入案例的数值是计算器从记录推导的摘要，不是已经观察的Redis行。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "topic_key": "adoption",
+          "horizon": "medium",
+          "L": 4,
+          "S": 2,
+          "long_authors": 4,
+          "short_authors": 2,
+          "coverage_key": "demo-coverage-v1",
+          "evidence_refs_json": [
+            "demo-evidence"
+          ]
+        },
+        "score": 1.7296979102713894,
+        "explanation_zh": "L=4、S=2：均衡项8/9，乘ln(7)，分数≈1.7297；双方作者均满足门槛。"
+      },
+      "validation_zh": "同作者两侧、单边观点、跨议题和短空长多不混算；双方理由可回溯。",
+      "cache_schema": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "资产ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "cutoff_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "缓存共同截止时间",
+          "meaning_en": "cutoff_at"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "enum",
+          "label_zh": "ready / unavailable",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "quality_reason",
+          "data_type": "string",
+          "label_zh": "缺失原因",
+          "meaning_en": "quality_reason"
+        },
+        {
+          "name": "opinions_records_json",
+          "data_type": "JSON array",
+          "label_zh": "opinions 的完整记录",
+          "meaning_en": "opinions_records_json"
+        },
+        {
+          "name": "coverage_records_json",
+          "data_type": "JSON array",
+          "label_zh": "coverage 的完整记录",
+          "meaning_en": "coverage_records_json"
+        },
+        {
+          "name": "evidence_records_json",
+          "data_type": "JSON array",
+          "label_zh": "evidence 的完整记录",
+          "meaning_en": "Full evidence records"
+        }
+      ],
+      "implementation_request": {
+        "status": "pending_backend_implementation",
+        "target": "fewunderstand",
+        "requirements_zh": [
+          "同asset_id/topic_key/horizon；每侧>=2个独立作者；方向置信度>=0.8且有原文理由；弱侧贡献占比>=20%；24小时覆盖完整。",
+          "同批使用一个 UTC 截止时间；published_at、collected_at、available_at 都不得晚于截止时间。缺失不是零；所需窗口必须有全部配置来源的完整 healthy 覆盖。来源集合变化不混用基线。",
+          "只计已归一且有原文的证据；同资产同文转载只用最早可用原文，作者身份不能核实时不计独立作者。每资产每作者每UTC小时最多3条原创，每条基础权重1。点赞、价格、建档+100不自动计入这个v1；不限制未来各榜独立使用新资产条件。",
+          "各榜独立生成完整批次，按未舍入 score 降序、asset_id 升序取最多50条，不强凑名额。整批原子替换本榜当前指针；出榜不保留为当前结果。计算失败/覆盖不足发布 unavailable 批次及原因，历史结果只留作审计；读取仅展示 ready 且 calculated_at 距查询时间小于900秒的当前批次，页面移除过期条目。旧批次不能覆盖新批次。",
+          "从缓存完整记录推导数值摘要，严格使用本榜公式和参数；保存所有参与证据、淘汰原因与批次manifest。",
+          "manifest包含cycle_id、cutoff_at、algorithm_version、coverage_key、status、reason及结果数；ready空结果与unavailable要区分；以cutoff_at防止旧批次覆盖。"
+        ],
+        "acceptance_zh": [
+          "同作者两侧、单边观点、跨议题和短空长多不混算；双方理由可回溯。",
+          "提供实际采集run_id、输入快照、输出批次和配对记录；设计案例通过不代表真实信号有效。"
+        ]
+      }
     }
-  ]
+  ],
+  "revision": "2026-10-09-v1",
+  "rationale_url": "https://app.notion.com/p/3f3038a63d5a81d0855de5015049f192",
+  "evidence_status": "design_contract_with_synthetic_cases_no_live_runs",
+  "rollout_order": [
+    "hottest",
+    "warming",
+    "emerging",
+    "cooling",
+    "divergence"
+  ],
+  "data_nodes": [
+    {
+      "key": "evidence",
+      "name": "leaderboard_evidence",
+      "type": "Ranking Table",
+      "label_zh": "榜单有效证据",
+      "description": "按资产关联原文、发布时间和首次可用时间；同文转载归组，独立原创不因议题相同被合并。原始完整响应另行持久保存，raw_ref 可回放。缺身份、原文或发布时间的记录隔离待审，不计分。",
+      "columns": [
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "label_zh": "稳定证据 ID",
+          "meaning_en": "evidence_id"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "已映射内部资产 ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作",
+          "meaning_en": "source_id"
+        },
+        {
+          "name": "source_record_id",
+          "data_type": "string",
+          "label_zh": "源内记录 ID",
+          "meaning_en": "source_record_id"
+        },
+        {
+          "name": "publisher_id",
+          "data_type": "string",
+          "label_zh": "独立发布方",
+          "meaning_en": "publisher_id"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "label_zh": "来源内稳定作者 ID",
+          "meaning_en": "author_id"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原文发布时间",
+          "meaning_en": "published_at"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "首次采集时间",
+          "meaning_en": "collected_at"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "证据完成归一并可用的时间",
+          "meaning_en": "available_at"
+        },
+        {
+          "name": "canonical_story_id",
+          "data_type": "string",
+          "label_zh": "转载同文组",
+          "meaning_en": "canonical_story_id"
+        },
+        {
+          "name": "raw_ref",
+          "data_type": "string",
+          "label_zh": "持久原始记录引用",
+          "meaning_en": "raw_ref"
+        },
+        {
+          "name": "url",
+          "data_type": "string",
+          "label_zh": "原文链接",
+          "meaning_en": "url"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "可读正文",
+          "meaning_en": "text"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "监测集合版本",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "primary_key": [
+        "evidence_id"
+      ]
+    },
+    {
+      "key": "coverage",
+      "name": "leaderboard_coverage",
+      "type": "Ranking Table",
+      "label_zh": "榜单采集覆盖",
+      "description": "采集服务主动上报每个配置来源的 5 分钟覆盖；成功且完整的空响应可为 healthy，未接入、漏采或未知状态不是零。采集名单、频率和完整性规则须先核验，变更生成新 coverage_key。当前无上报接入。",
+      "columns": [
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合与版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作",
+          "meaning_en": "source_id"
+        },
+        {
+          "name": "bucket_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "5 分钟桶起点",
+          "meaning_en": "bucket_at"
+        },
+        {
+          "name": "status",
+          "data_type": "enum",
+          "label_zh": "healthy / missing / partial",
+          "meaning_en": "status"
+        },
+        {
+          "name": "expected_poll_count",
+          "data_type": "integer",
+          "label_zh": "该桶约定采集次数",
+          "meaning_en": "expected_poll_count"
+        },
+        {
+          "name": "successful_poll_count",
+          "data_type": "integer",
+          "label_zh": "成功次数",
+          "meaning_en": "successful_poll_count"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "状态到达时间",
+          "meaning_en": "available_at"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "label_zh": "故障或未完成原因",
+          "meaning_en": "reason"
+        }
+      ],
+      "primary_key": [
+        "coverage_key",
+        "source_id",
+        "bucket_at"
+      ]
+    },
+    {
+      "key": "attention_history",
+      "name": "leaderboard_attention_history",
+      "type": "Ranking Table",
+      "label_zh": "关注历史与上榜快照",
+      "description": "每 5 分钟记录全部监测资产，包括健康覆盖下的零贡献，不能只存上榜资产。缺覆盖不写零；保留缺桶以阻止比较。小时基线取此前168个不重叠小时的贡献中位数。计算使用当时已可用证据，不能用后来补采回写过去决策。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "资产 ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "bucket_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "快照 UTC 时间",
+          "meaning_en": "bucket_at"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "固定来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "基础热度定义版本",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "heat",
+          "data_type": "number",
+          "label_zh": "按最热规则计算的当时热度",
+          "meaning_en": "heat"
+        },
+        {
+          "name": "hour_count",
+          "data_type": "number",
+          "label_zh": "最近完整一小时有效贡献数",
+          "meaning_en": "hour_count"
+        },
+        {
+          "name": "hottest_rank",
+          "data_type": "integer | null",
+          "label_zh": "当时合格最热榜排名，最多50",
+          "meaning_en": "hottest_rank"
+        },
+        {
+          "name": "eligible",
+          "data_type": "boolean",
+          "label_zh": "当时最热资格",
+          "meaning_en": "eligible"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "历史快照可用时间",
+          "meaning_en": "available_at"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "对应证据引用",
+          "meaning_en": "evidence_refs_json"
+        }
+      ],
+      "primary_key": [
+        "asset_id",
+        "bucket_at",
+        "coverage_key",
+        "algorithm_version"
+      ]
+    },
+    {
+      "key": "discoveries",
+      "name": "leaderboard_discoveries",
+      "type": "Ranking Table",
+      "label_zh": "首次有效发现",
+      "description": "v1 默认展示本系统首次有效发现，而非新发行。新收录和已核实发行须有明确原文/时间证据，不能由新池、账号建档或采集时间推断。每资产每类事件保留最早值；重试和新来源不能重置首次时间。系统首次发现可跨 coverage_key 保持原值。 佐证逐份保存可用时间，历史回放按截止时间过滤后计算数量，不能用后来增加的总数回写早期分数。",
+      "columns": [
+        {
+          "name": "discovery_id",
+          "data_type": "string",
+          "label_zh": "稳定出现事件 ID",
+          "meaning_en": "discovery_id"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "内部资产 ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "event_kind",
+          "data_type": "enum",
+          "label_zh": "system_first_seen / source_listing / verified_launch",
+          "meaning_en": "event_kind"
+        },
+        {
+          "name": "occurred_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "该类事件最早有效时间",
+          "meaning_en": "occurred_at"
+        },
+        {
+          "name": "first_available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "本系统首次有效发现时间",
+          "meaning_en": "first_available_at"
+        },
+        {
+          "name": "independent_confirmations",
+          "data_type": "integer",
+          "label_zh": "不同独立发布方佐证数",
+          "meaning_en": "independent_confirmations"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "已核对的原文依据",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "发现时来源集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "confirmations_json",
+          "data_type": "JSON array",
+          "label_zh": "每份佐证的发布方、证据ID及可用时间",
+          "meaning_en": "Per-confirmation provenance and availability"
+        }
+      ],
+      "primary_key": [
+        "discovery_id"
+      ]
+    },
+    {
+      "key": "opinions",
+      "name": "leaderboard_opinions",
+      "type": "Ranking Table",
+      "label_zh": "同议题观点证据",
+      "description": "只保存原文能支撑的观点；方向/议题/时间尺度不确定则 unknown 并不计分。中性、风险标签或价格涨跌不能直接当看多/看空。每个比较组、每个作者只使用最新一条合格立场；作者不能同时为两侧凑人数。标注方法/模型尚未接入或验证。",
+      "columns": [
+        {
+          "name": "opinion_id",
+          "data_type": "string",
+          "label_zh": "观点 ID",
+          "meaning_en": "opinion_id"
+        },
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "label_zh": "原文证据 ID",
+          "meaning_en": "evidence_id"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "资产 ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "topic_key",
+          "data_type": "string",
+          "label_zh": "同一具体可比较议题",
+          "meaning_en": "topic_key"
+        },
+        {
+          "name": "horizon",
+          "data_type": "enum",
+          "label_zh": "short / medium / long",
+          "meaning_en": "horizon"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "label_zh": "独立作者",
+          "meaning_en": "author_id"
+        },
+        {
+          "name": "stance",
+          "data_type": "enum",
+          "label_zh": "long / short / neutral / unknown",
+          "meaning_en": "stance"
+        },
+        {
+          "name": "confidence",
+          "data_type": "number",
+          "label_zh": "方向标注置信度0至1",
+          "meaning_en": "confidence"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "label_zh": "原文支持的具体理由",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原文时间",
+          "meaning_en": "published_at"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "标注可用时间",
+          "meaning_en": "available_at"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "覆盖版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "annotation_version",
+          "data_type": "string",
+          "label_zh": "标注方法/模型版本",
+          "meaning_en": "Annotation version"
+        }
+      ],
+      "primary_key": [
+        "opinion_id"
+      ]
+    }
+  ],
+  "common": {
+    "schedule": {
+      "type": "scheduled",
+      "interval_seconds": 300,
+      "clock": "UTC",
+      "execution_observed": false
+    },
+    "quality_zh": "同批使用一个 UTC 截止时间；published_at、collected_at、available_at 都不得晚于截止时间。缺失不是零；所需窗口必须有全部配置来源的完整 healthy 覆盖。来源集合变化不混用基线。",
+    "evidence_rule_zh": "只计已归一且有原文的证据；同资产同文转载只用最早可用原文，作者身份不能核实时不计独立作者。每资产每作者每UTC小时最多3条原创，每条基础权重1。点赞、价格、建档+100不自动计入这个v1；不限制未来各榜独立使用新资产条件。",
+    "result_rule_zh": "各榜独立生成完整批次，按未舍入 score 降序、asset_id 升序取最多50条，不强凑名额。整批原子替换本榜当前指针；出榜不保留为当前结果。计算失败/覆盖不足发布 unavailable 批次及原因，历史结果只留作审计；读取仅展示 ready 且 calculated_at 距查询时间小于900秒的当前批次，页面移除过期条目。旧批次不能覆盖新批次。",
+    "retention_zh": "原文、覆盖、观点、关注历史和批次审计至少保留30天以支持回放；首次发现状态长期保留，不能由30天清理重置。Redis只作可重建缓存，恢复保留原时间、版本和证据引用。"
+  },
+  "preprocessors": [
+    {
+      "name": "归一榜单证据",
+      "type": "Derived Field",
+      "output_dataset": "evidence",
+      "sources": [
+        "rss.item",
+        "telegram.bot.message",
+        "telegram.telethon.message",
+        "assets",
+        "asset_identifiers"
+      ],
+      "algorithm_zh": "保存原始响应和首次采集时间，按来源命名空间+稳定外部ID读取资产映射，不能凭ticker猜资产；身份不明隔离待审。提取正文和原文时间，拒绝未来/缺失时间，按稳定源记录ID幂等记录。识别同文转载而不是合并同议题独立观点；保存原文、发布时间、首次可用时间和原始引用。采集服务提供来源、采集时间与coverage_key，这些不是上游响应字段。RSS/Telegram为拟接入来源，具体feed/频道与授权、产出仍待核验。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "caption_zh": "资产映射冲突：隔离待审核，不写有效证据；原文留在raw_ref归档。",
+        "input_columns": [
+          {
+            "name": "source_id",
+            "data_type": "string",
+            "label_zh": "source_id",
+            "meaning_en": "source_id"
+          },
+          {
+            "name": "guid",
+            "data_type": "string",
+            "label_zh": "guid",
+            "meaning_en": "guid"
+          },
+          {
+            "name": "asset_mapping",
+            "data_type": "string",
+            "label_zh": "asset_mapping",
+            "meaning_en": "asset_mapping"
+          },
+          {
+            "name": "published_at",
+            "data_type": "string",
+            "label_zh": "published_at",
+            "meaning_en": "published_at"
+          }
+        ],
+        "input_rows": [
+          {
+            "source_id": "rss.item",
+            "guid": "demo-guid",
+            "asset_mapping": "ambiguous",
+            "published_at": "2026-10-09T00:00:00Z"
+          }
+        ],
+        "output_rows": []
+      }
+    },
+    {
+      "name": "保存关注历史快照",
+      "type": "Metric",
+      "output_dataset": "attention_history",
+      "sources": [
+        "leaderboard_evidence",
+        "leaderboard_coverage"
+      ],
+      "algorithm_zh": "每5分钟固定一个UTC截止时间，读取此前已可用的有效证据。按最热v1去重/作者上限和6小时衰减产生全资产热度，完整覆盖下记录零值；同时保存最近1小时计数、当时前50资格和证据。只在完整健康覆盖时写快照；缺桶留缺，变更来源或算法版本重建新历史，不用补采回写旧决策。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "caption_zh": "虚构完整覆盖和仅一个合格资产：1+0.5+0.25=1.75；最近1小时计数为1，示例当时排名1。",
+        "input_columns": [
+          {
+            "name": "asset_id",
+            "data_type": "string",
+            "label_zh": "asset_id",
+            "meaning_en": "asset_id"
+          },
+          {
+            "name": "ages_hours_json",
+            "data_type": "string",
+            "label_zh": "ages_hours_json",
+            "meaning_en": "ages_hours_json"
+          },
+          {
+            "name": "coverage_status",
+            "data_type": "string",
+            "label_zh": "coverage_status",
+            "meaning_en": "coverage_status"
+          },
+          {
+            "name": "hour_count",
+            "data_type": "string",
+            "label_zh": "hour_count",
+            "meaning_en": "hour_count"
+          }
+        ],
+        "input_rows": [
+          {
+            "asset_id": "demo-asset",
+            "ages_hours_json": "[0,6,12]",
+            "coverage_status": "healthy",
+            "hour_count": 1
+          }
+        ],
+        "output_rows": [
+          {
+            "asset_id": "demo-asset",
+            "bucket_at": "2026-10-09T00:00:00Z",
+            "coverage_key": "demo-coverage-v1",
+            "algorithm_version": "hottest/v1",
+            "heat": 1.75,
+            "hour_count": 1,
+            "hottest_rank": 1,
+            "eligible": true,
+            "available_at": "2026-10-09T00:00:00Z",
+            "evidence_refs_json": "[\"demo-e0\",\"demo-e6\",\"demo-e12\"]"
+          }
+        ]
+      }
+    },
+    {
+      "name": "记录首次有效发现",
+      "type": "Derived Field",
+      "output_dataset": "discoveries",
+      "sources": [
+        "leaderboard_evidence"
+      ],
+      "algorithm_zh": "由第一条有效关联证据记录每资产不可重置的system_first_seen（首次可用时间）。只有明确原文支持的上市/发行事件才记录source_listing/verified_launch及原文事件时间。每类型保持最早事件，独立发布方去重佐证。首次状态长期保存；转载、重试、恢复补采和新池不能重置或伪造发行。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "caption_zh": "重复发现沿用最早时间；不是再次新增资产，也不证明资产于该时发行。",
+        "input_columns": [
+          {
+            "name": "asset_id",
+            "data_type": "string",
+            "label_zh": "asset_id",
+            "meaning_en": "asset_id"
+          },
+          {
+            "name": "first_available_at",
+            "data_type": "string",
+            "label_zh": "first_available_at",
+            "meaning_en": "first_available_at"
+          },
+          {
+            "name": "retry_available_at",
+            "data_type": "string",
+            "label_zh": "retry_available_at",
+            "meaning_en": "retry_available_at"
+          }
+        ],
+        "input_rows": [
+          {
+            "asset_id": "demo-asset",
+            "first_available_at": "2026-10-08T12:00:00Z",
+            "retry_available_at": "2026-10-09T00:00:00Z"
+          }
+        ],
+        "output_rows": [
+          {
+            "discovery_id": "demo-first",
+            "asset_id": "demo-asset",
+            "asset_name": "示例资产",
+            "event_kind": "system_first_seen",
+            "occurred_at": "2026-10-08T12:00:00Z",
+            "first_available_at": "2026-10-08T12:00:00Z",
+            "independent_confirmations": 1,
+            "evidence_refs_json": "[\"demo-first-evidence\"]",
+            "coverage_key": "demo-coverage-v1",
+            "confirmations_json": "[{\"publisher_id\":\"demo-publisher\",\"evidence_id\":\"demo-first-evidence\",\"available_at\":\"2026-10-08T12:00:00Z\"}]"
+          }
+        ]
+      }
+    },
+    {
+      "name": "标注可比较观点",
+      "type": "Derived Field",
+      "output_dataset": "opinions",
+      "sources": [
+        "leaderboard_evidence"
+      ],
+      "algorithm_zh": "从可读原文提取资产、具体议题、时间尺度、方向和具体理由，保留证据引用与标注可用时间/版本。明确相反观点才能标long/short；风险标签、行情与未知方向不代替观点。置信度和作者身份未核验时不作为合格输入。人工抽查标注，模型与准确性尚未验证。",
+      "case": {
+        "provenance": "synthetic_design_case",
+        "caption_zh": "只有价格陈述，方向与议题未知：不构造多空观点，不产出合格观点记录。",
+        "input_columns": [
+          {
+            "name": "evidence_id",
+            "data_type": "string",
+            "label_zh": "evidence_id",
+            "meaning_en": "evidence_id"
+          },
+          {
+            "name": "text",
+            "data_type": "string",
+            "label_zh": "text",
+            "meaning_en": "text"
+          },
+          {
+            "name": "reason",
+            "data_type": "string",
+            "label_zh": "reason",
+            "meaning_en": "reason"
+          }
+        ],
+        "input_rows": [
+          {
+            "evidence_id": "demo-price",
+            "text": "价格今天跌了",
+            "reason": "没有明确观点理由"
+          }
+        ],
+        "output_rows": []
+      }
+    }
+  ],
+  "contract_document": "docs/LEADERBOARD_ALGORITHMS.md"
 }

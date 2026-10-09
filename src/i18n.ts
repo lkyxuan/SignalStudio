@@ -342,6 +342,12 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  const dataNames: Record<string, string> = {
+    leaderboard_evidence: '榜单有效证据', leaderboard_coverage: '榜单采集覆盖',
+    leaderboard_attention_history: '关注历史与上榜快照', leaderboard_discoveries: '首次有效发现',
+    leaderboard_opinions: '同议题观点证据',
+  };
+  if (language === 'zh-CN' && dataNames[name]) return dataNames[name];
   const boardNames = { warming: '升温', hottest: '最热', emerging: '新出现', cooling: '降温', divergence: '分歧' };
   const boardKey = name.replace(/^leaderboard_/, '') as keyof typeof boardNames;
   if (name.startsWith('leaderboard_') && boardNames[boardKey]) return language === 'zh-CN' ? `${boardNames[boardKey]}榜结果表` : `${boardKey} leaderboard results`;

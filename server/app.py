@@ -13,6 +13,7 @@ from source_contract_store import SourceContractStore
 from signal_contract_store import SignalContractStore
 from table_backfill_store import TableBackfillStore
 from leaderboard_scaffolds import ensure_leaderboard_scaffolds
+from leaderboard_algorithms import ensure_leaderboard_algorithms
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +30,7 @@ service.compact_retired_node_references()
 service.group_node_references_once()
 ensure_coingecko_reference_cards(service)
 ensure_leaderboard_scaffolds(service)
+ensure_leaderboard_algorithms(service)
 
 
 class Handler(BaseHTTPRequestHandler):

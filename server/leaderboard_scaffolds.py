@@ -1,12 +1,13 @@
 """Install five design-only board paths once; never run scoring or provision Redis."""
 import json
+from contextlib import nullcontext
 from pathlib import Path
 
 CATALOG = Path(__file__).resolve().parent.parent / 'catalog/leaderboard-scaffolds.v1.json'
 MARKER = 'leaderboard_scaffolds_v1'
 
 
-def ensure_leaderboard_scaffolds(service):
+def ensure_leaderboard_scaffolds(service, transactional=True):
     if service.db.execute('SELECT 1 FROM schema_meta WHERE key=?', (MARKER,)).fetchone():
         return
     catalog = json.loads(CATALOG.read_text())
@@ -16,7 +17,7 @@ def ensure_leaderboard_scaffolds(service):
     if any(service.find_name(name) for name in names):
         raise ValueError('Leaderboard scaffold name conflicts with an existing card')
     bottom = service.db.execute('SELECT COALESCE(MAX(position_y), 0) FROM nodes').fetchone()[0] + 300
-    with service.db:
+    with service.db if transactional else nullcontext():
         for index, board in enumerate(catalog['boards']):
             nodes = []
             for column, (role, kind) in enumerate((('cache_name', 'Redis Window'),
