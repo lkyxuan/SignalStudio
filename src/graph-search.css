@@ -1,0 +1,3 @@
+.react-flow__node.graph-search-target{opacity:1}
+.react-flow__node.graph-search-target .logic-node{border-color:var(--ss-accent);box-shadow:0 0 0 3px var(--ss-accent-soft),0 7px 22px var(--ss-shadow)}
+.graph-search-status{position:absolute;bottom:14px;left:60px;z-index:5;padding:7px 10px;border:1px solid var(--ss-border);border-radius:6px;background:var(--ss-surface);color:var(--ss-text);font-size:12px;pointer-events:none}

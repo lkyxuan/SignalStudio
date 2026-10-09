@@ -28,6 +28,7 @@ import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
 import './node-ref.css';
+import './graph-search.css';
 import './graph-card.css';
 import './theme.css';
 
@@ -309,7 +310,11 @@ function App() {
     (typeFilter === 'All types' || n.type === typeFilter || referenceMatchNodes.has(n.id) || isNodeReferenceQuery) &&
     (referenceMatchNodes.has(n.id) || `${nodeRef(n)} ${n.name} ${displayName(n.name)} ${sourcePurpose(n.name, language) || ''} ${n.definition} ${n.decision_question || ''} ${n.trigger_rule || ''} ${t(n.type)} ${(graph.fields || []).filter(field => field.node_id === n.id).map(field => `${field.name} ${field.definition}`).join(' ')} ${(graph.requirements || []).filter(item => item.node_id === n.id).map(item => `${item.name} ${item.purpose}`).join(' ')}`.toLowerCase().includes(query))).sort((a, b) => a.reference_number - b.reference_number);
   const tableRows = filtered;
-  const filteredIds = new Set(filtered.map(n => n.id));
+  // Card-number search navigates the complete canvas; table/name/relation searches still filter.
+  const locatingCard = view === 'graph' && isNodeReferenceQuery;
+  const searchTarget = locatingCard ? graph.nodes.find(node => nodeRef(node).toLowerCase() === query) : null;
+  const canvasNodes = locatingCard ? graph.nodes : filtered;
+  const filteredIds = new Set(canvasNodes.map(n => n.id));
   const localFocus = graph.nodes.find(node => node.id === focusNodeId) || filtered.find(node => node.reference_number === IDENTITY_REFS.lookup) || filtered.find(node => connectedIds.has(node.id)) || filtered[0];
   const labelGroups = new Map();
   for (const node of graph.nodes) {
@@ -339,7 +344,7 @@ function App() {
     }
   }
   const hasGraphFocus = Boolean(focusNode || relatedEdgeIds.size);
-  const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : '' })), ...groupLabels];
+  const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: searchTarget?.id === n.id ? 'graph-search-target' : hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : '' })), ...groupLabels];
   const displayEdges = edges.map(e => ({
     ...e,
     hidden: !filteredIds.has(e.source) || !filteredIds.has(e.target),
@@ -347,13 +352,28 @@ function App() {
     label: '',
   }));
   const visibleNodeIds = filtered.map(node => node.id).join(',');
+  const wasLocatingCard = useRef(false);
   useEffect(() => {
-    if (view !== 'graph' || graphDisplayMode !== 'full' || !flowInstance || !visibleNodeIds) return;
+    const leavingCardSearch = wasLocatingCard.current;
+    wasLocatingCard.current = locatingCard;
+    if (view !== 'graph' || graphDisplayMode !== 'full' || !flowInstance) return;
+    if (locatingCard) {
+      if (!searchTarget) return;
+      const frame = requestAnimationFrame(() => {
+        const target = flowInstance.getNode(searchTarget.id);
+        if (!target) return;
+        flowInstance.setCenter(target.position.x + (target.measured?.width ?? 286) / 2,
+          target.position.y + (target.measured?.height ?? 174) / 2, { zoom: 0.85, duration: 250 });
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+    // Clearing the locator removes its highlight without moving or fitting the viewport.
+    if ((leavingCardSearch && !query) || !visibleNodeIds) return;
     const frame = requestAnimationFrame(() => flowInstance.fitView({
       nodes: visibleNodeIds.split(',').map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 250,
     }));
     return () => cancelAnimationFrame(frame);
-  }, [filter, typeFilter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance]);
+  }, [filter, typeFilter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchTarget?.id]);
 
   const mutate = async (path, method, body, success, saveMain = false) => {
     try { setBusy(true); const preserve = !saveMain && draft && selected && JSON.stringify(draft) !== JSON.stringify(selected); const result = await live.write(path, method, body, preserve); if (success) flash(success); return result; }
@@ -441,8 +461,9 @@ function App() {
           onNodeDragStop={async (_, node) => { await mutate(`/nodes/${node.id}`, 'PATCH', { position_x: node.position.x, position_y: node.position.y }); live.endDrag(); }}
           onConnect={connect} onEdgeClick={(_, edge) => openEdge(edge.id)} onInit={setFlowInstance} deleteKeyCode={null}
           fitView fitViewOptions={{ padding: 0.16, maxZoom: 0.75 }} minZoom={0.15} maxZoom={1.5} defaultEdgeOptions={{ type: 'default' }}>
-          <Background color="var(--ss-grid)" gap={22} size={1} /><Controls showInteractive={false} />{filtered.length > 0 && <MiniMap pannable zoomable nodeColor={node => ({ source: 'var(--ss-blue)', raw: 'var(--ss-neutral)', evidence: 'var(--ss-blue)', identity: 'var(--ss-blue)', relationship: 'var(--ss-blue)', review: 'var(--ss-purple)', derived: 'var(--ss-purple)', metric: 'var(--ss-success)', score: 'var(--ss-accent)', ranking: 'var(--ss-pink)', rule: 'var(--ss-warning)', event: 'var(--ss-warning)', product: 'var(--ss-error)', state: 'var(--ss-blue)', topic: 'var(--ss-purple)', cache: 'var(--ss-pink)' })[KIND[node.data.type]] || 'var(--ss-neutral)'} />}</ReactFlow>
-          {filtered.length > 0 && <div className="graph-hint"><span className="hint-dot" /> {language === 'zh-CN' ? '悬停或选中卡片，高亮直接上下游' : 'Hover or select a card to highlight direct neighbors'} <span className="hint-sep">·</span> {t('Drag from a node handle to create a dependency')}</div>}</div>
+          <Background color="var(--ss-grid)" gap={22} size={1} /><Controls showInteractive={false} />{canvasNodes.length > 0 && <MiniMap pannable zoomable nodeColor={node => ({ source: 'var(--ss-blue)', raw: 'var(--ss-neutral)', evidence: 'var(--ss-blue)', identity: 'var(--ss-blue)', relationship: 'var(--ss-blue)', review: 'var(--ss-purple)', derived: 'var(--ss-purple)', metric: 'var(--ss-success)', score: 'var(--ss-accent)', ranking: 'var(--ss-pink)', rule: 'var(--ss-warning)', event: 'var(--ss-warning)', product: 'var(--ss-error)', state: 'var(--ss-blue)', topic: 'var(--ss-purple)', cache: 'var(--ss-pink)' })[KIND[node.data.type]] || 'var(--ss-neutral)'} />}</ReactFlow>
+          {locatingCard && <div className="graph-search-status" role="status">{searchTarget ? (language === 'zh-CN' ? `已定位 ${nodeRef(searchTarget)} · 保留完整图谱` : `Located ${nodeRef(searchTarget)} · Full graph preserved`) : (language === 'zh-CN' ? `未找到卡片 ${query}` : `Card ${query} not found`)}</div>}
+          {canvasNodes.length > 0 && <div className="graph-hint"><span className="hint-dot" /> {language === 'zh-CN' ? '悬停或选中卡片，高亮直接上下游' : 'Hover or select a card to highlight direct neighbors'} <span className="hint-sep">·</span> {t('Drag from a node handle to create a dependency')}</div>}</div>
           : <div className="table-wrap"><table><thead><tr><th>{t('NAME')}</th><th>{t('TYPE')}</th><th>{t('PATH')}</th><th>{t('FIELDS')}</th><th>{t('FORMULA / DEFINITION')}</th><th>{t('UPSTREAM')}</th><th>{t('DOWNSTREAM')}</th><th>{t('PRODUCT')}</th><th></th></tr></thead><tbody>{tableRows.map(n => {
             const up = graph.edges.filter(e => e.downstream_id === n.id).length, down = graph.edges.filter(e => e.upstream_id === n.id).length;
             const usage = productUsage.get(n.id) || [];
