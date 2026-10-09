@@ -10,7 +10,8 @@
     "test:layout": "tsx --test src/autoLayout.test.ts",
     "preview": "python3 server/app.py",
     "typecheck": "tsc --noEmit",
-    "test:contracts": "tsx --test src/contracts.test.ts src/api.test.ts"
+    "test:contracts": "tsx --test src/contracts.test.ts src/api.test.ts",
+    "desktop:dev:build": "python3 scripts/build_macos_app.py --dev"
   },
   "dependencies": {
     "@xyflow/react": "^12.9.0",

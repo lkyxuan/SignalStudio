@@ -148,3 +148,8 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
 @media (prefers-reduced-motion: reduce) {
   .logic-node, .react-flow__node.graph-dimmed, .react-flow__edge.graph-dimmed { transition: none; }
 }
+
+.live-update-banner { padding: 12px 20px; background: var(--ss-panel, #29251f); color: var(--ss-warning, #efaa55); font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-bottom: 1px solid currentColor; }
+.live-update-banner button { padding: 6px 10px; border: 1px solid currentColor; border-radius: 6px; color: inherit; background: transparent; cursor: pointer; }
+
+.live-update-banner.modal-conflict { position: fixed; top: 12px; left: 20px; right: 20px; z-index: 10000; border: 1px solid currentColor; border-radius: 8px; }

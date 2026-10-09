@@ -1,6 +1,7 @@
 """Single-user local HTTP API and production static server."""
 
 import json
+import hashlib
 import mimetypes
 import os
 import sqlite3
@@ -9,6 +10,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from graph_service import GraphError, GraphService
+from live_state import snapshot, guard, RevisionConflict
 from source_contract_store import SourceContractStore
 from signal_contract_store import SignalContractStore
 from table_backfill_store import TableBackfillStore
@@ -18,6 +20,7 @@ from leaderboard_simple import ensure_leaderboard_simple
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 
 ROOT = Path(__file__).resolve().parent.parent
+CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
 LOCAL_KAITO_CASE = ROOT / "data" / "kaito-advanced-search-live.json"
 LOCAL_SOURCE_CASES = ROOT / "data" / "source-cases-live.json"
 service = GraphService(os.environ.get("SIGNALSTUDIO_DB"))
@@ -36,11 +39,16 @@ ensure_leaderboard_simple(service)
 
 
 class Handler(BaseHTTPRequestHandler):
+    def log_request(self, code='-', size='-'):
+        if urlparse(self.path).path != '/api/desktop-health':
+            super().log_request(code, size)
+
     def respond(self, status, data):
         payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(payload)
 
@@ -61,6 +69,7 @@ class Handler(BaseHTTPRequestHandler):
         if parts == ["api", "desktop-health"] and method == "GET":
             return {"app": "SignalStudio", "project_root": str(ROOT),
                     "database_path": str(Path(service.db.execute("PRAGMA database_list").fetchone()[2]).resolve()),
+                    "pid": os.getpid(), "mode": os.environ.get("SIGNALSTUDIO_MODE", "production"),
                     "client_ready": (ROOT / "dist" / "index.html").is_file()}
         if parts == ["api", "table-backfills", "1006"]:
             if method == "GET":
@@ -68,7 +77,7 @@ class Handler(BaseHTTPRequestHandler):
             if method == "POST":
                 return table_backfill.save(self.body())
         if parts == ["api", "graph"] and method == "GET":
-            return service.graph()
+            return snapshot(service, CONTRACT_REVISION)
         if parts == ["api", "signals"] and method == "GET":
             return {"catalog_version": "signal-contracts.v1",
                     "revision": signal_contracts.revision,
@@ -206,11 +215,23 @@ class Handler(BaseHTTPRequestHandler):
     def dispatch(self):
         try:
             if self.path.startswith("/api/"):
-                self.respond(200, self.handle_api())
+                expected = self.headers.get("If-Match")
+                if self.command != "GET" and expected:
+                    guard(service, expected, CONTRACT_REVISION)
+                try:
+                    result = self.handle_api()
+                    if service.db.in_transaction:
+                        service.db.commit()
+                except Exception:
+                    service.db.rollback()
+                    raise
+                self.respond(200, result)
             elif self.command == "GET":
                 self.serve_file()
             else:
                 self.respond(404, {"error": "Not found"})
+        except RevisionConflict as exc:
+            self.respond(409, {"error": str(exc)})
         except (GraphError, ValueError, sqlite3.IntegrityError) as exc:
             self.respond(400, {"error": str(exc)})
 

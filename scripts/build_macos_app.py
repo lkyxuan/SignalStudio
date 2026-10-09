@@ -1,4 +1,5 @@
 """Build a local macOS shell; paths are resolved on the machine that builds it."""
+import argparse
 import json
 from pathlib import Path
 import plistlib
@@ -29,7 +30,15 @@ def build_icon(resources):
 def main():
     if sys.platform != "darwin":
         raise SystemExit("This app requires macOS.")
-    output = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path.home() / "Applications/SignalStudio.app"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('output', nargs='?')
+    parser.add_argument('--dev', action='store_true')
+    args = parser.parse_args()
+    name = 'SignalStudio Dev' if args.dev else 'SignalStudio'
+    node = shutil.which('node') if args.dev else ''
+    if args.dev and not node:
+        raise SystemExit('Node.js is required for the Dev App.')
+    output = Path(args.output).expanduser().resolve() if args.output else Path.home() / f'Applications/{name}.app'
     if output.suffix != ".app":
         raise SystemExit("Output must end with .app")
     contents = output / "Contents"
@@ -41,14 +50,14 @@ def main():
     subprocess.run(["xcrun", "swiftc", str(ROOT / "desktop/SignalStudio.swift"),
                     "-o", str(binary), "-framework", "Cocoa", "-framework", "WebKit"], check=True)
     with (contents / "Info.plist").open("wb") as file:
-        plistlib.dump({"CFBundleName": "SignalStudio", "CFBundleDisplayName": "SignalStudio",
-                      "CFBundleIdentifier": "local.signalstudio.desktop", "CFBundleExecutable": "SignalStudio",
+        plistlib.dump({"CFBundleName": name, "CFBundleDisplayName": name,
+                      "CFBundleIdentifier": "local.signalstudio.desktop" + (".dev" if args.dev else ""), "CFBundleExecutable": "SignalStudio",
                       "CFBundlePackageType": "APPL", "CFBundleVersion": "1", "CFBundleShortVersionString": "0.1.0",
                       "CFBundleIconFile": "SignalStudio.icns",
                       "NSHighResolutionCapable": True,
                       "NSDocumentsFolderUsageDescription": "SignalStudio 需要读取文稿中的项目文件和已有工作台数据。",
                       "NSAppTransportSecurity": {"NSAllowsLocalNetworking": True}}, file)
-    (resources / "launch.json").write_text(json.dumps({"project_root": str(ROOT), "python": sys.executable}), encoding="utf-8")
+    (resources / "launch.json").write_text(json.dumps({"project_root": str(ROOT), "python": sys.executable, "mode": "development" if args.dev else "production", "node": node}), encoding="utf-8")
     subprocess.run(["codesign", "--force", "--sign", "-", str(output)], check=True)
     print(f"Built: {output}")
     print(f'Open with: open "{output}"')

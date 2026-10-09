@@ -16,7 +16,7 @@ export async function request(path: string, options: RequestOptions = {}): Promi
   const headers = new Headers(options.headers);
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   const response = await fetch(`/api${path}`, {
-    ...options, headers,
+    cache: 'no-store', ...options, headers,
     body: options.body === undefined || options.body === null ? undefined : JSON.stringify(options.body),
   });
   let data: unknown;

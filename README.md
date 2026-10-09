@@ -18,6 +18,20 @@ When no matching server is running, the first launch asks you to select the conf
 
 This is a local app shell, without bundled Python/project files or distribution notarization. Rebuild after moving the project, removing Python, or changing frontend source. Copying the app to another computer does not make it standalone. Verify first launch, reopening, quitting/relaunching, an existing matching server, and a foreign service occupying port 18787. Rationale and approval: [Notion task](https://app.notion.com/p/3f4038a63d5a8182b1e8e094efee2e51).
 
+### Mac Dev app (live project updates)
+
+Run `npm run desktop:dev:build` to create `~/Applications/SignalStudio Dev.app` alongside the ordinary app, with the same orange heartbeat icon. It requires the local project, installed npm dependencies, Node.js, Python and the existing `data/logic.db`. Runtime paths are captured at build time; rebuild after moving them. The first launch selects the configured project directory and saves an access bookmark.
+
+The Dev session uses loopback ports 15173 (Vite), 18788 (API) and 18789 (health). Reuse requires matching project/database paths, development mode, and verified frontend/backend readiness. Port conflicts fail without terminating occupants. Quitting reaps only the session and children started by the app; independently owned sessions remain running. Logs: `~/Library/Logs/SignalStudio/dev-server.log`. Vite uses polling to avoid macOS FSEvents parent-directory permission stalls, and local fallback fonts rather than waiting for Google Fonts.
+
+Vite updates frontend source and imported catalog JSON without rebuilding the app. JS/JSON changes can reload the page: save forms before editing code. Draft protection below applies to graph polling, not persistence across page reloads. Backend Python (excluding tests) and catalog JSON changes restart the API after a 0.5-second debounce; fixing a syntax error restores it automatically. Changes to the Dev launcher, Vite script, dependencies or startup config require reopening the app. Long tasks are not guaranteed to survive restart; existing initialization/migration rules are unchanged.
+
+Visible windows poll graph data approximately every two seconds and on focus; hidden windows pause periodic requests. Identical snapshots retain state, without arranging nodes or fitting the viewport again. Clean selected details follow updates; edited forms and active dragging defer external snapshots. Conflict detection conservatively covers the whole graph, including changes to other cards. Explicitly discard drafts to load the latest version, or keep edits and authorize the next save against that version. Another external change still blocks saving. Node details submit only changed editable fields, excluding old positions. Other forms retain their own submission scope. Switching cards keeps the existing behavior; save before leaving an editor.
+
+Graph reads return a consistent SQLite snapshot with `revision` and a backend `contract_revision`. UI writes send `If-Match`; the API compares it under `BEGIN IMMEDIATE`, returning 409 on mismatch. Polling and writes are serialized, and API/health responses prohibit caching. Legacy scripts without `If-Match` retain their old behavior. This covers design graph nodes, fields, dependencies, field usages and requirements, not independent backfill files or Notion cards.
+
+Run `python3 scripts/test_dev_runtime.py` for temporary-project/database lifecycle, idempotency, restart/recovery, HTTP conflict and port cleanup checks. Run `npx tsx --test src/liveGraph.test.ts` and `python3 -m unittest discover -s server -p test_live_state.py` for synchronization and cross-connection locking. Also verify the native window, folder cancellation/recovery, reuse, relaunch and Vite updates on macOS. This is a local development shell; standalone GitHub Release packaging remains a separate task. Approved scope and verification: [Notion task](https://app.notion.com/p/3f4038a63d5a813c84d7e980d476baca).
+
 ### Development server
 
 Requires Node.js 22+ and Python 3.9+.

@@ -49,6 +49,7 @@ export const requirementSchema = z.looseObject({
   source_field_id: id.nullable(), created_at: text, updated_at: text,
 });
 export const graphSchema = z.looseObject({
+  revision: z.string().optional(), contract_revision: z.string().optional(),
   nodes: z.array(nodeSchema), edges: z.array(edgeSchema), fields: z.array(fieldSchema),
   field_usages: z.array(usageSchema), requirements: z.array(requirementSchema),
   types: z.array(z.enum(nodeTypes)),
