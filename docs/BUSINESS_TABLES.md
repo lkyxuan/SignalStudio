@@ -84,6 +84,24 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 资产交接记录在 `asset_id` 后带 `asset_name`，从 `assets.name` 复制，供展示和调试。评分事件、Redis 和 #1005 保存事件名称快照，重试沿用；#1006 与排名响应沿用最新非空事件名称（created_at 降序，同时间按 event_key 升序），名称缺失不阻塞评分。名称不参与关联、唯一键、去重或评分；旧记录可为空，未匹配资产的名称为 NULL。
 
+## asset_initial_score_sources · 首次建档来源评分配置
+
+独立表卡（当前共享图谱编号 #1020），只保存来源评分配置；#3009读取并判断首次奖励。依据：[批准的实施计划](https://app.notion.com/p/3f4038a63d5a81e9b306d16a15a5282d)。配置正文在 `catalog/asset-initial-score-sources.v1.json`，表结构在 `catalog/business-tables.v1.json`。这是规则配置，不是爬虫记录或实际评分结果。
+
+| 字段 | 类型 | 约束/含义 |
+| --- | --- | --- |
+| `source_id` | TEXT | 主键，采集链路携带的发现渠道；不是身份标识命名空间 |
+| `source_name` | TEXT | 必填，来源展示名称 |
+| `initial_score` | REAL | 必填，有限正数，首次贡献大小 |
+| `rule_version` | TEXT | 必填，已注册且不可变的衰减规则引用 |
+| `half_life_minutes` | REAL | 必填，有限正数，与引用规则一致 |
+
+当前仅Kaito Smart Following配置为+100、`asset_initial_score/v1`、10080分钟；小群和公共搜索具体渠道与分值未指定。#3002成功建档后交付`asset_id`、`asset_name`、`action=created`和`source_id`；#4001未命中分支保持同一来源。#3009先检查该资产已保存的首次决定，重试必须沿用原决定；已有资产不重新领取首次奖励。新资产按source_id唯一查配置，缺失、冲突或无效配置显示待处理，不消耗初始奖励资格。补配置后应从保留的成功创建结果恢复，不重新建档，也不从普通reused查询推断补分资格。
+
+首次决定必须原子保证每资产仅一份，保存原始来源、配置快照、分值、规则与半衰期，之后配置改变不追改历史决定。并发创建的获胜操作确定建档来源；本轮不追溯推断世界最早公开来源。统一事件继续用decision_ref回查详细决定，不新增事件来源字段。群讨论和召回评分由各信号独立定义。
+
+`server/initial_score_sources.py`只安装图谱及字段依赖，保留已有布局，并以事务和迁移标记防止重复安装或覆盖后续编辑。`src/initialScoreDesign.ts`只用于确定性卡片演算，不执行真实评分、消息发布或判定存储。验证：`cd server && python3 -m unittest test_initial_score_sources test_graph_service`；`npx tsx --test src/initialScoreDesign.test.ts`；`npm run build`。卡片交付不能作为后端运行证据。
+
 ## asset_score_events · 资产评分流水
 
 各评分程序先保存自己的详细判定记录，包含使用的输入、规则版本、关键计算值、触发原因和判定时间；确认加分后，再提交一笔统一的评分贡献事件，最终归档到 #1005。#1005 不复制程序的判定过程或原始数据。`decision_ref` 使用“程序命名空间/记录 ID”定位详细记录；对应记录必须能够持久读取，不能只留下一个无法解析的哈希。规则和证据可从详细记录继续追溯。程序写入失败后可以重试；同一判定对同一资产、同一维度只入账一次，`event_key` 应由这三项稳定生成，数据库另以这三项的组合唯一约束防重。若详细记录与 #1005 分处不同存储，需保证成功保存的判定能可靠重试入账。
@@ -96,7 +114,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 #1005 面板在空原表下方展示同一条 #2030 账号的目标归档行。账号 ID 与名称来自真实 Kaito MCP 返回；内部 `asset_id` 是目标案例值，`event_key` 和 `created_at` 要等首次实际提交才可确定。这个预览不是已归档表行。
 
-初始评分规则：#3002 首次成功建档后向 #3009 交付 `action=created`，#3004 已有映射则交付 `action=reused`。#3009 仅对新建资产持久保存评分判定，再经 #3006 提交一次 `score_key=total_heat, score_delta=+100`；已有资产不提交起始事件。`asset_initial_score/v1` 是这笔贡献的规则，并不是另一个评分维度。`decision_ref=asset_initial_score/v1/{asset_id}` 必须指向 #3009 可持久查询的判定记录，`event_key` 由资产、维度和判定引用稳定生成；重试沿用原事件。#5001 目标消息的 Value.data 带不可变 `decay_policy_ref=asset_initial_score/v1` 与 `half_life_minutes=10080`。#3006 首次接受时校验半衰期为有限正数且与规则版本一致，重试沿用原值；#3007 将两个字段原样复制到 #6001 Redis，#3005 用事件自己的分钟数计算，并用规则引用校验指数模型与版本。#3008 将两字段一同归档至 #1005，`decision_ref` 仍可追溯判定。起始贡献半衰期为 7 天，即 10080 分钟；第 0、10080、20160 分钟的单笔 +100 分别为 100、50、25，只是连续曲线检查点。内部按完整精度计算和排名，界面显示两位小数。未来其他来源可以给同一 `total_heat` 加贡献，各笔半衰期可以不同，但旧事件的规则版本不可改写。旧资产缺少起始事件要单独补录，不能在每次 #3004 命中时加 100。#3002 当前新建的 `pending_identity` 社交账号可参与 Demo 排名，100 分不代表已确认它是项目。规则已定义但没有实际评分事件。
+初始评分规则：#3002 首次成功建档后向 #3009 交付 `action=created`，#3004 已有映射则交付 `action=reused`。#3009 仅对新建资产持久保存评分判定，按发现来源读取独立 `asset_initial_score_sources` 配置表，再经 #3006 提交一次 `score_key=total_heat, score_delta=initial_score`；已有资产不提交起始事件。当前仅配置Kaito既有+100，半衰期10080分钟；其他来源未配置，不自动默认100。`asset_initial_score/v1` 是这笔贡献的规则，并不是另一个评分维度。`decision_ref=asset_initial_score/v1/{asset_id}` 必须指向 #3009 可持久查询的判定记录，`event_key` 由资产、维度和判定引用稳定生成；重试沿用原事件。#5001 目标消息的 Value.data 带不可变 `decay_policy_ref=asset_initial_score/v1` 与 `half_life_minutes=10080`。#3006 首次接受时校验半衰期为有限正数且与规则版本一致，重试沿用原值；#3007 将两个字段原样复制到 #6001 Redis，#3005 用事件自己的分钟数计算，并用规则引用校验指数模型与版本。#3008 将两字段一同归档至 #1005，`decision_ref` 仍可追溯判定。起始贡献半衰期为 7 天，即 10080 分钟；第 0、10080、20160 分钟的单笔 +100 分别为 100、50、25，只是连续曲线检查点。内部按完整精度计算和排名，界面显示两位小数。未来其他来源可以给同一 `total_heat` 加贡献，各笔半衰期可以不同，但旧事件的规则版本不可改写。旧资产缺少起始事件要单独补录，不能在每次 #3004 命中时加 100。#3002 当前新建的 `pending_identity` 社交账号可参与 Demo 排名，100 分不代表已确认它是项目。规则已定义但没有实际评分事件。
 
 主键：`event_key`。另对 `asset_id + score_key + decision_ref` 设组合唯一约束。
 

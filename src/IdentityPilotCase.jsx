@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { initialScorePolicy } from './initialScoreDesign';
 import pilot from '../catalog/identity-flow-case.v1.json';
 import { displayCaseValue } from './smartFollowingCase';
 import { NodeCaseExplanation } from './ProcessingIOCard';
@@ -42,11 +43,11 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
   const [index, setIndex] = useState(0);
   const selected = pilot.cases[index];
   const record = selected.source_record;
-  const accountRows = [['id', record.id], ['name', record.name]];
+  const accountRows = [['id', record.id], ['name', record.name], ['source_id', pilot.source.operation_id]];
   const step44 = node.reference_number === IDENTITY_REFS.lookup;
   const asset = tableRow('assets', selected.create_result.asset_id);
   const identifier = tableRow('asset_identifiers', selected.create_result.asset_id);
-  const initialScore = pilot.initial_score_policy;
+  const initialScore = initialScorePolicy;
   const lookupRows = [...Object.entries(selected.lookup_key), ['row_count', selected.lookup_result.row_count],
     ['asset_id', selected.lookup_result.asset_id], ['asset_name', selected.lookup_result.asset_name]];
   const output44 = [...accountRows, ['asset_id', null], ['asset_name', null], ['match_status', 'unmatched']];
@@ -55,7 +56,7 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{step44 ? 2 : 1} {zh ? '个来源' : 'sources'}</span></div>
         {step44 ? <>
           <Source source={findNode(graph, IDENTITY_REFS.source)} openNode={openNode} language={language}
-            caption={zh ? `真实 Kaito MCP 返回；100 条中的第 ${index + 1} 条，保存其中 2 条。未验证 Redpanda 消费。` : `Actual Kaito MCP response; row ${index + 1} of 100, two saved. Redpanda consumption unverified.`} rows={accountRows} />
+            caption={zh ? `账号字段来自真实 Kaito MCP 返回；100 条中的第 ${index + 1} 条，保存其中 2 条。source_id 是采集链路应附带的来源标识，不是响应原字段。未验证 Redpanda 消费。` : `Account fields come from the actual Kaito response, row ${index + 1} of 100, two saved. The collection route must attach source_id; it is not a raw response field. Redpanda consumption is unverified.`} rows={accountRows} />
           <Source source={findNode(graph, IDENTITY_REFS.identifiers)} openNode={openNode} language={language}
             caption={zh ? '此案例设定 #1002 暂无该 X ID；0 行是判断分支的预期查表结果，尚未连接后台表。' : 'This case assumes #1002 has no such X ID. Zero rows specifies the expected lookup result; no backend table is connected.'} rows={lookupRows} />
         </> : <Source source={findNode(graph, IDENTITY_REFS.lookup)} openNode={openNode} language={language}
@@ -68,7 +69,7 @@ export function IdentityPilotStep({ node, graph, openNode, language, purpose }) 
           <Source source={findNode(graph, IDENTITY_REFS.identifiers)} openNode={openNode} language={language}
             caption={zh ? '规定同一次操作写入 #1002 的标识行：X 用户 ID 指向 #1001 刚创建的同一个 UUIDv7 asset_id。' : 'Specified #1002 identifier row in the same operation: the X ID points to the same UUIDv7 asset_id created in #1001.'} rows={Object.entries(identifier)} />
           <Target target={findNode(graph, 3009)} openNode={openNode} language={language}
-            caption={zh ? '首次建档结果交 #3009 处理起始评分；#3002 本身不生成评分事件。这里是目标交接格式，尚未执行。' : 'Pass the first-creation result to #3009 for initial scoring. #3002 does not generate the score event itself. This is a planned handoff.'} rows={[["asset_id", selected.create_result.asset_id], ["asset_name", selected.create_result.asset_name], ["action", "created"]]} />
+            caption={zh ? '首次建档结果交 #3009 处理起始评分；#3002 本身不生成评分事件。这里是目标交接格式，尚未执行。' : 'Pass the first-creation result to #3009 for initial scoring. #3002 does not generate the score event itself. This is a planned handoff.'} rows={[["asset_id", selected.create_result.asset_id], ["asset_name", selected.create_result.asset_name], ["action", "created"], ["source_id", selected.create_result.source_id]]} />
         </>}
       </section>
     </div>

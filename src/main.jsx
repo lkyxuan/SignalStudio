@@ -55,7 +55,7 @@ const NODE_GROUPS = [
   { name: 'Data sources', types: ['Source', 'Raw Field'] },
   { name: 'Processing steps', types: ['Evidence Check', 'Asset Resolution', 'Relationship Lookup', 'Relationship Discovery', 'Review Decision', 'Derived Field', 'Metric', 'Score', 'Rule Evaluation'] },
   { name: 'Data infrastructure', types: ['Redpanda Topic', 'Redis Window'] },
-  { name: 'Business tables', types: ['Ranking Table', 'assets', 'asset_identifiers', 'asset_relationships', 'asset_monitoring_rules', 'asset_score_events', 'asset_scores_current'] },
+  { name: 'Business tables', types: ['asset_initial_score_sources', 'Ranking Table', 'assets', 'asset_identifiers', 'asset_relationships', 'asset_monitoring_rules', 'asset_score_events', 'asset_scores_current'] },
   { name: 'Outputs', types: ['Flow Result', 'Signal Event', 'Ranking', 'Product Module'] },
 ];
 const CREATABLE_GROUPS = NODE_GROUPS.filter(group => group.name !== 'Business tables');
@@ -65,11 +65,11 @@ const WORKFLOW_VIEWS = [
   { id: 'knowledge', name: 'Asset knowledge path' },
 ];
 const TYPES = NODE_GROUPS.flatMap(group => group.types);
-const DEFAULT_LANES = { Source: 'shared', 'Raw Field': 'shared', 'Redpanda Topic': 'shared', 'Redis Window': 'shared', 'Evidence Check': 'shared', 'Asset Resolution': 'shared', 'Relationship Discovery': 'knowledge', 'Review Decision': 'knowledge', 'Flow Result': 'knowledge', assets: 'shared', asset_identifiers: 'shared', asset_relationships: 'shared', asset_monitoring_rules: 'shared', asset_score_events: 'shared', asset_scores_current: 'shared', supabase_asset_scores: 'shared' };
+const DEFAULT_LANES = { asset_initial_score_sources: 'shared', Source: 'shared', 'Raw Field': 'shared', 'Redpanda Topic': 'shared', 'Redis Window': 'shared', 'Evidence Check': 'shared', 'Asset Resolution': 'shared', 'Relationship Discovery': 'knowledge', 'Review Decision': 'knowledge', 'Flow Result': 'knowledge', assets: 'shared', asset_identifiers: 'shared', asset_relationships: 'shared', asset_monitoring_rules: 'shared', asset_score_events: 'shared', asset_scores_current: 'shared', supabase_asset_scores: 'shared' };
 const defaultLane = type => DEFAULT_LANES[type] || 'signal';
 const nodeLane = node => node.workflow_lane || defaultLane(node.type);
 const SIGNAL_TYPES = new Set(['Derived Field', 'Metric', 'Score', 'Ranking', 'Product Module']);
-const KIND = { Source: 'source', 'Raw Field': 'raw', 'Redpanda Topic': 'topic', 'Redis Window': 'cache', 'Ranking Table': 'state', 'Evidence Check': 'evidence', 'Asset Resolution': 'identity', 'Relationship Lookup': 'relationship', 'Relationship Discovery': 'relationship', 'Review Decision': 'review', 'Derived Field': 'derived', Metric: 'metric', Score: 'score', Ranking: 'ranking', 'Rule Evaluation': 'rule', 'Flow Result': 'event', 'Signal Event': 'event', 'Product Module': 'product', assets: 'state', asset_identifiers: 'state', asset_relationships: 'state', asset_monitoring_rules: 'state', asset_score_events: 'state', asset_scores_current: 'state', supabase_asset_scores: 'state', 'Asset Registry': 'state', 'Rule Registry': 'state' };
+const KIND = { asset_initial_score_sources: 'state', Source: 'source', 'Raw Field': 'raw', 'Redpanda Topic': 'topic', 'Redis Window': 'cache', 'Ranking Table': 'state', 'Evidence Check': 'evidence', 'Asset Resolution': 'identity', 'Relationship Lookup': 'relationship', 'Relationship Discovery': 'relationship', 'Review Decision': 'review', 'Derived Field': 'derived', Metric: 'metric', Score: 'score', Ranking: 'ranking', 'Rule Evaluation': 'rule', 'Flow Result': 'event', 'Signal Event': 'event', 'Product Module': 'product', assets: 'state', asset_identifiers: 'state', asset_relationships: 'state', asset_monitoring_rules: 'state', asset_score_events: 'state', asset_scores_current: 'state', supabase_asset_scores: 'state', 'Asset Registry': 'state', 'Rule Registry': 'state' };
 const OUTPUT_TYPES = new Set(['Flow Result', 'Signal Event', 'Ranking', 'Product Module']);
 const TYPE_HELP = {
   'Evidence Check': 'Check source coverage, freshness and provenance before treating observations as evidence.',

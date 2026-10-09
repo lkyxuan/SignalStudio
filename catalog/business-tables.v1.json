@@ -283,6 +283,47 @@
         "status": "planned_not_executed"
       },
       "create_sql": "CREATE TABLE supabase_asset_scores (asset_id TEXT NOT NULL, asset_name TEXT, score_key TEXT NOT NULL, score_value DOUBLE PRECISION NOT NULL, calculated_at TIMESTAMPTZ NOT NULL, source_version BIGINT NOT NULL, synced_at TIMESTAMPTZ NOT NULL, PRIMARY KEY (asset_id, score_key)); CREATE INDEX supabase_asset_scores_leaderboard ON supabase_asset_scores (score_key, score_value DESC, asset_id ASC);"
+    },
+    "asset_initial_score_sources": {
+      "label_zh": "首次建档来源评分配置",
+      "purpose_zh": "按发现来源配置首次建档分；#3009读取，一项资产只奖励一次。",
+      "purpose_en": "Configure the one-time creation award by discovery source; read by #3009.",
+      "columns": [
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "label_zh": "稳定发现来源标识；不是资产身份命名空间",
+          "required": true
+        },
+        {
+          "name": "source_name",
+          "type": "TEXT",
+          "label_zh": "来源展示名称",
+          "required": true
+        },
+        {
+          "name": "initial_score",
+          "type": "REAL",
+          "label_zh": "首次建档贡献，有限正数",
+          "required": true
+        },
+        {
+          "name": "rule_version",
+          "type": "TEXT",
+          "label_zh": "不可变衰减规则引用；本版保留asset_initial_score/v1",
+          "required": true
+        },
+        {
+          "name": "half_life_minutes",
+          "type": "REAL",
+          "label_zh": "半衰期分钟数，与引用的规则版本一致",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "source_id"
+      ],
+      "create_sql": "CREATE TABLE asset_initial_score_sources (source_id TEXT PRIMARY KEY, source_name TEXT NOT NULL, initial_score REAL NOT NULL CHECK(initial_score > 0), rule_version TEXT NOT NULL, half_life_minutes REAL NOT NULL CHECK(half_life_minutes > 0))"
     }
   }
 }

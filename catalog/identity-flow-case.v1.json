@@ -15,15 +15,24 @@
     "processing_card": 3009,
     "trigger": "3009_receives_3002_new_asset_only_after_asset_and_identifier_are_created",
     "input_score_key": "total_heat",
-    "score_delta": 100,
     "current_score_key": "total_heat",
     "decay_policy_ref": "asset_initial_score/v1",
-    "decay": {"mode": "exponential_half_life", "half_life_minutes": 10080, "parameter_status": "defined_by_user", "time_granularity": "continuous_elapsed_time_from_created_at", "elapsed_minutes_rule": "max(0, (calculated_at_unix_seconds - created_at_unix_seconds) / 60)", "calculation_precision": "full", "display_decimal_places": 2},
+    "decay": {
+      "mode": "exponential_half_life",
+      "parameter_status": "defined_by_user",
+      "time_granularity": "continuous_elapsed_time_from_created_at",
+      "elapsed_minutes_rule": "max(0, (calculated_at_unix_seconds - created_at_unix_seconds) / 60)",
+      "calculation_precision": "full",
+      "display_decimal_places": 2
+    },
     "decision_ref_template": "asset_initial_score/v1/{asset_id}",
     "event_key_rule": "stable_from_asset_id_score_key_and_decision_ref",
     "repeat_lookup": "3004_routes_to_3009_which_skips_initial_score_event",
     "legacy_asset_without_score": "handle_in_a_separate_backfill_not_on_repeat_lookup",
-    "identity_note": "A new social_account remains pending_identity; the initial 100 points decay with age and do not verify that it is a project."
+    "identity_note": "New pending social accounts may receive the configured initial contribution; this does not verify project identity.",
+    "source_configuration_table": "asset_initial_score_sources",
+    "score_delta_rule": "lookup initial_score by discovery source_id; missing configuration stays pending",
+    "half_life_rule": "copy from matched configuration and validate against rule_version"
   },
   "tables": {
     "assets": {
@@ -157,7 +166,8 @@
         "asset_id": "01a0ecfd-dbb2-7643-abf8-e22462fe49f0",
         "match_status": "unmatched",
         "identity_status": "pending_identity",
-        "asset_name": "Stake | Bonus"
+        "asset_name": "Stake | Bonus",
+        "source_id": "kaito.mcp.kaito_smart_following_market"
       },
       "repeat_result": {
         "action": "reused",
@@ -205,7 +215,8 @@
         "asset_id": "01a0ecfd-dbb2-7d8a-86a3-5330925f3b80",
         "match_status": "unmatched",
         "identity_status": "pending_identity",
-        "asset_name": "KASUN"
+        "asset_name": "KASUN",
+        "source_id": "kaito.mcp.kaito_smart_following_market"
       },
       "repeat_result": {
         "action": "reused",

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "table_name": "asset_initial_score_sources",
+  "rationale_url": "https://app.notion.com/p/3f4038a63d5a81e9b306d16a15a5282d",
+  "provenance_zh": "已批准的规则配置，非采集记录、实际建档结果或评分流水。保留既有Kaito +100/七天；其他来源未配置。",
+  "provenance_en": "Approved rule configuration, not observations or emitted scores. Retains the existing Kaito +100 / seven-day rule; other sources are unconfigured.",
+  "rows": [
+    {
+      "source_id": "kaito.mcp.kaito_smart_following_market",
+      "source_name": "Kaito · Smart Following",
+      "initial_score": 100,
+      "rule_version": "asset_initial_score/v1",
+      "half_life_minutes": 10080
+    }
+  ],
+  "node": {
+    "name": "确定资产起始评分",
+    "type": "Score",
+    "definition": "首次建档结果与独立来源评分配置表汇合。仅action=created时按source_id读取初始分并保存一次评分决定，再交#3006；已有资产跳过，来源缺配置则待处理。后续群讨论由独立信号规则评分。尚无运行结果。",
+    "formula": "成功首次建档后，先按asset_id查已保存的初始评分决定；重试复用原决定，不受配置变化影响。已有资产跳过；新资产按source_id读取asset_initial_score_sources。缺失或无效配置标记待处理，不猜分值，不消耗首次奖励资格。匹配配置后冻结source_id、配置快照、score_delta、decay_policy_ref、half_life_minutes，持久保存后交#3006。每个资产只允许一份初始决定，并发通过唯一约束保证。事件键和首次接受时间由#3006生成。",
+    "formula_en": "After successful first creation, reuse any durable initial decision by asset ID on retries. Skip reused assets. For a new asset, look up asset_initial_score_sources by source_id. Missing or invalid configuration stays pending without consuming eligibility. Freeze the source and configuration snapshot with the contribution before handing it to #3006. Enforce one decision per asset atomically. #3006 supplies the event key and first-acceptance time."
+  },
+  "unknown_source": "pending_configuration",
+  "retry_key": "asset_id + score_key + stable decision_ref; source and config changes never create a second award",
+  "runtime_status_zh": "卡片与可执行演算预览；尚未接入真实建档、判定存储或发布服务。"
+}

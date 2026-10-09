@@ -20,6 +20,7 @@ from leaderboard_simple import ensure_leaderboard_simple
 from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 from coingecko_trending import ensure_coingecko_trending
+from initial_score_sources import ensure_initial_score_sources
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -40,6 +41,7 @@ ensure_leaderboard_scaffolds(service)
 ensure_leaderboard_algorithms(service)
 ensure_leaderboard_simple(service)
 ensure_content_refresh(service)
+ensure_initial_score_sources(service)
 
 
 class Handler(BaseHTTPRequestHandler):

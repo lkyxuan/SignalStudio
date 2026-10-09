@@ -1,3 +1,5 @@
+import { InitialScoreCard } from './InitialScoreCard';
+import { initialScorePolicy } from './initialScoreDesign';
 import React, { useEffect, useState } from 'react';
 import { nodeRef, IDENTITY_REFS } from './graphRefs';
 import { displayNodeName } from './i18n';
@@ -28,7 +30,7 @@ const turnoverContract = signalContracts.signals.find(item => item.signal_key ==
 const scoreCase = (index, language) => {
   const zh = language === 'zh-CN';
   const selected = identityPilot.cases[index];
-  const policy = identityPilot.initial_score_policy;
+  const policy = initialScorePolicy;
   const assetId = selected.create_result.asset_id;
   const decisionRef = policy.decision_ref_template.replace('{asset_id}', assetId);
   const eventRows = [
@@ -321,55 +323,12 @@ function MarketTurnoverCaseCard({ node, graph, openNode, language }) {
     recordGuide={zh ? '本例只用成交额和市值计算比例，完整响应请查看来源卡片。请求参数 ids=bitcoin 只能说明查询了什么，不能证明响应中的 data.id。' : 'Only volume and market cap are used for this ratio; the full response is on the source card. The requested ids=bitcoin says what was queried, not what data.id the saved response contained.'} /></>;
 }
 
-function InitialScoreCard({ node, graph, openNode, language }) {
-  const zh = language === 'zh-CN';
-  const [caseIndex, setCaseIndex] = useState(0);
-  const policy = identityPilot.initial_score_policy;
-  const selected = identityPilot.cases[caseIndex];
-  const account = selected.source_record;
-  const source = reference => graph.nodes.find(item => item.reference_number === reference);
-  const link = reference => {
-    const target = source(reference);
-    return <button onClick={() => target && openNode(target.id)}>{nodeRef(target)} {target?.name || '—'}</button>;
-  };
-  const field = (name, value, index) => <div key={name}><dt><span className="source-case-field-number">{String(index + 1).padStart(2, '0')}</span><code>{name}</code></dt><dd>{value}</dd></div>;
-  const created = selected.create_result;
-  const eventFields = [
-    ['asset_id', created.asset_id], ['asset_name', created.asset_name],
-    ['score_key', policy.input_score_key],
-    ['decision_ref', policy.decision_ref_template.replace('{asset_id}', created.asset_id)],
-    ['score_delta', `+${policy.score_delta}`],
-    ['decay_policy_ref', policy.decay_policy_ref],
-    ['half_life_minutes', policy.decay.half_life_minutes],
-  ];
-  return <><label className="source-case-inspector-picker">{zh ? '真实上游账号案例' : 'Observed upstream account case'}
-    <select value={caseIndex} onChange={event => setCaseIndex(Number(event.target.value))}>{identityPilot.cases.map((item, index) =>
-      <option value={index} key={item.source_record.id}>{index + 1} · {item.source_record.name} · @{item.source_record.username}</option>)}</select>
-  </label><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
-    <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '两条资产路径汇合' : 'Two asset routes converge'}</span></div>
-      <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '新建路径 · 规定交接' : 'Created route · planned handoff'}</span>{link(3002)}</div><p className="processing-io-case-caption">{zh ? '若 #1002 查无这个 X ID，#3002 应先完成 #1001/#1002 建档，再交以下值；这些不是实际写入结果。' : 'If #1002 has no mapping for this X ID, #3002 should create #1001/#1002 records before passing these values. No write has been observed.'}</p>
-        <dl className="source-case-inspector-fields">{[['asset_id', created.asset_id], ['asset_name', created.asset_name], ['action', created.action]].map(([name, value], index) => field(name, value, index))}</dl></div>
-      <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '已有路径 · 规定交接' : 'Existing route · planned handoff'}</span>{link(3004)}</div><p className="processing-io-case-caption">{zh ? '若这个 X ID 已有映射，#3004 应传原 asset_id 与 action=reused；这一路不重新发起起始加分。尚无实际查表结果。' : 'If this X ID is already mapped, #3004 should pass the existing asset_id and action=reused. No initial award is sent. No table lookup has run.'}</p>
-        <dl className="source-case-inspector-fields">{[['asset_id', selected.repeat_result.asset_id], ['asset_name', selected.repeat_result.asset_name], ['action', selected.repeat_result.action]].map(([name, value], index) => field(name, value, index))}</dl></div>
-    </section>
-    <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '按新建 / 已有分支' : 'By created / existing route'}</span></div>
-      <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '仅新建时送往' : 'Only on creation to'}</span>{link(3006)}</div>
-        <p className="processing-io-case-caption">{zh ? `对 ${account.name}，仅在首次建档成功时，#3009 向 total_heat 交付起始 +100 的评分决定；#3006 补齐 event_key、首次接受的 created_at，再向 #5001 的候选通道提交 Value.data 九项字段。三个 Header 标识逻辑业务来源、事件家族和业务类别；尚无真实评分事件。` : `For ${account.name}, only first creation makes #3009 submit an initial +100 contribution to total_heat. #3006 adds event_key and the first-acceptance created_at, then proposes nine Value.data fields for #5001. Three headers identify logical business origin, event family, and business category. No score event has been emitted.`}</p>
-        <dl className="source-case-inspector-fields">{eventFields.map(([name, value], index) => field(name, value, index))}</dl>
-      </div>
-      <div className="processing-input-source"><strong>{zh ? '已有资产：不提交起始事件' : 'Existing asset: no initial event'}</strong><p className="processing-io-case-caption">{zh ? '已有资产不新增起始贡献，原有 total_heat 仍随时间衰减；这里不产生新的 #1005 流水。旧资产缺分要单独补录，不能在每次命中时自动加 100。' : 'An existing asset receives no new initial contribution; its total_heat continues to decay. No new #1005 event is produced here. A missing legacy score needs a separate backfill, never an automatic 100-point award on every match.'}</p></div>
-    </section>
-  </div><NodeCaseExplanation language={language} purpose={node.definition}
-    caseSummary={zh ? `真实观测到 #2030 返回账号 ${account.name}（X ID ${account.id}）。#1002 查表、#3002 建档、#3009 评分及 #3006 发消息都尚未执行；这里展示该账号走两种分支时的规定结果。` : `#2030 returned ${account.name} (X ID ${account.id}). The #1002 lookup, #3002 asset creation, #3009 award, and #3006 publish have not run; the branches show intended outcomes.`}
-    recordGuide={zh ? `这个例子的 X ID 和账号名来自真实上游返回；asset_id 是规定的目标值。只有 action=created 会给 ${policy.input_score_key} 加 ${policy.score_delta}，然后按 ${policy.decay_policy_ref} 从入账时刻起连续指数衰减，半衰期为 7 天。action=reused 不重复加分。` : `The X ID and account name are observed; asset_id is a planned value. Only action=created awards ${policy.score_delta} to ${policy.input_score_key}, then decays smoothly from its entry time under ${policy.decay_policy_ref} with a seven-day half-life. action=reused does not re-award.`} /></>;
-}
-
 function ScoreEventPublisherCard({ node, graph, openNode, language }) {
   const zh = language === 'zh-CN';
   const [caseIndex, setCaseIndex] = useState(0);
   const selected = identityPilot.cases[caseIndex];
   const account = selected.source_record;
-  const policy = identityPilot.initial_score_policy;
+  const policy = initialScorePolicy;
   const assetId = selected.create_result.asset_id;
   const decisionRef = policy.decision_ref_template.replace('{asset_id}', assetId);
   const link = reference => {
