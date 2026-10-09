@@ -1,21 +1,22 @@
 /* Accepted Cyberight-inspired product palette. See docs/PRODUCT_WORKFLOW.md. */
 :root {
   color-scheme: dark;
-  --ss-bg: #131419;
-  --ss-sidebar: #111216;
-  --ss-surface: #1b1c22;
-  --ss-raised: #22232b;
-  --ss-inset: #17181e;
-  --ss-border: #363842;
-  --ss-text: #f5f5f7;
-  --ss-muted: #c5c5c5;
+  --ss-bg: #141414;
+  --ss-sidebar: #111111;
+  --ss-surface: #1c1c1c;
+  --ss-raised: #242424;
+  --ss-inset: #181818;
+  --ss-border: #303030;
+  --ss-heading: #f2f2f2;
+  --ss-text: #d6d6d6;
+  --ss-muted: #a3a3a3;
   --ss-accent: #ff8a24;
   --ss-accent-hover: #ffa34f;
-  --ss-on-accent: #131419;
+  --ss-on-accent: #141414;
   --ss-accent-soft: #ff8a2415;
   --ss-accent-glow: #ff8a242b;
   --ss-shadow: #0000002b;
-  --ss-overlay: #090a0dcc;
+  --ss-overlay: #090909cc;
   --ss-blue: #92bce8;
   --ss-blue-soft: #92bce817;
   --ss-neutral: #b1b7c4;
@@ -30,15 +31,15 @@
   --ss-warning-soft: #f2c07817;
   --ss-error: #f2929e;
   --ss-error-soft: #f2929e17;
-  --ss-edge: #858996;
-  --ss-grid: #353741;
-  --ss-minimap-mask: #131419b8;
+  --ss-edge: #686868;
+  --ss-grid: #282828;
+  --ss-minimap-mask: #141414b8;
 }
 
 body { background: var(--ss-bg); }
 button, input, select, textarea { accent-color: var(--ss-accent); }
 input, select, textarea { color: var(--ss-text); background-color: var(--ss-inset); }
-input::placeholder, textarea::placeholder { color: var(--ss-muted); opacity: .8; }
+input::placeholder, textarea::placeholder { color: var(--ss-muted); opacity: 1; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
 textarea:focus-visible, summary:focus-visible {
   outline: 2px solid var(--ss-accent);
@@ -69,7 +70,10 @@ textarea:focus-visible, summary:focus-visible {
   background: var(--ss-accent-soft); color: var(--ss-accent);
 }
 .sidebar-link.selected svg, .sidebar-link.view-active svg { color: var(--ss-accent); }
-.brand strong, .workspace-head h1, .inspector h2 { color: var(--ss-text); }
+h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
+.node-name, .workspace-stats strong, .translation-intro h1 {
+  color: var(--ss-heading);
+}
 .topbar { height: 60px; background: var(--ss-bg); }
 .workspace-head h1 { letter-spacing: -.7px; }
 .workspace-head { flex-wrap: wrap; gap: 16px; align-items: flex-start; }
