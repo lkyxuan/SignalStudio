@@ -70,6 +70,13 @@ class DevRuntimeTest(unittest.TestCase):
                 process = subprocess.Popen(command, stdout=log, stderr=log, env=environment)
                 try:
                     first = wait(lambda: (h := get(health))['client_ready'] and h)
+                    forwarded = get(f'http://127.0.0.1:{client}/__signalstudio_health')
+                    self.assertEqual(forwarded['project_root'], str(root.resolve()))
+                    self.assertTrue(forwarded['client_ready'])
+                    request = urllib.request.Request(api + '/graph', headers={'Origin': 'https://untrusted.example'})
+                    with self.assertRaises(urllib.error.HTTPError) as cross_origin:
+                        urllib.request.urlopen(request, timeout=2)
+                    self.assertEqual(cross_origin.exception.code, 403)
                     initial = get(api + '/graph')
                     # Startup is idempotent across backend restarts for an existing workspace.
                     target = root / 'server/app.py'

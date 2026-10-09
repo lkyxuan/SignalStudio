@@ -6,27 +6,15 @@ A local-first design workspace for the definitions, formulas, reasons, caveats a
 
 ## Run
 
-### Mac desktop app (live project updates)
+### Mac desktop app (shared workspace)
 
-Run `npm run desktop:build` to create the single `~/Applications/SignalStudio.app` with the orange heartbeat icon. This app always opens the live development workspace; there is no separate ordinary or Dev app to choose from. Building requires Xcode Command Line Tools. Running requires the local project, installed npm dependencies, Node.js, Python and the existing `data/logic.db`. Runtime paths are captured at build time; rebuild after moving them. The first launch selects the configured project directory and saves an access bookmark. `desktop:dev:build` is a compatibility alias for the same build, not another app.
+`npm run desktop:build` creates the single `~/Applications/SignalStudio.app` with the heartbeat icon, connected to **http://100.123.241.60:15173** on the Mac mini. Join the authorized Tailscale network first. The app verifies the remote project/database identity and readiness, offers reconnect on failure, and never falls back to a local database. Quitting the app leaves the host running.
 
-This is a local app shell without bundled project files/runtimes or distribution notarization; copying the app to another computer does not make it standalone.
+`desktop/connection.json` records the endpoint and host project path. Daily client use needs no local project, Node or Python; building requires Python and Xcode Command Line Tools. `desktop:dev:build` is a compatibility alias for the same app. Explicit local testing is available with `python3 scripts/build_macos_app.py --local`, overwriting the same output rather than adding a second entry; this is not the daily connection mode.
 
-The bundle identifier remains `local.signalstudio.desktop.dev` to retain the development app's permissions and saved access bookmark. When upgrading a machine that has both old apps, quit them, move the old bundles and desktop aliases out of Applications/Desktop to a recoverable backup, then install the single app and recreate the desktop alias. Do not move or replace project data.
+The host repository and database supply the shared workspace. Frontend/catalog and relevant backend updates are watched on that host; committed graph changes are polled with draft/drag protection and revision conflicts. Local edits on another computer need to reach the host through Git or remote development before appearing. JS/JSON hot updates may reload the page: save forms first. Backend restarts do not preserve long-running tasks.
 
-The Dev session uses loopback ports 15173 (Vite), 18788 (API) and 18789 (health). Reuse requires matching project/database paths, development mode, and verified frontend/backend readiness. Port conflicts fail without terminating occupants. Quitting reaps only the session and children started by the app; independently owned sessions remain running. Logs: `~/Library/Logs/SignalStudio/dev-server.log`. Vite uses polling to avoid macOS FSEvents parent-directory permission stalls, and local fallback fonts rather than waiting for Google Fonts.
-
-Vite updates frontend source and imported catalog JSON without rebuilding the app. JS/JSON changes can reload the page: save forms before editing code. Draft protection below applies to graph polling, not persistence across page reloads. Backend Python (excluding tests) and catalog JSON changes restart the API after a 0.5-second debounce; fixing a syntax error restores it automatically. Changes to the Dev launcher, Vite script, dependencies or startup config require reopening the app. Long tasks are not guaranteed to survive restart; existing initialization/migration rules are unchanged.
-
-Visible windows poll graph data approximately every two seconds and on focus; hidden windows pause periodic requests. Identical snapshots retain state, without arranging nodes or fitting the viewport again. Clean selected details follow updates; edited forms and active dragging defer external snapshots. Conflict detection conservatively covers the whole graph, including changes to other cards. Explicitly discard drafts to load the latest version, or keep edits and authorize the next save against that version. Another external change still blocks saving. Node details submit only changed editable fields, excluding old positions. Other forms retain their own submission scope. Switching cards keeps the existing behavior; save before leaving an editor.
-
-Graph reads return a consistent SQLite snapshot with `revision` and a backend `contract_revision`. UI writes send `If-Match`; the API compares it under `BEGIN IMMEDIATE`, returning 409 on mismatch. Polling and writes are serialized, and API/health responses prohibit caching. Legacy scripts without `If-Match` retain their old behavior. This covers design graph nodes, fields, dependencies, field usages and requirements, not independent backfill files or Notion cards.
-
-Run `python3 scripts/test_dev_runtime.py` for temporary-project/database lifecycle, idempotency, restart/recovery, HTTP conflict and port cleanup checks. Run `npx tsx --test src/liveGraph.test.ts` and `python3 -m unittest discover -s server -p test_live_state.py` for synchronization and cross-connection locking. Also verify the native window, folder cancellation/recovery, reuse, relaunch and Vite updates on macOS. This is a local development shell; standalone GitHub Release packaging remains a separate task. Approved scope and verification: [Notion task](https://app.notion.com/p/3f4038a63d5a813c84d7e980d476baca).
-
-### Development server
-
-Requires Node.js 22+ and Python 3.9+.
+See [Mac mini operations](docs/MAC_MINI_HOST.md) for the host paths, ports, service lifecycle, backup and verification. The following commands explicitly run a local development instance:
 
 ```bash
 npm install
@@ -35,7 +23,7 @@ npm run dev
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API runs on port 8787. The SQLite file is created at `data/logic.db`; set `SIGNALSTUDIO_DB` to use a different path. Startup removes unused V2 record-type nodes and keeps the app-owned upstream operations as the source baseline. A one-time migration closes gaps left by that retirement; later deletions do not reuse reference numbers.
 
-To use the same project data on another computer, stop the local server before committing or pulling changes to `data/logic.db` with GitHub Desktop. Start the server again after the sync. The database is included in this public repository.
+For daily use across computers, connect to the Mac mini endpoint above. The repository still tracks a historical `data/logic.db`; it is not the live primary database. Do not sync SQLite files through Git to overwrite the running shared workspace.
 
 The actual-backfill snapshot `data/table-1006-backfill.json` also syncs through Git. After importing or validating and saving it, the sampling agent commits and pushes the file. Pull on another computer and reopen the #1006 panel to read it; no second import is needed. Saving through the UI does not automatically commit to Git.
 

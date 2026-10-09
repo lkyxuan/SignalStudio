@@ -6,27 +6,15 @@
 
 ## 运行
 
-### Mac 独立 App（实时查看项目）
+### Mac 独立 App（共享工作台）
 
-运行 `npm run desktop:build`，只生成一个带橙色心跳图标的 `~/Applications/SignalStudio.app`。这个 App 始终打开实时开发工作台，不再区分普通版与 Dev 版。需要本机 Node.js、Python、项目源码、`npm install` 后的依赖、原有 `data/logic.db` 和 Xcode Command Line Tools；构建会记录运行时路径。移动项目或运行时后重新构建。首次启动选择该项目文件夹，后续使用保存的访问书签。`desktop:dev:build` 兼容旧命令，但构建的是同一个 App。
+默认 `npm run desktop:build` 构建唯一的 `~/Applications/SignalStudio.app`，带心跳图标，连接 Mac mini 的共享开发工作台：**http://100.123.241.60:15173**。需当前电脑加入有权访问该主机的 Tailscale 网络。App 会核验远端项目、数据库与就绪状态；断连显示“重新连接 Mac mini”，不会自动打开本地数据库；退出 App 不停止主机服务。
 
-这是本机应用外壳，未内置项目文件或运行时，也未做分发公证；复制到其他电脑不能独立运行。
+地址与远端项目路径在 `desktop/connection.json` 中维护。客户端日常运行不依赖本机项目、Node 或 Python；构建需要 Python 和 Xcode Command Line Tools。兼容命令 `desktop:dev:build` 构建同一应用。需要明确测试本地模式时可运行 `python3 scripts/build_macos_app.py --local`，它会覆盖同一输出，不新增第二个入口；日常不要用该选项。
 
-应用身份仍为 `local.signalstudio.desktop.dev`，以保留原开发版的访问书签和权限。已有两个旧 App 的电脑，升级时先退出它们，将旧应用和桌面别名移到 Applications/Desktop 之外的可恢复备份，再安装唯一 App、重建桌面别名。不要移动或替换项目数据。
+Mac mini 的源码和 `data/logic.db` 是共享工作台的运行来源。服务监测主机上的前端、catalog 与相关后台源码，前台约两秒检查已提交的图变化，保留草稿/拖动保护和冲突提示。其他电脑只修改自己的本地源码不会自动更新主机，需提交推送并更新主机仓库，或直接远程开发。JS/JSON 热更新可能整页重载，修改代码前先保存表单；后台重启不保证长任务延续。
 
-开发版使用回环地址：Vite `15173`、后台 `18788`、会话健康检查 `18789`。只有项目路径、数据库路径和开发模式匹配，且会话核验过前后端身份及就绪状态，才复用服务。端口冲突直接报错，不停止占用者。退出只回收自己启动的会话与子进程；复用的服务保留。日志：`~/Library/Logs/SignalStudio/dev-server.log`。文件监听采用轮询，避免 macOS FSEvents 访问项目父目录时挂起；开发界面使用本机备用字体，不等待 Google Fonts。
-
-前端源码及导入的 catalog JSON 由 Vite 自动更新，无需打包。相关 JS/JSON 更新可能整页重载，改代码前先保存表单；下述草稿保护针对图数据同步，不是跨页面重载的草稿存储。后台 `server/**/*.py`（排除测试）和 `catalog/**/*.json` 保存后，约半秒稳定窗口后重启后台。代码错误会显示断连提示，修复保存后自动恢复；开发会话/Vite 本身的脚本、依赖或启动配置变化需退出并重开 App。重启不保证长任务继续执行，既有初始化/迁移规则没有改变。
-
-图数据在可见窗口约每 2 秒同步，聚焦时也检查；隐藏时暂停定时请求。图内容未变则保留同一状态对象；同步不自动整理或重新缩放画布，保留筛选与选择。干净的选中详情跟随更新；编辑表单后暂缓应用外部图数据，拖动期间也暂缓。冲突按整个图版本保守判断，其他卡片变化也可能提示。用户必须选择“放弃草稿，载入最新”或“保留编辑，允许覆盖后保存”；后一项只授权下一次针对已看到版本的保存，新外部版本仍会阻止写入。节点详情只提交改动字段，不写回旧位置；其他表单按其自身提交范围保存。切换卡片沿用现有行为，离开前先保存草稿。
-
-`GET /api/graph` 返回一致 SQLite 快照的 `revision` 及后台合同内容的 `contract_revision`。界面保存携带 `If-Match`，后台在 `BEGIN IMMEDIATE` 写锁内核对版本；不匹配返回 409。界面轮询与保存串行，防止旧读响应覆盖新状态；API 和健康响应禁止缓存。未携带 `If-Match` 的旧脚本兼容原行为，不能由此推断所有外部写入都受冲突保护。本机制覆盖设计图节点、字段、连接、字段用途和数据需求，不轮询独立回填文件或 Notion 卡片。
-
-验证：`python3 scripts/test_dev_runtime.py` 在临时项目/数据库中检查启动、初始化重入、代码与合同重启、语法错误恢复、HTTP 冲突、端口占用与进程清理；`npx tsx --test src/liveGraph.test.ts` 和 `python3 -m unittest discover -s server -p test_live_state.py` 检查同步状态及跨连接锁。还需本机检查原生窗口、取消/重选文件夹、复用已有会话、退出重开和 Vite 更新。该入口仍是本机开发外壳，不是 GitHub Release 独立安装包。批准范围与验证记录：[Notion 任务](https://app.notion.com/p/3f4038a63d5a813c84d7e980d476baca)。
-
-### 开发服务
-
-需要 Node.js 22+ 和 Python 3.9+。
+实际主机路径、端口、服务管理、备份与验证说明见 [Mac mini 运行说明](docs/MAC_MINI_HOST.md)。以下终端命令是显式本地开发方式：
 
 ```bash
 npm install
@@ -35,7 +23,7 @@ npm run dev
 
 打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。API 在 8787 端口运行。SQLite 数据库保存在 `data/logic.db`；可通过 `SIGNALSTUDIO_DB` 指定其他路径。启动时会移除未使用的 V2 记录类型节点，并以应用自身维护的上游操作作为来源基线。一次性迁移会补齐这些节点退役后留下的编号间隙；此后的删除操作不会复用引用编号。
 
-如果要在另一台电脑上使用同一份项目数据，请先停止本地服务，再通过 GitHub Desktop 提交或拉取 `data/logic.db` 的变更。同步后重新启动服务。该数据库包含在这个公开仓库中。
+跨电脑日常使用请连接上面的 Mac mini 地址，共享同一份服务端数据。仓库仍跟踪历史 `data/logic.db`，它不再代表运行中的主数据库；不要提交、拉取或自动同步 SQLite 文件来覆盖在线工作台。
 
 实际回填快照 `data/table-1006-backfill.json` 也通过 Git 同步。取样 Agent 导入或直接校验写入后，提交并推送该文件；另一台电脑拉取仓库、重新打开 #1006 面板即可读取，无需再次导入。页面保存不会自动提交 Git。
 

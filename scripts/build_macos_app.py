@@ -33,10 +33,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('output', nargs='?')
     parser.add_argument('--dev', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--local', action='store_true', help='Build an explicit local development client')
     args = parser.parse_args()
     name = 'SignalStudio'
+    connection = ROOT / 'desktop/connection.json'
+    remote = json.loads(connection.read_text()) if connection.exists() and not args.local else None
     node = shutil.which('node')
-    if not node:
+    if not node and not remote:
         raise SystemExit('Node.js is required for SignalStudio.')
     output = Path(args.output).expanduser().resolve() if args.output else Path.home() / f'Applications/{name}.app'
     if output.suffix != ".app":
@@ -56,8 +59,14 @@ def main():
                       "CFBundleIconFile": "SignalStudio.icns",
                       "NSHighResolutionCapable": True,
                       "NSDocumentsFolderUsageDescription": "SignalStudio 需要读取文稿中的项目文件和已有工作台数据。",
-                      "NSAppTransportSecurity": {"NSAllowsLocalNetworking": True}}, file)
-    (resources / "launch.json").write_text(json.dumps({"project_root": str(ROOT), "python": sys.executable, "mode": "development", "node": node}), encoding="utf-8")
+                      "NSLocalNetworkUsageDescription": "SignalStudio 通过 Tailscale 连接你的 Mac mini 共享工作台。",
+                      # The private numeric Tailscale endpoint uses HTTP inside its encrypted tunnel.
+                      "NSAppTransportSecurity": ({"NSAllowsArbitraryLoads": True} if remote
+                                                  else {"NSAllowsLocalNetworking": True})}, file)
+    config = {"project_root": str(ROOT), "python": sys.executable, "mode": "development", "node": node or ''}
+    if remote:
+        config.update(remote, mode='remote')
+    (resources / "launch.json").write_text(json.dumps(config), encoding="utf-8")
     subprocess.run(["codesign", "--force", "--sign", "-", str(output)], check=True)
     print(f"Built: {output}")
     print(f'Open with: open "{output}"')

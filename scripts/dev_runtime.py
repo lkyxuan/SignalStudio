@@ -1,6 +1,7 @@
 """Own a local Dev session, watch backend inputs, and reap only our children."""
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -53,10 +54,14 @@ def main():
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parent.parent)
     parser.add_argument('--db', type=Path)
     parser.add_argument('--client-port', type=int, default=15173)
+    parser.add_argument('--client-host', default='127.0.0.1')
     parser.add_argument('--backend-port', type=int, default=18788)
     parser.add_argument('--control-port', type=int, default=18789)
     parser.add_argument('--parent-pid', type=int)
     args = parser.parse_args()
+    address = ipaddress.IPv4Address(args.client_host)
+    if not (address.is_loopback or address in ipaddress.ip_network('100.64.0.0/10')):
+        parser.error('--client-host must be a loopback or Tailscale IPv4 address')
     root = args.root.resolve()
     database = (args.db or root / 'data/logic.db').resolve()
     if not database.is_file():
@@ -64,11 +69,11 @@ def main():
     # Check all endpoints before starting anything. Never terminate port occupants.
     reservations = []
     try:
-        for port in (args.client_port, args.backend_port, args.control_port):
+        for host, port in ((args.client_host, args.client_port), ('127.0.0.1', args.backend_port), ('127.0.0.1', args.control_port)):
             listener = socket.socket()
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             reservations.append(listener)
-            listener.bind(('127.0.0.1', port))
+            listener.bind((host, port))
     finally:
         for listener in reservations:
             listener.close()
@@ -103,7 +108,7 @@ def main():
                        SIGNALSTUDIO_MODE='development', PYTHONUNBUFFERED='1')
     try:
         children['client'] = subprocess.Popen([args.node, str(root / 'scripts/dev_client.mjs'), str(root),
-            str(args.client_port), str(args.backend_port), token], cwd=root, env=environment)
+            str(args.client_port), str(args.backend_port), token, args.client_host, str(args.control_port)], cwd=root, env=environment)
         previous = None
         next_health_check = 0
         candidate = fingerprint(root)
@@ -134,7 +139,7 @@ def main():
                 continue
             next_health_check = time.monotonic() + 1
             api = read_json(f'http://127.0.0.1:{args.backend_port}/api/desktop-health')
-            client = read_json(f'http://127.0.0.1:{args.client_port}/__signalstudio_dev')
+            client = read_json(f'http://{args.client_host}:{args.client_port}/__signalstudio_dev')
             ready = bool(api and api.get('project_root') == str(root)
                 and api.get('database_path') == str(database) and api.get('mode') == 'development'
                 and client == {'project_root': str(root), 'token': token})

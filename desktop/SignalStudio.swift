@@ -17,8 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var python = ""
     private var development = false
     private var node = ""
-    private var baseURL: URL { URL(string: development ? "http://127.0.0.1:15173" : "http://127.0.0.1:18787")! }
-    private var healthURL: URL { development ? URL(string: "http://127.0.0.1:18789/health")! : baseURL.appendingPathComponent("api/desktop-health") }
+    private var remoteURL: URL?
+    private var baseURL: URL { remoteURL ?? URL(string: development ? "http://127.0.0.1:15173" : "http://127.0.0.1:18787")! }
+    private var healthURL: URL { remoteURL != nil ? baseURL.appendingPathComponent("__signalstudio_health") : (development ? URL(string: "http://127.0.0.1:18789/health")! : baseURL.appendingPathComponent("api/desktop-health")) }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set the running Dock icon as well as the bundle's Finder icon.
@@ -61,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         status.font = NSFont.systemFont(ofSize: 18)
         status.maximumNumberOfLines = 3
         window.contentView!.addSubview(status)
-        retry = NSButton(title: "重新选择项目文件夹", target: self, action: #selector(selectProject))
+        retry = NSButton(title: "重新选择项目文件夹", target: self, action: #selector(retryConnection))
         retry.frame = NSRect(x: 30, y: 20, width: 210, height: 30)
         retry.autoresizingMask = [.maxYMargin]
         retry.isHidden = true
@@ -80,8 +81,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         python = executable
         development = config["mode"] == "development"
         node = config["node"] ?? ""
-        window.title = "SignalStudio"
+        if config["mode"] == "remote" {
+            guard let address = config["base_url"], let url = URL(string: address),
+                  ["http", "https"].contains(url.scheme ?? ""), url.host != nil else {
+                fail("远程工作台地址无效，请重新构建 App。")
+                return
+            }
+            remoteURL = url
+            development = true
+            retry.title = "重新连接 Mac mini"
+            status.stringValue = "正在连接 Mac mini：\(address)…"
+        }
+        window.title = remoteURL == nil ? "SignalStudio" : "SignalStudio · Mac mini"
         probe(initial: true)
+    }
+
+    @objc private func retryConnection() {
+        if remoteURL != nil {
+            attempts = 0
+            retry.isHidden = true
+            status.stringValue = "正在重新连接 Mac mini…"
+            probe(initial: true)
+        } else {
+            selectProject()
+        }
     }
 
     private func prepareProjectAccess() {
@@ -175,7 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     // Only reuse a service that identifies this exact project and a built client.
     private func probe(initial: Bool) {
         var request = URLRequest(url: healthURL, cachePolicy: .reloadIgnoringLocalCacheData)
-        request.timeoutInterval = 1
+        request.timeoutInterval = remoteURL == nil ? 1 : 5
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 guard !self.quitting else { return }
@@ -192,7 +215,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                     guard health?["client_ready"] as? Bool == true else {
                         self.attempts += 1
                         if self.attempts >= 120 || health?["status"] as? String == "error" {
-                            self.fail("开发服务尚未就绪。请修复项目代码并重开 App；日志位于 ~/Library/Logs/SignalStudio/dev-server.log。")
+                            self.fail(self.remoteURL == nil
+                                ? "开发服务尚未就绪。请修复项目代码并重开 App；日志位于 ~/Library/Logs/SignalStudio/dev-server.log。"
+                                : "Mac mini 服务尚未就绪。请检查主机上的服务日志，然后重新连接。")
                         } else {
                             self.status.stringValue = "正在等待前端与后台就绪…"
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.probe(initial: false) }
@@ -204,7 +229,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                     self.webView.load(URLRequest(url: self.baseURL))
                     return
                 }
-                if initial {
+                if self.remoteURL != nil {
+                    let reason = error?.localizedDescription ?? "未收到服务响应"
+                    self.fail("无法连接 Mac mini 工作台：\(self.baseURL)。\(reason) 请检查 Tailscale 与主机服务，然后点击重新连接。")
+                } else if initial {
                     self.prepareProjectAccess()
                 } else {
                     self.attempts += 1
@@ -261,7 +289,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         webView.isHidden = true
         status.isHidden = false
         status.stringValue = message
-        retry.isHidden = root.isEmpty || server?.isRunning == true
+        retry.isHidden = remoteURL == nil && (root.isEmpty || server?.isRunning == true)
     }
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
