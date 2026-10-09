@@ -1,24 +1,24 @@
-.signal-needs{border-top:1px solid #e8eef0;padding:18px 0 20px}
-.signal-need-card{border:1px solid #dfe9e7;background:#fbfdfc;border-radius:7px;padding:10px;margin-bottom:8px}
+.signal-needs{border-top:1px solid var(--ss-border);padding:18px 0 20px}
+.signal-need-card{border:1px solid var(--ss-border);background:var(--ss-surface);border-radius:7px;padding:10px;margin-bottom:8px}
 .signal-need-title{display:flex;align-items:center;justify-content:space-between;gap:7px}
-.signal-need-title strong{color:#2f5556;font-size:11px}
-.signal-need-title span{font-size:9px;border-radius:4px;padding:3px 5px;white-space:nowrap}
-.signal-need-title .found{color:#318373;background:#e7f4ed}
-.signal-need-title .pending{color:#a37847;background:#fbf1e2}
-.signal-need-card p{font-size:10px;color:#70878a;margin:7px 0;line-height:1.5}
-.signal-need-card small{display:block;font-size:9px;color:#879ba1;margin-top:5px;line-height:1.45}
+.signal-need-title strong{color:var(--ss-text);font-size:11px}
+.signal-need-title span{font-size:11px;border-radius:4px;padding:3px 5px;white-space:nowrap}
+.signal-need-title .found{color:var(--ss-text);background:var(--ss-raised)}
+.signal-need-title .pending{color:var(--ss-muted);background:var(--ss-raised)}
+.signal-need-card p{font-size:11px;color:var(--ss-muted);margin:7px 0;line-height:1.5}
+.signal-need-card small{display:block;font-size:11px;color:var(--ss-muted);margin-top:5px;line-height:1.45}
 .signal-need-actions{display:flex;gap:7px;margin-top:10px}
-.signal-need-actions button{border:1px solid #cde4de;background:#eff8f4;color:#297a6d;border-radius:5px;padding:6px 8px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:5px;cursor:pointer}
-.signal-need-actions .signal-need-remove{margin-left:auto;color:#bd7780;background:#fff;border-color:#f1e0e2}
-.signal-need-editor{border:1px solid #c8e3da;background:#f7fbf9;border-radius:7px;padding:11px;margin:9px 0}
+.signal-need-actions button{border:1px solid var(--ss-border);background:var(--ss-raised);color:var(--ss-accent);border-radius:5px;padding:6px 8px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;cursor:pointer}
+.signal-need-actions .signal-need-remove{margin-left:auto;color:var(--ss-muted);background:var(--ss-surface);border-color:var(--ss-border)}
+.signal-need-editor{border:1px solid var(--ss-border);background:var(--ss-raised);border-radius:7px;padding:11px;margin:9px 0}
 .signal-need-editor label{margin-bottom:10px}
 .signal-need-editor-actions{display:flex;justify-content:flex-end;gap:7px}
-.signal-need-editor-actions button{border:1px solid #d4e3df;background:#fff;color:#508278;border-radius:5px;padding:7px 9px;font-size:10px;font-weight:700;cursor:pointer}
-.signal-need-editor-actions button:last-child{background:#237f70;color:#fff;border-color:#237f70}
+.signal-need-editor-actions button{border:1px solid var(--ss-border);background:var(--ss-surface);color:var(--ss-accent);border-radius:5px;padding:7px 9px;font-size:11px;font-weight:700;cursor:pointer}
+.signal-need-editor-actions button:last-child{background:var(--ss-raised);color:var(--ss-accent);border-color:var(--ss-border)}
 .signal-need-editor-actions button:disabled{opacity:.5;cursor:default}
-.signal-need-brief{margin-top:12px;border-top:1px solid #e7efed;padding-top:10px}
-.signal-need-brief summary{font-size:10px;color:#4d8177;font-weight:700;cursor:pointer}
-.signal-need-brief p{font-size:10px;color:#82999a}
-.signal-need-brief textarea{font:10px/1.5 'IBM Plex Mono',monospace;resize:vertical}
-.node-need-count{font-size:9px;white-space:nowrap;color:#9a6b37;background:#fff2de;border-radius:4px;padding:3px 5px;margin-left:auto}
+.signal-need-brief{margin-top:12px;border-top:1px solid var(--ss-border);padding-top:10px}
+.signal-need-brief summary{font-size:11px;color:var(--ss-accent);font-weight:700;cursor:pointer}
+.signal-need-brief p{font-size:11px;color:var(--ss-muted)}
+.signal-need-brief textarea{font:11px/1.5 'IBM Plex Mono',monospace;resize:vertical}
+.node-need-count{font-size:11px;white-space:nowrap;color:var(--ss-text);background:var(--ss-raised);border-radius:4px;padding:3px 5px;margin-left:auto}
 .node-need-count+.node-field-count{margin-left:4px}

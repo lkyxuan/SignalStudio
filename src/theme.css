@@ -1,0 +1,146 @@
+/* Accepted Cyberight-inspired product palette. See docs/PRODUCT_WORKFLOW.md. */
+:root {
+  color-scheme: dark;
+  --ss-bg: #131419;
+  --ss-sidebar: #111216;
+  --ss-surface: #1b1c22;
+  --ss-raised: #22232b;
+  --ss-inset: #17181e;
+  --ss-border: #363842;
+  --ss-text: #f5f5f7;
+  --ss-muted: #c5c5c5;
+  --ss-accent: #ff8a24;
+  --ss-accent-hover: #ffa34f;
+  --ss-on-accent: #131419;
+  --ss-accent-soft: #ff8a2415;
+  --ss-accent-glow: #ff8a242b;
+  --ss-shadow: #0000002b;
+  --ss-overlay: #090a0dcc;
+  --ss-blue: #92bce8;
+  --ss-blue-soft: #92bce817;
+  --ss-neutral: #b1b7c4;
+  --ss-neutral-soft: #b1b7c417;
+  --ss-purple: #bba5e0;
+  --ss-purple-soft: #bba5e017;
+  --ss-pink: #e3a0c7;
+  --ss-pink-soft: #e3a0c717;
+  --ss-success: #86d4ad;
+  --ss-success-soft: #86d4ad17;
+  --ss-warning: #f2c078;
+  --ss-warning-soft: #f2c07817;
+  --ss-error: #f2929e;
+  --ss-error-soft: #f2929e17;
+  --ss-edge: #858996;
+  --ss-grid: #353741;
+  --ss-minimap-mask: #131419b8;
+}
+
+body { background: var(--ss-bg); }
+button, input, select, textarea { accent-color: var(--ss-accent); }
+input, select, textarea { color: var(--ss-text); background-color: var(--ss-inset); }
+input::placeholder, textarea::placeholder { color: var(--ss-muted); opacity: .8; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--ss-accent);
+  outline-offset: 3px;
+}
+
+.brand-mark { background: var(--ss-accent-soft); color: var(--ss-accent); }
+.eyebrow-line, .hint-dot { background: var(--ss-accent); }
+.status-dot { background: var(--ss-success); }
+.type-dot, .table-type-mark { background: var(--ss-neutral); }
+.type-dot.raw, .table-type-mark.raw { background: var(--ss-neutral); }
+.type-dot.source, .table-type-mark.source,
+.type-dot.identity, .table-type-mark.identity,
+.type-dot.relationship, .table-type-mark.relationship,
+.type-dot.state, .table-type-mark.state,
+.type-dot.evidence, .table-type-mark.evidence { background: var(--ss-blue); }
+.type-dot.derived, .table-type-mark.derived,
+.type-dot.review, .table-type-mark.review,
+.type-dot.topic, .table-type-mark.topic { background: var(--ss-purple); }
+.type-dot.metric, .table-type-mark.metric { background: var(--ss-success); }
+.type-dot.score, .table-type-mark.score { background: var(--ss-accent); }
+.type-dot.ranking, .table-type-mark.ranking,
+.type-dot.cache, .table-type-mark.cache { background: var(--ss-pink); }
+.type-dot.rule, .table-type-mark.rule,
+.type-dot.event, .table-type-mark.event { background: var(--ss-warning); }
+.type-dot.product, .table-type-mark.product { background: var(--ss-error); }
+.sidebar-link.selected, .sidebar-link.view-active, .library-active {
+  background: var(--ss-accent-soft); color: var(--ss-accent);
+}
+.sidebar-link.selected svg, .sidebar-link.view-active svg { color: var(--ss-accent); }
+.brand strong, .workspace-head h1, .inspector h2 { color: var(--ss-text); }
+.topbar { height: 60px; background: var(--ss-bg); }
+.workspace-head h1 { letter-spacing: -.7px; }
+.workspace-head { flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.workspace-head > div:first-child { flex: 1 1 280px; }
+.workspace-stats { flex: none; }
+.workspace-stats > div { min-width: max-content; }
+.workspace-stats span { white-space: nowrap; }
+.work-card, .translation-view { box-shadow: none; }
+.view-toolbar, .workflow-tabs { background: var(--ss-surface); }
+.view-toolbar { height: auto; min-height: 60px; padding: 10px 16px; flex-wrap: wrap; }
+.view-switch { flex: none; }
+.view-switch button { white-space: nowrap; }
+.toolbar-right { min-width: 0; flex-wrap: wrap; }
+.toolbar-right select { max-width: 190px; }
+.search-box { min-width: 150px; }
+.graph-hint { max-width: calc(100% - 28px); flex-wrap: wrap; }
+.bottom-prompt button { flex: none; white-space: nowrap; }
+.button-primary { color: var(--ss-on-accent); }
+.view-switch button.active, .local-view-switch button.active,
+.workflow-tabs button.active, .language-switch button.active {
+  color: var(--ss-accent); background: var(--ss-accent-soft); box-shadow: none;
+}
+.workflow-tabs button:not(.active), .view-switch button:not(.active),
+.local-view-switch button:not(.active), .language-switch button:not(.active) { color: var(--ss-muted); }
+.top-meta { color: var(--ss-muted); }
+.node-top { flex-wrap: wrap; row-gap: 6px; }
+.node-kind, .node-field-count { white-space: nowrap; }
+.logic-node { border-top-width: 1px; background: var(--ss-surface); box-shadow: none; }
+.logic-node:hover, .logic-node.is-selected,
+.react-flow__node.graph-related .logic-node {
+  border-color: var(--ss-accent); box-shadow: 0 0 0 1px var(--ss-accent-glow);
+}
+.logic-node.is-selected { background: var(--ss-accent-soft); }
+.logic-node.is-selected .node-ref { color: var(--ss-accent); }
+.logic-node.state-node, .logic-node.decision-node {
+  background: var(--ss-surface); border-color: var(--ss-border); box-shadow: none;
+}
+.logic-node.state-node.is-selected, .logic-node.decision-node.is-selected,
+.logic-node.state-node:hover, .logic-node.decision-node:hover { border-color: var(--ss-accent); }
+.node-definition { height: 32px; }
+.node-ref, .table-node-ref, .inspector-node-ref {
+  color: var(--ss-muted); background: transparent; border-color: var(--ss-border);
+}
+.inspector-node-ref { color: var(--ss-accent); }
+.flow-handle.edge-port { background: var(--ss-edge) !important; }
+.react-flow__edge.selected path { stroke: var(--ss-accent) !important; }
+.react-flow__edge.graph-related path { stroke: var(--ss-accent); filter: none; }
+.react-flow__controls-button { background: var(--ss-surface); color: var(--ss-text); }
+.react-flow__controls-button:hover { background: var(--ss-raised); }
+.react-flow__controls-button svg { fill: currentColor; }
+.react-flow__minimap { background: var(--ss-inset); }
+.react-flow__minimap-mask { fill: var(--ss-minimap-mask); }
+.react-flow__attribution { background: var(--ss-surface); }
+.react-flow__attribution a { color: var(--ss-muted); }
+.local-flow-view { background: var(--ss-bg); }
+.local-focus-node { border-color: var(--ss-accent); background: var(--ss-accent-soft); }
+.local-neighbor-node, .local-focus-node { box-shadow: none; }
+.local-neighbor-node strong, .local-focus-node strong { color: var(--ss-text); }
+.local-focus-node .local-node-type, .local-focus-node strong span { color: var(--ss-accent); }
+.table-wrap table, .business-table-card table { font-size: 12px; }
+.business-table-card td { color: var(--ss-text); }
+.business-table-raw tbody tr:nth-child(even) { background: var(--ss-raised); }
+.source-case-inspector-fields dd, .processing-goal-readonly p,
+.node-case-explanation p { color: var(--ss-text); }
+.processing-input-source-heading button { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.inspector { background: var(--ss-surface); }
+.inspector-description, .processing-io-case-caption { font-size: 12px; line-height: 1.65; }
+.modal { background: var(--ss-surface); }
+.modal-backdrop { background: var(--ss-overlay); }
+.toast { background: var(--ss-raised); border: 1px solid var(--ss-border); }
+.toast-error { color: var(--ss-error); border-color: var(--ss-error); }
+@media (prefers-reduced-motion: reduce) {
+  .logic-node, .react-flow__node.graph-dimmed, .react-flow__edge.graph-dimmed { transition: none; }
+}

@@ -1,15 +1,15 @@
 .node-name{display:flex;align-items:center;gap:6px}
 .node-name-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.node-ref,.table-node-ref,.inspector-node-ref{font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:0;white-space:nowrap;color:#176e68;background:#e7f5f1;border:1px solid #cee7df;border-radius:4px}
-.node-ref{flex:none;font-size:9px;line-height:17px;padding:0 4px}
-.table-node-ref{display:inline-block;font-size:10px;line-height:17px;padding:0 5px;margin-right:7px;vertical-align:middle}
+.node-ref,.table-node-ref,.inspector-node-ref{font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:0;white-space:nowrap;color:var(--ss-accent);background:var(--ss-raised);border:1px solid var(--ss-border);border-radius:4px}
+.node-ref{flex:none;font-size:11px;line-height:17px;padding:0 4px}
+.table-node-ref{display:inline-block;font-size:11px;line-height:17px;padding:0 5px;margin-right:7px;vertical-align:middle}
 .inspector-node-ref{display:inline-block;font-size:11px;line-height:20px;padding:0 6px;margin-right:8px;vertical-align:2px}
 .inspector-edge-ref,.edge-inline-ref,.mapping-ref,.usage-inline-ref,.path-node-ref{font-family:'IBM Plex Mono',monospace;font-weight:700;white-space:nowrap;border-radius:4px}
-.inspector-edge-ref,.edge-inline-ref{color:#6c5c9b;background:#f1edfa;border:1px solid #ded6f1}
+.inspector-edge-ref,.edge-inline-ref{color:var(--ss-muted);background:var(--ss-raised);border:1px solid var(--ss-border)}
 .inspector-edge-ref{display:inline-block;font-size:11px;line-height:20px;padding:0 6px;margin-right:8px;vertical-align:2px}
-.edge-inline-ref{display:inline-block;font-size:9px;line-height:15px;padding:0 4px;margin-right:5px}
-.mapping-ref,.usage-inline-ref{color:#a06943;background:#fff2e9;border:1px solid #f3dcc9}
-.mapping-ref{display:inline-block;font-size:10px;padding:2px 5px;margin-bottom:7px}
-.usage-inline-ref{display:inline-block;font-size:9px;line-height:15px;padding:0 4px;margin-right:5px}
-.path-node-ref{display:inline-block;color:#176e68;margin-right:5px}
+.edge-inline-ref{display:inline-block;font-size:11px;line-height:15px;padding:0 4px;margin-right:5px}
+.mapping-ref,.usage-inline-ref{color:var(--ss-accent);background:var(--ss-raised);border:1px solid var(--ss-border)}
+.mapping-ref{display:inline-block;font-size:11px;padding:2px 5px;margin-bottom:7px}
+.usage-inline-ref{display:inline-block;font-size:11px;line-height:15px;padding:0 4px;margin-right:5px}
+.path-node-ref{display:inline-block;color:var(--ss-accent);margin-right:5px}
 .react-flow__edge-text{font-family:'IBM Plex Mono',monospace;font-weight:700}

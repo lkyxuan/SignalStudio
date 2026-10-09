@@ -26,6 +26,7 @@ import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
 import './node-ref.css';
+import './theme.css';
 
 const BUSINESS_TABLE_NAMES = new Set(Object.keys(businessTables.tables));
 const SOURCE_NAMES = {
@@ -248,7 +249,7 @@ function App() {
       nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}`).join(',')}`;
     }
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
-    setEdges(graph.edges.map(e => { const color = '#8994a3';
+    setEdges(graph.edges.map(e => { const color = 'var(--ss-edge)';
       return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: 'default', animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
         style: { stroke: color, strokeWidth: 1.5 }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
@@ -396,7 +397,7 @@ function App() {
   };
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark"><Network size={22} strokeWidth={2.2} /></div><div><strong>{t('SignalStudio')}</strong><span>{t('DESIGN STUDIO')}</span></div></div>
+      <div className="brand"><div className="brand-mark"><Activity size={22} strokeWidth={2.2} /></div><div><strong>{t('SignalStudio')}</strong><span>{t('DESIGN STUDIO')}</span></div></div>
       <div className="sidebar-section-label">{t('WORKSPACE')}</div>
       <button className="sidebar-link selected" onClick={() => { setView('graph'); setSelectedId(null); }}><Layers3 size={17} /> {t('Signal design graph')} <ChevronDown size={15} className="sidebar-chevron" /></button>
       <div className="sidebar-section-label nav-label">{t('VIEWS')}</div>
@@ -421,7 +422,7 @@ function App() {
           onNodeDragStop={(_, node) => mutate(`/nodes/${node.id}`, 'PATCH', { position_x: node.position.x, position_y: node.position.y })}
           onConnect={connect} onEdgeClick={(_, edge) => openEdge(edge.id)} onInit={setFlowInstance} deleteKeyCode={null}
           fitView fitViewOptions={{ padding: 0.16, maxZoom: 0.75 }} minZoom={0.15} maxZoom={1.5} defaultEdgeOptions={{ type: 'default' }}>
-          <Background color="#dfe4e8" gap={22} size={1} /><Controls showInteractive={false} />{filtered.length > 0 && <MiniMap pannable zoomable nodeColor={node => ({ source: '#6599cd', raw: '#7f91a6', evidence: '#6c93a0', identity: '#557dbc', relationship: '#709dca', review: '#9982b7', derived: '#9278ba', metric: '#51a89d', score: '#d69a5d', ranking: '#d894b6', rule: '#be9270', event: '#c4886f', product: '#d17984', state: '#587fb2', topic: '#8265b6', cache: '#b36473' })[KIND[node.data.type]] || '#aaa'} />}</ReactFlow>
+          <Background color="var(--ss-grid)" gap={22} size={1} /><Controls showInteractive={false} />{filtered.length > 0 && <MiniMap pannable zoomable nodeColor={node => ({ source: 'var(--ss-blue)', raw: 'var(--ss-neutral)', evidence: 'var(--ss-blue)', identity: 'var(--ss-blue)', relationship: 'var(--ss-blue)', review: 'var(--ss-purple)', derived: 'var(--ss-purple)', metric: 'var(--ss-success)', score: 'var(--ss-accent)', ranking: 'var(--ss-pink)', rule: 'var(--ss-warning)', event: 'var(--ss-warning)', product: 'var(--ss-error)', state: 'var(--ss-blue)', topic: 'var(--ss-purple)', cache: 'var(--ss-pink)' })[KIND[node.data.type]] || 'var(--ss-neutral)'} />}</ReactFlow>
           {filtered.length > 0 && <div className="graph-hint"><span className="hint-dot" /> {language === 'zh-CN' ? '悬停或选中卡片，高亮直接上下游' : 'Hover or select a card to highlight direct neighbors'} <span className="hint-sep">·</span> {t('Drag from a node handle to create a dependency')}</div>}</div>
           : <div className="table-wrap"><table><thead><tr><th>{t('NAME')}</th><th>{t('TYPE')}</th><th>{t('PATH')}</th><th>{t('FIELDS')}</th><th>{t('FORMULA / DEFINITION')}</th><th>{t('UPSTREAM')}</th><th>{t('DOWNSTREAM')}</th><th>{t('PRODUCT')}</th><th></th></tr></thead><tbody>{tableRows.map(n => {
             const up = graph.edges.filter(e => e.downstream_id === n.id).length, down = graph.edges.filter(e => e.upstream_id === n.id).length;
