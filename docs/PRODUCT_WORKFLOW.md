@@ -51,6 +51,16 @@ The neutral refinement was checked again on the graph, #4001 details, #1002 raw 
 
 ## Card UI standard
 
+Approved content refresh design (2026-10-10): one shared processing card consumes each of the
+five existing boards' top N and refreshes content per asset and information type. The logical
+content/state table and graph dependencies are installed from `catalog/content-refresh.v1.json`.
+The card uses the shared processing frame, visible execution triggers, derived synthetic
+branches and a separate empty observed result table. Defaults are top 20 per board, 30-minute
+content refresh, commit/startup checks and a 60-second fallback. Runtime generators, storage,
+frontend reads and notification/task bindings remain unconnected. Precise requirements and
+verification are in [CONTENT_REFRESH_ENGINE.md](CONTENT_REFRESH_ENGINE.md), with the
+[approved Notion rationale](https://app.notion.com/p/3f4038a63d5a8170b017f6615cf4af45).
+
 The graph has connection lines, source cards, processing cards, transport and cache cards, and table cards. A line only connects cards and shows direction. A source card describes one upstream operation. A processing card represents one transformation or decision. A Redpanda Topic or Redis window card shows the data present in that channel or cache, together with its own topic/key/schema, Headers, retention, or recovery settings; it does not repeat input/output panels because the neighboring cards and lines show the route. A table card opens as a conventional horizontal table: exact backend field names across the top and one record per row. These are different views of the same flow, not interchangeable card layouts.
 
 1. **Source and processing cards show input and output first, side by side.** Give both columns the same numbered field-row format, with field name and value or example. Name every input source node or table. On a processing card, show only the input fields relevant to its current calculation and output, and explicitly identify the subset. Link to source/table cards for complete fields and exploration of other algorithms; do not provide a full-record expansion inside the processing card. A source card still shows its operation’s input/output record.

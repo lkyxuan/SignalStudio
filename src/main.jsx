@@ -9,6 +9,7 @@ import { EdgeMappingPanel, FieldCatalog } from './FieldPanels';
 import { NodeCaseExplanation, ProcessingIOCard } from './ProcessingIOCard';
 import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldCard';
 import { BusinessTableCard } from './BusinessTableCard';
+import { ContentRefreshCard, contentRefreshCard } from './ContentRefreshCard';
 import { LocalFlowView } from './LocalFlowView';
 import businessTables from '../catalog/business-tables.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
@@ -130,6 +131,7 @@ function GroupLabel({ data }) {
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
 
 function StateNodeDetails({ node, upstream, downstream, openNode, language }) {
+  if (contentRefreshCard(node.name)) return <ContentRefreshCard node={node} language={language} />;
   if (leaderboardCard(node.name)) return <LeaderboardScaffoldCard node={node} language={language} />;
   if (BUSINESS_TABLE_NAMES.has(node.name)) {
     return <BusinessTableCard node={node} language={language} />;

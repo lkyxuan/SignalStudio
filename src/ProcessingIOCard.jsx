@@ -16,6 +16,7 @@ import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldC
 import { ProcessingCardFrame } from './ProcessingCardFrame';
 import { SupabaseScoreSyncCard } from './SupabaseScoreSyncCard';
 import supabaseSync from '../catalog/supabase-score-sync.v1.json';
+import { ContentRefreshCard, contentRefreshCard } from './ContentRefreshCard';
 import { AssetReviewCase } from './AssetReviewCase';
 import { CoinGeckoReferenceCard, isCoinGeckoReference } from './CoinGeckoReferenceCard';
 import './source-case-inspector.css';
@@ -398,6 +399,7 @@ function ScoreEventPublisherCard({ node, graph, openNode, language }) {
 
 export function ProcessingIOCard(props) {
   const { node } = props;
+  if (contentRefreshCard(node.name)) return <ContentRefreshCard {...props} />;
   if (leaderboardCard(node.name)) return <LeaderboardScaffoldCard {...props} />;
   if (isCoinGeckoReference(node.name)) return <CoinGeckoReferenceCard {...props} />;
   if (node.name === supabaseSync.node.name) return <SupabaseScoreSyncCard {...props} />;

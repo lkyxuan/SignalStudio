@@ -1,0 +1,468 @@
+{
+  "revision": "2026-10-10-v1",
+  "rationale_url": "https://app.notion.com/p/3f4038a63d5a8170b017f6615cf4af45",
+  "approval_date": "2026-10-10",
+  "delivery_scope": "studio_design_only",
+  "node": {
+    "name": "刷新代币信息内容",
+    "type": "Metric",
+    "description_zh": "合并五榜前N代币，按代币与信息类型检查首次或到期刷新，复用已有采集与生成能力。设计已定义，后台未接通。",
+    "algorithm_zh": "先沿各榜资格、完整批次及有效性取前N，再按asset_id合并。对每个已启用信息类型分别检查成功时间：无内容首次生成，达到刷新间隔才更新；活动任务或未到重试时间则等待。调用前复查资格，成功校验后原子保存，失败保留旧内容。跨榜只生成一份，退出全部主动范围后停止安排新任务。"
+  },
+  "result": {
+    "name": "asset_information_content",
+    "label_zh": "代币信息内容与生成状态",
+    "type": "Ranking Table",
+    "primary_key": [
+      "asset_id",
+      "information_key"
+    ],
+    "columns": [
+      {
+        "name": "asset_id",
+        "label_zh": "稳定内部资产ID",
+        "meaning_en": "asset id",
+        "data_type": "string",
+        "required": true
+      },
+      {
+        "name": "information_key",
+        "label_zh": "内置信息类型",
+        "meaning_en": "information key",
+        "data_type": "string",
+        "required": true
+      },
+      {
+        "name": "content_json",
+        "label_zh": "最后一次成功内容",
+        "meaning_en": "content json",
+        "data_type": "JSON | null",
+        "required": false
+      },
+      {
+        "name": "last_success_at",
+        "label_zh": "最后成功保存时间",
+        "meaning_en": "last success at",
+        "data_type": "UTC timestamp | null",
+        "required": false
+      },
+      {
+        "name": "source_refs_json",
+        "label_zh": "可追溯输入引用",
+        "meaning_en": "source refs json",
+        "data_type": "JSON array",
+        "required": true
+      },
+      {
+        "name": "data_as_of",
+        "label_zh": "可信原始数据时间；未知为空",
+        "meaning_en": "data as of",
+        "data_type": "UTC timestamp | null",
+        "required": false
+      },
+      {
+        "name": "generator_version",
+        "label_zh": "成功内容生成器版本",
+        "meaning_en": "generator version",
+        "data_type": "string | null",
+        "required": false
+      },
+      {
+        "name": "status",
+        "label_zh": "idle / queued / running / failed / blocked",
+        "meaning_en": "status",
+        "data_type": "string",
+        "required": true
+      },
+      {
+        "name": "last_attempt_at",
+        "label_zh": "最后尝试时间",
+        "meaning_en": "last attempt at",
+        "data_type": "UTC timestamp | null",
+        "required": false
+      },
+      {
+        "name": "next_retry_at",
+        "label_zh": "重试或冷却截止",
+        "meaning_en": "next retry at",
+        "data_type": "UTC timestamp | null",
+        "required": false
+      },
+      {
+        "name": "last_error",
+        "label_zh": "失败或未接通原因",
+        "meaning_en": "last error",
+        "data_type": "string | null",
+        "required": false
+      },
+      {
+        "name": "task_version",
+        "label_zh": "单键递增任务版本",
+        "meaning_en": "task version",
+        "data_type": "integer",
+        "required": true
+      },
+      {
+        "name": "lease_until",
+        "label_zh": "原子认领租约截止",
+        "meaning_en": "lease until",
+        "data_type": "UTC timestamp | null",
+        "required": false
+      },
+      {
+        "name": "failure_count",
+        "label_zh": "连续失败次数，成功后归零",
+        "meaning_en": "consecutive failures",
+        "data_type": "integer",
+        "required": true
+      }
+    ],
+    "physical_binding": null,
+    "observed_rows": []
+  },
+  "configuration": {
+    "triggers": [
+      "successful_business_table_commit",
+      "startup",
+      "scheduled_recheck"
+    ],
+    "recheck_interval_seconds": 60,
+    "default_refresh_interval_seconds": 1800,
+    "max_concurrency": 2,
+    "retry_delays_seconds": [
+      60,
+      300,
+      900
+    ],
+    "retry_exhausted_cooldown_seconds": 1800,
+    "click_triggered_generation": false,
+    "active_key": [
+      "asset_id",
+      "information_key"
+    ],
+    "variant_policy": "沿用已存在语言等内容变体键；绑定后扩展唯一键，不混写。",
+    "queue_order": [
+      "missing_success_first",
+      "due_at_asc",
+      "asset_id_asc",
+      "information_key_asc"
+    ],
+    "lease_timeout_seconds": null
+  },
+  "boards": [
+    {
+      "key": "hottest",
+      "table_name": "asset_scores_current",
+      "label_zh": "最热",
+      "reference_at_design": 1006,
+      "enabled": true,
+      "top_n": 20,
+      "score_field": "score_value",
+      "consumed_fields": [
+        "asset_id",
+        "score_value",
+        "calculated_at",
+        "score_key"
+      ],
+      "filter": {
+        "score_key": "total_heat"
+      },
+      "order_by": [
+        {
+          "field": "score_value",
+          "direction": "desc"
+        },
+        {
+          "field": "asset_id",
+          "direction": "asc"
+        }
+      ],
+      "max_age_seconds": null,
+      "validity_binding": "unbound_current_view_policy",
+      "requires_complete_valid_snapshot": true
+    },
+    {
+      "key": "warming",
+      "table_name": "leaderboard_warming",
+      "label_zh": "升温",
+      "reference_at_design": 1008,
+      "enabled": true,
+      "top_n": 20,
+      "score_field": "score",
+      "consumed_fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "filter": {},
+      "order_by": [
+        {
+          "field": "score",
+          "direction": "desc"
+        },
+        {
+          "field": "asset_id",
+          "direction": "asc"
+        }
+      ],
+      "max_age_seconds": 900,
+      "validity_binding": "catalog/leaderboard-simple.v1.json",
+      "requires_complete_valid_snapshot": true
+    },
+    {
+      "key": "emerging",
+      "table_name": "leaderboard_emerging",
+      "label_zh": "新出现",
+      "reference_at_design": 1010,
+      "enabled": true,
+      "top_n": 20,
+      "score_field": "score",
+      "consumed_fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "filter": {},
+      "order_by": [
+        {
+          "field": "score",
+          "direction": "desc"
+        },
+        {
+          "field": "asset_id",
+          "direction": "asc"
+        }
+      ],
+      "max_age_seconds": 900,
+      "validity_binding": "catalog/leaderboard-simple.v1.json",
+      "requires_complete_valid_snapshot": true
+    },
+    {
+      "key": "cooling",
+      "table_name": "leaderboard_cooling",
+      "label_zh": "降温",
+      "reference_at_design": 1011,
+      "enabled": true,
+      "top_n": 20,
+      "score_field": "score",
+      "consumed_fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "filter": {},
+      "order_by": [
+        {
+          "field": "score",
+          "direction": "desc"
+        },
+        {
+          "field": "asset_id",
+          "direction": "asc"
+        }
+      ],
+      "max_age_seconds": 900,
+      "validity_binding": "catalog/leaderboard-simple.v1.json",
+      "requires_complete_valid_snapshot": true
+    },
+    {
+      "key": "divergence",
+      "table_name": "leaderboard_divergence",
+      "label_zh": "分歧",
+      "reference_at_design": 1012,
+      "enabled": true,
+      "top_n": 20,
+      "score_field": "score",
+      "consumed_fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "filter": {},
+      "order_by": [
+        {
+          "field": "score",
+          "direction": "desc"
+        },
+        {
+          "field": "asset_id",
+          "direction": "asc"
+        }
+      ],
+      "max_age_seconds": 900,
+      "validity_binding": "catalog/leaderboard-simple.v1.json",
+      "requires_complete_valid_snapshot": true
+    }
+  ],
+  "information_types": [],
+  "bindings": [
+    {
+      "key": "information_registry",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "内置信息类型和变体注册表未核验，不能从样式推断类型。"
+    },
+    {
+      "key": "fetch_and_generate",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "已有采集器与生成器输入输出契约未核验。"
+    },
+    {
+      "key": "content_storage",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "逻辑结果字段已定义，物理存储应复用已有结构，尚未绑定。"
+    },
+    {
+      "key": "frontend_reader",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "已有信息页读取接口及结构未核验，未创建虚假前端节点。"
+    },
+    {
+      "key": "commit_notification",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "成功提交或完整批次通知通道未绑定。"
+    },
+    {
+      "key": "hottest_validity",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "后台#1006完整读取与有效性策略未绑定；不套用#1007的180秒。"
+    },
+    {
+      "key": "task_facility",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "持久队列、原子认领、租约时长及任务版本设施待绑定。"
+    }
+  ],
+  "requirements_zh": [
+    "使用稳定asset_id，名称和ticker不作为去重或身份绑定依据；来源身份无法解析的类型标blocked，不能猜测。",
+    "仅消费完整成功且有效的榜单快照，先资格/时间/版本检查再排序limit；某榜不可用不影响其他有效榜。",
+    "对每个asset_id + information_key（以及既有内容变体）分别判断；首次无成功内容即安排，年龄>=间隔为到期。未来或非法时间标blocked，不当作新鲜。",
+    "同键原子认领持久任务，最多一个活动执行；通知、定时检查和重试合并。并发默认2，首次生成优先，其次最早到期。",
+    "重试等待优先于到期判断，失败后按1/5/15分钟退避，再失败冷却30分钟；重新成功后清零失败计数。",
+    "调用采集/生成器前重新核对范围、类型、到期及绑定；退出范围的待执行任务取消，已开始任务可完成。",
+    "成功校验后在同一原子提交中替换成功内容、来源引用、数据时间、生成器版本和last_success_at。失败/超时/无输入只改尝试状态，保留全部成功字段。",
+    "原始数据时间data_as_of来自可信输入，未知为空；生成时间不能伪装成数据更新时间。成功无新信息与采集失败分别按类型输出契约表达。",
+    "任务版本加有效租约校验拒绝迟到结果。超时可恢复，旧执行不能覆盖新任务结果；单项失败不回滚其他成功。",
+    "退出所有前N范围后保留内容但停止安排主动刷新，重新进入按年龄补做；点击只读已有内容，无内容按既有页面表达待生成。",
+    "物理存储、类型、生成器与前端绑定未核验前标未接通；不启动爬虫、调度或部署，不改变榜单计算与Supabase名单同步。"
+  ],
+  "acceptance_zh": [
+    "跨榜同一资产只生成一个同类型任务；同名不同asset_id不合并；无效、不完整、过期及未来批次不贡献候选。",
+    "未到期跳过、到期边界刷新、首次生成、不同信息类型独立判断；top_n调整不改变榜单原展示范围。",
+    "失败保留成功字段与成功时间，重试不被60秒补查绕过；活动租约防重，过期租约可恢复，旧版本/旧租约完成被拒绝。",
+    "退出范围取消待执行任务，已开始任务允许原租约完成；重新进入后按内容年龄判断。",
+    "结果卡原表优先且实际记录为空；所有虚构演算只在设计例中，不写真实回填。",
+    "处理卡复用共享布局，输入输出在前，触发可见，技术设置折叠，底部算法；五榜、状态读写及身份来源关系可追踪。"
+  ],
+  "case": {
+    "provenance": "synthetic_design_case",
+    "now": "2026-10-10T02:00:00Z",
+    "information_key": "demo_information",
+    "caption_zh": "虚构设计例，示例信息类型未注册为生产类型；A、B、C不是真实代币ID。假设来源身份与生成器均已接通，10:00北京时间检查。",
+    "board_snapshots": [
+      {
+        "key": "hottest",
+        "available": true,
+        "complete": true,
+        "valid": true,
+        "rows": [
+          {
+            "asset_id": "demo-A",
+            "score_key": "total_heat",
+            "score_value": 100,
+            "calculated_at": "2026-10-10T02:00:00Z"
+          },
+          {
+            "asset_id": "demo-B",
+            "score_key": "total_heat",
+            "score_value": 90,
+            "calculated_at": "2026-10-10T02:00:00Z"
+          }
+        ]
+      },
+      {
+        "key": "warming",
+        "available": true,
+        "complete": true,
+        "valid": true,
+        "rows": [
+          {
+            "asset_id": "demo-A",
+            "score": 20,
+            "calculated_at": "2026-10-10T02:00:00Z"
+          },
+          {
+            "asset_id": "demo-C",
+            "score": 10,
+            "calculated_at": "2026-10-10T02:00:00Z"
+          }
+        ]
+      }
+    ],
+    "states": [
+      {
+        "asset_id": "demo-A",
+        "information_key": "demo_information",
+        "content_json": "{\"text\":\"A的旧内容\"}",
+        "last_success_at": "2026-10-10T01:40:00Z",
+        "status": "idle",
+        "task_version": 1,
+        "source_refs_json": "[\"synthetic-source/demo-A\"]",
+        "data_as_of": null,
+        "generator_version": "demo/v1",
+        "last_attempt_at": "2026-10-10T01:40:00Z",
+        "next_retry_at": null,
+        "last_error": null,
+        "lease_until": null,
+        "failure_count": 0
+      },
+      {
+        "asset_id": "demo-B",
+        "information_key": "demo_information",
+        "content_json": "{\"text\":\"B的旧内容\"}",
+        "last_success_at": "2026-10-10T01:00:00Z",
+        "status": "idle",
+        "task_version": 2,
+        "source_refs_json": "[\"synthetic-source/demo-B\"]",
+        "data_as_of": null,
+        "generator_version": "demo/v1",
+        "last_attempt_at": "2026-10-10T01:00:00Z",
+        "next_retry_at": null,
+        "last_error": null,
+        "lease_until": null,
+        "failure_count": 0
+      }
+    ],
+    "expected": [
+      {
+        "asset_id": "demo-C",
+        "action": "generate",
+        "age_minutes": null,
+        "reason": "first_generation"
+      },
+      {
+        "asset_id": "demo-B",
+        "action": "refresh",
+        "age_minutes": 60,
+        "reason": "expired"
+      },
+      {
+        "asset_id": "demo-A",
+        "action": "skip",
+        "age_minutes": 20,
+        "reason": "fresh"
+      }
+    ]
+  },
+  "limitations_zh": "Studio设计契约与虚构演算；尚无真实生成记录。内置信息类型、生成器、内容存储、前端读取、完整批次通知、最热源有效性及任务设施均未绑定。仅创建设计依赖，不宣称后台已运行。"
+}

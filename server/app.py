@@ -17,6 +17,7 @@ from table_backfill_store import TableBackfillStore
 from leaderboard_scaffolds import ensure_leaderboard_scaffolds
 from leaderboard_algorithms import ensure_leaderboard_algorithms
 from leaderboard_simple import ensure_leaderboard_simple
+from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,6 +37,7 @@ ensure_coingecko_reference_cards(service)
 ensure_leaderboard_scaffolds(service)
 ensure_leaderboard_algorithms(service)
 ensure_leaderboard_simple(service)
+ensure_content_refresh(service)
 
 
 class Handler(BaseHTTPRequestHandler):
