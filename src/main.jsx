@@ -41,7 +41,7 @@ const SOURCE_NAMES = {
 const sourceLabel = id => SOURCE_NAMES[id] || id;
 const isReferenceResource = name => name.startsWith('kaito.resource.');
 const contractSourceName = name => /^(binance\.usdm\.|kaito\.mcp\.|telegram\.)/.test(name) || isReferenceResource(name) ||
-  ['coingecko.coins_markets', 'dexscreener.token_pairs_by_address', 'rss.item', 'taoli.funding_page'].includes(name);
+  ['coingecko.coins_markets', 'coingecko.search_trending', 'dexscreener.token_pairs_by_address', 'rss.item', 'taoli.funding_page'].includes(name);
 const sourceBadgeId = id => ({ 'telegram-bot': 'tg-spider', 'telegram-telethon': 'tg-spider-telethon' })[id] || id;
 const TABLE_GUIDANCE = {
   assets: 'Read the internal asset ID and identity status after an external identifier has matched.',

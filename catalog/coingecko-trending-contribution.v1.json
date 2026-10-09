@@ -1,0 +1,51 @@
+{
+  "version": "coingecko-trending-contribution.v1",
+  "status": "approved_design_not_runtime",
+  "rationale_url": "https://app.notion.com/p/3f4038a63d5a81569854f843005114be",
+  "approved_on": "2026-10-10",
+  "source": "coingecko.search_trending",
+  "source_documentation": "https://docs.coingecko.com/reference/trending-search",
+  "collection_plan_ref": "catalog/source-collection-plans.v1.json#/plans/coingecko.search_trending",
+  "source_limit": 15,
+  "source_meaning_zh": "CoinGecko 过去24小时搜索热度榜；每30分钟观察一次，不是30分钟新增搜索量。默认15币，实际不足则保留真实数量；忽略NFT和分类榜。",
+  "node": {
+    "name": "CoinGecko · 热榜上榜加分",
+    "type": "Score",
+    "workflow_lane": "shared",
+    "definition": "每30分钟成功取得CoinGecko默认15币热榜后，按稳定coin ID解析内部资产；每币每轮提交一次+10到total_heat，单笔半衰期30分钟。",
+    "formula": "取当前UTC半小时槽内首次有效成功快照中的coins，按coin ID去重。唯一有效身份映射才保存详细判定并交给提交评分事件；每币每槽最多+10，下一槽仍上榜可以再加。每笔用原入账时间和30分钟半衰期独立指数衰减，然后由既有统一汇总求和。名次不加权；离榜不新增贡献；失败不当作真实降温。"
+  },
+  "rule": {
+    "version": "coingecko_trending/v1",
+    "score_key": "total_heat",
+    "score_delta": 10,
+    "decay_policy_ref": "coingecko_trending/v1",
+    "half_life_minutes": 30,
+    "decision_ref_rule": "coingecko_trending/v1/{percent_encoded_coin_id}/{slot_start_utc}",
+    "slot_rule": "UTC floor(request_started_at_unix_seconds / 1800) * 1800; retries retain original slot",
+    "snapshot_rule": "Freeze the first valid successful coins snapshot per slot atomically; retries reuse it. Late responses received after their assigned slot ends are archived without awards; never backfill missed slots.",
+    "identity_rule": "source_namespace=coingecko and external_identifier=coins[].item.id must uniquely resolve to an existing assets.asset_id. Missing/conflicting mappings stay pending with evidence; no ticker match or implicit creation. Freeze mapping in accepted decision; retries never retarget it.",
+    "acceptance_rule": "Persist detailed decision atomically and uniquely by source+coin_id+slot+rule version before publishing; retry the saved decision through #3006. #3006 assigns event_key and first accepted created_at; retries preserve both and all decay parameters.",
+    "failure_rule": "Invalid, failed or late collection yields no awards and retains source health evidence. Successful empty coins list is a valid observation with no awards. Do not fabricate absent coins, debit events or catch-up awards.",
+    "rollup_rule": "Reuse total_heat per-event exponential sum; preserve asset_initial_score/v1 +100 with H=10080. No whole-total half-life, rank weighting or minimum score cutoff introduced."
+  },
+  "source_fields": [
+    {"name": "coins", "data_type": "JSON", "definition": "完整coins数组；item.id是稳定ID，item.score是0基名次，不是热度强度"},
+    {"name": "slot_start", "data_type": "Timestamp", "definition": "采集运行元数据：请求开始UTC半小时槽；不是API原生字段"},
+    {"name": "collected_at", "data_type": "Timestamp", "definition": "采集完成UTC时间；不是API原生字段"},
+    {"name": "run_id", "data_type": "Text", "definition": "采集运行引用；不是API原生字段"},
+    {"name": "snapshot_ref", "data_type": "Text", "definition": "可持久查询的完整原始响应引用；不是API原生字段"}
+  ],
+  "output_fields": [
+    {"name": "asset_id", "data_type": "Text", "definition": "唯一映射命中的内部资产ID"},
+    {"name": "asset_name", "data_type": "Text", "definition": "assets.name展示快照，可缺省，不参与身份匹配"},
+    {"name": "score_key", "data_type": "Text", "definition": "固定total_heat"},
+    {"name": "score_delta", "data_type": "Number", "definition": "本轮贡献+10"},
+    {"name": "decision_ref", "data_type": "Text", "definition": "持久判定引用；同币同槽同版本不变"},
+    {"name": "decay_policy_ref", "data_type": "Text", "definition": "不可变规则coingecko_trending/v1"},
+    {"name": "half_life_minutes", "data_type": "Number", "definition": "本笔冻结为30分钟"}
+  ],
+  "decision_record_fields": ["decision_ref", "rule_version", "source", "coin_id", "source_rank_zero_based", "slot_start", "collected_at", "run_id", "snapshot_ref", "identity_mapping_evidence", "asset_id", "asset_name", "score_key", "score_delta", "decay_policy_ref", "half_life_minutes", "reason", "decision_at"],
+  "downstream": "提交评分事件",
+  "runtime_status_zh": "已实现SignalStudio设计卡片与契约；没有本规则真实采集、已接受评分事件或后台查询的运行证据。以下全部是假设案例。Fewunderstand仍须实现采集、原始快照/判定存储和发布接入。"
+}

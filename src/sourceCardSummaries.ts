@@ -12,6 +12,7 @@ export const SOURCE_CARD_SUMMARIES: Record<string, readonly [string, string]> = 
   'binance.usdm.topLongShortAccountRatio': ['查看头部账户多空倾向，与全市场账户比例对照。', 'Compare top-trader account direction with the broader market.'],
   'binance.usdm.topLongShortPositionRatio': ['查看头部持仓多空比例，区分仓位与账户人数倾向。', 'Use top-trader position ratios to separate size from account counts.'],
   'coingecko.coins_markets': ['列出币种价格、市值和成交量，用于市场筛选与资产对齐。', 'Screen coins by price, market cap, and volume, then match asset IDs.'],
+  'coingecko.search_trending': ['每30分钟观察过去24小时搜索热榜的默认15币，交给最热榜贡献规则；尚无本项目真实调用记录。', 'Observe the default 15 coins in the past-24-hour search trending list every 30 minutes for heat contributions; no project call has been observed.'],
   'dexscreener.token_pairs_by_address': ['按链和代币地址找交易池，比较流动性与成交活跃度。', 'Find token pools by chain and address; compare liquidity and trades.'],
   'kaito.mcp.kaito_entities': ['核对项目在 Kaito 的代币标识，供后续查询使用。', 'Resolve a project to its Kaito token ID before further queries.'],
   'kaito.mcp.kaito_narratives': ['确认叙事 ID，供叙事关注份额查询使用。', 'Resolve a narrative ID before querying its mindshare.'],

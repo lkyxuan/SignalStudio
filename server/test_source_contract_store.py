@@ -13,7 +13,7 @@ class SourceContractStoreTest(unittest.TestCase):
         contract = SourceContractStore()
         self.assertEqual(contract.meta()["owner"], "SignalStudio")
         self.assertEqual(contract.meta()["source_count"], 8)
-        self.assertEqual(contract.meta()["operation_count"], 36)
+        self.assertEqual(contract.meta()["operation_count"], 37)
         self.assertEqual(contract.meta()["resource_count"], 2)
         self.assertEqual(contract.get_resource("kaito.resource.tokens")["resource"]["uri"], "kaito://tokens")
         self.assertEqual(contract.get_resource("kaito.resource.narratives")["resource"]["uri"], "kaito://narratives")
@@ -119,10 +119,10 @@ class SourceContractStoreTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             graph = GraphService(str(Path(directory) / "graph.db"))
             result = graph.ensure_source_contract_sources(contract.contract["operations"])
-            self.assertEqual(result, {"created": 36, "total": 36})
+            self.assertEqual(result, {"created": 37, "total": 37})
             search_ref = graph.find_name("kaito.mcp.kaito_search")["reference_number"]
             entries = contract.contract["operations"] + contract.contract["resources"]
-            self.assertEqual(graph.ensure_source_contract_sources(entries), {"created": 2, "total": 38})
+            self.assertEqual(graph.ensure_source_contract_sources(entries), {"created": 2, "total": 39})
             self.assertEqual(graph.ensure_source_contract_sources(entries)["created"], 0)
             self.assertEqual(graph.find_name("kaito.mcp.kaito_search")["reference_number"], search_ref)
             self.assertEqual(graph.find_name("kaito.mcp.kaito_search")["type"], "Source")

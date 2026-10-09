@@ -6,8 +6,8 @@
     "type": "Score",
     "workflow_lane": "shared",
     "definition": "每 60 秒读取 #6001 Redis 中参与 total_heat 的评分事件，按事件自带的 asset_id 分组，在同一 UTC 时刻衰减汇总后写入 #1006。不读取 #1001，不为没有事件的资产补 0 分。没有新事件仍计算已有贡献的衰减，不等待 #1005 归档。事件范围计算为最新目标，fewunderstand 旧实现范围仍待同步，线上持续运行状态尚未核验。",
-    "formula": "每轮定时计算固定同一个 UTC 时刻 t；默认排名读取最近一轮已保存的分数。total_heat(asset,t) = Σ[score_delta_i × 2^(-max(0,(t Unix 秒 - created_at_i Unix 秒)/60)/half_life_minutes_i)]，直接使用各事件 Value.data 中冻结并缓存的正数 half_life_minutes；decay_policy_ref 定位模型与规则版本，并用于校验参数。不将经过时间取整。Demo 当前只有 asset_initial_score/v1 起始事件，+100 的 H=10080 分钟（7 天）；第 0、10080、20160 分钟分别为 100、50、25，只是连续曲线上的检查点。时间流逝不向 #1005 写负分。",
-    "caveats": "Demo 每资产只有一笔起始贡献，可按原 created_at 常数时间计算。#6001 必须保留仍参与连续衰减的事件或等价的逐规则状态，不能统一按 24h TTL 删除；仅有 #1006 的合计分与计算时间，未来混入不同半衰期时不能正确继续衰减。每次折算均以原事件时间为基准，内部不舍入；#1006 保存 calculated_at 时刻的完整精度分，默认榜单读取最近一轮保存的未舍入分数，按分数降序、asset_id 升序排序并展示 calculated_at，界面显示两位小数。重复消息按 event_key 去重，Redis 丢失时从仍保留的 Redpanda 事件或保存了原始衰减参数的 Delta/Parquet 历史重建；旧计算不得覆盖新结果。其他来源的热度加分规则和半衰期尚未定义；已保存 #1006 结果快照；它不证明调度持续按分钟成功。"
+    "formula": "每轮定时计算固定同一个 UTC 时刻 t；默认排名读取最近一轮已保存的分数。total_heat(asset,t) = Σ[score_delta_i × 2^(-max(0,(t Unix 秒 - created_at_i Unix 秒)/60)/half_life_minutes_i)]，直接使用各事件 Value.data 中冻结并缓存的正数 half_life_minutes；decay_policy_ref 定位模型与规则版本，并用于校验参数。不将经过时间取整。已保存的当前分快照不能单独证明逐笔来源；新定义的coingecko_trending/v1贡献为+10、H=30分钟，尚无运行证据。asset_initial_score/v1起始事件保留，+100 的 H=10080 分钟（7 天）；第 0、10080、20160 分钟分别为 100、50、25，只是连续曲线上的检查点。时间流逝不向 #1005 写负分。",
+    "caveats": "Demo 每资产只有一笔起始贡献，可按原 created_at 常数时间计算。#6001 必须保留仍参与连续衰减的事件或等价的逐规则状态，不能统一按 24h TTL 删除；仅有 #1006 的合计分与计算时间，未来混入不同半衰期时不能正确继续衰减。每次折算均以原事件时间为基准，内部不舍入；#1006 保存 calculated_at 时刻的完整精度分，默认榜单读取最近一轮保存的未舍入分数，按分数降序、asset_id 升序排序并展示 calculated_at，界面显示两位小数。重复消息按 event_key 去重，Redis 丢失时从仍保留的 Redpanda 事件或保存了原始衰减参数的 Delta/Parquet 历史重建；旧计算不得覆盖新结果。CoinGecko热榜贡献已在catalog/coingecko-trending-contribution.v1.json定义，+10、半衰期30分钟，采集和评分运行待Fewunderstand接入；已保存 #1006 结果快照；它不证明调度持续按分钟成功。"
   },
   "inputs": [
     {
@@ -91,6 +91,21 @@
         "elapsed_minutes_rule": "max(0, (calculated_at_unix_seconds - created_at_unix_seconds) / 60)",
         "calculation_precision": "full",
         "display_decimal_places": 2
+      },
+      "coingecko_trending/v1": {
+        "mode": "exponential_half_life",
+        "half_life_minutes": 30,
+        "parameter_status": "defined_by_user",
+        "output_score_key": "total_heat",
+        "rule_version_source": "redis.decay_policy_ref",
+        "half_life_source": "redis.half_life_minutes",
+        "archive_recovery_source": "asset_score_events.decay_policy_ref_and_half_life_minutes",
+        "time_granularity": "continuous_elapsed_time_from_created_at",
+        "elapsed_minutes_rule": "max(0, (calculated_at_unix_seconds - created_at_unix_seconds) / 60)",
+        "calculation_precision": "full",
+        "display_decimal_places": 2,
+        "runtime_status": "not_implemented_or_verified",
+        "contract_ref": "catalog/coingecko-trending-contribution.v1.json"
       }
     },
     "asset_scope": "asset_ids_with_total_heat_events_in_6001",

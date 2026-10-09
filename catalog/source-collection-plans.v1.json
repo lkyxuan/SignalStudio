@@ -1,6 +1,10 @@
 {
   "version": "source-collection-plans.v1",
   "plans": {
+    "coingecko.search_trending": {
+      "mode": "scheduled",
+      "interval_minutes": 30
+    },
     "kaito.mcp.kaito_smart_following_market": {
       "mode": "scheduled",
       "interval_minutes": 720

@@ -19,6 +19,7 @@ import supabaseSync from '../catalog/supabase-score-sync.v1.json';
 import { ContentRefreshCard, contentRefreshCard } from './ContentRefreshCard';
 import { AssetReviewCase } from './AssetReviewCase';
 import { CoinGeckoReferenceCard, isCoinGeckoReference } from './CoinGeckoReferenceCard';
+import { CoinGeckoTrendingCard, isCoinGeckoTrending } from './CoinGeckoTrendingCard';
 import './source-case-inspector.css';
 import './processing-io-card.css';
 
@@ -399,6 +400,7 @@ function ScoreEventPublisherCard({ node, graph, openNode, language }) {
 
 export function ProcessingIOCard(props) {
   const { node } = props;
+  if (isCoinGeckoTrending(node.name)) return <CoinGeckoTrendingCard {...props} />;
   if (contentRefreshCard(node.name)) return <ContentRefreshCard {...props} />;
   if (leaderboardCard(node.name)) return <LeaderboardScaffoldCard {...props} />;
   if (isCoinGeckoReference(node.name)) return <CoinGeckoReferenceCard {...props} />;

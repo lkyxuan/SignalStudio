@@ -39,7 +39,7 @@
     ],
     "business_field_authority": "value.data",
     "decay_parameter_rule": "On first acceptance, freeze decay_policy_ref and a finite positive half_life_minutes in Value.data. The publisher validates the number against the immutable referenced policy; retries and both consumers preserve it unchanged. The half-life is an event fact, not a Header or a Consumer default.",
-    "demo_constraints": ["only_total_heat", "created_asset_gets_one_initial_plus_100", "reused_asset_or_retry_gets_no_new_initial_contribution", "no_new_heat_source_or_rule_defined"]
+    "demo_constraints": ["only_total_heat", "created_asset_gets_one_initial_plus_100", "reused_asset_or_retry_gets_no_new_initial_contribution", "coingecko_trending_v1_defined_plus_10_h30_runtime_pending"]
   },
   "headers": [
     {"name": "source", "value": "signalstudio", "purpose": "identify_logical_business_origin_after_read", "description_zh": "定义并提交该评分事件的逻辑业务来源（#3006）；不表示 SignalStudio 进程已运行，也不是 Kaito 等原始观测来源"},

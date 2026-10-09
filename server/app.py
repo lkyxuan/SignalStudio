@@ -19,6 +19,7 @@ from leaderboard_algorithms import ensure_leaderboard_algorithms
 from leaderboard_simple import ensure_leaderboard_simple
 from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
+from coingecko_trending import ensure_coingecko_trending
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -34,6 +35,7 @@ service.retire_legacy_record_types()
 service.compact_retired_node_references()
 service.group_node_references_once()
 ensure_coingecko_reference_cards(service)
+ensure_coingecko_trending(service)
 ensure_leaderboard_scaffolds(service)
 ensure_leaderboard_algorithms(service)
 ensure_leaderboard_simple(service)

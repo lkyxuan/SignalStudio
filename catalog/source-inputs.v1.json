@@ -236,6 +236,12 @@
       ],
       "input_source_url": "https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
     },
+    "coingecko.search_trending": {
+      "input_coverage": "official_documentation",
+      "input_note_zh": "本版GET /search/trending不传业务参数，使用默认15币；不传付费show_max。API key属于认证，由Fewunderstand绑定实际套餐。",
+      "inputs": [],
+      "input_source_url": "https://docs.coingecko.com/reference/trending-search"
+    },
     "coingecko.coins_markets": {
       "input_coverage": "official_documentation",
       "input_note_zh": "ids、names、symbols、category 是可选筛选；都不填时查询市场列表。API key 属于认证，不计业务输入。",

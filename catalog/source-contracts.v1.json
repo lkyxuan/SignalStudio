@@ -3,7 +3,7 @@
   "owner": "SignalStudio",
   "direction": "SignalStudio defines desired upstream inputs; Few Understand implements and reports evidence.",
   "source_count": 8,
-  "operation_count": 36,
+  "operation_count": 37,
   "resource_count": 2,
   "sources": [
     {
@@ -1366,6 +1366,70 @@
           "explanation_zh": "这次按 bitcoin 的 CoinGecko ID 查询，并要求以美元计价。接口返回 Bitcoin 的当前价格 82917 美元、市值 1665620197887 美元和 24 小时成交量 31365259474 美元；这些都是调用当时的市场快照。"
         }
       ]
+    },
+    {
+      "id": "coingecko.search_trending",
+      "source_id": "coingecko",
+      "label_zh": "搜索热榜（默认15币）",
+      "endpoint": "/api/v3/search/trending",
+      "documentation_url": "https://docs.coingecko.com/reference/trending-search",
+      "response_coverage": "documented_subset_not_observed",
+      "raw_response_policy": "preserve_complete_response",
+      "sample_url": null,
+      "note_zh": "过去24小时搜索热度，每30分钟观察默认15币。仅消费coins；NFT和分类榜不参与评分。尚无本项目真实调用记录。",
+      "fields": [
+        {
+          "path": "coins",
+          "label_zh": "热榜币列表",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "默认15币，可能不足；保留完整响应。",
+          "example_value": null
+        },
+        {
+          "path": "coins[].item.id",
+          "label_zh": "CoinGecko稳定币ID",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "身份映射使用此ID，不用ticker。",
+          "example_value": null
+        },
+        {
+          "path": "coins[].item.name",
+          "label_zh": "币名",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "来源名称，仅供展示。",
+          "example_value": null
+        },
+        {
+          "path": "coins[].item.symbol",
+          "label_zh": "币简称",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "不作唯一身份。",
+          "example_value": null
+        },
+        {
+          "path": "coins[].item.score",
+          "label_zh": "0基名次",
+          "type": "unknown",
+          "evidence": "official_documentation",
+          "condition": "名次不是热度强度；本版不加权。",
+          "example_value": null
+        }
+      ],
+      "input_coverage": "official_documentation",
+      "input_note_zh": "本版GET /search/trending不传业务参数，使用默认15币；不传付费show_max。API key属于认证，由Fewunderstand绑定实际套餐。",
+      "inputs": [],
+      "input_source_url": "https://docs.coingecko.com/reference/trending-search",
+      "call_status_note_zh": "已定义默认15币、30分钟采集计划；尚无本项目真实请求/响应和评分运行证据。",
+      "collection_plan": {
+        "mode": "scheduled",
+        "interval_minutes": 30,
+        "status": "user_defined_plan",
+        "evidence_status": "design_only_no_runtime_verification"
+      }
     },
     {
       "id": "dexscreener.token_pairs_by_address",
@@ -6066,5 +6130,5 @@
       "call_status_note_zh": "已尝试通过当前 Kaito MCP 端点读取此资源；服务端返回 -32601（不支持该方法），暂时没有可展示的真实资源内容。"
     }
   ],
-  "revision": "sha256:f269df52309e403e88a7eb4afe9256a8a21fa36795fc880b8c1070b1a78acc02"
+  "revision": "sha256:d4497f665d170fc4868e0a637532172e56b649f10e29ef64efa2e46eb031c4d1"
 }

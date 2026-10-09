@@ -237,6 +237,18 @@ def build():
                                 alias="coingecko.market_snapshot", sample_url=coingecko["url"],
                                 note="本次请求未开启 sparkline 或额外涨跌幅窗口；可选字段按官方文档条件标注。"))
 
+    operations.append(operation("coingecko", "coingecko.search_trending", "搜索热榜（默认15币）",
+                                "/api/v3/search/trending", "https://docs.coingecko.com/reference/trending-search",
+                                [field(path, evidence="official_documentation", label=label, note=note)
+                                 for path, label, note in [
+                                     ("coins", "热榜币列表", "默认15币，可能不足；保留完整响应。"),
+                                     ("coins[].item.id", "CoinGecko稳定币ID", "身份映射使用此ID，不用ticker。"),
+                                     ("coins[].item.name", "币名", "来源名称，仅供展示。"),
+                                     ("coins[].item.symbol", "币简称", "不作唯一身份。"),
+                                     ("coins[].item.score", "0基名次", "名次不是热度强度；本版不加权。"),
+                                 ]], "documented_subset_not_observed",
+                                note="过去24小时搜索热度，每30分钟观察默认15币。仅消费coins；NFT和分类榜不参与评分。尚无本项目真实调用记录。"))
+
     dex = read("dexscreener-documented-api-sample.json")
     operations.append(operation("dexscreener", "dexscreener.token_pairs_by_address",
                                 "按链和代币地址查询交易对", "/token-pairs/v1/{chainId}/{tokenAddress}",
@@ -339,6 +351,7 @@ def build():
         example_operation.setdefault("call_examples", []).append(observed_example)
 
     missing_call_reasons = {
+        "coingecko.search_trending": "已定义默认15币、30分钟采集计划；尚无本项目真实请求/响应和评分运行证据。",
         "telegram.bot.message": "还没有该项目 Bot 的访问凭据及可读取的真实更新，因此不能展示 Bot API 的请求与 Message 返回。",
         "telegram.telethon.message": "还没有该项目获授权的 Telethon 会话与频道，因此不能展示真实消息读取。",
     }
