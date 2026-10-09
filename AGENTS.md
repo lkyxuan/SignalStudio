@@ -1,6 +1,8 @@
 # SignalStudio development agent
 
-Work with the user directly in Codex. Treat discussion as discussion; when the user asks for a change, implement it without adding process steps. Make routine technical decisions and keep changes small.
+Work with the user directly in Codex. First discuss and create or continue the relevant Notion card, then write the proposed plan in the card for the user to review. Implement only after the user explicitly approves that card's plan. Make routine technical decisions within the approved scope and keep changes small.
+
+- Before implementation, put the goal, scope, actions, expected result, completion criteria, and unresolved questions in the card, share its link for user review, and keep the proposal `待确认` until explicitly approved. Record the user's approval date and scope before moving approved queued work to `待办` or active implementation to `进行中`. `明晰度=可执行`, a request to explore a change, discussion, or recording a proposal does not itself authorize implementation. If the plan or scope changes materially, update the card and obtain user approval again before executing the changed work. This review gate was user-confirmed on 2026-10-09; rationale and history: [建立 Notion 讨论与任务持续记录流程](https://app.notion.com/p/3f3038a63d5a81f7b28dd6f66be58511).
 
 - Read only the code and documents relevant to the task. For signal-design behavior, use the relevant parts of `docs/PRODUCT_WORKFLOW.md` and affected contracts. New cards follow its **Card UI standard** section and the shared card components.
 - Keep proposals, upstream examples, real crawler observations, and validated signals distinct. Declared fields in `catalog/raw-materials.v1.json` are not evidence of collected records.
