@@ -5,6 +5,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var window: NSWindow!
     private var webView: WKWebView!
     private var status: NSTextField!
+    private var retry: NSButton!
+    private var projectAccess: URL?
+    private var accessGeneration = 0
     private var server: Process?
     private var log: FileHandle?
     private var quitting = false
@@ -50,6 +53,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         status.font = NSFont.systemFont(ofSize: 18)
         status.maximumNumberOfLines = 3
         window.contentView!.addSubview(status)
+        retry = NSButton(title: "重新选择项目文件夹", target: self, action: #selector(selectProject))
+        retry.frame = NSRect(x: 30, y: 20, width: 210, height: 30)
+        retry.autoresizingMask = [.maxYMargin]
+        retry.isHidden = true
+        window.contentView!.addSubview(retry)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
@@ -62,25 +70,91 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
         root = project
         python = executable
-        // Read from the parent app first so macOS attributes Documents access
-        // to SignalStudio rather than blocking a background Python child.
+        probe(initial: true)
+    }
+
+    private func prepareProjectAccess() {
+        if let bookmark = UserDefaults.standard.data(forKey: "projectAccessBookmark") {
+            var stale = false
+            if let url = try? URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI],
+                                  relativeTo: nil, bookmarkDataIsStale: &stale),
+               url.standardizedFileURL.path == URL(fileURLWithPath: root).standardizedFileURL.path,
+               !stale {
+                _ = url.startAccessingSecurityScopedResource()
+                projectAccess = url
+                checkProject()
+                return
+            }
+        }
+        selectProject()
+    }
+
+    @objc private func selectProject() {
+        guard !quitting, server?.isRunning != true else { return }
+        accessGeneration += 1
+        let panel = NSOpenPanel()
+        panel.title = "允许 SignalStudio 访问项目"
+        panel.message = "请选择 SignalStudio 项目文件夹，以读取现有工作台和数据库。"
+        panel.prompt = "使用此项目"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = URL(fileURLWithPath: root)
+        panel.beginSheetModal(for: window) { response in
+            guard !self.quitting else { return }
+            guard response == .OK, let url = panel.url else {
+                self.fail("尚未选择项目文件夹。点击下方按钮后可重新选择。")
+                return
+            }
+            guard url.standardizedFileURL.path == URL(fileURLWithPath: self.root).standardizedFileURL.path else {
+                self.fail("请选择构建时的 SignalStudio 项目文件夹：\(self.root)")
+                return
+            }
+            self.projectAccess?.stopAccessingSecurityScopedResource()
+            _ = url.startAccessingSecurityScopedResource()
+            self.projectAccess = url
+            if let bookmark = try? url.bookmarkData(options: .withSecurityScope,
+                                                    includingResourceValuesForKeys: nil, relativeTo: nil) {
+                UserDefaults.standard.set(bookmark, forKey: "projectAccessBookmark")
+            }
+            self.checkProject()
+        }
+    }
+
+    private func checkProject() {
+        accessGeneration += 1
+        let generation = accessGeneration
+        let project = root
+        status.stringValue = "正在检查项目访问权限…"
+        retry.isHidden = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12) {
+            guard !self.quitting, self.accessGeneration == generation else { return }
+            self.accessGeneration += 1
+            self.fail("读取项目文件超时。请重新选择项目文件夹以恢复访问权限。")
+        }
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 _ = try Data(contentsOf: URL(fileURLWithPath: project + "/server/app.py"))
+                let clientExists = FileManager.default.fileExists(atPath: project + "/dist/index.html")
+                let databaseExists = FileManager.default.fileExists(atPath: project + "/data/logic.db")
                 DispatchQueue.main.async {
-                    guard !self.quitting else { return }
-                    guard FileManager.default.fileExists(atPath: project + "/dist/index.html") else {
+                    guard !self.quitting, self.accessGeneration == generation else { return }
+                    self.accessGeneration += 1
+                    guard clientExists else {
                         self.fail("前端构建文件不存在，请重新运行 npm run desktop:build。")
                         return
                     }
-                    guard FileManager.default.fileExists(atPath: project + "/data/logic.db") else {
+                    guard databaseExists else {
                         self.fail("原工作台数据库不存在。请恢复项目的 data/logic.db 后重试。")
                         return
                     }
-                    self.probe(initial: true)
+                    self.attempts = 0
+                    self.startServer()
                 }
             } catch {
                 DispatchQueue.main.async {
+                    guard !self.quitting, self.accessGeneration == generation else { return }
+                    self.accessGeneration += 1
                     self.fail("无法读取项目文件。请确认项目位置，并允许 SignalStudio 访问项目所在文件夹，再重新打开 App。")
                 }
             }
@@ -108,7 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                     return
                 }
                 if initial {
-                    self.startServer()
+                    self.prepareProjectAccess()
                 } else {
                     self.attempts += 1
                     if self.attempts >= 60 || self.server?.isRunning != true {
@@ -122,6 +196,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     }
 
     private func startServer() {
+        status.stringValue = "正在启动后台服务…"
         do {
             let directory = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library/Logs/SignalStudio")
@@ -161,11 +236,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         webView.isHidden = true
         status.isHidden = false
         status.stringValue = message
+        retry.isHidden = root.isEmpty || server?.isRunning == true
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         loaded = true
         status.isHidden = true
+        retry.isHidden = true
         webView.isHidden = false
     }
 
@@ -187,6 +264,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             process.waitUntilExit()
         }
         try? log?.close()
+        projectAccess?.stopAccessingSecurityScopedResource()
     }
 }
 
