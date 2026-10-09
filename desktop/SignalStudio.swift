@@ -80,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         python = executable
         development = config["mode"] == "development"
         node = config["node"] ?? ""
-        window.title = development ? "SignalStudio Dev" : "SignalStudio"
+        window.title = "SignalStudio"
         probe(initial: true)
     }
 

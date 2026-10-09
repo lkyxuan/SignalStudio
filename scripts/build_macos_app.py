@@ -32,12 +32,12 @@ def main():
         raise SystemExit("This app requires macOS.")
     parser = argparse.ArgumentParser()
     parser.add_argument('output', nargs='?')
-    parser.add_argument('--dev', action='store_true')
+    parser.add_argument('--dev', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
-    name = 'SignalStudio Dev' if args.dev else 'SignalStudio'
-    node = shutil.which('node') if args.dev else ''
-    if args.dev and not node:
-        raise SystemExit('Node.js is required for the Dev App.')
+    name = 'SignalStudio'
+    node = shutil.which('node')
+    if not node:
+        raise SystemExit('Node.js is required for SignalStudio.')
     output = Path(args.output).expanduser().resolve() if args.output else Path.home() / f'Applications/{name}.app'
     if output.suffix != ".app":
         raise SystemExit("Output must end with .app")
@@ -51,13 +51,13 @@ def main():
                     "-o", str(binary), "-framework", "Cocoa", "-framework", "WebKit"], check=True)
     with (contents / "Info.plist").open("wb") as file:
         plistlib.dump({"CFBundleName": name, "CFBundleDisplayName": name,
-                      "CFBundleIdentifier": "local.signalstudio.desktop" + (".dev" if args.dev else ""), "CFBundleExecutable": "SignalStudio",
+                      "CFBundleIdentifier": "local.signalstudio.desktop.dev", "CFBundleExecutable": "SignalStudio",
                       "CFBundlePackageType": "APPL", "CFBundleVersion": "1", "CFBundleShortVersionString": "0.1.0",
                       "CFBundleIconFile": "SignalStudio.icns",
                       "NSHighResolutionCapable": True,
                       "NSDocumentsFolderUsageDescription": "SignalStudio 需要读取文稿中的项目文件和已有工作台数据。",
                       "NSAppTransportSecurity": {"NSAllowsLocalNetworking": True}}, file)
-    (resources / "launch.json").write_text(json.dumps({"project_root": str(ROOT), "python": sys.executable, "mode": "development" if args.dev else "production", "node": node}), encoding="utf-8")
+    (resources / "launch.json").write_text(json.dumps({"project_root": str(ROOT), "python": sys.executable, "mode": "development", "node": node}), encoding="utf-8")
     subprocess.run(["codesign", "--force", "--sign", "-", str(output)], check=True)
     print(f"Built: {output}")
     print(f'Open with: open "{output}"')

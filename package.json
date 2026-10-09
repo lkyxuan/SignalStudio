@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "desktop:build": "npm run build && python3 scripts/build_macos_app.py",
+    "desktop:build": "python3 scripts/build_macos_app.py",
     "dev": "concurrently -k \"python3 server/app.py\" \"vite\"",
     "build": "npm run typecheck && vite build",
     "test:layout": "tsx --test src/autoLayout.test.ts",
     "preview": "python3 server/app.py",
     "typecheck": "tsc --noEmit",
     "test:contracts": "tsx --test src/contracts.test.ts src/api.test.ts",
-    "desktop:dev:build": "python3 scripts/build_macos_app.py --dev"
+    "desktop:dev:build": "npm run desktop:build"
   },
   "dependencies": {
     "@xyflow/react": "^12.9.0",

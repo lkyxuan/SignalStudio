@@ -6,21 +6,13 @@
 
 ## 运行
 
-### Mac 独立 App
+### Mac 独立 App（实时查看项目）
 
-在已安装项目依赖的 Mac 上运行 `npm run desktop:build`（需要 Xcode Command Line Tools），生成 `~/Applications/SignalStudio.app`。双击 App 即可打开独立工作台窗口，也可拖入 Dock。构建后日常使用不需要启动 Vite 或运行 Node。
+运行 `npm run desktop:build`，只生成一个带橙色心跳图标的 `~/Applications/SignalStudio.app`。这个 App 始终打开实时开发工作台，不再区分普通版与 Dev 版。需要本机 Node.js、Python、项目源码、`npm install` 后的依赖、原有 `data/logic.db` 和 Xcode Command Line Tools；构建会记录运行时路径。移动项目或运行时后重新构建。首次启动选择该项目文件夹，后续使用保存的访问书签。`desktop:dev:build` 兼容旧命令，但构建的是同一个 App。
 
-构建会将 `design/logo/heartbeat-app-icon.png` 的橙色心跳图标通过 `sips`/`iconutil` 生成为 macOS 多尺寸图标，并将 Lucide 许可放入 App 资源目录。
+这是本机应用外壳，未内置项目文件或运行时，也未做分发公证；复制到其他电脑不能独立运行。
 
-App 从构建时的项目路径加载 `dist/`，使用构建时的 Python 和该项目的 `data/logic.db`。它在 `127.0.0.1:18787` 启动服务；仅复用健康检查确认属于同一项目且前端已构建的服务。重复打开回到已有窗口；关闭最后一个窗口或按 Command-Q 退出，停止它自行启动的服务，保留复用的服务。启动错误显示在窗口中，后台日志在 `~/Library/Logs/SignalStudio/server.log`。
-
-没有匹配的后台服务时，首次启动会通过系统文件夹选择器请你选择构建时的项目目录，并保存访问书签供以后启动使用。访问失效或取消选择后，可通过“重新选择项目文件夹”恢复；文件检查在后台线程执行，超过 12 秒会提示超时。选择其他目录会被拒绝，原数据库缺失时不会自动新建替代。启动修复记录：[Notion 任务](https://app.notion.com/p/3f4038a63d5a81ba916ee7c877e78826)。
-
-这是本机应用外壳，尚未包含 Python 或项目文件，也未做分发公证。移动项目、删除 Python 或更新前端源码后，应重新构建；复制 App 到其他电脑不能独立运行。验证时检查首次启动、重复打开、退出重开，以及已有同项目服务和其他程序占用 18787 时的行为。设计依据与审批：[Notion 任务](https://app.notion.com/p/3f4038a63d5a8182b1e8e094efee2e51)。
-
-### Mac 开发 App（实时查看项目）
-
-运行 `npm run desktop:dev:build` 生成 `~/Applications/SignalStudio Dev.app`，保留普通 App。开发版需要本机 Node.js、Python、项目源码、`npm install` 后的依赖和原有 `data/logic.db`；构建会记录运行时路径。移动项目或运行时后重新构建。首次启动选择该项目文件夹，后续使用保存的访问书签。图标沿用橙色心跳。
+应用身份仍为 `local.signalstudio.desktop.dev`，以保留原开发版的访问书签和权限。已有两个旧 App 的电脑，升级时先退出它们，将旧应用和桌面别名移到 Applications/Desktop 之外的可恢复备份，再安装唯一 App、重建桌面别名。不要移动或替换项目数据。
 
 开发版使用回环地址：Vite `15173`、后台 `18788`、会话健康检查 `18789`。只有项目路径、数据库路径和开发模式匹配，且会话核验过前后端身份及就绪状态，才复用服务。端口冲突直接报错，不停止占用者。退出只回收自己启动的会话与子进程；复用的服务保留。日志：`~/Library/Logs/SignalStudio/dev-server.log`。文件监听采用轮询，避免 macOS FSEvents 访问项目父目录时挂起；开发界面使用本机备用字体，不等待 Google Fonts。
 

@@ -6,21 +6,13 @@ A local-first design workspace for the definitions, formulas, reasons, caveats a
 
 ## Run
 
-### Mac desktop app
+### Mac desktop app (live project updates)
 
-Run `npm run desktop:build` on a Mac with the project dependencies installed and Xcode Command Line Tools available. This creates `~/Applications/SignalStudio.app`; double-click it or drag it into the Dock. Daily use after building needs neither Vite nor Node.
+Run `npm run desktop:build` to create the single `~/Applications/SignalStudio.app` with the orange heartbeat icon. This app always opens the live development workspace; there is no separate ordinary or Dev app to choose from. Building requires Xcode Command Line Tools. Running requires the local project, installed npm dependencies, Node.js, Python and the existing `data/logic.db`. Runtime paths are captured at build time; rebuild after moving them. The first launch selects the configured project directory and saves an access bookmark. `desktop:dev:build` is a compatibility alias for the same build, not another app.
 
-The build includes the orange heartbeat app icon from `design/logo/heartbeat-app-icon.png`, generates macOS icon sizes with `sips`/`iconutil`, and includes the Lucide license in the app resources.
+This is a local app shell without bundled project files/runtimes or distribution notarization; copying the app to another computer does not make it standalone.
 
-The app loads `dist/` from the project path captured at build time and uses the captured Python executable and that project's `data/logic.db`. It starts a server on `127.0.0.1:18787`, reusing an existing server only when its health response identifies the same project and a built client. Reopening activates the existing window. Closing the last window or pressing Command-Q stops only the server started by the app. Startup failures appear in the window; server logs go to `~/Library/Logs/SignalStudio/server.log`.
-
-When no matching server is running, the first launch asks you to select the configured project folder in the system folder picker. The app saves an access bookmark for later launches. If access expires, canceling is recoverable through the folder-selection button; file checks run off the UI thread with a 12-second timeout. A different folder is rejected, and a missing database is never silently replaced. Startup repair history: [Notion task](https://app.notion.com/p/3f4038a63d5a81ba916ee7c877e78826).
-
-This is a local app shell, without bundled Python/project files or distribution notarization. Rebuild after moving the project, removing Python, or changing frontend source. Copying the app to another computer does not make it standalone. Verify first launch, reopening, quitting/relaunching, an existing matching server, and a foreign service occupying port 18787. Rationale and approval: [Notion task](https://app.notion.com/p/3f4038a63d5a8182b1e8e094efee2e51).
-
-### Mac Dev app (live project updates)
-
-Run `npm run desktop:dev:build` to create `~/Applications/SignalStudio Dev.app` alongside the ordinary app, with the same orange heartbeat icon. It requires the local project, installed npm dependencies, Node.js, Python and the existing `data/logic.db`. Runtime paths are captured at build time; rebuild after moving them. The first launch selects the configured project directory and saves an access bookmark.
+The bundle identifier remains `local.signalstudio.desktop.dev` to retain the development app's permissions and saved access bookmark. When upgrading a machine that has both old apps, quit them, move the old bundles and desktop aliases out of Applications/Desktop to a recoverable backup, then install the single app and recreate the desktop alias. Do not move or replace project data.
 
 The Dev session uses loopback ports 15173 (Vite), 18788 (API) and 18789 (health). Reuse requires matching project/database paths, development mode, and verified frontend/backend readiness. Port conflicts fail without terminating occupants. Quitting reaps only the session and children started by the app; independently owned sessions remain running. Logs: `~/Library/Logs/SignalStudio/dev-server.log`. Vite uses polling to avoid macOS FSEvents parent-directory permission stalls, and local fallback fonts rather than waiting for Google Fonts.
 
