@@ -1,13 +1,62 @@
 {
-  "revision": "2026-10-10-v1",
+  "revision": "2026-10-10-v2-four-stages",
   "rationale_url": "https://app.notion.com/p/3f4038a63d5a8170b017f6615cf4af45",
   "approval_date": "2026-10-10",
   "delivery_scope": "studio_design_only",
   "node": {
-    "name": "刷新代币信息内容",
+    "key": "candidates",
+    "name": "候选代币筛选",
     "type": "Metric",
-    "description_zh": "合并五榜前N代币，按代币与信息类型检查首次或到期刷新，复用已有采集与生成能力。设计已定义，后台未接通。",
-    "algorithm_zh": "先沿各榜资格、完整批次及有效性取前N，再按asset_id合并。对每个已启用信息类型分别检查成功时间：无内容首次生成，达到刷新间隔才更新；活动任务或未到重试时间则等待。调用前复查资格，成功校验后原子保存，失败保留旧内容。跨榜只生成一份，退出全部主动范围后停止安排新任务。"
+    "description_zh": "从五榜有效完整结果各取前N，按稳定asset_id合并去重；只确定本轮维护范围。",
+    "algorithm_zh": "先校验各榜资格、时间与完整批次，再按未舍入分数降序、asset_id升序各取前N。合并稳定asset_id，同一代币跨榜只保留一次。本卡不查内容时间，不生成文案，也不保存内容。",
+    "trigger_zh": "业务表成功提交、启动时与每60秒补查；合并连续通知。默认每榜前20，可逐榜改为30/50，与榜单展示条数独立。",
+    "output_fields": [
+      "asset_id"
+    ],
+    "fields": [
+      {
+        "name": "asset_id",
+        "label_zh": "稳定内部资产ID",
+        "meaning_en": "asset id",
+        "data_type": "string",
+        "required": true
+      },
+      {
+        "name": "score_value",
+        "label_zh": "未舍入资产得分",
+        "meaning_en": "score value",
+        "data_type": "number",
+        "required": true
+      },
+      {
+        "name": "calculated_at",
+        "label_zh": "榜单计算时间",
+        "meaning_en": "calculated at",
+        "data_type": "string",
+        "required": true
+      },
+      {
+        "name": "score_key",
+        "label_zh": "评分维度；本流程只取total_heat",
+        "meaning_en": "score key",
+        "data_type": "string",
+        "required": true
+      },
+      {
+        "name": "score",
+        "label_zh": "未舍入榜单分数",
+        "meaning_en": "score",
+        "data_type": "number",
+        "required": true
+      },
+      {
+        "name": "algorithm_version",
+        "label_zh": "榜单算法版本",
+        "meaning_en": "algorithm version",
+        "data_type": "string",
+        "required": true
+      }
+    ]
   },
   "result": {
     "name": "asset_information_content",
@@ -354,7 +403,8 @@
     "原始数据时间data_as_of来自可信输入，未知为空；生成时间不能伪装成数据更新时间。成功无新信息与采集失败分别按类型输出契约表达。",
     "任务版本加有效租约校验拒绝迟到结果。超时可恢复，旧执行不能覆盖新任务结果；单项失败不回滚其他成功。",
     "退出所有前N范围后保留内容但停止安排主动刷新，重新进入按年龄补做；点击只读已有内容，无内容按既有页面表达待生成。",
-    "物理存储、类型、生成器与前端绑定未核验前标未接通；不启动爬虫、调度或部署，不改变榜单计算与Supabase名单同步。"
+    "物理存储、类型、生成器与前端绑定未核验前标未接通；不启动爬虫、调度或部署，不改变榜单计算与Supabase名单同步。",
+    "阶段输出为直接依赖契约，不自动新增候选表、队列或物理数据库。#3027保留编号改为候选代币筛选；#1019保留内容与状态职责。"
   ],
   "acceptance_zh": [
     "跨榜同一资产只生成一个同类型任务；同名不同asset_id不合并；无效、不完整、过期及未来批次不贡献候选。",
@@ -362,7 +412,7 @@
     "失败保留成功字段与成功时间，重试不被60秒补查绕过；活动租约防重，过期租约可恢复，旧版本/旧租约完成被拒绝。",
     "退出范围取消待执行任务，已开始任务允许原租约完成；重新进入后按内容年龄判断。",
     "结果卡原表优先且实际记录为空；所有虚构演算只在设计例中，不写真实回填。",
-    "处理卡复用共享布局，输入输出在前，触发可见，技术设置折叠，底部算法；五榜、状态读写及身份来源关系可追踪。"
+    "四张处理卡分别表达候选筛选、刷新判断、采集生成、验证保存；输入输出在前、触发可见、技术设置折叠、底部算法。五榜只输入筛选；状态输入判断/执行复查/保存，最终写回#1019。"
   ],
   "case": {
     "provenance": "synthetic_design_case",
@@ -399,12 +449,14 @@
           {
             "asset_id": "demo-A",
             "score": 20,
-            "calculated_at": "2026-10-10T02:00:00Z"
+            "calculated_at": "2026-10-10T02:00:00Z",
+            "algorithm_version": "synthetic-warming/v1"
           },
           {
             "asset_id": "demo-C",
             "score": 10,
-            "calculated_at": "2026-10-10T02:00:00Z"
+            "calculated_at": "2026-10-10T02:00:00Z",
+            "algorithm_version": "synthetic-warming/v1"
           }
         ]
       }
@@ -462,7 +514,647 @@
         "age_minutes": 20,
         "reason": "fresh"
       }
+    ],
+    "generated_samples": [
+      {
+        "asset_id": "demo-A",
+        "candidate_content_json": "{\"text\": \"A的虚构新版内容\"}",
+        "source_refs_json": "[\"synthetic-source/demo-A\"]",
+        "data_as_of": null,
+        "generator_version": "synthetic-generator/v1"
+      },
+      {
+        "asset_id": "demo-B",
+        "candidate_content_json": "{\"text\": \"B的虚构新版内容\"}",
+        "source_refs_json": "[\"synthetic-source/demo-B\"]",
+        "data_as_of": null,
+        "generator_version": "synthetic-generator/v1"
+      },
+      {
+        "asset_id": "demo-C",
+        "candidate_content_json": "{\"text\": \"C的虚构新版内容\"}",
+        "source_refs_json": "[\"synthetic-source/demo-C\"]",
+        "data_as_of": null,
+        "generator_version": "synthetic-generator/v1"
+      }
     ]
   },
-  "limitations_zh": "Studio设计契约与虚构演算；尚无真实生成记录。内置信息类型、生成器、内容存储、前端读取、完整批次通知、最热源有效性及任务设施均未绑定。仅创建设计依赖，不宣称后台已运行。"
+  "limitations_zh": "Studio设计契约与虚构演算；尚无真实生成记录。内置信息类型、生成器、内容存储、前端读取、完整批次通知、最热源有效性及任务设施均未绑定。仅创建设计依赖，不宣称后台已运行。",
+  "legacy_node": {
+    "name": "刷新代币信息内容",
+    "type": "Metric",
+    "description_zh": "合并五榜前N代币，按代币与信息类型检查首次或到期刷新，复用已有采集与生成能力。设计已定义，后台未接通。",
+    "algorithm_zh": "先沿各榜资格、完整批次及有效性取前N，再按asset_id合并。对每个已启用信息类型分别检查成功时间：无内容首次生成，达到刷新间隔才更新；活动任务或未到重试时间则等待。调用前复查资格，成功校验后原子保存，失败保留旧内容。跨榜只生成一份，退出全部主动范围后停止安排新任务。"
+  },
+  "stages": [
+    {
+      "key": "candidates",
+      "name": "候选代币筛选",
+      "type": "Metric",
+      "description_zh": "从五榜有效完整结果各取前N，按稳定asset_id合并去重；只确定本轮维护范围。",
+      "algorithm_zh": "先校验各榜资格、时间与完整批次，再按未舍入分数降序、asset_id升序各取前N。合并稳定asset_id，同一代币跨榜只保留一次。本卡不查内容时间，不生成文案，也不保存内容。",
+      "trigger_zh": "业务表成功提交、启动时与每60秒补查；合并连续通知。默认每榜前20，可逐榜改为30/50，与榜单展示条数独立。",
+      "output_fields": [
+        "asset_id"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "label_zh": "稳定内部资产ID",
+          "meaning_en": "asset id",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "score_value",
+          "label_zh": "未舍入资产得分",
+          "meaning_en": "score value",
+          "data_type": "number",
+          "required": true
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "榜单计算时间",
+          "meaning_en": "calculated at",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "score_key",
+          "label_zh": "评分维度；本流程只取total_heat",
+          "meaning_en": "score key",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "score",
+          "label_zh": "未舍入榜单分数",
+          "meaning_en": "score",
+          "data_type": "number",
+          "required": true
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "榜单算法版本",
+          "meaning_en": "algorithm version",
+          "data_type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "decision",
+      "name": "刷新判断",
+      "type": "Metric",
+      "description_zh": "读取候选名单与#1019成功内容及任务状态，按代币与信息类型判断首次、到期、跳过或等待。",
+      "algorithm_zh": "对每个候选代币的已启用信息类型读取成功内容是否存在、last_success_at和任务状态。无成功内容则首次生成；年龄达到该类型间隔才刷新。未到期跳过，活动任务或重试等待不重复安排；接点或时间无效则阻塞。只有首次/到期项交给采集生成。",
+      "trigger_zh": "候选筛选完成后检查；随60秒补查再次判断，即使榜单没有变化。",
+      "output_fields": [
+        "asset_id",
+        "information_key",
+        "action",
+        "reason",
+        "age_minutes"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "label_zh": "稳定内部资产ID",
+          "meaning_en": "asset id",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "information_key",
+          "label_zh": "内置信息类型",
+          "meaning_en": "information key",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "content_json",
+          "label_zh": "最后一次成功内容",
+          "meaning_en": "content json",
+          "data_type": "JSON | null",
+          "required": false
+        },
+        {
+          "name": "last_success_at",
+          "label_zh": "最后成功保存时间",
+          "meaning_en": "last success at",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label_zh": "idle / queued / running / failed / blocked",
+          "meaning_en": "status",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "next_retry_at",
+          "label_zh": "重试或冷却截止",
+          "meaning_en": "next retry at",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "lease_until",
+          "label_zh": "原子认领租约截止",
+          "meaning_en": "lease until",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "task_version",
+          "label_zh": "单键递增任务版本",
+          "meaning_en": "task version",
+          "data_type": "integer",
+          "required": true
+        },
+        {
+          "name": "action",
+          "label_zh": "首次生成 / 到期刷新 / 跳过 / 等待 / 阻塞",
+          "meaning_en": "action",
+          "data_type": "string",
+          "required": false
+        },
+        {
+          "name": "reason",
+          "label_zh": "判断原因",
+          "meaning_en": "reason",
+          "data_type": "string",
+          "required": false
+        },
+        {
+          "name": "age_minutes",
+          "label_zh": "成功内容年龄（分钟）；首次为空",
+          "meaning_en": "age minutes",
+          "data_type": "number | null",
+          "required": false
+        }
+      ]
+    },
+    {
+      "key": "generate",
+      "name": "数据采集与内容生成",
+      "type": "Metric",
+      "description_zh": "接收待刷新项，重新检查资格并原子认领任务，调用已有采集器和生成器，输出待验证内容或错误。",
+      "algorithm_zh": "仅接收首次或到期项；调用前重新检查候选范围、类型、身份、成功时间、重试和当前任务状态，原子认领带版本与租约的任务，同键只执行一次，并发默认2。按稳定来源标识抓取该类型数据并调用已有生成器，输出内容、来源引用、可信数据时间、生成器版本或本次错误。本卡不直接替换成功内容。",
+      "trigger_zh": "刷新判断输出可执行项后调用；执行前复查，超时及重试沿用已有任务设施，当前未接通。",
+      "output_fields": [
+        "asset_id",
+        "information_key",
+        "candidate_content_json",
+        "source_refs_json",
+        "data_as_of",
+        "generator_version",
+        "task_version",
+        "lease_until",
+        "attempt_error"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "label_zh": "稳定内部资产ID",
+          "meaning_en": "asset id",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "information_key",
+          "label_zh": "内置信息类型",
+          "meaning_en": "information key",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "action",
+          "label_zh": "首次生成 / 到期刷新 / 跳过 / 等待 / 阻塞",
+          "meaning_en": "action",
+          "data_type": "string",
+          "required": false
+        },
+        {
+          "name": "reason",
+          "label_zh": "判断原因",
+          "meaning_en": "reason",
+          "data_type": "string",
+          "required": false
+        },
+        {
+          "name": "age_minutes",
+          "label_zh": "成功内容年龄（分钟）；首次为空",
+          "meaning_en": "age minutes",
+          "data_type": "number | null",
+          "required": false
+        },
+        {
+          "name": "source_namespace",
+          "label_zh": "来源命名空间",
+          "meaning_en": "source namespace",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "external_identifier",
+          "label_zh": "来源稳定外部标识",
+          "meaning_en": "external identifier",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "content_json",
+          "label_zh": "最后一次成功内容",
+          "meaning_en": "content json",
+          "data_type": "JSON | null",
+          "required": false
+        },
+        {
+          "name": "last_success_at",
+          "label_zh": "最后成功保存时间",
+          "meaning_en": "last success at",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label_zh": "idle / queued / running / failed / blocked",
+          "meaning_en": "status",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "next_retry_at",
+          "label_zh": "重试或冷却截止",
+          "meaning_en": "next retry at",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "lease_until",
+          "label_zh": "原子认领租约截止",
+          "meaning_en": "lease until",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "task_version",
+          "label_zh": "单键递增任务版本",
+          "meaning_en": "task version",
+          "data_type": "integer",
+          "required": true
+        },
+        {
+          "name": "candidate_content_json",
+          "label_zh": "尚未验证保存的生成内容",
+          "meaning_en": "candidate content json",
+          "data_type": "JSON | null",
+          "required": false
+        },
+        {
+          "name": "source_refs_json",
+          "label_zh": "可追溯输入引用",
+          "meaning_en": "source refs json",
+          "data_type": "JSON array",
+          "required": true
+        },
+        {
+          "name": "data_as_of",
+          "label_zh": "可信原始数据时间；未知为空",
+          "meaning_en": "data as of",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "generator_version",
+          "label_zh": "成功内容生成器版本",
+          "meaning_en": "generator version",
+          "data_type": "string | null",
+          "required": false
+        },
+        {
+          "name": "attempt_error",
+          "label_zh": "本次采集或生成错误；成功为空",
+          "meaning_en": "attempt error",
+          "data_type": "string | null",
+          "required": false
+        }
+      ]
+    },
+    {
+      "key": "save",
+      "name": "验证与保存",
+      "type": "Metric",
+      "description_zh": "验证生成结果及当前任务版本/租约，原子保存到#1019；失败仅更新尝试状态并保留成功内容。",
+      "algorithm_zh": "读取生成结果和当前内容状态。先核对当前任务版本与未过期租约，拒绝迟到完成；类型输出验证有效后，原子替换内容、来源、数据时间、生成器版本及last_success_at并清零失败计数。采集失败、无输入、超时或无效输出只记录错误及1/5/15分钟退避，之后冷却30分钟，保留全部成功字段。",
+      "trigger_zh": "收到单项生成完成、失败或超时结果后处理；实际存储事务与类型验证器尚未绑定。",
+      "output_fields": [
+        "asset_id",
+        "information_key",
+        "content_json",
+        "last_success_at",
+        "source_refs_json",
+        "data_as_of",
+        "generator_version",
+        "status",
+        "last_attempt_at",
+        "next_retry_at",
+        "last_error",
+        "task_version",
+        "lease_until",
+        "failure_count"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "label_zh": "稳定内部资产ID",
+          "meaning_en": "asset id",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "information_key",
+          "label_zh": "内置信息类型",
+          "meaning_en": "information key",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "candidate_content_json",
+          "label_zh": "尚未验证保存的生成内容",
+          "meaning_en": "candidate content json",
+          "data_type": "JSON | null",
+          "required": false
+        },
+        {
+          "name": "source_refs_json",
+          "label_zh": "可追溯输入引用",
+          "meaning_en": "source refs json",
+          "data_type": "JSON array",
+          "required": true
+        },
+        {
+          "name": "data_as_of",
+          "label_zh": "可信原始数据时间；未知为空",
+          "meaning_en": "data as of",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "generator_version",
+          "label_zh": "成功内容生成器版本",
+          "meaning_en": "generator version",
+          "data_type": "string | null",
+          "required": false
+        },
+        {
+          "name": "task_version",
+          "label_zh": "单键递增任务版本",
+          "meaning_en": "task version",
+          "data_type": "integer",
+          "required": true
+        },
+        {
+          "name": "lease_until",
+          "label_zh": "原子认领租约截止",
+          "meaning_en": "lease until",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "attempt_error",
+          "label_zh": "本次采集或生成错误；成功为空",
+          "meaning_en": "attempt error",
+          "data_type": "string | null",
+          "required": false
+        },
+        {
+          "name": "content_json",
+          "label_zh": "最后一次成功内容",
+          "meaning_en": "content json",
+          "data_type": "JSON | null",
+          "required": false
+        },
+        {
+          "name": "last_success_at",
+          "label_zh": "最后成功保存时间",
+          "meaning_en": "last success at",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label_zh": "idle / queued / running / failed / blocked",
+          "meaning_en": "status",
+          "data_type": "string",
+          "required": true
+        },
+        {
+          "name": "last_attempt_at",
+          "label_zh": "最后尝试时间",
+          "meaning_en": "last attempt at",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "next_retry_at",
+          "label_zh": "重试或冷却截止",
+          "meaning_en": "next retry at",
+          "data_type": "UTC timestamp | null",
+          "required": false
+        },
+        {
+          "name": "last_error",
+          "label_zh": "失败或未接通原因",
+          "meaning_en": "last error",
+          "data_type": "string | null",
+          "required": false
+        },
+        {
+          "name": "failure_count",
+          "label_zh": "连续失败次数，成功后归零",
+          "meaning_en": "consecutive failures",
+          "data_type": "integer",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "source": "asset_scores_current",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "score_value",
+        "calculated_at",
+        "score_key"
+      ],
+      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
+    },
+    {
+      "source": "leaderboard_warming",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
+    },
+    {
+      "source": "leaderboard_emerging",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
+    },
+    {
+      "source": "leaderboard_cooling",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
+    },
+    {
+      "source": "leaderboard_divergence",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
+    },
+    {
+      "source": "candidates",
+      "target": "decision",
+      "fields": [
+        "asset_id"
+      ],
+      "note_zh": "交付合并去重后的候选代币，不代表已需生成。"
+    },
+    {
+      "source": "asset_information_content",
+      "target": "decision",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "content_json",
+        "last_success_at",
+        "status",
+        "next_retry_at",
+        "lease_until",
+        "task_version"
+      ],
+      "note_zh": "查询每个代币与信息类型的最近成功时间和活动/退避状态。"
+    },
+    {
+      "source": "decision",
+      "target": "generate",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "action",
+        "reason",
+        "age_minutes"
+      ],
+      "note_zh": "仅首次或到期项进入采集生成；其他分支仅供解释，不触发执行。"
+    },
+    {
+      "source": "asset_identifiers",
+      "target": "generate",
+      "fields": [
+        "asset_id",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "note_zh": "解析采集来源的稳定身份，不能凭名称猜测。"
+    },
+    {
+      "source": "asset_information_content",
+      "target": "generate",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "content_json",
+        "last_success_at",
+        "status",
+        "next_retry_at",
+        "lease_until",
+        "task_version"
+      ],
+      "note_zh": "调用前读取当前状态复查并原子认领；持久设施未接通。"
+    },
+    {
+      "source": "generate",
+      "target": "save",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "candidate_content_json",
+        "source_refs_json",
+        "data_as_of",
+        "generator_version",
+        "task_version",
+        "lease_until",
+        "attempt_error"
+      ],
+      "note_zh": "交付待验证内容或单项错误及任务版本/租约；不是已保存内容。"
+    },
+    {
+      "source": "asset_information_content",
+      "target": "save",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "content_json",
+        "last_success_at",
+        "source_refs_json",
+        "data_as_of",
+        "generator_version",
+        "status",
+        "last_attempt_at",
+        "next_retry_at",
+        "last_error",
+        "task_version",
+        "lease_until",
+        "failure_count"
+      ],
+      "note_zh": "读取当前版本/租约和最后成功字段；拒绝迟到完成，失败保留。"
+    },
+    {
+      "source": "save",
+      "target": "asset_information_content",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "content_json",
+        "last_success_at",
+        "source_refs_json",
+        "data_as_of",
+        "generator_version",
+        "status",
+        "last_attempt_at",
+        "next_retry_at",
+        "last_error",
+        "task_version",
+        "lease_until",
+        "failure_count"
+      ],
+      "note_zh": "验证成功后原子替换；失败仅写尝试状态，成功字段与时间不变。"
+    }
+  ]
 }

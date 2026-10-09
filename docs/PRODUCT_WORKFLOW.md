@@ -63,11 +63,13 @@ Implemented in the shared graph stylesheet and node renderer. Build/type checkin
 layout tests cover this batch; browser coverage and limitations are recorded in the
 [approved design task](https://app.notion.com/p/3f4038a63d5a81709193de90cf10ca06).
 
-Approved content refresh design (2026-10-10): one shared processing card consumes each of the
-five existing boards' top N and refreshes content per asset and information type. The logical
-content/state table and graph dependencies are installed from `catalog/content-refresh.v1.json`.
-The card uses the shared processing frame, visible execution triggers, derived synthetic
-branches and a separate empty observed result table. Defaults are top 20 per board, 30-minute
+Approved content refresh design (2026-10-10, refined in the same discussion): four processing
+cards express candidate selection, refresh decision, fetch/generation and validation/saving.
+The five existing boards feed candidate selection (#3027); the logical content/state table
+(#1019) feeds decision, execution recheck and saving, then receives the final write.
+Cards and dependencies are installed from `catalog/content-refresh.v1.json`. Each stage uses
+the shared processing frame, visible execution triggers and a synthetic through-line case;
+the observed result table stays empty. Defaults are top 20 per board, 30-minute
 content refresh, commit/startup checks and a 60-second fallback. Runtime generators, storage,
 frontend reads and notification/task bindings remain unconnected. Precise requirements and
 verification are in [CONTENT_REFRESH_ENGINE.md](CONTENT_REFRESH_ENGINE.md), with the

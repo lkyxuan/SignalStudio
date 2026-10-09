@@ -92,3 +92,53 @@ export function settleDesignAttempt(state: ContentState, completion: Completion)
     failure_count: count, last_error: completion.error || 'generation_failed',
     next_retry_at: new Date(at + delay * 1000).toISOString() };
 }
+
+export type DesignScenario = 'check' | 'failure' | 'boundary';
+export type DesignAttempt = {
+  asset_id: string; information_key: string; candidate_content_json: string | null;
+  source_refs_json: string; data_as_of: string | null; generator_version: string | null;
+  task_version: number; lease_until: string; attempt_error: string | null;
+};
+
+// Follow the same declared fictional records through four UI stages. Output and
+// binding readiness are assumptions for illustration, never fetch/generator calls.
+export function buildDesignPipeline(scenario: DesignScenario) {
+  const demo = contract.case;
+  const now = scenario === 'boundary' ? '2026-10-10T02:10:00Z' : demo.now;
+  const types = [{ key: demo.information_key, enabled: true, binding_ready: true }];
+  const ids = selectCandidates(demo.board_snapshots, now);
+  const before: ContentState[] = ids.map(asset_id => demo.states.find(row => row.asset_id === asset_id) ?? {
+    asset_id, information_key: demo.information_key, content_json: null, last_success_at: null,
+    status: 'idle', task_version: 0, next_retry_at: null, failure_count: 0,
+  });
+  const decisions = planDesignRefresh(ids, types, before, now);
+  const eligible = decisions.filter(row => row.action === 'generate' || row.action === 'refresh');
+  const attempts: DesignAttempt[] = [];
+  const saved = new Map(before.map(row => [row.asset_id, row]));
+  const claimed: ContentState[] = [];
+  for (const decision of eligible) {
+    const state = saved.get(decision.asset_id)!;
+    const running = { ...state, status: 'running', task_version: state.task_version + 1,
+      lease_until: new Date(Date.parse(now) + 300000).toISOString() };
+    claimed.push(running);
+    const sample = demo.generated_samples.find(row => row.asset_id === decision.asset_id)!;
+    const failure = scenario === 'failure' && decision.asset_id === 'demo-B';
+    const attempt = { asset_id: state.asset_id, information_key: state.information_key,
+      candidate_content_json: failure ? null : sample.candidate_content_json,
+      source_refs_json: failure ? '[]' : sample.source_refs_json,
+      data_as_of: sample.data_as_of, generator_version: failure ? null : sample.generator_version,
+      task_version: running.task_version, lease_until: running.lease_until,
+      attempt_error: failure ? 'synthetic_fetch_timeout' : null };
+    attempts.push(attempt);
+    saved.set(state.asset_id, settleDesignAttempt(running, {
+      task_version: attempt.task_version, lease_until: attempt.lease_until, now,
+      ...(failure ? { error: attempt.attempt_error! } : { result: {
+        content_json: sample.candidate_content_json, source_refs_json: sample.source_refs_json,
+        data_as_of: sample.data_as_of, generator_version: sample.generator_version,
+      } }),
+    }));
+  }
+  const after = [...saved.values()];
+  return { now, before, candidates: ids.map(asset_id => ({ asset_id })), decisions, eligible,
+    claimed, attempts, after, recheck: planDesignRefresh(ids, types, after, now) };
+}

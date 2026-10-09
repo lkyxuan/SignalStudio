@@ -5,17 +5,34 @@ The authoritative portable contract is [`catalog/content-refresh.v1.json`](../ca
 
 ## Delivered scope
 
-SignalStudio installs `刷新代币信息内容` and a logical result/state card,
-`asset_information_content`. The five existing board tables and `asset_identifiers` feed
-the processor; the result card has separate read and write dependencies. Existing nodes,
-positions, scoring formulas, Supabase synchronization and actual backfills are preserved.
-Only consumed core-table declarations are added as graph field metadata, not observed values.
-Startup migration is transactional and idempotent; conflicting names and missing prerequisites
-are rejected without overwriting them.
+The approved 2026-10-10 refinement splits the engine into four processing cards:
+
+| Stage | Responsibility | Inputs | Output |
+| --- | --- | --- | --- |
+| Candidate selection | Per-board valid top N, then stable-ID union | Five board tables | Candidate `asset_id` values |
+| Refresh decision | Per-type first/due/fresh/backoff/active checks | Candidates and content/state table | Decisions; only first/due proceed |
+| Fetch and generate | Recheck eligibility and atomically claim before calling existing capabilities | Eligible decisions, identities and current task state | Unvalidated content or error, provenance, task version and lease |
+| Validate and save | Reject stale completions, validate output, atomically persist or record failure | Generation result and current successful/task state | Updated logical content/state row |
+
+The existing #3027 is renamed to `候选代币筛选`, retaining its ID, reference and position.
+Three new processing cards use the normal allocator; references depend on the workspace.
+The existing #1019 `asset_information_content` retains its ID, reference, fields and position.
+The graph contains 13 design dependencies: five board inputs, three sequential handoffs,
+identity input, three content/state reads (decision, execution recheck/claim, saving), and
+one final write. No decision skip/wait/blocked branch is handed to generation. The result
+is a logical view; neither intermediate candidate nor pending lists require new tables or queues.
+
+Startup first ensures the original v1 design, then applies a transactional v2 upgrade.
+The upgrade replaces only the eight v1-owned dependencies, preserves unrelated nodes,
+positions and user connections, rejects missing/conflicting prerequisites, and is idempotent.
+Obsolete v1 engine fields are removed only when their declarations still match and they
+have no remaining edge or requirement references. The rename, new cards, field mappings,
+reference counters, audit events and upgrade marker roll back together on failure.
+Existing board calculations and Supabase list synchronization retain their contracts.
 
 No crawler, generator, scheduler, production table or frontend reader is deployed here.
 Observed result rows remain empty. `src/contentRefreshDesign.ts` is a pure UI design-case
-evaluator, with no I/O, queue, atomic claims or generation. It is not a production task runner.
+evaluator (including the four-stage through-line), with no I/O, queue, atomic claims or generation. It is not a production task runner.
 
 ## Selection and scheduling requirements
 
@@ -102,6 +119,12 @@ Rule checks cover ranking/filter-before-limit, stable-ID deduplication, invalid/
 unavailable snapshots, independent information types, first generation, expiry boundary,
 retry backoff, lease expiry, stale completion rejection, preserved successful fields, exit and
 re-entry. Migration checks cover additive installation, unchanged existing nodes, focused
-field usages, idempotence and rollback. Inspect both cards in a browser, including the three
+field usages, idempotence and rollback. Inspect all four processing cards and the result table in a browser, including the three
 branch choices, empty observed table, source navigation and collapsed technical settings.
+The four-stage cases derive candidates, decisions, eligible handoffs, assumed generation
+outputs and success/failure state replacement from the same synthetic records. The five-minute
+example lease is only an assumption; actual lease duration stays unbound. Type-specific
+validation and durable claims/transactions are external requirements, not implemented validators.
+Upgrade checks also cover v1 identity/position preservation, unrelated links/field references,
+focused field mappings, and rollback of rename, counters and audit events.
 These checks validate the design implementation, not live generation or signal validity.

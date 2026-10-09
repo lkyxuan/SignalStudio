@@ -1,11 +1,46 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import contract from '../catalog/content-refresh.v1.json';
-import { selectCandidates, planDesignRefresh, settleDesignAttempt, type ContentState, type Snapshot } from './contentRefreshDesign';
+import { buildDesignPipeline, selectCandidates, planDesignRefresh, settleDesignAttempt, type ContentState, type Snapshot } from './contentRefreshDesign';
 
 const now = contract.case.now;
 const type = { key: contract.case.information_key, enabled: true, binding_ready: true };
 const state = contract.case.states[1]!;
+
+test('four-stage case hands only eligible content keys to generation and preserves fresh content', () => {
+  const flow = buildDesignPipeline('check');
+  assert.deepEqual(flow.candidates.map(row => row.asset_id), ['demo-A', 'demo-B', 'demo-C']);
+  assert.deepEqual(flow.eligible.map(row => row.asset_id), ['demo-C', 'demo-B']);
+  assert.deepEqual(flow.attempts.map(row => row.asset_id), flow.eligible.map(row => row.asset_id));
+  assert.deepEqual(flow.after.find(row => row.asset_id === 'demo-A'), flow.before.find(row => row.asset_id === 'demo-A'));
+  for (const attempt of flow.attempts) {
+    const before = flow.before.find(row => row.asset_id === attempt.asset_id)!;
+    const saved = flow.after.find(row => row.asset_id === attempt.asset_id)!;
+    assert.equal(attempt.task_version, before.task_version + 1);
+    assert.equal(saved.content_json, attempt.candidate_content_json);
+    assert.equal(saved.last_success_at, flow.now);
+    assert.equal(saved.lease_until, null);
+  }
+  assert.ok(flow.recheck.every(row => row.reason === 'fresh'));
+  const boundary = buildDesignPipeline('boundary');
+  assert.equal(boundary.eligible.find(row => row.asset_id === 'demo-A')?.age_minutes, 30);
+  assert.equal(boundary.attempts.length, 3);
+});
+
+test('four-stage failure carries the error to saving and independent success to the next check', () => {
+  const flow = buildDesignPipeline('failure');
+  const attempt = flow.attempts.find(row => row.asset_id === 'demo-B')!;
+  assert.equal(attempt.candidate_content_json, null);
+  assert.equal(attempt.attempt_error, 'synthetic_fetch_timeout');
+  const previous = flow.before.find(row => row.asset_id === 'demo-B')!;
+  const failed = flow.after.find(row => row.asset_id === 'demo-B')!;
+  for (const field of ['content_json', 'last_success_at', 'source_refs_json', 'data_as_of', 'generator_version'] as const)
+    assert.equal(failed[field], previous[field]);
+  assert.equal(failed.next_retry_at, '2026-10-10T02:01:00.000Z');
+  assert.equal(flow.recheck.find(row => row.asset_id === 'demo-B')?.reason, 'retry_backoff');
+  assert.equal(flow.recheck.find(row => row.asset_id === 'demo-C')?.reason, 'fresh');
+  assert.equal(flow.after.find(row => row.asset_id === 'demo-C')?.last_success_at, flow.now);
+});
 
 test('top N is per board, after ranking and eligibility; cross-board IDs merge without using names', () => {
   const boards = contract.boards.map(board => ({ ...board, top_n: 1 }));
