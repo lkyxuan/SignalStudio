@@ -18,6 +18,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private let baseURL = URL(string: "http://127.0.0.1:18787")!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Set the running Dock icon as well as the bundle's Finder icon.
+        if let iconURL = Bundle.main.url(forResource: "SignalStudio", withExtension: "icns"),
+           let icon = NSImage(contentsOf: iconURL) {
+            NSApp.applicationIconImage = icon
+        }
         let menu = NSMenu()
         let appItem = NSMenuItem()
         menu.addItem(appItem)
