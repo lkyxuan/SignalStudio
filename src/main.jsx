@@ -22,6 +22,7 @@ import { OtherSourceCasePage } from './OtherSourceCasePage';
 import { OtherSourceCaseInspector } from './OtherSourceCaseInspector';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { autoLayout } from './autoLayout';
+import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
 import './node-ref.css';
@@ -360,12 +361,28 @@ function App() {
   const applyProposal = async () => { const result = await mutate('/proposals/apply', 'POST', proposal, 'Proposed changes applied');
     if (result) { setSelectedId(result.id); setProposal(null); setPrompt(''); setShowPrompt(false); setTimeout(() => flowInstance?.setCenter(result.position_x, result.position_y, { zoom: 0.85, duration: 450 }), 80); } };
   const openNode = id => { setSelectedId(id); setSelectedEdgeId(null); setFocusNodeId(id); };
-  const focusSelectedRelations = () => {
-    if (!selected) return;
-    setFocusNodeId(selected.id);
-    setSelectedEdgeId(null);
-    setView('graph');
-    setGraphDisplayMode('local');
+  const focusSelectedRelations = async () => {
+    if (!selected || busy) return;
+    const renderedCards = new Map((flowInstance?.getNodes() || nodes).map(node => [node.id, node]));
+    const cards = graph.nodes.map(node => renderedCards.get(node.id) || {
+      id: node.id, position: { x: node.position_x, y: node.position_y },
+    });
+    const moved = neighborLayout(cards, graph.edges, selected.id);
+    if (!moved.length) {
+      flash(language === 'zh-CN' ? '这张卡片没有直接上下游' : 'This card has no direct neighbors');
+      return;
+    }
+    const movedById = new Map(moved.map(position => [position.id, position]));
+    const positions = cards.map(card => movedById.get(card.id) || {
+      id: card.id, position_x: card.position.x, position_y: card.position.y,
+    });
+    const result = await mutate('/nodes/layout', 'POST', { positions },
+      language === 'zh-CN' ? '上下游已拉近，新位置已保存' : 'Neighbors moved closer; positions saved');
+    if (result) {
+      setSelectedEdgeId(null);
+      setView('graph');
+      setGraphDisplayMode('full');
+    }
   };
   const openCase016 = index => { setCase016Index(index); setShowCase016(true); };
   const closeCase016 = useCallback(() => setShowCase016(false), []);
@@ -417,7 +434,7 @@ function App() {
     </main>
 
     {(selected || selectedEdge) && <aside className={`inspector ${selected && BUSINESS_TABLE_NAMES.has(selected.name) ? 'business-table-inspector' : ''}`}><div className="inspector-head"><span>{t('INSPECTOR')}</span><IconButton title={t('Close inspector')} onClick={() => { setSelectedId(null); setSelectedEdgeId(null); }}><X size={17} /></IconButton></div>
-      {selected && draft && <><div className="inspector-title"><span className={`inspector-icon ${KIND[selected.type]}`}><GitBranch size={20} /></span><div><span className="small-label">{isReferenceResource(selected.name) ? language === 'zh-CN' ? 'MCP 参考资源' : 'MCP RESOURCE' : contractSourceName(selected.name) ? language === 'zh-CN' ? '本产品上游操作' : 'UPSTREAM OPERATION' : t(selected.type)}</span><h2><span className="inspector-node-ref">{nodeRef(selected)}</span>{displayName(selected.name)}</h2><button className="inspector-focus-relations" onClick={focusSelectedRelations} title={language === 'zh-CN' ? '以这张卡片为中心，集中查看直接上游和下游' : 'Focus this card and its direct upstream and downstream neighbors'}><GitBranch size={14} />{language === 'zh-CN' ? '拉近上下游' : 'Focus neighbors'}</button></div></div><div className="inspector-scroll">{selected.name === 'kaito.mcp.kaito_advanced_search' ? <><SourceCaseInspector language={language} onOpenFull={openCase016} purpose={sourcePurpose(selected.name, language) || selected.definition} /><details className="other-source-technical"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>{!isReferenceResource(selected.name) && <SourceCollectionSettings node={selected} language={language} />}<FieldCatalog node={selected} fields={nodeFields} mutate={mutate} busy={busy} language={language} /><SourceUsageGuide node={selected} language={language} hasDownstream={downstream.length > 0} /><SourceFlowSummary node={selected} graph={graph} openEdge={openEdge} language={language} /></details></> : contractSourceName(selected.name) ? <><OtherSourceCaseInspector key={selected.name} operationId={selected.name} language={language} purpose={sourcePurpose(selected.name, language) || selected.definition} onOpenFull={index => setOtherSourceCase({ operationId: selected.name, caseIndex: index })} /><details className="other-source-technical"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>{!isReferenceResource(selected.name) && <SourceCollectionSettings node={selected} language={language} />}<FieldCatalog node={selected} fields={nodeFields} mutate={mutate} busy={busy} language={language} /><SourceUsageGuide node={selected} language={language} hasDownstream={downstream.length > 0} /><SourceFlowSummary node={selected} graph={graph} openEdge={openEdge} language={language} /></details></> : selected.is_system_state ? <StateNodeDetails node={selected} upstream={upstream} downstream={downstream} openNode={openNode} language={language} /> : ['Redpanda Topic', 'Redis Window'].includes(selected.type) || [3006, 3009].includes(selected.reference_number) ? <ProcessingIOCard node={selected} graph={graph} openNode={openNode} language={language} /> : selected.type === 'Asset Resolution' ? <>
+      {selected && draft && <><div className="inspector-title"><span className={`inspector-icon ${KIND[selected.type]}`}><GitBranch size={20} /></span><div><span className="small-label">{isReferenceResource(selected.name) ? language === 'zh-CN' ? 'MCP 参考资源' : 'MCP RESOURCE' : contractSourceName(selected.name) ? language === 'zh-CN' ? '本产品上游操作' : 'UPSTREAM OPERATION' : t(selected.type)}</span><h2><span className="inspector-node-ref">{nodeRef(selected)}</span>{displayName(selected.name)}</h2><button className="inspector-focus-relations" onClick={focusSelectedRelations} disabled={busy} title={language === 'zh-CN' ? '在完整画布中拉近直接上下游卡片，并保存新位置' : 'Move direct upstream and downstream cards closer on the full canvas and save their positions'}><GitBranch size={14} />{language === 'zh-CN' ? '拉近上下游' : 'Bring neighbors closer'}</button></div></div><div className="inspector-scroll">{selected.name === 'kaito.mcp.kaito_advanced_search' ? <><SourceCaseInspector language={language} onOpenFull={openCase016} purpose={sourcePurpose(selected.name, language) || selected.definition} /><details className="other-source-technical"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>{!isReferenceResource(selected.name) && <SourceCollectionSettings node={selected} language={language} />}<FieldCatalog node={selected} fields={nodeFields} mutate={mutate} busy={busy} language={language} /><SourceUsageGuide node={selected} language={language} hasDownstream={downstream.length > 0} /><SourceFlowSummary node={selected} graph={graph} openEdge={openEdge} language={language} /></details></> : contractSourceName(selected.name) ? <><OtherSourceCaseInspector key={selected.name} operationId={selected.name} language={language} purpose={sourcePurpose(selected.name, language) || selected.definition} onOpenFull={index => setOtherSourceCase({ operationId: selected.name, caseIndex: index })} /><details className="other-source-technical"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>{!isReferenceResource(selected.name) && <SourceCollectionSettings node={selected} language={language} />}<FieldCatalog node={selected} fields={nodeFields} mutate={mutate} busy={busy} language={language} /><SourceUsageGuide node={selected} language={language} hasDownstream={downstream.length > 0} /><SourceFlowSummary node={selected} graph={graph} openEdge={openEdge} language={language} /></details></> : selected.is_system_state ? <StateNodeDetails node={selected} upstream={upstream} downstream={downstream} openNode={openNode} language={language} /> : ['Redpanda Topic', 'Redis Window'].includes(selected.type) || [3006, 3009].includes(selected.reference_number) ? <ProcessingIOCard node={selected} graph={graph} openNode={openNode} language={language} /> : selected.type === 'Asset Resolution' ? <>
         <ProcessingIOCard node={selected} graph={graph} openNode={openNode} language={language} nodeLabel={displayName} purpose={draft.definition} />
         <details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>
           <label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<textarea value={draft.definition} onChange={e => setDraft({ ...draft, definition: e.target.value })} rows={3} /></label>
