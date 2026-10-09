@@ -10,6 +10,8 @@ A local-first design workspace for the definitions, formulas, reasons, caveats a
 
 Run `npm run desktop:build` on a Mac with the project dependencies installed and Xcode Command Line Tools available. This creates `~/Applications/SignalStudio.app`; double-click it or drag it into the Dock. Daily use after building needs neither Vite nor Node.
 
+The build includes the orange heartbeat app icon from `design/logo/heartbeat-app-icon.png`, generates macOS icon sizes with `sips`/`iconutil`, and includes the Lucide license in the app resources.
+
 The app loads `dist/` from the project path captured at build time and uses the captured Python executable and that project's `data/logic.db`. It starts a server on `127.0.0.1:18787`, reusing an existing server only when its health response identifies the same project and a built client. Reopening activates the existing window. Closing the last window or pressing Command-Q stops only the server started by the app. Startup failures appear in the window; server logs go to `~/Library/Logs/SignalStudio/server.log`.
 
 This is a local app shell, without bundled Python/project files or distribution notarization. Rebuild after moving the project, removing Python, or changing frontend source. Copying the app to another computer does not make it standalone. Verify first launch, reopening, quitting/relaunching, an existing matching server, and a foreign service occupying port 18787. Rationale and approval: [Notion task](https://app.notion.com/p/3f4038a63d5a8182b1e8e094efee2e51).
