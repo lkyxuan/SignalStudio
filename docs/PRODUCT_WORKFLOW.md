@@ -51,6 +51,19 @@ The neutral refinement was checked again on the graph, #4001 details, #1002 raw 
 
 ## Card UI standard
 
+Graph card presentation requirement (approved 2026-10-10): ordinary graph nodes share a
+208 × 184 CSS-pixel frame, 12px padding and 8px corners, including table and decision nodes.
+Keep type/status metadata in the top region, the reference number beside a two-line title,
+a two-line description and a bottom asset-scope row. Full titles remain available on hover
+and through the existing details panel. The graph node contract currently carries workflow
+and schema information, without a concrete asset binding; show “Asset: not bound” rather
+than interpreting field declarations or selected examples as assigned assets. This is not
+an asset-binding implementation. Auto-layout and neighbor-layout fallback geometry must
+match the frame; existing saved positions are retained until the user arranges nodes.
+Implemented in the shared graph stylesheet and node renderer. Build/type checking and
+layout tests cover this batch; browser coverage and limitations are recorded in the
+[approved design task](https://app.notion.com/p/3f4038a63d5a81709193de90cf10ca06).
+
 Approved content refresh design (2026-10-10): one shared processing card consumes each of the
 five existing boards' top N and refreshes content per asset and information type. The logical
 content/state table and graph dependencies are installed from `catalog/content-refresh.v1.json`.

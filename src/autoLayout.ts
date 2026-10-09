@@ -4,7 +4,7 @@ type LayoutEdge = Pick<GraphEdge, 'upstream_id' | 'downstream_id'>;
 export type NodePosition = { id: string; position_x: number; position_y: number };
 
 const NODE_WIDTH = 208;
-const NODE_HEIGHT = 104;
+const NODE_HEIGHT = 184;
 const COLUMN_GAP = 132;
 const ROW_GAP = 56;
 const BLOCK_COLUMN_GAP = 32;

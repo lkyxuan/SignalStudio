@@ -28,6 +28,7 @@ import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
 import './node-ref.css';
+import './graph-card.css';
 import './theme.css';
 
 const BUSINESS_TABLE_NAMES = new Set(Object.keys(businessTables.tables));
@@ -116,10 +117,11 @@ function LogicNode({ id, data, selected }) {
     <Handle type="target" position={Position.Left} className="flow-handle" />
     {renderPorts(data.inputPorts || [], 'target')}
     <div className="node-top"><span className="node-glyph">{kind === 'product' ? <LayoutGrid size={15} /> : kind === 'source' || kind === 'state' || kind === 'topic' || kind === 'cache' ? <Database size={15} /> : kind === 'score' ? <Activity size={15} /> : kind === 'identity' || kind === 'relationship' ? <Network size={15} /> : <GitBranch size={15} />}</span><span className="node-kind">{data.isReferenceResource ? data.language === 'zh-CN' ? 'MCP 参考资源' : 'MCP resource' : data.isContractSource ? data.language === 'zh-CN' ? '上游操作' : 'Upstream operation' : data.is_system_state ? t('Business table') : t(data.type)}</span>{isDecision && <span className="decision-node-badge">{data.language === 'zh-CN' ? '◇ 判断' : '◇ Decision'}</span>}{data.catalogSourceId && data.type === 'Source' && <span className="source-origin-tag" data-source={data.catalogSourceId} title={data.catalogSourceId}>{sourceLabel(data.catalogSourceId)}</span>}{Boolean(data.is_system_state) && <span className="state-node-badge">{BUSINESS_TABLE_NAMES.has(data.name) ? data.language === 'zh-CN' ? '业务表定义' : 'Table definition' : t('Planned')}</span>}{data.pendingNeedNames?.length > 0 && <span className="node-need-count" title={data.pendingNeedNames.join('、')}>{data.language === 'zh-CN' ? `${data.pendingNeedNames.length} 项待找` : `${data.pendingNeedNames.length} needed`}</span>}{data.isContractSource && !data.isReferenceResource && <span className="node-field-count">{data.language === 'zh-CN' ? `已列 ${data.fieldCount} 项` : `${data.fieldCount} listed`}</span>}{!data.isContractSource && data.fieldCount > 0 && <span className="node-field-count">{data.language === 'zh-CN' ? `${data.fieldCount} ${t('fields')}` : `${data.fieldCount} ${data.fieldCount === 1 ? 'field' : 'fields'}`}</span>}</div>
-    <div className="node-name" title={`${nodeRef(data)} ${data.name}`}><span className="node-ref">{nodeRef(data)}</span><span className="node-name-text">{data.isContractSource && data.language === 'zh-CN' ? data.catalogRecordLabel || data.name : displayNodeName(data.language, data.name)}</span></div>
+    <div className="node-name" title={`${nodeRef(data)} ${data.isContractSource && data.language === 'zh-CN' ? data.catalogRecordLabel || data.name : displayNodeName(data.language, data.name)} · ${data.name}`}><span className="node-ref">{nodeRef(data)}</span><span className="node-name-text">{data.isContractSource && data.language === 'zh-CN' ? data.catalogRecordLabel || data.name : displayNodeName(data.language, data.name)}</span></div>
     <div className="node-definition" title={BUSINESS_TABLE_NAMES.has(data.name) ? businessTables.tables[data.name].purpose_zh : cardSummary || data.definition || ''}>{BUSINESS_TABLE_NAMES.has(data.name)
       ? data.language === 'zh-CN' ? `${businessTables.tables[data.name].label_zh} · 查看表结构和案例行。` : `${data.name} · view schema and case rows.`
       : cardSummary || (data.definition ? t(data.definition) : t('Add a definition'))}</div>
+    <div className="node-asset-scope" title={data.language === 'zh-CN' ? '此卡描述流程或数据结构，尚未绑定具体资产；字段或案例不代表实际标的。' : 'This workflow/schema card is not bound to a specific asset; fields and examples are not asset assignments.'}>{data.language === 'zh-CN' ? '标的：未绑定具体资产' : 'Asset: not bound'}</div>
     <Handle type="source" position={Position.Right} className="flow-handle" />
     {renderPorts(data.outputPorts || [], 'source')}
   </div>;
