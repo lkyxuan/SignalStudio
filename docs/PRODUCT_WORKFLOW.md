@@ -144,10 +144,27 @@ The existing #6001 → #3005 → #1006 total_heat demo and #3010 → #1007 proje
 
 Application startup installs the cards transactionally once through `server/leaderboard_scaffolds.py`, preserving existing cards, positions and subsequent edits. The saved local graph database may contain other ongoing work; the catalog and installer, rather than a mixed database snapshot, carry this batch to other checkouts. No Redis service, business database table or scoring worker has been deployed.
 
-## Five leaderboard v1 contracts · 2026-10-09
+## Four simple leaderboard contracts · 2026-10-09
 
-The user authorized defining all five algorithms using these cards and adding needed data nodes. The earlier pending-input/algorithm state above describes the initial scaffold, now superseded in the design by `catalog/leaderboard-scaffolds.v1.json` revision `2026-10-09-v1`. Exact execution requirements, timing, lifecycle and verification instructions are in [LEADERBOARD_ALGORITHMS.md](LEADERBOARD_ALGORITHMS.md); the [Notion rationale](https://app.notion.com/p/3f3038a63d5a81d0855de5015049f192) retains discussion history.
+Current scope: preserve the existing #6001 → #3005 → #1006 hot-score chain,
+its real snapshot and #3010/#1007 rules; define simple warming, emerging, cooling
+and divergence boards only. `catalog/leaderboard-simple.v1.json` supersedes the
+four earlier advanced algorithms in `catalog/leaderboard-scaffolds.v1.json`.
+The extra hottest scaffold is a reserve draft, not the active hot leaderboard.
+Older evidence/coverage/discovery preparation cards remain optional drafts;
+they are not dependencies of the simple four paths. Prior installers remain
+for migration compatibility, not as the current execution requirements.
 
-Hottest counts deduplicated attention with a six-hour half-life in a 24-hour window; warming compares a recent hour against 168 prior hourly counts; emerging distinguishes system discovery, source listing and verified launch; cooling requires historical top-50 eligibility, comparable history and a continuing decline; divergence compares original opposing views within one topic/horizon. Initial parameters are defined for reproducibility, not empirically validated. Each board retains an independent formula, cache prefix and complete result batch, with explicit quality gates, five-minute target cycles, up-to-50 reads and a separate 900-second batch read validity. These policies do not change the existing total_heat/Supabase demo.
+Warming/cooling compare the existing total_heat against a one-hour-old snapshot;
+cooling additionally requires prior top-100 eligibility. Emerging means internal
+asset creation within 24 hours. Divergence counts opposing independent authors
+within a comparable topic/horizon. Exact fields, timing and unknowns are in
+[LEADERBOARD_ALGORITHMS.md](LEADERBOARD_ALGORITHMS.md), with the
+[decision/task in Notion](https://app.notion.com/p/3f4038a63d5a81fb9d5ecab6e5b6fb97).
 
-Five data cards own evidence, coverage, attention history, discovery and opinions; four preparation cards connect proposed RSS/Telegram inputs and identity references to those datasets. Coverage telemetry and actual adapters remain unimplemented. The idempotent `server/leaderboard_algorithms.py` migration upgrades the existing fifteen cards without changing their identities/positions, adds fields and lineage, and refuses to overwrite custom scaffold definitions. Card panels use shared table/processing components, label synthetic numeric cases, link full upstream records and end with a plain-language algorithm. SignalStudio implements the design representation only; no live crawler, score computation, Redis generation, result batch or backend deployment is verified.
+`server/leaderboard_simple.py` keeps the four sets of existing card IDs/positions,
+replaces their obsolete fields/dependencies, adds a snapshot processor and table,
+and preserves all other nodes. Shared card components present synthetic numeric
+input/output cases and natural-language algorithms. Graph migration and frontend
+presentation are implemented; continuous snapshots, opinion collection,
+score computation and deployment remain unverified. No crawler or timer starts.

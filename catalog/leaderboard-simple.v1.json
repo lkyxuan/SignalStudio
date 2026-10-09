@@ -1,0 +1,319 @@
+{
+  "revision": "2026-10-09-simple-v1",
+  "rationale_url": "https://app.notion.com/p/3f4038a63d5a81fb9d5ecab6e5b6fb97",
+  "columns": [
+    {
+      "name": "asset_id",
+      "label_zh": "内部资产 ID",
+      "data_type": "string",
+      "meaning_en": "asset_id"
+    },
+    {
+      "name": "asset_name",
+      "label_zh": "展示名称",
+      "data_type": "string | null",
+      "meaning_en": "asset_name"
+    },
+    {
+      "name": "score",
+      "label_zh": "本榜分数",
+      "data_type": "number",
+      "meaning_en": "score"
+    },
+    {
+      "name": "calculated_at",
+      "label_zh": "本次 UTC 截止时间",
+      "data_type": "UTC timestamp",
+      "meaning_en": "calculated_at"
+    },
+    {
+      "name": "algorithm_version",
+      "label_zh": "算法版本",
+      "data_type": "string",
+      "meaning_en": "algorithm_version"
+    }
+  ],
+  "primary_key": [
+    "asset_id"
+  ],
+  "boards": [
+    {
+      "key": "warming",
+      "label_zh": "升温",
+      "cache_name": "Redis · 升温榜数据区",
+      "calculator_name": "计算升温榜得分",
+      "table_name": "leaderboard_warming",
+      "sources": [
+        "asset_scores_current",
+        "leaderboard_heat_snapshots"
+      ],
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部资产 ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "展示名称",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "current_score",
+          "label_zh": "当前 total_heat",
+          "data_type": "number",
+          "meaning_en": "current_score"
+        },
+        {
+          "name": "previous_score",
+          "label_zh": "一小时前 total_heat",
+          "data_type": "number",
+          "meaning_en": "previous_score"
+        }
+      ],
+      "formula": "current_score - previous_score",
+      "description": "比较同一资产当前和一小时前的 total_heat，只保留增加的资产，按增加分数排序。",
+      "eligibility": "两次快照都存在且差值大于0；新建档尚无一小时前分数时不入榜。",
+      "algorithm_version": "warming/simple-v1",
+      "case": {
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "current_score": 120,
+          "previous_score": 100
+        },
+        "score": 20,
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "provenance": "synthetic_design_case"
+      }
+    },
+    {
+      "key": "emerging",
+      "label_zh": "新出现",
+      "cache_name": "Redis · 新出现榜数据区",
+      "calculator_name": "计算新出现榜得分",
+      "table_name": "leaderboard_emerging",
+      "sources": [
+        "assets"
+      ],
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部资产 ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "展示名称",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "created_at",
+          "label_zh": "本系统首次建档时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "created_at"
+        },
+        {
+          "name": "age_hours",
+          "label_zh": "建档距本次截止时间的小时数",
+          "data_type": "number",
+          "meaning_en": "age_hours"
+        }
+      ],
+      "formula": "24 - age_hours",
+      "description": "读取 assets.created_at，只选最近24小时新建档的资产；越新分数越高。这表示本系统新发现，不表示资产刚发行。",
+      "eligibility": "0 <= age_hours < 24；未来时间或时间缺失不入榜。created_at 不因重放或修改名称而重置。",
+      "algorithm_version": "emerging/simple-v1",
+      "case": {
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "created_at": "2026-10-08T18:00:00Z",
+          "age_hours": 6
+        },
+        "score": 18,
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "provenance": "synthetic_design_case"
+      }
+    },
+    {
+      "key": "cooling",
+      "label_zh": "降温",
+      "cache_name": "Redis · 降温榜数据区",
+      "calculator_name": "计算降温榜得分",
+      "table_name": "leaderboard_cooling",
+      "sources": [
+        "asset_scores_current",
+        "leaderboard_heat_snapshots"
+      ],
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部资产 ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "展示名称",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "current_score",
+          "label_zh": "当前 total_heat",
+          "data_type": "number",
+          "meaning_en": "current_score"
+        },
+        {
+          "name": "previous_score",
+          "label_zh": "一小时前 total_heat",
+          "data_type": "number",
+          "meaning_en": "previous_score"
+        },
+        {
+          "name": "previous_rank",
+          "label_zh": "一小时前热榜排名",
+          "data_type": "number",
+          "meaning_en": "previous_rank"
+        }
+      ],
+      "formula": "previous_score - current_score",
+      "description": "先选一小时前热榜前100的资产，比较当前 total_heat，只保留下降的资产，按减少分数排序。",
+      "eligibility": "两次快照存在、一小时前排名不超过100、差值大于0。衰减本身也会造成降温，不能解释成负面消息。",
+      "algorithm_version": "cooling/simple-v1",
+      "case": {
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "current_score": 80,
+          "previous_score": 100,
+          "previous_rank": 25
+        },
+        "score": 20,
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "provenance": "synthetic_design_case"
+      }
+    },
+    {
+      "key": "divergence",
+      "label_zh": "分歧",
+      "cache_name": "Redis · 分歧榜数据区",
+      "calculator_name": "计算分歧榜得分",
+      "table_name": "leaderboard_divergence",
+      "sources": [
+        "leaderboard_opinions"
+      ],
+      "input_schema": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部资产 ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "展示名称",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "topic_key",
+          "label_zh": "可比较主题",
+          "data_type": "string",
+          "meaning_en": "topic_key"
+        },
+        {
+          "name": "horizon",
+          "label_zh": "相同讨论时间范围",
+          "data_type": "string",
+          "meaning_en": "horizon"
+        },
+        {
+          "name": "long_authors",
+          "label_zh": "明确支持的独立作者数",
+          "data_type": "number",
+          "meaning_en": "long_authors"
+        },
+        {
+          "name": "short_authors",
+          "label_zh": "明确反对的独立作者数",
+          "data_type": "number",
+          "meaning_en": "short_authors"
+        }
+      ],
+      "formula": "min(long_authors, short_authors)",
+      "description": "统计最近24小时同资产、同主题、同时间范围的观点。每作者先取最新原文观点，再统计明确立场，支持与反对各至少一人，分数取双方较少人数。每资产选择最高分主题，平分按 topic_key、horizon 升序。",
+      "eligibility": "只统计能核验作者且有原文引用和判定理由的明确 long/short；转发不计新作者，neutral/unknown 不计；缺少观点输入时保持待接入。",
+      "algorithm_version": "divergence/simple-v1",
+      "case": {
+        "input": {
+          "asset_id": "demo-asset",
+          "asset_name": "示例资产",
+          "topic_key": "adoption",
+          "horizon": "medium",
+          "long_authors": 4,
+          "short_authors": 2
+        },
+        "score": 2,
+        "calculated_at": "2026-10-09T00:00:00Z",
+        "provenance": "synthetic_design_case"
+      }
+    }
+  ],
+  "history": {
+    "name": "leaderboard_heat_snapshots",
+    "processor_name": "保存现有热榜快照",
+    "columns": [
+      {
+        "name": "asset_id",
+        "label_zh": "内部资产 ID",
+        "data_type": "string",
+        "meaning_en": "asset_id"
+      },
+      {
+        "name": "asset_name",
+        "label_zh": "展示名称",
+        "data_type": "string | null",
+        "meaning_en": "asset_name"
+      },
+      {
+        "name": "score_key",
+        "label_zh": "仅保存 total_heat",
+        "data_type": "string",
+        "meaning_en": "score_key"
+      },
+      {
+        "name": "score_value",
+        "label_zh": "快照时的完整精度分数",
+        "data_type": "number",
+        "meaning_en": "score_value"
+      },
+      {
+        "name": "calculated_at",
+        "label_zh": "原评分 UTC 时间",
+        "data_type": "UTC timestamp",
+        "meaning_en": "calculated_at"
+      },
+      {
+        "name": "hottest_rank",
+        "label_zh": "同批全量热度排名，从1开始",
+        "data_type": "number",
+        "meaning_en": "hottest_rank"
+      }
+    ],
+    "primary_key": [
+      "asset_id",
+      "calculated_at"
+    ],
+    "description": "复用 #1006 asset_scores_current 的 total_heat 全量快照，按未舍入 score_value 降序、asset_id 升序生成排名。保存原 calculated_at，每分钟一个完整成功批次，保留48小时；重试同批幂等，不覆盖较新批次。尚未观察连续快照。"
+  },
+  "rules_zh": "每5分钟一个UTC截止时间，独立取最多50条：未舍入 score 降序、asset_id 升序；完整成功批次原子替换，失败或输入不足标记 unavailable，不能继续展示旧结果为当前结果。超过15分钟的结果失效。配置不启动爬虫或定时器。",
+  "comparison_zh": "当前批次选择截止前最新且距截止不超过2分钟的成功评分快照；历史选择一小时前或之前最近成功快照，最多允许早2分钟。只比较相同 asset_id 与 total_heat，不将缺失当0，不读取 Supabase 保留旧行作为历史。任一整批缺失标记 unavailable；个别资产缺少一侧分数则跳过该资产。",
+  "limitations_zh": "升温/降温使用已有复合 total_heat，包含建档加分与自然衰减，不等同于已验证的关注变化。单次真实 #1006 回填不能证明已有一小时历史。新出现的建档时间和分歧的作者立场需核验。",
+  "opinion_rule_zh": "只读 published_at 在 [截止时间-24小时, 截止时间] 且 available_at 不晚于截止时间的观点。每个资产/主题/时间范围/作者先取最新原文观点（published_at 降序，平分 opinion_id 升序），再统计明确 long/short，最新 neutral/unknown 不保留旧立场；转发、身份无法核验、原文或理由缺失不计。每个主题双方各至少一人，分数取较少人数；每资产只保留最高分主题，平分 topic_key、horizon 升序。原文引用和主题选择保留在批次审计中。"
+}

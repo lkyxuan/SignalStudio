@@ -1,4 +1,5 @@
 import catalog from '../catalog/leaderboard-scaffolds.v1.json';
+import { LeaderboardSimpleCard, simpleLeaderboardCard } from './LeaderboardSimpleCard';
 import { BusinessTableRows } from './BusinessTableRows';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
 import type { Graph, GraphNode, Language } from './contracts';
@@ -6,7 +7,7 @@ import './processing-io-card.css';
 
 type Column = { name: string; data_type: string; label_zh: string; meaning_en: string };
 type Props = { node: GraphNode; graph?: Graph; openNode?: (id: string) => void; language: Language };
-export const leaderboardCard = (name: string) => catalog.boards.find(board =>
+export const leaderboardCard = (name: string) => simpleLeaderboardCard(name) || catalog.boards.find(board =>
   [board.cache_name, board.calculator_name, board.table_name].includes(name)) ||
   catalog.data_nodes.find(item => item.name === name) || catalog.preprocessors.find(item => item.name === name);
 
@@ -18,8 +19,16 @@ function Fields({ columns, values }: { columns: Column[]; values?: Record<string
 }
 
 export function LeaderboardScaffoldCard({ node, graph, openNode, language }: Props) {
+  if (simpleLeaderboardCard(node.name)) return <LeaderboardSimpleCard node={node} graph={graph} openNode={openNode} language={language} />;
+  if (['Redis · 最热榜数据区', '计算最热榜得分', 'leaderboard_hottest'].includes(node.name)) return <div className="business-table-card">
+    <p>备用设计草案 · 当前热榜沿用 #3005 → #1006，不启用这条替代链路。</p>
+    <p>原热榜内容与真实回填保持现状。</p>
+  </div>;
   const zh = language === 'zh-CN';
-  const status = zh ? 'v1 设计已定义 · 尚无真实采集与计算验证' : 'v1 design defined · no verified collection or execution';
+  const opinionInput = ['leaderboard_opinions', '标注可比较观点'].includes(node.name);
+  const status = opinionInput
+    ? (zh ? '分歧榜观点输入契约 · 尚无真实采集与标注验证' : 'Opinion input contract · collection and annotation unverified')
+    : (zh ? '扩展设计草案 · 四榜简版不依赖本路径 · 尚无真实采集与计算验证' : 'Optional draft · not required by the simple boards · execution unverified');
   const dataset = catalog.data_nodes.find(item => item.name === node.name);
   const prep = catalog.preprocessors.find(item => item.name === node.name);
   const board = catalog.boards.find(item => [item.cache_name, item.calculator_name, item.table_name].includes(node.name));
