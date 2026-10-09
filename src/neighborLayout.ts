@@ -11,8 +11,8 @@ const GAP = 44;
 const CLEARANCE = 24;
 const box = (node: PositionedCard): Box => ({
   ...node.position,
-  width: node.measured?.width || 208,
-  height: node.measured?.height || 184,
+  width: node.measured?.width || 300,
+  height: node.measured?.height || 160,
 });
 const overlaps = (a: Box, b: Box) =>
   a.x < b.x + b.width + CLEARANCE && a.x + a.width + CLEARANCE > b.x &&

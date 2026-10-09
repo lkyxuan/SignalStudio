@@ -122,7 +122,6 @@ function LogicNode({ id, data, selected }) {
     <div className="node-definition" title={BUSINESS_TABLE_NAMES.has(data.name) ? businessTables.tables[data.name].purpose_zh : cardSummary || data.definition || ''}>{BUSINESS_TABLE_NAMES.has(data.name)
       ? data.language === 'zh-CN' ? `${businessTables.tables[data.name].label_zh} · 查看表结构和案例行。` : `${data.name} · view schema and case rows.`
       : cardSummary || (data.definition ? t(data.definition) : t('Add a definition'))}</div>
-    <div className="node-asset-scope" title={data.language === 'zh-CN' ? '此卡描述流程或数据结构，尚未绑定具体资产；字段或案例不代表实际标的。' : 'This workflow/schema card is not bound to a specific asset; fields and examples are not asset assignments.'}>{data.language === 'zh-CN' ? '标的：未绑定具体资产' : 'Asset: not bound'}</div>
     <Handle type="source" position={Position.Right} className="flow-handle" />
     {renderPorts(data.outputPorts || [], 'source')}
   </div>;

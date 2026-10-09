@@ -24,7 +24,7 @@ test('arranges dependencies left to right without overlapping cards', () => {
   for (const edge of edges) assert.ok(byId.get(edge.upstream_id)!.position_x < byId.get(edge.downstream_id)!.position_x);
   for (let left = 0; left < layout.length; left++) for (let right = left + 1; right < layout.length; right++) {
     const a = layout[left]!, b = layout[right]!;
-    assert.ok(Math.abs(a.position_x - b.position_x) >= 208 || Math.abs(a.position_y - b.position_y) >= 184);
+    assert.ok(Math.abs(a.position_x - b.position_x) >= 300 || Math.abs(a.position_y - b.position_y) >= 160);
   }
 });
 
@@ -47,7 +47,7 @@ test('packs unconnected record types into multi-column source blocks', () => {
   assert.deepEqual(autoLayout([...nodes].reverse(), []), layout);
   for (let left = 0; left < layout.length; left++) for (let right = left + 1; right < layout.length; right++) {
     const a = layout[left]!, b = layout[right]!;
-    assert.ok(Math.abs(a.position_x - b.position_x) >= 208 || Math.abs(a.position_y - b.position_y) >= 184);
+    assert.ok(Math.abs(a.position_x - b.position_x) >= 300 || Math.abs(a.position_y - b.position_y) >= 160);
   }
 });
 
