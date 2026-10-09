@@ -56,6 +56,10 @@ class Handler(BaseHTTPRequestHandler):
         parts = [part for part in url.path.split("/") if part]
         query = parse_qs(url.query)
         method = self.command
+        if parts == ["api", "desktop-health"] and method == "GET":
+            return {"app": "SignalStudio", "project_root": str(ROOT),
+                    "database_path": str(Path(service.db.execute("PRAGMA database_list").fetchone()[2]).resolve()),
+                    "client_ready": (ROOT / "dist" / "index.html").is_file()}
         if parts == ["api", "table-backfills", "1006"]:
             if method == "GET":
                 return table_backfill.read()
