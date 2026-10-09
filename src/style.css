@@ -108,3 +108,5 @@
 .logic-node.decision-node{position:relative;border:2px solid #bf9a5e;border-left-width:5px;border-right-width:5px;border-radius:17px 7px 17px 7px;background:#fffdf8}
 .logic-node.decision-node:hover,.logic-node.decision-node.is-selected{border-color:#a98443;box-shadow:0 7px 22px #97734238}
 .decision-node-badge{position:absolute;top:-12px;right:9px;padding:3px 7px;border:1px solid #d7bd89;border-radius:11px;background:#fff8e9;color:#936c2d;font-size:9px;font-weight:800;white-space:nowrap}
+
+.inspector-focus-relations{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 10px;border:1px solid #cce4de;border-radius:6px;background:#f1faf7;color:#197d70;font-size:11px;font-weight:600}.inspector-focus-relations:hover{background:#e5f4ee;border-color:#6db5a6}.inspector-focus-relations:focus-visible{outline:2px solid #197d70;outline-offset:3px}
