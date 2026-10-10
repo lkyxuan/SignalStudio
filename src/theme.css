@@ -108,6 +108,7 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
 }
 .logic-node.logic-node {
   --ss-node-bg: #30343b;
+  --ss-node-header: #252930;
   --ss-node-border: #4b515d;
   --ss-node-color: var(--ss-neutral);
   --ss-muted: #b8b8b8;
@@ -119,26 +120,31 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
 }
 .logic-node.source, .logic-node.state {
   --ss-node-bg: #293844;
+  --ss-node-header: #202b35;
   --ss-node-border: #445664;
   --ss-node-color: var(--ss-blue);
 }
 .logic-node.metric {
   --ss-node-bg: #293c32;
+  --ss-node-header: #202e27;
   --ss-node-border: #435e4e;
   --ss-node-color: var(--ss-success);
 }
 .logic-node.rule {
   --ss-node-bg: #40362a;
+  --ss-node-header: #30291f;
   --ss-node-border: #61513d;
   --ss-node-color: var(--ss-warning);
 }
 .logic-node.topic {
   --ss-node-bg: #352f42;
+  --ss-node-header: #292432;
   --ss-node-border: #574967;
   --ss-node-color: var(--ss-purple);
 }
 .logic-node.cache {
   --ss-node-bg: #402f3a;
+  --ss-node-header: #30242c;
   --ss-node-border: #624758;
   --ss-node-color: var(--ss-pink);
 }
