@@ -64,10 +64,21 @@ export const requirementSchema = z.looseObject({
   id, node_id: id, name: id, purpose: text, expected_example: text,
   source_field_id: id.nullable(), created_at: text, updated_at: text,
 });
+export const cardProgressReportSchema = z.looseObject({
+  package_revision: text, definition_revision: text.nullable().optional(),
+  code_revision: text, evidence_ref: text, reported_at: text.optional(),
+  reported_by: text.optional(), environment: text.optional(), summary: text.optional(),
+  observations: z.record(text, text),
+});
+export const cardProgressSchema = z.object({
+  definition_revision: text, report:cardProgressReportSchema.nullable(), stale:z.boolean(),
+});
+export type CardProgress = z.infer<typeof cardProgressSchema>;
 export const graphSchema = z.looseObject({
   revision: z.string().optional(), contract_revision: z.string().optional(),
   model_version: text.optional(), semantic_revision:text.optional(),presentation_revision:text.optional(),
   ports:z.array(portSchema).optional(),bindings:z.array(bindingSchema).optional(),
+  card_progress:z.record(text,cardProgressSchema).optional(),
   data_schemas:z.array(z.object({id,node_id:id,version:z.number().int().positive(),field_ids:z.array(id)})).optional(),
   nodes: z.array(nodeSchema), edges: z.array(edgeSchema), fields: z.array(fieldSchema),
   field_usages: z.array(usageSchema), requirements: z.array(requirementSchema),

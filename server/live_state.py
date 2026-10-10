@@ -7,7 +7,7 @@ class RevisionConflict(Exception):
     pass
 
 
-def snapshot(service, contract_revision=''):
+def snapshot(service, contract_revision='', include_progress=True):
     owned = not service.db.in_transaction
     if owned:
         service.db.execute('BEGIN')
@@ -23,6 +23,10 @@ def snapshot(service, contract_revision=''):
             separators=(',', ':')).encode()).hexdigest()
         graph['presentation_revision'] = hashlib.sha256(json.dumps(presentation, sort_keys=True,
             separators=(',', ':')).encode()).hexdigest()
+        if include_progress and service.db.execute("SELECT 1 FROM sqlite_master WHERE name='node_contracts'").fetchone():
+            from card_model import CardModel
+            from card_progress import CardProgress
+            graph['card_progress'] = CardProgress(CardModel(service)).snapshot(graph)
         graph['revision'] = hashlib.sha256(json.dumps(graph, sort_keys=True, ensure_ascii=False,
             separators=(',', ':')).encode()).hexdigest()
         return graph

@@ -447,7 +447,7 @@ class CardModel:
 
     def package(self):
         from live_state import snapshot
-        graph = snapshot(self.service)
+        graph = snapshot(self.service, include_progress=False)
         graph.pop('revision', None)
         definitions = {}
         for node in graph['nodes']:
@@ -464,21 +464,37 @@ class CardModel:
     def report(self, data):
         """Evidence is an attributed observation, not a user-editable readiness flag."""
         from graph_service import now, uid
+        if not isinstance(data, dict):
+            raise ValueError('Runtime report must be an object')
         package = self.package()
         if data.get('package_revision') != package['package_revision']:
             raise ValueError('Runtime report refers to an outdated definition package')
         node_id = data.get('node_id')
         if node_id:
             self.service.get_node(node_id)
-        if not data.get('code_revision') or not data.get('evidence_ref'):
+        if any(not isinstance(data.get(key), str) or not data[key].strip()
+               for key in ('code_revision', 'evidence_ref')):
             raise ValueError('Runtime reports require code revision and evidence reference')
-        allowed = {'implementation':{'unknown','planned','implemented','verified'},
+        allowed = {'implementation':{'unknown','planned','not_started','in_progress','partial','implemented','verified','blocked','not_implemented','disputed','mismatch'},
                    'deployment':{'unknown','not_deployed','deployed'},'health':{'unknown','healthy','degraded','failed'},
                    'coverage':{'unknown','partial','complete'},'research_validity':{'unknown','unvalidated','validated','rejected'}}
         observations = data.get('observations')
-        if not isinstance(observations,dict) or not observations or any(key not in allowed or value not in allowed[key] for key,value in observations.items()):
+        if not isinstance(observations,dict) or not observations or any(key not in allowed or not isinstance(value,str) or value not in allowed[key] for key,value in observations.items()):
             raise ValueError('Invalid independent evidence dimensions')
-        report = {**data,'reported_at':now(),'claims_are':'reported_observation_not_independent_verification'}
+        for key in ('reported_by', 'environment', 'summary'):
+            if key in data and (not isinstance(data[key],str) or not data[key].strip()):
+                raise ValueError('Report attribution and summary must be nonempty text')
+        if observations.get('implementation') in {'not_implemented','disputed','mismatch'}:
+            if not node_id or not data.get('reported_by'):
+                raise ValueError('Card status reports require a card and reporter')
+            if observations['implementation'] in {'disputed','mismatch'} and not data.get('summary'):
+                raise ValueError('Disputes and mismatches require a short reason')
+        from card_progress import definition_revisions
+        revision = definition_revisions(package['graph']).get(node_id) if node_id else None
+        if data.get('definition_revision') and data['definition_revision'] != revision:
+            raise ValueError('Runtime report refers to an outdated card definition')
+        report = {**data,'definition_revision':revision,'reported_at':now(),
+                  'claims_are':'reported_observation_not_independent_verification'}
         identifier = uid()
         self.db.execute('INSERT INTO graph_definition_reports VALUES (?,?,?,?,?)',
                         (identifier,package['package_revision'],node_id,encoded(report),report['reported_at']))

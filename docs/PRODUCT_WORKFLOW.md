@@ -64,6 +64,13 @@ available on hover and through the existing details panel. These are general wor
 schema cards; do not add a universal asset-binding warning or interpret fields/examples as
 assigned assets. Auto-layout and neighbor-layout fallback geometry must match the frame;
 existing saved positions are retained until the user arranges nodes.
+Each card now has one implementation-check label: implemented, not implemented,
+disputed, or different from the card; absent or stale reports show unconfirmed.
+Studio renders the label from Few Understand's attributed per-card report. The
+label does not establish deployment or runtime success. Keep the short reason and
+collapsed evidence in details; do not add a separate design-stage dashboard.
+See [the report contract](CARD_MODEL.md#卡片实现核对标签).
+
 Implemented in the shared graph stylesheet and node renderer. Build/type checking and
 layout tests cover this batch; browser coverage and limitations are recorded in the
 [approved design task](https://app.notion.com/p/3f4038a63d5a81709193de90cf10ca06).

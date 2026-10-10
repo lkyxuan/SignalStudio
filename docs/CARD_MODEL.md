@@ -40,6 +40,30 @@ Studio 负责定义、存储、校验、迁移、展示及交付；Few Understan
 
 原 `signal-package.v2` 及报告接口保留。可表示的原信号仍按旧格式导出；循环、关联汇合、失败/控制/引用绑定和多义连接等无法忠实表示的含义必须明确拒绝，使用新格式，不能有损降级。
 
+## 卡片实现核对标签
+
+[SS-44批准范围及简化要求](https://app.notion.com/p/3f5038a63d5a81f0bd3cf69b5d53506a)：画布每张卡仅一个标签：已实现、未实现、有分歧、与卡片不一致。没有逐卡回报或定义已变更时显示待核实。Studio负责展示，Few Understand实现侧负责填报；详情仅提供一句原因、报告归属/时间和折叠依据。标签不建立部署、运行或本侧独立验收结论。
+
+继续使用 `POST /api/graph/reports`，请求带当前图 `If-Match`、`X-Card-Model`，以及当前完整包的 `package_revision`。逐卡请求示例（占位符不是运行证据）：
+
+```json
+{
+  "node_id": "<graph.nodes中对应卡号的id>",
+  "package_revision": "<GET /api/graph/package返回的package_revision>",
+  "code_revision": "<Few提交>",
+  "evidence_ref": "<实现/测试依据链接或引用>",
+  "reported_by": "few_understand",
+  "summary": "与卡片不同的地方或核对结论，一句话即可",
+  "observations": {"implementation": "mismatch"}
+}
+```
+
+`implementation` 使用 `implemented / not_implemented / disputed / mismatch`。有分歧表示需求/解释尚有分歧；不一致表示已观察实现与卡片定义不同。后两种必须有简短原因，新状态必须指定卡片及报告方。身份仍是调用方声明，当前共享服务未增加独立认证。旧字段/状态继续接受：verified显示已实现但仍是实现侧回报，not_started/in_progress显示未实现（具体进展可写原因），partial显示与卡片不一致；planned/blocked无法可靠映射四种结论，显示待核实。
+
+`GET /api/graph` 的 `card_progress` 按节点ID返回标签依据，沿用现有图刷新和编辑冲突保护。服务为逐卡回报保存 `definition_revision`，绑定该卡行为、配置、当前模块摘要、相邻字段结构及连接映射；改标题/坐标、无关卡片或写回报不使标签失效。业务/相关输入发生变化后旧回报保存在原报告表，当前标签退回待核实。没有逐卡修订的历史回报保留为未对齐，不自动套用到当前定义。全图报告不广播为所有卡片已实现。每次回报是完整观察，不继承前次部署/健康声明。
+
+标签和回报不进入执行包或语义摘要；没有新增业务表、调度或自动同步设施。不修改 `action.implementation` 或结构ready来代替真实回报。
+
 ## 展示与迁移
 
 创建和主分类只使用六类，业务子类/技术折叠。继续使用 300×160 共享卡片及业务组件。来源/处理先展示输入输出，仅列本步相关输入并链接来源，自然语言算法置后。表先展示横向原始结构/记录，来源说明在后，字段设置折叠。通道/缓存展示自身结构与设置，不添加处理输入输出面板。未知定义只读。没有回填数据的新通用表显示空记录状态，不放虚构行；已有设计案例保持原证据标记。
