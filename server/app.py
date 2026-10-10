@@ -5,6 +5,7 @@ import hashlib
 import mimetypes
 import os
 import sqlite3
+import signal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -45,6 +46,11 @@ ensure_initial_score_sources(service)
 
 
 class Handler(BaseHTTPRequestHandler):
+    def setup(self):
+        super().setup()
+        # Bound incomplete bodies so a stalled client cannot block graceful updates.
+        self.connection.settimeout(10)
+
     def log_request(self, code='-', size='-'):
         if urlparse(self.path).path != '/api/desktop-health':
             super().log_request(code, size)
@@ -257,4 +263,18 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8787"))
     print(f"SignalStudio API: http://127.0.0.1:{port}", flush=True)
-    HTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    # Finish the active request/transaction before shutdown. The runtime stops the
+    # public client first, so no new proxied writes arrive during a host update.
+    stopping = False
+
+    def request_stop(*_):
+        global stopping
+        stopping = True
+
+    for stop_signal in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(stop_signal, request_stop)
+    with HTTPServer(("127.0.0.1", port), Handler) as http:
+        http.timeout = .25
+        while not stopping:
+            http.handle_request()
+    service.db.close()

@@ -1,5 +1,6 @@
 import { request } from './api';
 import { useLiveGraph } from './useLiveGraph';
+import { ServerUpdateNotice } from './ServerUpdateNotice';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, Background, Controls, MiniMap, Handle, Position, MarkerType, useEdgesState, useNodesState, useUpdateNodeInternals } from '@xyflow/react';
@@ -455,6 +456,7 @@ function App() {
     </aside>
 
     <main className="main-pane">
+      <ServerUpdateNotice language={language} />
       {live.status !== 'ready' && <div className="live-update-banner" role="status">{live.status === 'outdated' ? (language === 'zh-CN' ? '后台版本过旧，请退出并重新打开 App。' : 'Backend is outdated. Quit and reopen the App.') : language === 'zh-CN' ? '正在连接工作台，后台重启后会自动恢复…' : 'Connecting to workspace; retrying automatically…'}</div>}
       {live.conflict && <div className={`live-update-banner ${showCreate || showPrompt ? 'modal-conflict' : ''}`} role="alert"><span>{language === 'zh-CN' ? '工作台有外部更新，已保留未保存编辑。' : 'External changes detected. Your unsaved edits are preserved.'}</span><button onClick={discardEdits}>{language === 'zh-CN' ? '放弃草稿，载入最新' : 'Discard drafts and load latest'}</button><button onClick={live.accept}>{language === 'zh-CN' ? '保留编辑，允许覆盖后保存' : 'Keep edits and allow overwrite on save'}</button></div>}
 

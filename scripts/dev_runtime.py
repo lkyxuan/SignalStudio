@@ -42,7 +42,7 @@ def stop(process):
     if process and process.poll() is None:
         process.terminate()
         try:
-            process.wait(timeout=5)
+            process.wait(timeout=20)
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
@@ -63,6 +63,8 @@ def main():
     if not (address.is_loopback or address in ipaddress.ip_network('100.64.0.0/10')):
         parser.error('--client-host must be a loopback or Tailscale IPv4 address')
     root = args.root.resolve()
+    if not address.is_loopback and not (root / 'dist/index.html').is_file():
+        parser.error('Build the shared client with npm run build before starting the host')
     database = (args.db or root / 'data/logic.db').resolve()
     if not database.is_file():
         raise SystemExit('Existing database required; refusing to create another workspace.')
@@ -77,9 +79,13 @@ def main():
     finally:
         for listener in reservations:
             listener.close()
+    try:
+        revision = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True, timeout=3).strip()
+    except (OSError, subprocess.SubprocessError):
+        revision = None
     token = uuid.uuid4().hex
     state = {'app': 'SignalStudio', 'mode': 'development', 'project_root': str(root),
-             'database_path': str(database), 'client_ready': False, 'status': 'starting'}
+             'database_path': str(database), 'code_revision': revision, 'client_ready': False, 'status': 'starting'}
     children = {'backend': None, 'client': None}
     shutdown = threading.Event()
     for sig in (signal.SIGTERM, signal.SIGINT):

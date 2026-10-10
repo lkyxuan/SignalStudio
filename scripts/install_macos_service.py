@@ -19,6 +19,8 @@ def main():
     root = Path(__file__).resolve().parent.parent
     if not Path(args.node).is_file() or not (root / 'node_modules/vite/bin/vite.js').is_file():
         raise SystemExit('Install Node.js and npm dependencies before installing the service.')
+    if not (root / 'dist/index.html').is_file():
+        raise SystemExit('Build the shared client with npm run build before installing the service.')
     if not (root / 'data/logic.db').is_file():
         raise SystemExit('Migrate and verify the existing database before installing the service.')
     label = 'local.signalstudio.server'
