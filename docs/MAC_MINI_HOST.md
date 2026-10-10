@@ -17,7 +17,7 @@
 | Node | `/opt/homebrew/bin/node` |
 | Python | `/Library/Developer/CommandLineTools/usr/bin/python3` |
 
-工作台只监听该 Tailscale IP，不监听 LAN 或公网接口。访问权限依赖已有 Tailscale 网络规则；应用尚未提供独立用户账户/登录系统，不应对公网发布。API 代理拒绝其他网页 Origin 的请求。原生 App 读取 `desktop/connection.json`，核验远端项目、数据库和就绪状态，失败不切换到本地库；退出客户端不停止主机服务。
+工作台只监听该 Tailscale IP，不监听 LAN 或公网接口。访问权限依赖已有 Tailscale 网络规则；应用尚未提供独立用户账户/登录系统，不应对公网发布。API 代理拒绝其他网页 Origin 的请求。开发版原生 App 读取 `desktop/connection.json`；[SS-28 共享安装版](MACOS_RELEASE.md)首次填写地址并确认工作台，设置留在用户目录。两者核验远端项目、数据库和就绪状态，失败不切换到本地库；退出客户端不停止主机服务。
 
 2026-10-09 已将旧 `~/SignalStudio` 移出日常项目目录；包含原有未提交修改的可恢复备份位于 `~/Library/Application Support/SignalStudio/retired-project-20261009-152001`，不作为运行或开发入口。以后使用上表唯一目录。
 

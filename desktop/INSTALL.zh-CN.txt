@@ -1,0 +1,21 @@
+SignalStudio 共享客户端（Apple Silicon / arm64）
+
+1. 打开 DMG，将 SignalStudio 拖到 Applications（应用程序）。
+2. 开启 Tailscale，使用已获准访问 Mac mini 的账户和设备。
+3. 打开 SignalStudio，在首次连接中填写自己的完整工作台地址（http://主机:端口 或 https://主机:端口）。
+4. 检查界面展示的地址和主机项目目录，确认后进入工作台。
+
+连接设置保存在 ~/Library/Application Support/SignalStudio/shared-client.json。
+之后可通过 SignalStudio 菜单的“工作台连接…”修改。切换前先保存编辑。
+断连后检查网络与主机服务，再点击“重新连接”。退出 App 不停止主机服务。
+App 不启动本地后台，也不保存一套本地工作台数据库；仍使用 Mac mini 上的同一份数据。
+安装和更新不需要源码、Node.js 或 Python。安装新版本保留连接设置。
+
+首版为 ad-hoc 签名，未使用 Developer ID 签名、未经过 Apple 公证。
+从互联网下载后，macOS Gatekeeper 可能阻止打开。请只信任自己的来源，并按系统设置中
+“隐私与安全性”的提示决定是否允许；如果组织策略禁止，请勿绕过该策略。
+核验下载：在 DMG 所在目录执行 shasum -a 256 -c SignalStudio-版本-arm64.sha256。
+
+构建目标为 macOS 14.0 及以上，仅 Apple Silicon；实际验证系统与限制见 GitHub Release 说明。
+工作台访问权限由 Tailscale 管理，当前应用没有独立账户登录；不要将后台暴露到公网。
+安装包不包含个人工作台地址、数据库、Tailscale 密钥或其他凭证。
