@@ -44,6 +44,8 @@ launchctl bootout gui/$(id -u)/local.signalstudio.server
 
 日志在 `~/Library/Logs/SignalStudio/host.log` 和 `host-error.log`。服务仅停止自己创建的子进程，不抢占已有端口；端口冲突会记录错误并重试。服务安装脚本拒绝非 Tailscale IPv4 地址。
 
+按 [SS-42 已批准方案](https://app.notion.com/p/3f5038a63d5a816fafd7dd84c1d3f452)，共享运行器在网页或后台子进程退出时记录退出码、清理本会话其余子进程并以失败状态退出，由已有 LaunchAgent 的 KeepAlive 重启整套服务。非回环共享入口自动使用此行为，安装脚本也显式传入 `--supervised`；该参数可在隔离回环测试中使用。默认回环开发会话保留错误健康状态和源码修正后的后台自动恢复，不交给外部守护重启。此恢复处理不等于消除了此前 socket `ECONNRESET` 的未知触发来源；持续启动失败仍须检查错误日志。
+
 ## 数据与源码更新
 
 主数据统一写入 Mac mini；本机仓库里的数据库是迁移前副本，不能继续作为第二份主数据使用。仓库仍跟踪历史 SQLite 文件，提交代码时排除在线数据库；不要以 `git reset --hard` 或文件同步覆盖它。

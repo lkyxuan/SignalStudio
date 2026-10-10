@@ -31,7 +31,7 @@ def main():
     config = {
         'Label': label,
         'ProgramArguments': [sys.executable, str(root / 'scripts/dev_runtime.py'),
-                            '--node', str(Path(args.node).resolve()), '--client-host', args.host],
+                            '--node', str(Path(args.node).resolve()), '--client-host', args.host, '--supervised'],
         'WorkingDirectory': str(root), 'RunAtLoad': True, 'KeepAlive': True,
         'ThrottleInterval': 10, 'ExitTimeOut': 60,
         'EnvironmentVariables': {'PYTHONUNBUFFERED': '1'},

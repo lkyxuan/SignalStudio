@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import socket
 import sqlite3
 import subprocess
@@ -51,6 +52,64 @@ def fixture(root):
 
 
 class DevRuntimeTest(unittest.TestCase):
+    def test_supervised_child_failure_releases_session_and_relaunches(self):
+        # Both failures use real child processes and a copied database. The
+        # loopback override exercises supervision without needing Tailscale.
+        host = os.environ.get('SIGNALSTUDIO_TEST_SHARED_HOST', '127.0.0.1')
+        for child in ('client', 'backend'):
+            with self.subTest(child=child), tempfile.TemporaryDirectory(prefix='signalstudio-supervised-test-') as temporary:
+                root = Path(temporary)
+                fixture(root)
+                if host != '127.0.0.1':
+                    shutil.copytree(ROOT / 'dist', root / 'dist')
+                ports = []
+                for address in (host, '127.0.0.1', '127.0.0.1'):
+                    with socket.socket() as listener:
+                        listener.bind((address, 0))
+                        ports.append(listener.getsockname()[1])
+                client, backend, control = ports
+                health = f'http://127.0.0.1:{control}/health'
+                api = f'http://{host}:{client}/api'
+                environment = dict(os.environ, SIGNALSTUDIO_BACKFILL_PATH=str(root / 'data/backfill.json'))
+                command = [sys.executable, str(ROOT / 'scripts/dev_runtime.py'), '--root', str(root),
+                    '--node', shutil.which('node'), '--client-port', str(client), '--backend-port', str(backend),
+                    '--control-port', str(control), '--client-host', host]
+                if host == '127.0.0.1':
+                    command.append('--supervised')
+                with (root / 'failure.log').open('w') as log:
+                    process = subprocess.Popen(command, stdout=log, stderr=log, env=environment)
+                    try:
+                        initial = wait(lambda: (h := get(health))['client_ready'] and h)
+                        graph = get(api + '/graph')
+                        with sqlite3.connect(root / 'data/logic.db') as db:
+                            tables = [row[0] for row in db.execute(
+                                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+                            before = {table: db.execute(f'SELECT * FROM "{table}" ORDER BY rowid').fetchall() for table in tables}
+                        os.kill(initial[child + '_pid'], signal.SIGKILL)
+                        self.assertEqual(process.wait(timeout=25), 1)
+                        for key in ('client_pid', 'backend_pid'):
+                            with self.assertRaises(ProcessLookupError):
+                                os.kill(initial[key], 0)
+                        for address, port in zip((host, '127.0.0.1', '127.0.0.1'), ports):
+                            with socket.socket() as probe:
+                                self.assertNotEqual(probe.connect_ex((address, port)), 0)
+                        self.assertIn('stopping session for supervisor restart', (root / 'failure.log').read_text())
+                        # Model the service manager's immediate relaunch on the
+                        # same endpoints. No stale child may occupy them.
+                        process = subprocess.Popen(command, stdout=log, stderr=log, env=environment)
+                        recovered = wait(lambda: (h := get(health))['client_ready'] and h)
+                        self.assertEqual(recovered['project_root'], str(root.resolve()))
+                        self.assertEqual(recovered['database_path'], str((root / 'data/logic.db').resolve()))
+                        self.assertEqual(get(api + '/graph'), graph)
+                        with sqlite3.connect(root / 'data/logic.db') as db:
+                            self.assertEqual(db.execute('PRAGMA integrity_check').fetchone()[0], 'ok')
+                            after = {table: db.execute(f'SELECT * FROM "{table}" ORDER BY rowid').fetchall() for table in tables}
+                        self.assertEqual(before, after)
+                    finally:
+                        if process.poll() is None:
+                            process.terminate()
+                            process.wait(timeout=25)
+
     def test_runtime_restart_recovery_conflict_and_cleanup(self):
         with tempfile.TemporaryDirectory(prefix='signalstudio-dev-test-') as temporary:
             root = Path(temporary)
@@ -107,6 +166,12 @@ class DevRuntimeTest(unittest.TestCase):
                     collision = subprocess.run(command, stdout=log, stderr=log, env=environment, timeout=5)
                     self.assertNotEqual(collision.returncode, 0)
                     self.assertTrue(get(health)['client_ready'])
+                    # An unsupervised local Dev App keeps diagnostics available
+                    # instead of exiting when its webpage child fails.
+                    os.kill(first['client_pid'], signal.SIGKILL)
+                    wait(lambda: get(health)['status'] == 'error')
+                    self.assertIsNone(process.poll())
+                    self.assertIn('Vite stopped', get(health)['error'])
                 finally:
                     process.terminate(); process.wait(timeout=15)
                 for port in ports:

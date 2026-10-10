@@ -58,8 +58,11 @@ def main():
     parser.add_argument('--backend-port', type=int, default=18788)
     parser.add_argument('--control-port', type=int, default=18789)
     parser.add_argument('--parent-pid', type=int)
+    parser.add_argument('--supervised', action='store_true',
+                        help='Exit on child failure so an external service manager can restart the session')
     args = parser.parse_args()
     address = ipaddress.IPv4Address(args.client_host)
+    supervised = args.supervised or not address.is_loopback
     if not (address.is_loopback or address in ipaddress.ip_network('100.64.0.0/10')):
         parser.error('--client-host must be a loopback or Tailscale IPv4 address')
     root = args.root.resolve()
@@ -112,9 +115,11 @@ def main():
     thread.start()
     environment = dict(os.environ, PORT=str(args.backend_port), SIGNALSTUDIO_DB=str(database),
                        SIGNALSTUDIO_MODE='development', PYTHONUNBUFFERED='1')
+    exit_code = 0
     try:
         children['client'] = subprocess.Popen([args.node, str(root / 'scripts/dev_client.mjs'), str(root),
             str(args.client_port), str(args.backend_port), token, args.client_host, str(args.control_port)], cwd=root, env=environment)
+        state['client_pid'] = children['client'].pid
         previous = None
         next_health_check = 0
         candidate = fingerprint(root)
@@ -135,11 +140,21 @@ def main():
             backend = children['backend']
             if children['client'].poll() is not None:
                 state.update(client_ready=False, status='error', error='Vite stopped; reopen Dev App.')
+                if supervised:
+                    print(f"Client exited ({children['client'].returncode}); stopping session for supervisor restart.",
+                          file=sys.stderr, flush=True)
+                    exit_code = 1
+                    break
                 continue
             if backend is None:
                 continue
             if backend.poll() is not None:
                 state.update(client_ready=False, status='error', error='Backend stopped; fix source or reopen Dev App.')
+                if supervised:
+                    print(f'Backend exited ({backend.returncode}); stopping session for supervisor restart.',
+                          file=sys.stderr, flush=True)
+                    exit_code = 1
+                    break
                 continue
             if time.monotonic() < next_health_check:
                 continue
@@ -157,7 +172,8 @@ def main():
         stop(children['backend'])
         http.shutdown()
         http.server_close()
+    return exit_code
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
