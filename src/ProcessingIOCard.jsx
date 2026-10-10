@@ -240,21 +240,21 @@ function ScoreRollupCard({ node, graph, openNode, language }) {
   </div><ScoreRollupNumericCase language={language} graph={graph} openNode={openNode} /><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '运行触发' : 'Execution trigger'}>
     <h3>{zh ? '运行触发与计算范围' : 'Execution trigger and calculation scope'}</h3>
     <CaseRows rows={[
-      [zh ? '触发方式' : 'Trigger', zh ? '定时执行' : 'Scheduled'],
-      [zh ? '执行频率' : 'Frequency', zh ? `每 ${scoreRollup.configuration.schedule.interval_seconds} 秒一轮` : `Every ${scoreRollup.configuration.schedule.interval_seconds} seconds`],
+      [zh ? '触发方式' : 'Trigger', zh ? '新贡献立即触发 + 定时衰减' : 'Immediate contribution trigger + scheduled decay'],
+      [zh ? '执行频率' : 'Frequency', zh ? `每 ${scoreRollup.configuration.schedule.interval_seconds} 秒刷新衰减；新贡献不等下一轮` : `Decay every ${scoreRollup.configuration.schedule.interval_seconds} seconds; new contributions do not wait`],
       [zh ? '计算范围' : 'Scope', zh ? '#6001 中有 total_heat 评分事件的资产；按已有 asset_id 分组' : 'Assets with total_heat events in #6001, grouped by existing asset_id'],
-      [zh ? '计算时刻' : 'Calculation time', zh ? '本轮所有资产使用同一个 UTC 时刻' : 'One UTC instant for every asset in this cycle'],
+      [zh ? '计算时刻' : 'Calculation time', zh ? '每次计算使用固定 UTC 时刻；定时轮次内所有事件资产共用' : 'One fixed UTC instant per computation; shared by all event assets in a timer cycle'],
       [zh ? '写入结果' : 'Output', zh ? '#1006 · 有事件资产的 total_heat 当前分；不补零' : '#1006 · current total_heat for event assets; no zero filling'],
-      [zh ? '新事件' : 'New events', zh ? '进入 #6001 后由后续定时轮次计入' : 'Included in a scheduled cycle after reaching #6001'],
+      [zh ? '新事件' : 'New events', zh ? '#3007 成功写入 #6001 后立即触发受影响资产计算' : 'Recompute affected assets immediately after #3007 writes #6001'],
     ]} />
-    <p>{zh ? '没有新事件也会重算衰减；打开页面不触发这项定时任务。' : 'Decay is recalculated even without new events. Opening the page does not trigger this job.'}</p>
-    <p>{zh ? '每分钟调度已有 fewunderstand 代码参考；仅按事件资产计算是本次更新的目标，后端仍待同步。线上持续运行仍需核验。' : 'A minute scheduler exists in the implementation reference; event-only scope is the updated target and awaits backend alignment. Continuous runtime health remains unverified.'}</p>
+    <p>{zh ? '以上为目标规则。没有新事件也定时重算衰减；空事件集合无输出，有事件合计为 0 仍保存。打开页面只读保存值，不触发计算。' : 'These are target rules. The timer refreshes decay without new events. Empty input produces no results; event totals of zero are retained. Opening the page reads stored values without triggering computation.'}</p>
+    <p>{zh ? 'Few Understand 已回报测试网运行事件与分钟双触发，但仍计算全部登记资产并补零。仅事件资产范围仍待后端对齐；本侧未独立验证运行及恢复覆盖。' : 'Few Understand reports event and minute triggers running on testnet, still using all registered assets with zero filling. Event-only scope awaits backend alignment; runtime and recovery coverage have not been independently verified here.'}</p>
     <details className="processing-technical"><summary>{zh ? '定义与实现依据' : 'Design and implementation references'}</summary>
       <p><code>catalog/score-rollup.v1.json → configuration.schedule</code></p>
       <p><code>{scoreRollup.implementation_reference.schedule_file} → serve()</code></p>
     </details>
   </section><section className="processing-goal-readonly execution-trigger" aria-label={zh ? '实现要求' : 'Implementation requirements'}>
-    <h3>{zh ? '实现要求 · 待 fewunderstand 实现' : 'Implementation requirements · pending fewunderstand'}</h3>
+    <h3>{zh ? '实现要求 · 范围待对齐与验收' : 'Implementation requirements · scope alignment and acceptance pending'}</h3>
     <p>{requestText(implementationRequest.summary)}</p>
     <p>{zh ? '新贡献：#3007 写入 #6001 成功 → 触发 #3005。时间衰减：每 60 秒 → 触发同一个 #3005。' : 'New contribution: #3007 updates #6001 → trigger #3005. Time decay: every 60 seconds → trigger the same #3005.'}</p>
     <details className="processing-technical"><summary>{zh ? '实现规则与验收条件' : 'Implementation rules and acceptance criteria'}</summary>
@@ -290,7 +290,7 @@ function ScoreEventConsumerCard({ node, graph, openNode, language }) {
       </section>
       <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '本消费者的目标记录' : 'This consumer’s intended record'}</span></div>
         <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '送往' : 'To'}</span><button onClick={() => openNode(target.id)}>{nodeRef(target)} {target.name}</button></div>
-          <p className="processing-io-case-caption">{zh ? isRedis ? '按 event_key 去重后写入 Redis 的九项字段，供 #3005 后续定时轮次计算。此处展示目标案例。' : '按 event_key 幂等归档九项原始字段到 #1005；沿用事件入账时间，不用归档时间替换。尚无真实表行。' : isRedis ? 'Dedupe by event_key, cache nine fields, make them available to a subsequent #3005 scheduled cycle. This is an intended case.' : 'Archive all nine original fields idempotently by event_key. Keep the score-entry time, not archive time. No real table row exists.'}</p>
+          <p className="processing-io-case-caption">{zh ? isRedis ? '按 event_key 去重后写入 Redis 的九项字段，新贡献成功写入后立即触发 #3005，另有每 60 秒定时衰减。此处展示目标案例。' : '按 event_key 幂等归档九项原始字段到 #1005；沿用事件入账时间，不用归档时间替换。尚无真实表行。' : isRedis ? 'Dedupe by event_key, cache nine fields, trigger #3005 immediately after new contributions, alongside 60-second decay refreshes. This is an intended case.' : 'Archive all nine original fields idempotently by event_key. Keep the score-entry time, not archive time. No real table row exists.'}</p>
           <CaseRows rows={isRedis ? example.cacheRows : example.eventRows} /></div>
       </section>
     </div><NodeCaseExplanation language={language} purpose={node.definition}

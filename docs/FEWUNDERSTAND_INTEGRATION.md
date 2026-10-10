@@ -136,7 +136,7 @@ fewunderstand 的 `common/asset_score/redis_projection.py` 定义默认前缀 `f
 
 下一步若扩展 #6001，可新增事件快照校验/展示和 Git 同步文件，由 fewunderstand Agent 只读取样后回填。不能从 #1006 合计分反推原事件，也不能为补展示案例向来源 Redis 直接注入评分事件。本轮只实现 #3005 触发定义与展示，未写入 Redis 或扩展 #6001 接口。
 
-2026-10-08 评分范围更新：用户已明确取消 #3005 的 #1001 读取及无评分事件资产补零。实施时以 `catalog/score-rollup.v1.json` 的最新 `configuration.asset_scope` 和 `implementation_request` 为准，只从 #6001 的 total_heat 事件得到资产集合并计算；空集合不产生结果，有事件但合计为 0 仍保存。保留既有每分钟衰减和待实现的事件触发要求。旧实现和历史结果快照不代表这个新范围已上线；Studio 本轮只同步定义、图和案例。
+当前 #3005 / #1006 对接要求（[SS-48，2026-10-10 批准](https://app.notion.com/p/3f5038a63d5a815d881ff7c44d6d86cc)）：只从 #6001 中 total_heat 事件取得资产集合，不读取 #1001、不为无事件资产新写或刷新0分。空事件集合无输出，有事件但合计0仍保存；旧历史行和快照不自动删除。新贡献在 #3007 成功写入 #6001 后立即触发受影响资产计算，另每60秒刷新全部事件资产衰减。#1006 保存固定 calculated_at 对应的完整精度结果；查询读取保存分数，不二次衰减。Few 回报双触发已运行，但全资产补零范围仍需按本契约修改；触发、并发及恢复覆盖需对应版本证据，Studio 不将旧定义的已实现标签自动当作新版通过。Studio 的一次性 `score_rollup_event_scope_alignment_v1` 迁移只更新相关图卡、配置和模块引用，保留位置、连线、字段身份及回报历史；不修改 Few 后台。
 
 2026-10-08 新增前端同步模块（初始方案，以下述最新要求为准）：#3010 同步资产得分到 Supabase，输入 #1006，输出 #1007 Supabase 资产得分表。执行要求读取 `catalog/supabase-score-sync.v1.json`，目标字段见 `catalog/business-tables.v1.json` → `supabase_asset_scores`。用户确定全评分资产范围、变化行更新、不存排名；5 秒合并窗口仍为建议。source_version 需在可靠源变更协议中实现，当前 #1006 快照不包含它。卡片与示例已建立，远程建表、同步运行和前端接入均未部署。
 

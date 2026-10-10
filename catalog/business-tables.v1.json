@@ -210,18 +210,18 @@
     },
     "asset_scores_current": {
       "label_zh": "资产当前评分",
-      "purpose_zh": "保存各资产评分在 calculated_at 时刻的值；Demo 只使用 total_heat 全量热度。#3005 每 60 秒只读取 #6001 Redis 评分事件，按已有 asset_id 分组，在同一 UTC 时刻衰减汇总并写入当前分；没有事件的资产不补零，不读取 #1001。默认排名读取最近一轮保存的分数；实际回填快照与后台调度分别展示。",
+      "purpose_zh": "保存各资产评分在 calculated_at 时刻的值；Demo 只使用 total_heat 全量热度。#3005 只读取 #6001 Redis 评分事件，按已有 asset_id 分组；新贡献成功入缓存后立即计算受影响资产，另每 60 秒刷新全部事件资产的衰减。每次在同一 UTC 时刻汇总并写入当前分；不读取 #1001，不为无事件资产新写或刷新 0 分，有事件合计为 0 仍保存，空事件集合无输出。旧历史行不自动删除。默认排名读取最近一轮保存的分数；实际回填快照与后台调度分别展示。",
       "storage_plan": {"current_view": "redis_asset_scores_current", "derived_from": "redis_recent_score_events", "status": "planned_not_executed"},
       "columns": [
         { "name": "asset_id", "type": "TEXT", "format": "uuidv7", "label_zh": "引用 #1001 的内部资产 ID", "required": true },
         { "name": "asset_name", "type": "TEXT", "label_zh": "随评分结果传递的资产名称快照，供展示和调试；旧记录可为空", "required": false },
         { "name": "score_key", "type": "TEXT", "label_zh": "评分指标唯一键；本次 Demo 固定为 total_heat（全量热度）", "required": true },
         { "name": "score_value", "type": "REAL", "label_zh": "该资产在此指标上的当前分数；内部保留计算精度，仅展示保留两位小数", "required": true, "display_decimal_places": 2 },
-        { "name": "calculated_at", "type": "TEXT", "label_zh": "score_value 对应的 UTC 时刻；连续指数衰减指标读取时折算到实际查询时刻", "required": true }
+        { "name": "calculated_at", "type": "TEXT", "label_zh": "score_value 对应的 UTC 计算时刻；读取保存值，不按查询时间再次衰减", "required": true }
       ],
       "primary_key": ["asset_id", "score_key"],
       "create_sql": "CREATE TABLE asset_scores_current (asset_id TEXT NOT NULL REFERENCES assets(asset_id), asset_name TEXT, score_key TEXT NOT NULL, score_value REAL NOT NULL, calculated_at TEXT NOT NULL, PRIMARY KEY (asset_id, score_key))",
-      "purpose_en": "Materialize the latest value of each program-owned score metric for each asset; calculate ranks when querying."
+      "purpose_en": "Materialize total_heat only for assets with score events: recompute affected assets immediately after new contributions and refresh all event assets every 60 seconds. No registry reads or zero filling for eventless assets; retain zero totals from real events. Read stored scores without query-time decay; derive ranks on read."
     },
     "supabase_asset_scores": {
       "label_zh": "Supabase 资产得分表",
@@ -257,7 +257,7 @@
         {
           "name": "calculated_at",
           "type": "TEXT",
-          "label_zh": "score_value 对应的 UTC 时刻；连续指数衰减指标读取时折算到实际查询时刻",
+          "label_zh": "score_value 对应的 UTC 计算时刻；读取保存值，不按查询时间再次衰减",
           "required": true
         },
         {

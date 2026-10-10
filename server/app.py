@@ -22,6 +22,7 @@ from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 from coingecko_trending import ensure_coingecko_trending
 from initial_score_sources import ensure_initial_score_sources
+from score_rollup_alignment import ensure_score_rollup_alignment
 from card_model import CardModel, MODEL, VERSION
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,6 +47,7 @@ ensure_content_refresh(service)
 ensure_initial_score_sources(service)
 card_model = CardModel(service)
 card_model.migrate()
+ensure_score_rollup_alignment(service)
 
 
 class Handler(BaseHTTPRequestHandler):
