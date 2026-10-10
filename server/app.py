@@ -22,6 +22,7 @@ from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 from coingecko_trending import ensure_coingecko_trending
 from initial_score_sources import ensure_initial_score_sources
+from card_model import CardModel, MODEL, VERSION
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -43,6 +44,8 @@ ensure_leaderboard_algorithms(service)
 ensure_leaderboard_simple(service)
 ensure_content_refresh(service)
 ensure_initial_score_sources(service)
+card_model = CardModel(service)
+card_model.migrate()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -66,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def body(self):
         size = int(self.headers.get("Content-Length", "0"))
-        if size > 1_000_000:
+        if size > (10_000_000 if urlparse(self.path).path == '/api/graph/import' else 1_000_000):
             raise GraphError("Request is too large")
         try:
             return json.loads(self.rfile.read(size) or b"{}")
@@ -78,6 +81,20 @@ class Handler(BaseHTTPRequestHandler):
         parts = [part for part in url.path.split("/") if part]
         query = parse_qs(url.query)
         method = self.command
+        if method != 'GET' and len(parts) >= 3:
+            editable_nodes = []
+            if parts[:2] == ['api','nodes'] and parts[2] != 'layout' and not (method == 'DELETE' and len(parts)==3):
+                editable_nodes = [parts[2]]
+            elif parts[:2] == ['api','fields']:
+                editable_nodes = [service.get_field(parts[2])['node_id']]
+            elif parts[:2] == ['api','requirements']:
+                editable_nodes = [service.get_requirement(parts[2])['node_id']]
+            elif parts[:2] == ['api','edges']:
+                edge = service.get_edge(parts[2])
+                editable_nodes = [edge['upstream_id'],edge['downstream_id']]
+            for node_id in editable_nodes:
+                if card_model.contract(node_id)['config'].get('read_only'):
+                    raise GraphError('Unknown imported definitions are read-only')
         if parts == ["api", "desktop-health"] and method == "GET":
             return {"app": "SignalStudio", "project_root": str(ROOT),
                     "database_path": str(Path(service.db.execute("PRAGMA database_list").fetchone()[2]).resolve()),
@@ -90,6 +107,45 @@ class Handler(BaseHTTPRequestHandler):
                 return table_backfill.save(self.body())
         if parts == ["api", "graph"] and method == "GET":
             return snapshot(service, CONTRACT_REVISION)
+        if parts == ['api','card-model'] and method == 'GET':
+            return {**MODEL,'actions':card_model.action_registry()}
+        if parts == ['api','graph','readiness'] and method == 'GET':
+            return card_model.readiness()
+        if parts == ['api','graph','package'] and method == 'GET':
+            return card_model.package()
+        if parts == ['api','graph','import'] and method == 'POST':
+            try:
+                result = card_model.import_package(self.body())
+            except (KeyError,TypeError,AttributeError) as exc:
+                raise GraphError('Malformed definition package') from exc
+            service._event('user','import_definition','graph','all',after=result)
+            return result
+        if parts == ['api','graph','reports']:
+            if method == 'GET':
+                return [{**dict(row),'report':json.loads(row['report'])} for row in service.db.execute('SELECT * FROM graph_definition_reports ORDER BY created_at')]
+            if method == 'POST':
+                return card_model.report(self.body())
+        if len(parts) == 4 and parts[:2] == ['api','nodes'] and parts[3] == 'definition':
+            if method == 'GET':
+                return {**card_model.contract(parts[2]), 'readiness':card_model.readiness([parts[2]])}
+            if method == 'PATCH':
+                before = card_model.contract(parts[2])
+                result = card_model.update_contract(parts[2], self.body())
+                service._event('user','update_definition','node',parts[2],before,result)
+                return result
+        if len(parts) == 4 and parts[:2] == ['api','edges'] and parts[3] == 'bindings':
+            edge = service.get_edge(parts[2])
+            if method == 'GET':
+                return [b for b in card_model.bindings() if b['edge_id'] == edge['id']]
+            if method == 'PUT':
+                bindings = self.body().get('bindings')
+                if not isinstance(bindings,list) or not bindings:
+                    raise GraphError('At least one explicit connection meaning is required')
+                service.db.execute('DELETE FROM edge_bindings WHERE edge_id=?',(edge['id'],))
+                for binding in bindings:
+                    card_model.add_binding(edge,binding)
+                service._event('user','update_bindings','edge',edge['id'],after=bindings)
+                return [b for b in card_model.bindings() if b['edge_id'] == edge['id']]
         if parts == ["api", "signals"] and method == "GET":
             return {"catalog_version": "signal-contracts.v1",
                     "revision": signal_contracts.revision,
@@ -228,6 +284,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path.startswith("/api/"):
                 expected = self.headers.get("If-Match")
+                if self.command != 'GET' and (self.headers.get('X-Card-Model') != VERSION or not expected):
+                    raise RevisionConflict('卡片模型已更新，请刷新工作台后再编辑。')
                 if self.command != "GET" and expected:
                     guard(service, expected, CONTRACT_REVISION)
                 try:
@@ -251,6 +309,9 @@ class Handler(BaseHTTPRequestHandler):
         self.dispatch()
 
     def do_POST(self):
+        self.dispatch()
+
+    def do_PUT(self):
         self.dispatch()
 
     def do_PATCH(self):

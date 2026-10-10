@@ -181,6 +181,15 @@ class SignalContractStore:
         operation = self.source_contracts.operations[spec["collection"]["operation_id"]]
         source_node = graph.find_name(operation["id"])
         full = graph.graph()
+        # v2 has no vocabulary for loops, correlated joins, failure routes or
+        # multiple meanings on one visual line. Never silently flatten those.
+        if full.get('model_version'):
+            from card_model import VERSION
+            contracts = {item['id']:item.get('card_contract') for item in full['nodes']}
+            contract = contracts.get(node['id'])
+            if contract and (contract['model_version'] != VERSION or contract['config'].get('loop') or
+                             contract['config'].get('join',{}).get('mode') in ('one_of','all')):
+                raise GraphError('This definition requires graph-definition.v1; signal-package.v2 cannot represent it')
         node_ids = {node["id"]}
         frontier = {node["id"]}
         while frontier:
@@ -192,6 +201,15 @@ class SignalContractStore:
         edges = [item for item in full["edges"] if item["upstream_id"] in node_ids
                  and item["downstream_id"] in node_ids]
         edge_ids = {item["id"] for item in edges}
+        if full.get('model_version'):
+            for item in nodes:
+                definition = item.get('card_contract')
+                if definition and (definition['model_version'] != VERSION or definition['config'].get('loop') or
+                                   definition['config'].get('join',{}).get('mode') in ('one_of','all')):
+                    raise GraphError('Upstream semantics require graph-definition.v1; v2 export would be lossy')
+            bindings = [b for b in full.get('bindings',[]) if b['edge_id'] in edge_ids]
+            if any(b['kind'] in ('error','control','reference') or b['config'].get('temporal_boundary') for b in bindings) or len({b['edge_id'] for b in bindings}) != len(bindings):
+                raise GraphError('Connection semantics require graph-definition.v1; v2 export would be lossy')
         fields = [item for item in full["fields"] if item["node_id"] in node_ids]
         usages = [item for item in full["field_usages"] if item["edge_id"] in edge_ids]
         requirements = [item for item in full["requirements"] if item["node_id"] in node_ids]

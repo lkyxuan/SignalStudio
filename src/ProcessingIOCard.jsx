@@ -83,6 +83,7 @@ function RedpandaTopicCard({ node, graph, language }) {
   const [caseIndex, setCaseIndex] = useState(0);
   let settings = {};
   try { settings = JSON.parse(node.notes || '{}'); } catch { /* Keep incomplete designs readable. */ }
+  if (node.card_contract?.config.resource && !node.card_contract.config.resource.legacy_settings_ref) settings = node.card_contract.config.resource;
   const fields = graph.fields.filter(field => field.node_id === node.id).sort((a, b) => a.ordinal - b.ordinal);
   const headers = scoringProposal ? scoreTopicProposal.headers : settings.headers || [];
   const consumers = Object.entries(settings.consumers || {});
@@ -133,6 +134,7 @@ function RedisWindowCard({ node, graph, language }) {
   const [caseIndex, setCaseIndex] = useState(0);
   let settings = {};
   try { settings = JSON.parse(node.notes || '{}'); } catch { /* Keep incomplete designs readable. */ }
+  if (node.card_contract?.config.resource && !node.card_contract.config.resource.legacy_settings_ref) settings = node.card_contract.config.resource;
   const fields = graph.fields.filter(field => field.node_id === node.id).sort((a, b) => a.ordinal - b.ordinal);
   return <div className="redpanda-topic-card redis-window-card">
     <div className="source-case-inspector-heading"><h3>{zh ? 'Redis 近期数据窗口' : 'Recent Redis data window'}</h3><span>{zh ? '规划 · 尚无真实缓存' : 'Planned · no cached records'}</span></div>
@@ -144,9 +146,9 @@ function RedisWindowCard({ node, graph, language }) {
     <div className="message-payload-fields"><strong>{zh ? '缓存字段' : 'Cached fields'} · {fields.length}</strong>
       {fields.map(field => <div key={field.id}><code>{field.name}</code><span>{field.data_type}</span></div>)}
     </div>
-    <div className="processing-input-source"><CasePicker value={caseIndex} setValue={setCaseIndex} language={language} label={zh ? '贯通案例 · 预期 Redis 记录' : 'Through-line case · intended Redis record'} />
+    {node.reference_number === 6001 && <div className="processing-input-source"><CasePicker value={caseIndex} setValue={setCaseIndex} language={language} label={zh ? '贯通案例 · 预期 Redis 记录' : 'Through-line case · intended Redis record'} />
       <p className="processing-io-case-caption">{zh ? `#3007 独立消费 #5001 后，应缓存 ${scoreCase(caseIndex, language).selected.source_record.name} 的这笔起始评分及 Value.data 中的衰减规则引用和半衰期分钟数。event_key、created_at 需沿用实际评分事件；规则版本指向 7 天 / 10080 分钟半衰期。当前尚无消息或真实 Redis 键。` : `After independently consuming #5001, #3007 should cache this initial award for ${scoreCase(caseIndex, language).selected.source_record.name} and its decay policy reference and half-life in Value.data. event_key and created_at must come from the actual score event; the rule version fixes a seven-day / 10,080-minute half-life. No message or Redis key exists yet.`}</p>
-      <CaseRows rows={scoreCase(caseIndex, language).cacheRows} /></div>
+      <CaseRows rows={scoreCase(caseIndex, language).cacheRows} /></div>}
     <details className="processing-advanced"><summary>{zh ? '其他设置 · 去重与恢复' : 'Other settings · deduplication and recovery'}</summary>
       <p>{zh ? '去重键' : 'Deduplication key'}：<code>{settings.dedupe_key || '—'}</code></p>
       <p>{zh ? '恢复来源' : 'Rebuild source'}：{settings.rebuild_from || '—'}</p>

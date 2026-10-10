@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { graphSchema, sourceContractsSchema } from './contracts';
 import { serverGraph } from './testFixtures';
+import { cardKind, cardKinds } from './cardModel';
 
 const graph = serverGraph();
 test('accepts the real Python graph, including fields, mappings, needs and system tables', () => {
@@ -36,4 +37,14 @@ test('rejects duplicate IDs, orphan references and mappings to the wrong node', 
 test('preserves additional server metadata without claiming its type', () => {
   const result = graphSchema.parse({ ...graph, future_revision: 'v2' });
   assert.equal(result.future_revision, 'v2');
+});
+test('accepts the migrated Python producer and rejects cross-card ports and duplicate bindings',()=>{
+  const modern=serverGraph(true);
+  assert.equal(modern.model_version,'card-model.v1');
+  assert.equal(cardKinds.length,6);
+  assert.ok(modern.nodes.every(node=>node.card_contract?.kind===cardKind(node)));
+  const binding=modern.bindings![0]!;
+  const wrong=modern.ports!.find(port=>port.direction==='input' && port.id!==binding.target_port_id)!;
+  assert.equal(graphSchema.safeParse({...modern,bindings:[{...binding,target_port_id:wrong.id}]}).success,false);
+  assert.equal(graphSchema.safeParse({...modern,bindings:[binding,binding]}).success,false);
 });

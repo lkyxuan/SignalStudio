@@ -14,6 +14,15 @@ def snapshot(service, contract_revision=''):
     try:
         graph = service.graph()
         graph['contract_revision'] = contract_revision
+        presentation = {node['id']: [node['position_x'],node['position_y']] for node in graph['nodes']}
+        semantic = json.loads(json.dumps(graph))
+        for node in semantic['nodes']:
+            for key in ('position_x','position_y','updated_at'):
+                node.pop(key, None)
+        graph['semantic_revision'] = hashlib.sha256(json.dumps(semantic, sort_keys=True, ensure_ascii=False,
+            separators=(',', ':')).encode()).hexdigest()
+        graph['presentation_revision'] = hashlib.sha256(json.dumps(presentation, sort_keys=True,
+            separators=(',', ':')).encode()).hexdigest()
         graph['revision'] = hashlib.sha256(json.dumps(graph, sort_keys=True, ensure_ascii=False,
             separators=(',', ':')).encode()).hexdigest()
         return graph
