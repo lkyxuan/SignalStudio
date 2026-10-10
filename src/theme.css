@@ -181,7 +181,10 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
 .inspector-node-ref { color: var(--ss-accent); }
 .flow-handle.edge-port { background: var(--ss-edge) !important; }
 .react-flow__edge.selected path { stroke: var(--ss-accent) !important; }
-.react-flow__edge.graph-related path { stroke: var(--ss-graph-related); filter: none; }
+.react-flow__edge.graph-related path { filter: none; }
+.react-flow__edge.graph-related:not(.selected) .react-flow__edge-path {
+  stroke: var(--ss-graph-related) !important;
+}
 .react-flow__controls-button { background: var(--ss-surface); color: var(--ss-text); }
 .react-flow__controls-button:hover { background: var(--ss-raised); }
 .react-flow__controls-button svg { fill: currentColor; }
