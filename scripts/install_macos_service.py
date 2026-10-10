@@ -33,7 +33,7 @@ def main():
         'ProgramArguments': [sys.executable, str(root / 'scripts/dev_runtime.py'),
                             '--node', str(Path(args.node).resolve()), '--client-host', args.host],
         'WorkingDirectory': str(root), 'RunAtLoad': True, 'KeepAlive': True,
-        'ThrottleInterval': 10,
+        'ThrottleInterval': 10, 'ExitTimeOut': 60,
         'EnvironmentVariables': {'PYTHONUNBUFFERED': '1'},
         'StandardOutPath': str(logs / 'host.log'),
         'StandardErrorPath': str(logs / 'host-error.log'),
