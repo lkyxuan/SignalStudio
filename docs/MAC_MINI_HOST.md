@@ -104,3 +104,14 @@ launchctl bootout gui/$(id -u)/local.signalstudio.updater
 状态、当前/候选提交、时间、阶段、失败或暂停原因在 updater/status.json；events.log 轮转保留约两个1MB文件。失败指数退避，最多1小时；对已失败提交不会反复应用，出现新提交或明确 retry 才再评估。更新前备份保留最近10份；还须自行安排异地备份，当前未提供。
 
 共享入口使用 Vite preview 提供已构建页面，不注入开发重连客户端，避免服务器重启强制刷新并清空编辑。本机回环开发入口仍保留 Vite 热更新。图数据按既有轮询机制恢复；已打开页面检测到代码版本变化后提示“先保存编辑，再刷新页面”，原生外壳/图标仍需单独重建客户端。安装这版之前已加载的旧客户端仍遵循旧版重连逻辑，首次部署前应保存编辑并重新打开页面。验证记录必须区分隔离故障注入与真实主机交付，不把隔离回退测试称为真实主机故障回退演练。
+
+2026-10-10 首次交付核验：`84bcac2` 已推送 main 并安全快进到共享主机；停止服务后备份为 `~/Library/Application Support/SignalStudio/backups/ss31-20261010-080303.db`。恢复后的全部应用表行内容摘要与备份一致（104节点），项目/数据库/代码版本身份及 client_ready 检查通过。已安装 local.signalstudio.updater。隔离验证通过13项Python检查、9项前端契约和3项布局检查及类型检查/构建；另从提交快照独立安装依赖并验证候选成功。浏览器隔离实测服务重启和版本切换后保留未保存的新节点草稿，并显示手动刷新提示。未进行真实主机故障回退或断电恢复演练。
+
+更新器与请求排空检查可在隔离开发工作区执行：
+
+```bash
+python3 -m unittest scripts.test_macos_updater scripts.test_graceful_shutdown scripts.test_dev_runtime server.test_desktop_server
+npm run build
+npm run test:contracts
+npm run test:layout
+```
