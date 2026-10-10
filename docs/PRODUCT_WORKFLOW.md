@@ -65,7 +65,7 @@ ordinary graph nodes share a horizontal 300 × 160 CSS-pixel frame and 8px
 corners, including table and decision nodes. The approved [SS-46 header layout](https://app.notion.com/p/3f5038a63d5a8106b119eb3f11fee3c0)
 uses a 34px darker category-tinted header with 12px horizontal padding: a 14px bold
 monospace reference at the left, then kind/source metadata and field counts. The reference
-uses soft white and becomes orange when selected. Truncated auxiliary labels retain their
+stays soft white, including when selected. Truncated auxiliary labels retain their
 full hover text. A thin divider separates the header from the tinted content area, which
 uses 10px vertical / 12px horizontal padding and 6px gaps for the implementation-check
 label, two-line title (40px) and two-line description (28px). Full titles remain
@@ -73,6 +73,12 @@ available on hover and through the existing details panel. These are general wor
 schema cards; do not add a universal asset-binding warning or interpret fields/examples as
 assigned assets. Auto-layout and neighbor-layout fallback geometry must match the frame;
 existing saved positions are retained until the user arranges nodes.
+The approved [SS-47 selection treatment](https://app.notion.com/p/3f5038a63d5a815dbe4be30af29b1cc4)
+uses a soft-white (#d6d6d6) thin side/bottom border for selected cards and search targets,
+with no glow. The top category stripe retains its category color in every interaction
+state. Hover uses #a0a0a0; direct-neighbor cards and relationship lines use #777777.
+Selection/search takes precedence over hover, which takes precedence over related-card
+styling. Directly selected connection lines retain their existing editing feedback.
 Each card now has one implementation-check label: implemented, not implemented,
 disputed, or different from the card; absent or stale reports show unconfirmed.
 Studio renders the label from Few Understand's attributed per-card report. The
@@ -81,7 +87,7 @@ collapsed evidence in details; do not add a separate design-stage dashboard.
 See [the report contract](CARD_MODEL.md#卡片实现核对标签).
 
 Implemented in the shared graph stylesheet and node renderer. Verification for the header
-refinement is recorded in SS-46; earlier frame build/layout and browser coverage is in the
+refinement is recorded in SS-46 and selection treatment in SS-47; earlier frame build/layout and browser coverage is in the
 [approved design task](https://app.notion.com/p/3f4038a63d5a81709193de90cf10ca06).
 
 Approved content refresh design (2026-10-10, refined in the same discussion): four processing

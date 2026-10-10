@@ -105,6 +105,9 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
   --ss-bg: #202020;
   --ss-grid: #363636;
   --ss-minimap-mask: #202020b8;
+  --ss-graph-selected: #d6d6d6;
+  --ss-graph-hover: #a0a0a0;
+  --ss-graph-related: #777777;
 }
 .logic-node.logic-node {
   --ss-node-bg: #30343b;
@@ -149,20 +152,28 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
   --ss-node-color: var(--ss-pink);
 }
 .logic-node .node-glyph, .logic-node .node-kind { color: var(--ss-node-color); }
-.logic-node:hover, .logic-node.is-selected,
-.react-flow__node.graph-related .logic-node {
-  border-color: var(--ss-accent); box-shadow: 0 0 0 1px var(--ss-accent-glow);
-}
-.logic-node.is-selected { background: var(--ss-node-bg); }
-.logic-node.is-selected .node-ref { color: var(--ss-accent); }
 .logic-node.state-node, .logic-node.decision-node {
   background: var(--ss-node-bg); border-color: var(--ss-node-border);
   border-top-color: var(--ss-node-color); box-shadow: none;
 }
-.logic-node.state-node.is-selected, .logic-node.decision-node.is-selected,
-.logic-node.state-node:hover, .logic-node.decision-node:hover,
-.react-flow__node.graph-related .logic-node.state-node,
-.react-flow__node.graph-related .logic-node.decision-node { border-color: var(--ss-accent); }
+.react-flow__node.graph-related .logic-node {
+  border-color: var(--ss-graph-related);
+  border-top-color: var(--ss-node-color);
+  box-shadow: none;
+}
+.react-flow__node .logic-node:hover {
+  border-color: var(--ss-graph-hover);
+  border-top-color: var(--ss-node-color);
+  box-shadow: none;
+}
+.react-flow__node .logic-node.is-selected,
+.react-flow__node.graph-search-target .logic-node {
+  border-color: var(--ss-graph-selected);
+  border-top-color: var(--ss-node-color);
+  background: var(--ss-node-bg);
+  box-shadow: none;
+}
+.logic-node.is-selected .node-ref { color: var(--ss-text); }
 .node-definition { height: 32px; }
 .node-ref, .table-node-ref, .inspector-node-ref {
   color: var(--ss-muted); background: transparent; border-color: var(--ss-border);
@@ -170,7 +181,7 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
 .inspector-node-ref { color: var(--ss-accent); }
 .flow-handle.edge-port { background: var(--ss-edge) !important; }
 .react-flow__edge.selected path { stroke: var(--ss-accent) !important; }
-.react-flow__edge.graph-related path { stroke: var(--ss-accent); filter: none; }
+.react-flow__edge.graph-related path { stroke: var(--ss-graph-related); filter: none; }
 .react-flow__controls-button { background: var(--ss-surface); color: var(--ss-text); }
 .react-flow__controls-button:hover { background: var(--ss-raised); }
 .react-flow__controls-button svg { fill: currentColor; }
