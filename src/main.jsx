@@ -1,5 +1,7 @@
+import { CardDetails } from './CardDetails';
+import { detailKind } from './cardDetailModel';
 import { cardKinds, cardKind, kindLabel, kindStyle } from './cardModel';
-import { CardDefinitionSettings, GenericTableCard } from './CardDefinitionSettings';
+import { CardDefinitionSettings } from './CardDefinitionSettings';
 import { CardProgressBadge, CardProgressNote } from './CardProgress';
 import { request } from './api';
 import { useLiveGraph } from './useLiveGraph';
@@ -10,22 +12,15 @@ import { ReactFlow, Background, Controls, MiniMap, Handle, Position, MarkerType,
 import '@xyflow/react/dist/style.css';
 import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, CircleHelp, Database, GitBranch, Layers3, LayoutGrid, List, Maximize2, Network, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { EdgeMappingPanel, FieldCatalog } from './FieldPanels';
-import { NodeCaseExplanation, ProcessingIOCard } from './ProcessingIOCard';
-import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldCard';
-import { BusinessTableCard } from './BusinessTableCard';
-import { ContentRefreshCard, contentRefreshCard } from './ContentRefreshCard';
 import { LocalFlowView } from './LocalFlowView';
 import businessTables from '../catalog/business-tables.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import { CatalogTranslationTable } from './CatalogTranslationTable';
 import { SignalDesignGuide } from './SignalDesignGuide';
 import { SignalNeedsPanel } from './SignalNeedsPanel';
-import { SourceUsageGuide, sourcePurpose } from './SourceUsageGuide';
-import { SourceCollectionSettings } from './SourceCollectionSettings';
+import { sourcePurpose } from './SourceUsageGuide';
 import { SourceCasePage } from './SourceCasePage';
-import { SourceCaseInspector } from './SourceCaseInspector';
 import { OtherSourceCasePage } from './OtherSourceCasePage';
-import { OtherSourceCaseInspector } from './OtherSourceCaseInspector';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { autoLayout } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
@@ -142,34 +137,6 @@ function GroupLabel({ data }) {
   return <div className="graph-group-label"><strong>{data.title}</strong><span>{data.count}</span></div>;
 }
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
-
-function StateNodeDetails({ node, graph, mutate, busy, upstream, downstream, openNode, language }) {
-  if (contentRefreshCard(node.name)) return <ContentRefreshCard node={node} language={language} />;
-  if (leaderboardCard(node.name)) return <LeaderboardScaffoldCard node={node} language={language} />;
-  if (BUSINESS_TABLE_NAMES.has(node.name)) {
-    return <BusinessTableCard node={node} language={language} />;
-  }
-  return <><GenericTableCard node={node} graph={graph} language={language} /><details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置 · 表字段' : 'Other settings · table fields'}</summary><FieldCatalog node={node} fields={graph.fields.filter(field => field.node_id === node.id)} mutate={mutate} busy={busy} language={language} /></details></>;
-}
-
-function SourceFlowSummary({ node, graph, openEdge, language }) {
-  const t = text => translate(language, text);
-  const outgoing = graph.edges.filter(edge => edge.upstream_id === node.id);
-  const byId = new Map(graph.nodes.map(item => [item.id, item]));
-  const destinations = new Set();
-  const pending = outgoing.map(edge => edge.downstream_id);
-  while (pending.length) {
-    const id = pending.shift();
-    if (destinations.has(id)) continue;
-    destinations.add(id);
-    pending.push(...graph.edges.filter(edge => edge.upstream_id === id).map(edge => edge.downstream_id));
-  }
-  return <details className="source-flow-summary">
-    <summary className="source-flow-heading"><strong>{t('Designed destinations')} <span>{outgoing.length}</span></strong><small>{t('Downstream nodes')} {destinations.size}</small></summary>
-    {outgoing.length ? outgoing.map(edge => <button key={edge.id} onClick={() => openEdge(edge.id)}><span>{nodeRef(byId.get(edge.downstream_id))} {displayNodeName(language, byId.get(edge.downstream_id)?.name || '—')}</span><ArrowRight size={14} /></button>) : <p>{t('No downstream connection has been designed for this source.')}</p>}
-    <small>{t('These counts describe design links, not actual message or record counts.')}</small>
-  </details>;
-}
 
 function IconButton({ children, title, onClick, active, className = '' }) {
   return <button className={`icon-button ${active ? 'active' : ''} ${className}`} onClick={onClick} title={title} aria-label={title}>{children}</button>;
@@ -483,8 +450,7 @@ function App() {
     </main>
 
     {(selected || selectedEdge) && <aside key={live.editorEpoch} onChangeCapture={live.markEdited} className={`inspector ${selected && BUSINESS_TABLE_NAMES.has(selected.name) ? 'business-table-inspector' : ''}`}><div className="inspector-head"><span>{t('INSPECTOR')}</span><IconButton title={t('Close inspector')} onClick={() => { setSelectedId(null); setSelectedEdgeId(null); }}><X size={17} /></IconButton></div>
-      {selected && draft && <><div className="inspector-title"><span className={`inspector-icon ${KIND[selected.type]}`}><GitBranch size={20} /></span><div><span className="small-label">{isReferenceResource(selected.name) ? language === 'zh-CN' ? 'MCP 参考资源' : 'MCP RESOURCE' : contractSourceName(selected.name) ? language === 'zh-CN' ? '本产品上游操作' : 'UPSTREAM OPERATION' : kindLabel(cardKind(selected),language)}</span><h2><span className="inspector-node-ref">{nodeRef(selected)}</span>{displayName(selected.name)}</h2><button className="inspector-focus-relations" onClick={focusSelectedRelations} disabled={busy} title={language === 'zh-CN' ? '在完整画布中拉近直接上下游卡片，并保存新位置' : 'Move direct upstream and downstream cards closer on the full canvas and save their positions'}><GitBranch size={14} />{language === 'zh-CN' ? '拉近上下游' : 'Bring neighbors closer'}</button></div></div><div className="inspector-scroll"><CardProgressNote progress={graph.card_progress?.[selected.id]} language={language}/>{selected.name === 'kaito.mcp.kaito_advanced_search' ? <><SourceCaseInspector language={language} onOpenFull={openCase016} purpose={sourcePurpose(selected.name, language) || selected.definition} /><details className="other-source-technical"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>{!isReferenceResource(selected.name) && <SourceCollectionSettings node={selected} language={language} />}<FieldCatalog node={selected} fields={nodeFields} mutate={mutate} busy={busy} language={language} /><SourceUsageGuide node={selected} language={language} hasDownstream={downstream.length > 0} /><SourceFlowSummary node={selected} graph={graph} openEdge={openEdge} language={language} /></details></> : contractSourceName(selected.name) ? <><OtherSourceCaseInspector key={selected.name} operationId={selected.name} language={language} purpose={sourcePurpose(selected.name, language) || selected.definition} onOpenFull={index => setOtherSourceCase({ operationId: selected.name, caseIndex: index })} /><details className="other-source-technical"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>{!isReferenceResource(selected.name) && <SourceCollectionSettings node={selected} language={language} />}<FieldCatalog node={selected} fields={nodeFields} mutate={mutate} busy={busy} language={language} /><SourceUsageGuide node={selected} language={language} hasDownstream={downstream.length > 0} /><SourceFlowSummary node={selected} graph={graph} openEdge={openEdge} language={language} /></details></> : cardKind(selected) === 'table' ? <StateNodeDetails graph={graph} mutate={mutate} busy={busy} node={selected} upstream={upstream} downstream={downstream} openNode={openNode} language={language} /> : ['Redpanda Topic', 'Redis Window'].includes(selected.type) || [3006, 3009].includes(selected.reference_number) ? <ProcessingIOCard node={selected} graph={graph} openNode={openNode} language={language} /> : selected.type === 'Asset Resolution' ? <>
-        <ProcessingIOCard node={selected} graph={graph} openNode={openNode} language={language} nodeLabel={displayName} purpose={draft.definition} />
+      {selected && draft && <><div className="inspector-title"><span className={`inspector-icon ${kindStyle(selected)}`}><GitBranch size={20} /></span><div><span className="small-label">{isReferenceResource(selected.name) ? language === 'zh-CN' ? 'MCP 参考资源' : 'MCP RESOURCE' : contractSourceName(selected.name) ? language === 'zh-CN' ? '本产品上游操作' : 'UPSTREAM OPERATION' : kindLabel(cardKind(selected),language)}</span><h2><span className="inspector-node-ref">{nodeRef(selected)}</span>{displayName(selected.name)}</h2><button className="inspector-focus-relations" onClick={focusSelectedRelations} disabled={busy} title={language === 'zh-CN' ? '在完整画布中拉近直接上下游卡片，并保存新位置' : 'Move direct upstream and downstream cards closer on the full canvas and save their positions'}><GitBranch size={14} />{language === 'zh-CN' ? '拉近上下游' : 'Bring neighbors closer'}</button></div></div><div className="inspector-scroll" key={selected.id}><CardProgressNote progress={graph.card_progress?.[selected.id]} language={language}/><CardDetails key={selected.id} node={selected} graph={graph} openNode={openNode} language={language} mutate={mutate} busy={busy} nodeLabel={displayName} purpose={selected.definition} onOpenSource={(name,index) => name === 'kaito.mcp.kaito_advanced_search' ? openCase016() : setOtherSourceCase({operationId:name,caseIndex:index})}/>{['process','decision'].includes(detailKind(selected)) && ![3006,3009].includes(selected.reference_number) && !selected.card_contract?.config.read_only ? selected.type === 'Asset Resolution' ? <>
         <details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>
           <label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<textarea value={draft.definition} onChange={e => setDraft({ ...draft, definition: e.target.value })} rows={3} /></label>
           <details className="processing-technical"><summary>{language === 'zh-CN' ? '节点设置' : 'Node settings'}</summary>
@@ -497,7 +463,7 @@ function App() {
             <FieldCatalog node={selected} fields={addedOutputFields} mutate={mutate} busy={busy} language={language} />
           </details>
         </details>
-      </> : <><ProcessingIOCard node={selected} graph={graph} openNode={openNode} language={language} nodeLabel={displayName} purpose={isSignal ? draft.decision_question || draft.definition : draft.definition} /><details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary><label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<textarea value={isSignal ? draft.decision_question || '' : draft.definition} placeholder={language === 'zh-CN' ? '用一句话描述目的' : 'Describe the goal in one sentence'} onChange={e => setDraft({ ...draft, [isSignal ? 'decision_question' : 'definition']: e.target.value })} rows={3} /></label><label>{t('Name')}<input value={language === 'zh-CN' && draft.name === selected.name ? displayName(draft.name) : draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>{t('Type')}<input readOnly value={kindLabel(cardKind(selected), language)} /></label><label>{t('Workflow path')}<select value={draft.workflow_lane || defaultLane(draft.type)} onChange={e => setDraft({ ...draft, workflow_lane: e.target.value })}><option value="shared">{t('Both paths')}</option><option value="signal">{t('Signal path')}</option><option value="knowledge">{t('Asset knowledge path')}</option></select></label>
+      </> : <><details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary><label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<textarea value={isSignal ? draft.decision_question || '' : draft.definition} placeholder={language === 'zh-CN' ? '用一句话描述目的' : 'Describe the goal in one sentence'} onChange={e => setDraft({ ...draft, [isSignal ? 'decision_question' : 'definition']: e.target.value })} rows={3} /></label><label>{t('Name')}<input value={language === 'zh-CN' && draft.name === selected.name ? displayName(draft.name) : draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>{t('Type')}<input readOnly value={kindLabel(cardKind(selected), language)} /></label><label>{t('Workflow path')}<select value={draft.workflow_lane || defaultLane(draft.type)} onChange={e => setDraft({ ...draft, workflow_lane: e.target.value })}><option value="shared">{t('Both paths')}</option><option value="signal">{t('Signal path')}</option><option value="knowledge">{t('Asset knowledge path')}</option></select></label>
         {isSignal && <SignalDesignGuide node={draft} graph={graph} fields={nodeFields} language={language} />}
         {isSignal && draft.signal_key && <p className="signal-package-link"><a href={`/api/signals/${encodeURIComponent(draft.signal_key)}/package`} target="_blank" rel="noreferrer">{language === 'zh-CN' ? '查看版本化执行包 JSON ↗' : 'Open versioned execution package JSON ↗'}</a><small>{language === 'zh-CN' ? '图中文字与执行包不一致时，接口会列出待修正项。' : 'The API lists mismatches between graph text and the execution package.'}</small></p>}
         {isSignal && <div className="signal-stage-heading">{language === 'zh-CN' ? '1 · 要判断什么' : '1 · What should this signal tell you?'}</div>}
@@ -518,8 +484,8 @@ function App() {
         {[['rationale', 'Design rationale', 'Why is it designed this way?'], ['caveats', 'Caveats', 'Limits and special cases'], ['notes', 'Research notes', 'Additional context']].map(([key, label, placeholder]) => <label key={key}>{t(label)}<textarea value={draft[key]} placeholder={t(placeholder)} onChange={e => setDraft({ ...draft, [key]: e.target.value })} rows={3} /></label>)}
         <div className="relations"><div className="relation-heading"><ArrowDownRight size={16} /> {t('UPSTREAM')} <span>{upstream.length}</span></div>{upstream.length ? upstream.map(n => <button key={n.id} onClick={() => openNode(n.id)}>{displayName(n.name)}<ArrowRight size={14} /></button>) : <em>{t('No upstream nodes')}</em>}</div>
         <div className="relations"><div className="relation-heading"><ArrowUpRight size={16} /> {t('DOWNSTREAM')} <span>{downstream.length}</span></div>{downstream.length ? downstream.map(n => <button key={n.id} onClick={() => openNode(n.id)}>{displayName(n.name)}<ArrowRight size={14} /></button>) : <em>{t('No downstream nodes')}</em>}</div>
-        <div className="relations"><div className="relation-heading"><LayoutGrid size={16} /> {t('USED BY PRODUCT')} <span>{products.length}</span></div>{products.length ? products.map(n => <button key={n.id} onClick={() => openNode(n.id)}>{displayName(n.name)}<ArrowRight size={14} /></button>) : <em>{t('No product module downstream')}</em>}</div></details></>}
-      <CardDefinitionSettings node={selected} graph={graph} language={language} mutate={mutate} busy={busy} /></div>{contractSourceName(selected.name) || selected.is_system_state || ['Redpanda Topic', 'Redis Window'].includes(selected.type) || selected.reference_number === 3009 ? null : <div className="inspector-footer"><button className="button-danger" onClick={deleteNode} title={t('Delete node')} aria-label={t('Delete node')}><Trash2 size={16} /></button><button className="button-primary" disabled={busy} onClick={saveNode}><Check size={16} /> {t('Save changes')}</button></div>}</>}
+        <div className="relations"><div className="relation-heading"><LayoutGrid size={16} /> {t('USED BY PRODUCT')} <span>{products.length}</span></div>{products.length ? products.map(n => <button key={n.id} onClick={() => openNode(n.id)}>{displayName(n.name)}<ArrowRight size={14} /></button>) : <em>{t('No product module downstream')}</em>}</div></details></> : null}
+      {detailKind(selected) !== 'unknown' && <CardDefinitionSettings node={selected} graph={graph} language={language} mutate={mutate} busy={busy} />}</div>{!['process','decision'].includes(detailKind(selected)) || selected.card_contract?.config.read_only || selected.reference_number === 3009 ? null : <div className="inspector-footer"><button className="button-danger" onClick={deleteNode} title={t('Delete node')} aria-label={t('Delete node')}><Trash2 size={16} /></button><button className="button-primary" disabled={busy} onClick={saveNode}><Check size={16} /> {t('Save changes')}</button></div>}</>}
       {selectedEdge && <><div className="inspector-title"><span className="inspector-icon metric"><ArrowRight size={20} /></span><div><span className="small-label">{selectedEdge.transport_kind === 'redpanda' ? language === 'zh-CN' ? 'REDPANDA 消息' : 'REDPANDA MESSAGE' : t('FIELD LEVEL DEPENDENCY')}</span><h2><span className="inspector-edge-ref">{edgeRef(selectedEdge)}</span>{t('Connection')}</h2></div></div><EdgeMappingPanel edge={selectedEdge} sourceNode={edgeSource} targetNode={edgeTarget} sourceFields={sourceFields} mutate={mutate} busy={busy} language={language} nodeLabel={displayName} /><div className="inspector-footer edge-footer"><button className="button-danger-text" onClick={deleteEdge}><Trash2 size={16} /> {t('Delete connection')}</button></div></>}
     </aside>}
 

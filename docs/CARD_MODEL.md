@@ -10,6 +10,10 @@
 
 `node_fields`、`edge_field_usages` 仍是字段及血缘身份的唯一来源。`data_schemas` 的字段列表投影所属卡片的字段，不能另建独立副本。`node_ports` 声明方向和 schema；`edge_bindings` 在一条原连接内保存多个含义，以连接、两端端口、关系和稳定分支 ID 去重。显示分支文字不能替代分支 ID。
 
+## 详情展示
+
+[SS-49 已批准详情标准](https://app.notion.com/p/3f5038a63d5a8120826fd3b2a444e24f)由 `CardDetails` 按共享 kind 分派，六类信息顺序、证据边界及验证命令见 [Card UI standard](PRODUCT_WORKFLOW.md#card-ui-standard)。展示解释不修改模块摘要、端口、字段血缘、关系绑定或执行含义。分支跳转按实际端点的绑定与稳定分支 ID 解析，不能用分支标题猜路径；未知导入继续只读。专用组件保留已有业务案例和数值推导，运行核对报告仍独立归属 Few Understand。
+
 ## 执行含义
 
 - 关系为 `data/control/read/write/publish/consume/error/reference`；触发独立。读资源不等待资源“完成”，也不默认触发。变化触发必须显式声明。

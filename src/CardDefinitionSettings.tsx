@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { request } from './api';
 import { cardKind, kindLabel } from './cardModel';
+import { isCatalogSource } from './cardDetailModel';
 import type { Graph, GraphNode } from './contracts';
 import { cardContractSchema } from './contracts';
 
@@ -31,7 +32,7 @@ export function CardDefinitionSettings({node,language,busy,mutate}: Props) {
     {readiness && <ul>{readiness.issues.map((issue,index) => <li key={`${issue.code}:${index}`}>{zh ? issue.message_zh : issue.code}</li>)}</ul>}
     {!!readiness?.runtime_compatibility?.differences.length && <details><summary>{zh?'运行兼容性待核对':'Runtime compatibility to confirm'}</summary><ul>{readiness.runtime_compatibility.differences.map(item=><li key={item.code}>{zh?item.message_zh:item.code}</li>)}</ul></details>}
     <fieldset disabled={busy || config.read_only}>
-      {['table','channel','state'].includes(cardKind(node)) && !node.is_system_state && <>
+      {(['table','channel','state'].includes(cardKind(node)) || (cardKind(node) === 'source' && !isCatalogSource(node.name))) && !node.is_system_state && <>
         <label>{zh?'名称':'Name'}<input value={properties.name} onChange={e=>setProperties({...properties,name:e.target.value})} /></label>
         <label>{zh?'这张卡片做什么':'Purpose'}<textarea value={properties.definition} onChange={e=>setProperties({...properties,definition:e.target.value})} /></label>
         <button className="button-secondary" onClick={async()=>{await mutate(`/nodes/${node.id}`,'PATCH',properties,zh?'卡片说明已保存':'Card description saved');}}>{zh?'保存说明':'Save description'}</button>

@@ -57,6 +57,41 @@ The neutral refinement was checked again on the graph, #4001 details, #1002 raw 
 
 ## Card UI standard
 
+The approved [SS-49 detail standard](https://app.notion.com/p/3f5038a63d5a8120826fd3b2a444e24f)
+uses `CardDetails` as the single inspector router, selected by the shared `kind`.
+Business-specific components supply content within that template. Unknown kinds
+remain read-only with their original definition. Existing IDs and saved layout
+are preserved; opening details must never execute a graph action.
+
+| Kind | Main reading order | Collapsed settings |
+| --- | --- | --- |
+| source | Paired request/response and provenance; resource reads show resource content and unverified read evidence; downstream navigation | Source contract, fields, collection settings |
+| process | Used inputs and corresponding output; sources/destinations; trigger; natural-language processing rule at bottom | Parameters, mappings, technical execution settings |
+| decision | Object/evidence and illustrative result; all declared branches with conditions and destinations; automatic/human mode; decision rule | Detailed configuration and readiness |
+| table | Provenance label and original horizontal rows/schema; meaning; writers/readers | Fields, constraints and known physical binding |
+| channel | Message fields/case; delivery/dedupe/retention/replay rules; producers/consumers | Envelope, headers, topic/key, groups and code reference |
+| state | Stored or intended data/schema; business window and retention separately; writers/readers | Keys/indexes, dedupe/recovery and detailed configuration |
+
+Display graph relationships using validated endpoint bindings and stable branch
+IDs, including multiple branches on one visual edge. Missing bindings or routes
+stay explicit. A reference connection does not establish automated loading or
+synchronization. A business window does not imply a storage TTL.
+Display-only fallback explanations live in `catalog/card-detail-copy.v1.json`,
+bound to the original module path and name, never just a historical card number.
+Accepted business-module explanations take precedence. This copy catalog is not
+an executable contract or evidence of runtime behavior. Keep upstream observations,
+paired case assumptions, rule configuration, imported snapshots and attributed
+implementation reports distinct at their point of display. Missing imported
+records do not establish empty live storage. Database bindings remain resource
+configuration; a pipeline is the connected graph, not another top-level kind.
+
+Verification: `npm run test:contracts`, `npm run test:layout`, `npm run build`,
+and `npm run check:details -- <saved-graph.json-or-graph-API-URL>`. The last command
+renders every supplied card in Chinese and English plus six generic drafts and
+an unknown kind, checks template sections and non-mutation, and does not execute
+browser effects or validate backend business behavior. Browser-check representative
+cards, case selection, navigation and narrow-panel wrapping separately.
+
 The approved unified model uses six top-level kinds: source, process, decision,
 table, channel and state. Legacy business type names and historical reference
 numbers remain for compatibility. Creation, primary filters and card labels use

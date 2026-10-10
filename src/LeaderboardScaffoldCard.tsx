@@ -1,3 +1,4 @@
+import { cardKind } from './cardModel';
 import catalog from '../catalog/leaderboard-scaffolds.v1.json';
 import { LeaderboardSimpleCard, simpleLeaderboardCard } from './LeaderboardSimpleCard';
 import { BusinessTableRows } from './BusinessTableRows';
@@ -21,6 +22,7 @@ function Fields({ columns, values }: { columns: Column[]; values?: Record<string
 export function LeaderboardScaffoldCard({ node, graph, openNode, language }: Props) {
   if (simpleLeaderboardCard(node.name)) return <LeaderboardSimpleCard node={node} graph={graph} openNode={openNode} language={language} />;
   if (['Redis · 最热榜数据区', '计算最热榜得分', 'leaderboard_hottest'].includes(node.name)) return <div className="business-table-card">
+    {cardKind(node) === 'table' && <BusinessTableRows table={catalog} rows={[]} language={language} />}
     <p>备用设计草案 · 当前热榜沿用 #3005 → #1006，不启用这条替代链路。</p>
     <p>原热榜内容与真实回填保持现状。</p>
   </div>;
