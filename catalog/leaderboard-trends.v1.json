@@ -1,0 +1,3479 @@
+{
+  "version": "three-boards.v1",
+  "revision": "2026-10-10",
+  "rationale_url": "https://app.notion.com/p/3f5038a63d5a81c0abf5f64c1b14be0e",
+  "status": "approved_direction_parameters_pending",
+  "purpose": "实时捕捉出现了更值得我看的变化；按项目或资产展示，不按合约/现货/未发币玩法分榜。",
+  "frontend": {
+    "slots": {
+      "1": "warming",
+      "2": "hottest",
+      "5": "discoveries"
+    },
+    "empty_slots": [
+      3,
+      4,
+      6
+    ],
+    "cooling": "trend_tag_only",
+    "overlap_allowed": true
+  },
+  "rules": [
+    "同一对象跨渠道归并，保留原始依据及时间；同一事件的转载不是多份独立确认。",
+    "热度总量、增长比例、新鲜度或来源数不能单独证明重要或可交易。",
+    "最热比较有效关注规模；升温比较对象自己的历史，两者必须同口径。",
+    "Bitcoin与小token不固定加减分；每个靠前对象应说明刚发生什么、为何现在值得看。",
+    "量价观测可以先于消息；保留结构化测量及窗口，不强制先有新闻。",
+    "新发现不要求高热度；已有对象的新事件更新进展，不自动重置首次发现。",
+    "历史不足、漏采或来源口径变化应标未知；不补零或凭一次下降判降温；1变2不能只凭翻倍置顶。",
+    "榜首是值得及时检查的变化，不自动代表买入或做空方向。"
+  ],
+  "pending": [
+    "有效关注单位、来源权重、去重和重要性标准",
+    "观察窗口、比较基准、低基数与持续条件、刷新延迟",
+    "准入/排序公式、并列规则、新发现边界与期限",
+    "量价适配及各来源真实接入和覆盖"
+  ],
+  "execution": {
+    "owner": "few_understand",
+    "status": "not_implemented_by_this_change",
+    "trigger_requirement": "有效新依据或关注变化及时更新相关对象；周期刷新及衰减参数待定，不沿用旧定时参数。",
+    "parameters": null,
+    "no_numeric_fallback": true
+  },
+  "nodes": [
+    {
+      "key": "evidence",
+      "name": "leaderboard_evidence",
+      "old_name": "leaderboard_evidence",
+      "description": "归并与对象有关的原文或量价依据；保存原始引用及发生/可用时间，转载归组，独立信息保留。仅提到名称不等于重要变化。",
+      "columns": [
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "label_zh": "稳定证据 ID",
+          "meaning_en": "evidence_id"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "已映射内部资产 ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作",
+          "meaning_en": "source_id"
+        },
+        {
+          "name": "source_record_id",
+          "data_type": "string",
+          "label_zh": "源内记录 ID",
+          "meaning_en": "source_record_id"
+        },
+        {
+          "name": "publisher_id",
+          "data_type": "string",
+          "label_zh": "独立发布方",
+          "meaning_en": "publisher_id"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "label_zh": "来源内稳定作者 ID",
+          "meaning_en": "author_id"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原文发布时间",
+          "meaning_en": "published_at"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "首次采集时间",
+          "meaning_en": "collected_at"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "证据完成归一并可用的时间",
+          "meaning_en": "available_at"
+        },
+        {
+          "name": "canonical_story_id",
+          "data_type": "string",
+          "label_zh": "转载同文组",
+          "meaning_en": "canonical_story_id"
+        },
+        {
+          "name": "raw_ref",
+          "data_type": "string",
+          "label_zh": "持久原始记录引用",
+          "meaning_en": "raw_ref"
+        },
+        {
+          "name": "url",
+          "data_type": "string",
+          "label_zh": "原文链接",
+          "meaning_en": "url"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "可读正文",
+          "meaning_en": "text"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "监测集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "observation_kind",
+          "label_zh": "文本/量价/其他观测",
+          "data_type": "text | market | other",
+          "meaning_en": "observation_kind"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "依据实际说明的新增变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "importance_reason",
+          "label_zh": "与对象的关联及重要原因；无依据可为空",
+          "data_type": "string | null",
+          "meaning_en": "importance_reason"
+        },
+        {
+          "name": "measurements_json",
+          "label_zh": "量价等数值、单位和窗口",
+          "data_type": "JSON object | null",
+          "meaning_en": "measurements_json"
+        }
+      ],
+      "sources": [
+        "归一榜单证据"
+      ],
+      "role": "table",
+      "board": null,
+      "algorithm": ""
+    },
+    {
+      "key": "normalize",
+      "name": "归一榜单证据",
+      "old_name": "归一榜单证据",
+      "description": "关联稳定对象并保留原文/观测、时间及新增变化。转载归组，独立依据保留，不凭ticker猜身份；未核实对象可保持身份待核实。量价适配待核查，渠道定义不代表已接入。",
+      "columns": [
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "label_zh": "稳定证据 ID",
+          "meaning_en": "evidence_id"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "已映射内部资产 ID",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作",
+          "meaning_en": "source_id"
+        },
+        {
+          "name": "source_record_id",
+          "data_type": "string",
+          "label_zh": "源内记录 ID",
+          "meaning_en": "source_record_id"
+        },
+        {
+          "name": "publisher_id",
+          "data_type": "string",
+          "label_zh": "独立发布方",
+          "meaning_en": "publisher_id"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "label_zh": "来源内稳定作者 ID",
+          "meaning_en": "author_id"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原文发布时间",
+          "meaning_en": "published_at"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "首次采集时间",
+          "meaning_en": "collected_at"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "证据完成归一并可用的时间",
+          "meaning_en": "available_at"
+        },
+        {
+          "name": "canonical_story_id",
+          "data_type": "string",
+          "label_zh": "转载同文组",
+          "meaning_en": "canonical_story_id"
+        },
+        {
+          "name": "raw_ref",
+          "data_type": "string",
+          "label_zh": "持久原始记录引用",
+          "meaning_en": "raw_ref"
+        },
+        {
+          "name": "url",
+          "data_type": "string",
+          "label_zh": "原文链接",
+          "meaning_en": "url"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "可读正文",
+          "meaning_en": "text"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "监测集合版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "observation_kind",
+          "label_zh": "文本/量价/其他观测",
+          "data_type": "text | market | other",
+          "meaning_en": "observation_kind"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "依据实际说明的新增变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "importance_reason",
+          "label_zh": "与对象的关联及重要原因；无依据可为空",
+          "data_type": "string | null",
+          "meaning_en": "importance_reason"
+        },
+        {
+          "name": "measurements_json",
+          "label_zh": "量价等数值、单位和窗口",
+          "data_type": "JSON object | null",
+          "meaning_en": "measurements_json"
+        }
+      ],
+      "sources": [
+        "rss.item",
+        "telegram.bot.message",
+        "telegram.telethon.message",
+        "assets",
+        "asset_identifiers"
+      ],
+      "role": "process",
+      "board": null,
+      "algorithm": "从已接入来源归一依据并关联对象；解释须可追溯。重要性标准和识别准确性待校准，不由名称提及自动判重要。"
+    },
+    {
+      "key": "coverage",
+      "name": "leaderboard_coverage",
+      "old_name": "leaderboard_coverage",
+      "description": "记录来源是否可用及完整；未知或失败不是零关注。来源变更先核对可比性，覆盖桶和采集频率待定。",
+      "columns": [
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合与版本",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作",
+          "meaning_en": "source_id"
+        },
+        {
+          "name": "bucket_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "5 分钟桶起点",
+          "meaning_en": "bucket_at"
+        },
+        {
+          "name": "status",
+          "data_type": "enum",
+          "label_zh": "healthy / missing / partial",
+          "meaning_en": "status"
+        },
+        {
+          "name": "expected_poll_count",
+          "data_type": "integer",
+          "label_zh": "该桶约定采集次数",
+          "meaning_en": "expected_poll_count"
+        },
+        {
+          "name": "successful_poll_count",
+          "data_type": "integer",
+          "label_zh": "成功次数",
+          "meaning_en": "successful_poll_count"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "状态到达时间",
+          "meaning_en": "available_at"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "label_zh": "故障或未完成原因",
+          "meaning_en": "reason"
+        }
+      ],
+      "sources": [],
+      "role": "table",
+      "board": null,
+      "algorithm": ""
+    },
+    {
+      "key": "history",
+      "name": "leaderboard_attention_history",
+      "old_name": "leaderboard_attention_history",
+      "description": "按同一口径保存有效关注当前值和历史值及依据，支持最热和升温。缺覆盖不补零，不用补采改写过去判断；窗口、桶宽和保留期限待定。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "bucket_at",
+          "label_zh": "关注观测截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "bucket_at"
+        },
+        {
+          "name": "attention_value",
+          "label_zh": "同口径有效关注规模；计算规则待定",
+          "data_type": "number | null",
+          "meaning_en": "attention_value"
+        },
+        {
+          "name": "independent_sources",
+          "label_zh": "独立来源数；转载不重复确认",
+          "data_type": "integer",
+          "meaning_en": "independent_sources"
+        },
+        {
+          "name": "quality_status",
+          "label_zh": "数据可比较状态",
+          "data_type": "healthy | partial | missing | unknown",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "保存关注历史快照"
+      ],
+      "role": "table",
+      "board": null,
+      "algorithm": ""
+    },
+    {
+      "key": "snapshot",
+      "name": "保存关注历史快照",
+      "old_name": "保存关注历史快照",
+      "description": "从有效依据和覆盖形成可回溯的关注观测，最热与升温共同使用；不混用另一套total_heat快照。量度、周期与衰减参数待定。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "bucket_at",
+          "label_zh": "关注观测截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "bucket_at"
+        },
+        {
+          "name": "attention_value",
+          "label_zh": "同口径有效关注规模；计算规则待定",
+          "data_type": "number | null",
+          "meaning_en": "attention_value"
+        },
+        {
+          "name": "independent_sources",
+          "label_zh": "独立来源数；转载不重复确认",
+          "data_type": "integer",
+          "meaning_en": "independent_sources"
+        },
+        {
+          "name": "quality_status",
+          "label_zh": "数据可比较状态",
+          "data_type": "healthy | partial | missing | unknown",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "leaderboard_evidence",
+        "leaderboard_coverage"
+      ],
+      "role": "process",
+      "board": null,
+      "algorithm": "按同一版本化关注定义汇总并保存证据、截止时间和质量；参数不齐保持待定义，不运行旧1/5分钟或6小时规则。"
+    },
+    {
+      "key": "discoveries",
+      "name": "leaderboard_discoveries",
+      "old_name": "leaderboard_discoveries",
+      "description": "记录对象首次有效进入视野的时间与来源；多渠道合并补充依据，不重置首次时间。系统首次发现不表示刚成立或刚发币；边界和期限待确认。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "first_seen_at",
+          "label_zh": "首次有效发现，重试或新来源不重置",
+          "data_type": "UTC timestamp",
+          "meaning_en": "first_seen_at"
+        },
+        {
+          "name": "discovery_kind",
+          "label_zh": "系统首次发现/来源新收录/有依据的新成立；边界待确认",
+          "data_type": "string",
+          "meaning_en": "discovery_kind"
+        },
+        {
+          "name": "independent_sources",
+          "label_zh": "独立依据数，不直接等于重要性",
+          "data_type": "integer",
+          "meaning_en": "independent_sources"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "reason",
+          "label_zh": "新在哪里及为何值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "记录首次有效发现"
+      ],
+      "role": "table",
+      "board": null,
+      "algorithm": ""
+    },
+    {
+      "key": "first_seen",
+      "name": "记录首次有效发现",
+      "old_name": "记录首次有效发现",
+      "description": "首条有效关联线索带来对象时记录首次发现；新来源只补依据，已有对象的新事件更新进展。新账号或融资内容如何关联项目需核实。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "first_seen_at",
+          "label_zh": "首次有效发现，重试或新来源不重置",
+          "data_type": "UTC timestamp",
+          "meaning_en": "first_seen_at"
+        },
+        {
+          "name": "discovery_kind",
+          "label_zh": "系统首次发现/来源新收录/有依据的新成立；边界待确认",
+          "data_type": "string",
+          "meaning_en": "discovery_kind"
+        },
+        {
+          "name": "independent_sources",
+          "label_zh": "独立依据数，不直接等于重要性",
+          "data_type": "integer",
+          "meaning_en": "independent_sources"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "reason",
+          "label_zh": "新在哪里及为何值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "leaderboard_evidence"
+      ],
+      "role": "process",
+      "board": null,
+      "algorithm": "以稳定对象ID幂等保留最早有效发现；不由assets.created_at、新池、采集时间或转载直接推断刚发行。"
+    },
+    {
+      "key": "trend_cache",
+      "name": "Redis · 关注变化比较数据区",
+      "old_name": "Redis · 降温榜数据区",
+      "description": "缓存同口径的当前关注、历史及质量，供共享状态标签；窗口和TTL待定，不是额外的首页榜单。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "bucket_at",
+          "label_zh": "关注观测截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "bucket_at"
+        },
+        {
+          "name": "attention_value",
+          "label_zh": "同口径有效关注规模；计算规则待定",
+          "data_type": "number | null",
+          "meaning_en": "attention_value"
+        },
+        {
+          "name": "independent_sources",
+          "label_zh": "独立来源数；转载不重复确认",
+          "data_type": "integer",
+          "meaning_en": "independent_sources"
+        },
+        {
+          "name": "quality_status",
+          "label_zh": "数据可比较状态",
+          "data_type": "healthy | partial | missing | unknown",
+          "meaning_en": "quality_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "leaderboard_attention_history",
+        "leaderboard_coverage"
+      ],
+      "role": "state",
+      "board": null,
+      "algorithm": ""
+    },
+    {
+      "key": "trend_calc",
+      "name": "判定关注趋势状态",
+      "old_name": "计算降温榜得分",
+      "description": "判定升温/平稳/降温；历史或覆盖不足为未知。关注降温不代表价格下跌或做空。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "current_attention",
+          "label_zh": "当前有效关注",
+          "data_type": "number | null",
+          "meaning_en": "current_attention"
+        },
+        {
+          "name": "baseline_attention",
+          "label_zh": "自身可比基准",
+          "data_type": "number | null",
+          "meaning_en": "baseline_attention"
+        },
+        {
+          "name": "attention_change",
+          "label_zh": "可比变化量",
+          "data_type": "number | null",
+          "meaning_en": "attention_change"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不代表价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "reason",
+          "label_zh": "状态依据；历史或覆盖不足需说明",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "Redis · 关注变化比较数据区"
+      ],
+      "role": "process",
+      "board": null,
+      "algorithm": "比较对象自身可比关注历史；窗口、基准、持续条件与阈值待定，不按原热榜前100资格限制标签，不因一次下降判反转。"
+    },
+    {
+      "key": "trend_state",
+      "name": "asset_attention_states",
+      "old_name": "leaderboard_cooling",
+      "description": "共享对象关注状态，供三榜标签使用；降温不再单独排名。结果保留依据和计算时间。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "current_attention",
+          "label_zh": "当前有效关注",
+          "data_type": "number | null",
+          "meaning_en": "current_attention"
+        },
+        {
+          "name": "baseline_attention",
+          "label_zh": "自身可比基准",
+          "data_type": "number | null",
+          "meaning_en": "baseline_attention"
+        },
+        {
+          "name": "attention_change",
+          "label_zh": "可比变化量",
+          "data_type": "number | null",
+          "meaning_en": "attention_change"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不代表价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "reason",
+          "label_zh": "状态依据；历史或覆盖不足需说明",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "判定关注趋势状态"
+      ],
+      "role": "table",
+      "board": null,
+      "algorithm": ""
+    },
+    {
+      "key": "warming_cache",
+      "name": "Redis · 升温榜数据区",
+      "old_name": "Redis · 升温榜数据区",
+      "description": "相比自身此前，谁正在明显获得更多有效关注；包括新对象和重新受关注的已有对象。低基数或历史不足不能只凭比例置顶。 缓存只描述输入格式，不表示已创建Redis键。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "input_records_json",
+          "label_zh": "本榜消费的有效依据与比较状态",
+          "data_type": "JSON object",
+          "meaning_en": "input_records_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "leaderboard_attention_history",
+        "leaderboard_evidence",
+        "leaderboard_coverage",
+        "asset_attention_states"
+      ],
+      "role": "state",
+      "board": "warming",
+      "algorithm": ""
+    },
+    {
+      "key": "warming_calc",
+      "name": "计算升温榜得分",
+      "old_name": "计算升温榜得分",
+      "description": "相比自身此前，谁正在明显获得更多有效关注；包括新对象和重新受关注的已有对象。低基数或历史不足不能只凭比例置顶。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "score",
+          "label_zh": "本榜排序值；公式未定时为null，不跨榜比较",
+          "data_type": "number | null",
+          "meaning_en": "score"
+        },
+        {
+          "name": "reason",
+          "label_zh": "为什么现在值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "刚发生的变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "triggered_at",
+          "label_zh": "变化发生或首次检测时间",
+          "data_type": "UTC timestamp | null",
+          "meaning_en": "triggered_at"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不是价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "current_attention",
+          "label_zh": "当前同口径关注",
+          "data_type": "number | null",
+          "meaning_en": "current_attention"
+        },
+        {
+          "name": "baseline_attention",
+          "label_zh": "自身比较基准",
+          "data_type": "number | null",
+          "meaning_en": "baseline_attention"
+        },
+        {
+          "name": "attention_change",
+          "label_zh": "可比变化量",
+          "data_type": "number | null",
+          "meaning_en": "attention_change"
+        }
+      ],
+      "sources": [
+        "Redis · 升温榜数据区"
+      ],
+      "role": "process",
+      "board": "warming",
+      "algorithm": "以同一关注定义与自身可比基准判断升温，再按值得看的变化及依据排序；公式、门槛、窗口和并列规则待定。"
+    },
+    {
+      "key": "warming_table",
+      "name": "leaderboard_warming",
+      "old_name": "leaderboard_warming",
+      "description": "相比自身此前，谁正在明显获得更多有效关注；包括新对象和重新受关注的已有对象。低基数或历史不足不能只凭比例置顶。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "score",
+          "label_zh": "本榜排序值；公式未定时为null，不跨榜比较",
+          "data_type": "number | null",
+          "meaning_en": "score"
+        },
+        {
+          "name": "reason",
+          "label_zh": "为什么现在值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "刚发生的变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "triggered_at",
+          "label_zh": "变化发生或首次检测时间",
+          "data_type": "UTC timestamp | null",
+          "meaning_en": "triggered_at"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不是价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "current_attention",
+          "label_zh": "当前同口径关注",
+          "data_type": "number | null",
+          "meaning_en": "current_attention"
+        },
+        {
+          "name": "baseline_attention",
+          "label_zh": "自身比较基准",
+          "data_type": "number | null",
+          "meaning_en": "baseline_attention"
+        },
+        {
+          "name": "attention_change",
+          "label_zh": "可比变化量",
+          "data_type": "number | null",
+          "meaning_en": "attention_change"
+        }
+      ],
+      "sources": [
+        "计算升温榜得分"
+      ],
+      "role": "table",
+      "board": "warming",
+      "algorithm": ""
+    },
+    {
+      "key": "hottest_cache",
+      "name": "Redis · 最热榜数据区",
+      "old_name": "Redis · 最热榜数据区",
+      "description": "现在市场集中关注哪些对象；有效关注规模配合新增变化和趋势标签，不能靠泛泛提及或转载堆高。 缓存只描述输入格式，不表示已创建Redis键。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "input_records_json",
+          "label_zh": "本榜消费的有效依据与比较状态",
+          "data_type": "JSON object",
+          "meaning_en": "input_records_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "leaderboard_attention_history",
+        "leaderboard_evidence",
+        "leaderboard_coverage",
+        "asset_attention_states"
+      ],
+      "role": "state",
+      "board": "hottest",
+      "algorithm": ""
+    },
+    {
+      "key": "hottest_calc",
+      "name": "计算最热榜得分",
+      "old_name": "计算最热榜得分",
+      "description": "现在市场集中关注哪些对象；有效关注规模配合新增变化和趋势标签，不能靠泛泛提及或转载堆高。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "score",
+          "label_zh": "本榜排序值；公式未定时为null，不跨榜比较",
+          "data_type": "number | null",
+          "meaning_en": "score"
+        },
+        {
+          "name": "reason",
+          "label_zh": "为什么现在值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "刚发生的变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "triggered_at",
+          "label_zh": "变化发生或首次检测时间",
+          "data_type": "UTC timestamp | null",
+          "meaning_en": "triggered_at"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不是价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "attention_value",
+          "label_zh": "当前有效关注规模",
+          "data_type": "number | null",
+          "meaning_en": "attention_value"
+        }
+      ],
+      "sources": [
+        "Redis · 最热榜数据区"
+      ],
+      "role": "process",
+      "board": "hottest",
+      "algorithm": "使用与升温相同的有效关注量度，保留当前规模与变化的区别；具体窗口、重要性筛选、权重和排序规则待定。"
+    },
+    {
+      "key": "hottest_table",
+      "name": "leaderboard_hottest",
+      "old_name": "leaderboard_hottest",
+      "description": "现在市场集中关注哪些对象；有效关注规模配合新增变化和趋势标签，不能靠泛泛提及或转载堆高。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "score",
+          "label_zh": "本榜排序值；公式未定时为null，不跨榜比较",
+          "data_type": "number | null",
+          "meaning_en": "score"
+        },
+        {
+          "name": "reason",
+          "label_zh": "为什么现在值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "刚发生的变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "triggered_at",
+          "label_zh": "变化发生或首次检测时间",
+          "data_type": "UTC timestamp | null",
+          "meaning_en": "triggered_at"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不是价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "attention_value",
+          "label_zh": "当前有效关注规模",
+          "data_type": "number | null",
+          "meaning_en": "attention_value"
+        }
+      ],
+      "sources": [
+        "计算最热榜得分"
+      ],
+      "role": "table",
+      "board": "hottest",
+      "algorithm": ""
+    },
+    {
+      "key": "discoveries_cache",
+      "name": "Redis · 新发现榜数据区",
+      "old_name": "Redis · 新出现榜数据区",
+      "description": "刚进入视野的项目、资产或关联线索，无需高热度；同对象多渠道合并，显示新在哪里、来源及首次发现。 缓存只描述输入格式，不表示已创建Redis键。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "input_records_json",
+          "label_zh": "本榜消费的有效依据与比较状态",
+          "data_type": "JSON object",
+          "meaning_en": "input_records_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        }
+      ],
+      "sources": [
+        "leaderboard_discoveries",
+        "leaderboard_evidence",
+        "asset_attention_states"
+      ],
+      "role": "state",
+      "board": "discoveries",
+      "algorithm": ""
+    },
+    {
+      "key": "discoveries_calc",
+      "name": "生成新发现榜",
+      "old_name": "计算新出现榜得分",
+      "description": "刚进入视野的项目、资产或关联线索，无需高热度；同对象多渠道合并，显示新在哪里、来源及首次发现。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "score",
+          "label_zh": "本榜排序值；公式未定时为null，不跨榜比较",
+          "data_type": "number | null",
+          "meaning_en": "score"
+        },
+        {
+          "name": "reason",
+          "label_zh": "为什么现在值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "刚发生的变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "triggered_at",
+          "label_zh": "变化发生或首次检测时间",
+          "data_type": "UTC timestamp | null",
+          "meaning_en": "triggered_at"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不是价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "first_seen_at",
+          "label_zh": "首次有效发现，重试或新来源不重置",
+          "data_type": "UTC timestamp",
+          "meaning_en": "first_seen_at"
+        },
+        {
+          "name": "discovery_kind",
+          "label_zh": "系统首次发现/来源新收录/有依据的新成立；边界待确认",
+          "data_type": "string",
+          "meaning_en": "discovery_kind"
+        },
+        {
+          "name": "independent_sources",
+          "label_zh": "独立依据数，不直接等于重要性",
+          "data_type": "integer",
+          "meaning_en": "independent_sources"
+        }
+      ],
+      "sources": [
+        "Redis · 新发现榜数据区"
+      ],
+      "role": "process",
+      "board": "discoveries",
+      "algorithm": "符合新发现边界即成为候选，不要求先累积高热度；榜内新鲜度与依据排序待定，不沿用24-age_hours。"
+    },
+    {
+      "key": "discoveries_table",
+      "name": "leaderboard_emerging",
+      "old_name": "leaderboard_emerging",
+      "description": "刚进入视野的项目、资产或关联线索，无需高热度；同对象多渠道合并，显示新在哪里、来源及首次发现。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "内部对象ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "asset_name",
+          "label_zh": "项目或资产展示名",
+          "data_type": "string | null",
+          "meaning_en": "asset_name"
+        },
+        {
+          "name": "score",
+          "label_zh": "本榜排序值；公式未定时为null，不跨榜比较",
+          "data_type": "number | null",
+          "meaning_en": "score"
+        },
+        {
+          "name": "reason",
+          "label_zh": "为什么现在值得看",
+          "data_type": "string",
+          "meaning_en": "reason"
+        },
+        {
+          "name": "change_summary",
+          "label_zh": "刚发生的变化",
+          "data_type": "string",
+          "meaning_en": "change_summary"
+        },
+        {
+          "name": "triggered_at",
+          "label_zh": "变化发生或首次检测时间",
+          "data_type": "UTC timestamp | null",
+          "meaning_en": "triggered_at"
+        },
+        {
+          "name": "trend_status",
+          "label_zh": "关注状态，不是价格方向",
+          "data_type": "warming | stable | cooling | unknown",
+          "meaning_en": "trend_status"
+        },
+        {
+          "name": "evidence_refs_json",
+          "label_zh": "可追溯依据引用",
+          "data_type": "JSON array",
+          "meaning_en": "evidence_refs_json"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "本次计算截止时间",
+          "data_type": "UTC timestamp",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "计算口径版本",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        },
+        {
+          "name": "coverage_key",
+          "label_zh": "来源覆盖及版本",
+          "data_type": "string",
+          "meaning_en": "coverage_key"
+        },
+        {
+          "name": "first_seen_at",
+          "label_zh": "首次有效发现，重试或新来源不重置",
+          "data_type": "UTC timestamp",
+          "meaning_en": "first_seen_at"
+        },
+        {
+          "name": "discovery_kind",
+          "label_zh": "系统首次发现/来源新收录/有依据的新成立；边界待确认",
+          "data_type": "string",
+          "meaning_en": "discovery_kind"
+        },
+        {
+          "name": "independent_sources",
+          "label_zh": "独立依据数，不直接等于重要性",
+          "data_type": "integer",
+          "meaning_en": "independent_sources"
+        }
+      ],
+      "sources": [
+        "生成新发现榜"
+      ],
+      "role": "table",
+      "board": "discoveries",
+      "algorithm": ""
+    },
+    {
+      "key": "candidates",
+      "name": "候选代币筛选",
+      "old_name": "候选代币筛选",
+      "description": "只从升温、最热、新发现三榜的有效完整结果确定内容维护范围；按稳定asset_id跨榜合并，不读取降温/分歧或把total_heat演示当最热。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "label_zh": "稳定内部资产ID",
+          "data_type": "string",
+          "meaning_en": "asset_id"
+        },
+        {
+          "name": "calculated_at",
+          "label_zh": "calculated_at",
+          "data_type": "string",
+          "meaning_en": "calculated_at"
+        },
+        {
+          "name": "score",
+          "label_zh": "score",
+          "data_type": "number",
+          "meaning_en": "score"
+        },
+        {
+          "name": "algorithm_version",
+          "label_zh": "algorithm_version",
+          "data_type": "string",
+          "meaning_en": "algorithm_version"
+        }
+      ],
+      "sources": [
+        "leaderboard_warming",
+        "leaderboard_hottest",
+        "leaderboard_emerging"
+      ],
+      "role": "process",
+      "board": null,
+      "algorithm": "沿用已批准内容维护的每榜候选数量与对象去重职责；以各榜确认后的排序为准，未确定的榜单分数/资格不编造或回退旧算法。本卡不生成或保存内容。"
+    }
+  ],
+  "retire_names": [
+    "leaderboard_divergence",
+    "计算分歧榜得分",
+    "Redis · 分歧榜数据区",
+    "标注可比较观点",
+    "leaderboard_opinions",
+    "保存现有热榜快照",
+    "leaderboard_heat_snapshots"
+  ],
+  "boards": [
+    {
+      "key": "warming",
+      "label_zh": "升温",
+      "slot": 1,
+      "table_name": "leaderboard_warming",
+      "cache_name": "Redis · 升温榜数据区",
+      "calculator_name": "计算升温榜得分"
+    },
+    {
+      "key": "hottest",
+      "label_zh": "最热",
+      "slot": 2,
+      "table_name": "leaderboard_hottest",
+      "cache_name": "Redis · 最热榜数据区",
+      "calculator_name": "计算最热榜得分"
+    },
+    {
+      "key": "discoveries",
+      "label_zh": "新发现",
+      "slot": 5,
+      "table_name": "leaderboard_emerging",
+      "cache_name": "Redis · 新发现榜数据区",
+      "calculator_name": "生成新发现榜"
+    }
+  ],
+  "previous_nodes": {
+    "Redis · 分歧榜数据区": {
+      "definition": "分歧榜简版 · 统计最近24小时同资产、同主题、同时间范围的观点。每作者先取最新原文观点，再统计明确立场，支持与反对各至少一人，分数取双方较少人数。每资产选择最高分主题，平分按 topic_key、horizon 升序。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "Redis · 升温榜数据区": {
+      "definition": "升温榜简版 · 比较同一资产当前和一小时前的 total_heat，只保留增加的资产，按增加分数排序。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "Redis · 新出现榜数据区": {
+      "definition": "新出现榜简版 · 读取 assets.created_at，只选最近24小时新建档的资产；越新分数越高。这表示本系统新发现，不表示资产刚发行。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "Redis · 最热榜数据区": {
+      "definition": "最热榜 v1 · 监测范围内最近24小时的有效关注规模。（设计已定义，真实数据待验证）",
+      "formula": "",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · hottest"
+    },
+    "Redis · 降温榜数据区": {
+      "definition": "降温榜简版 · 先选一小时前热榜前100的资产，比较当前 total_heat，只保留下降的资产，按减少分数排序。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "leaderboard_attention_history": {
+      "definition": "每 5 分钟记录全部监测资产，包括健康覆盖下的零贡献，不能只存上榜资产。缺覆盖不写零；保留缺桶以阻止比较。小时基线取此前168个不重叠小时的贡献中位数。计算使用当时已可用证据，不能用后来补采回写过去决策。",
+      "formula": "",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "leaderboard_cooling": {
+      "definition": "降温榜简版 · 先选一小时前热榜前100的资产，比较当前 total_heat，只保留下降的资产，按减少分数排序。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "leaderboard_coverage": {
+      "definition": "采集服务主动上报每个配置来源的 5 分钟覆盖；成功且完整的空响应可为 healthy，未接入、漏采或未知状态不是零。采集名单、频率和完整性规则须先核验，变更生成新 coverage_key。当前无上报接入。",
+      "formula": "",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "leaderboard_discoveries": {
+      "definition": "v1 默认展示本系统首次有效发现，而非新发行。新收录和已核实发行须有明确原文/时间证据，不能由新池、账号建档或采集时间推断。每资产每类事件保留最早值；重试和新来源不能重置首次时间。系统首次发现可跨 coverage_key 保持原值。",
+      "formula": "",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "leaderboard_divergence": {
+      "definition": "分歧榜简版 · 统计最近24小时同资产、同主题、同时间范围的观点。每作者先取最新原文观点，再统计明确立场，支持与反对各至少一人，分数取双方较少人数。每资产选择最高分主题，平分按 topic_key、horizon 升序。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "leaderboard_emerging": {
+      "definition": "新出现榜简版 · 读取 assets.created_at，只选最近24小时新建档的资产；越新分数越高。这表示本系统新发现，不表示资产刚发行。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "leaderboard_evidence": {
+      "definition": "按资产关联原文、发布时间和首次可用时间；同文转载归组，独立原创不因议题相同被合并。原始完整响应另行持久保存，raw_ref 可回放。缺身份、原文或发布时间的记录隔离待审，不计分。",
+      "formula": "",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "leaderboard_heat_snapshots": {
+      "definition": "复用 #1006 asset_scores_current 的 total_heat 全量快照，按未舍入 score_value 降序、asset_id 升序生成排名。保存原 calculated_at，每分钟一个完整成功批次，保留48小时；重试同批幂等，不覆盖较新批次。尚未观察连续快照。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "leaderboard_hottest": {
+      "definition": "最热榜 v1 · 监测范围内最近24小时的有效关注规模。（设计已定义，真实数据待验证）",
+      "formula": "",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · hottest"
+    },
+    "leaderboard_opinions": {
+      "definition": "只保存原文能支撑的观点；方向/议题/时间尺度不确定则 unknown 并不计分。中性、风险标签或价格涨跌不能直接当看多/看空。每个比较组、每个作者只使用最新一条合格立场；作者不能同时为两侧凑人数。标注方法/模型尚未接入或验证。",
+      "formula": "",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "leaderboard_warming": {
+      "definition": "升温榜简版 · 比较同一资产当前和一小时前的 total_heat，只保留增加的资产，按增加分数排序。",
+      "formula": "",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "保存关注历史快照": {
+      "definition": "每5分钟固定一个UTC截止时间，读取此前已可用的有效证据。按最热v1去重/作者上限和6小时衰减产生全资产热度，完整覆盖下记录零值；同时保存最近1小时计数、当时前50资格和证据。只在完整健康覆盖时写快照；缺桶留缺，变更来源或算法版本重建新历史，不用补采回写旧决策。",
+      "formula": "每5分钟固定一个UTC截止时间，读取此前已可用的有效证据。按最热v1去重/作者上限和6小时衰减产生全资产热度，完整覆盖下记录零值；同时保存最近1小时计数、当时前50资格和证据。只在完整健康覆盖时写快照；缺桶留缺，变更来源或算法版本重建新历史，不用补采回写旧决策。",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "保存现有热榜快照": {
+      "definition": "复用 #1006 asset_scores_current 的 total_heat 全量快照，按未舍入 score_value 降序、asset_id 升序生成排名。保存原 calculated_at，每分钟一个完整成功批次，保留48小时；重试同批幂等，不覆盖较新批次。尚未观察连续快照。",
+      "formula": "复用 #1006 asset_scores_current 的 total_heat 全量快照，按未舍入 score_value 降序、asset_id 升序生成排名。保存原 calculated_at，每分钟一个完整成功批次，保留48小时；重试同批幂等，不覆盖较新批次。尚未观察连续快照。",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "归一榜单证据": {
+      "definition": "保存原始响应和首次采集时间，按来源命名空间+稳定外部ID读取资产映射，不能凭ticker猜资产；身份不明隔离待审。提取正文和原文时间，拒绝未来/缺失时间，按稳定源记录ID幂等记录。识别同文转载而不是合并同议题独立观点；保存原文、发布时间、首次可用时间和原始引用。采集服务提供来源、采集时间与coverage_key，这些不是上游响应字段。RSS/Telegram为拟接入来源，具体feed/频道与授权、产出仍待核验。",
+      "formula": "保存原始响应和首次采集时间，按来源命名空间+稳定外部ID读取资产映射，不能凭ticker猜资产；身份不明隔离待审。提取正文和原文时间，拒绝未来/缺失时间，按稳定源记录ID幂等记录。识别同文转载而不是合并同议题独立观点；保存原文、发布时间、首次可用时间和原始引用。采集服务提供来源、采集时间与coverage_key，这些不是上游响应字段。RSS/Telegram为拟接入来源，具体feed/频道与授权、产出仍待核验。",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "标注可比较观点": {
+      "definition": "从可读原文提取资产、具体议题、时间尺度、方向和具体理由，保留证据引用与标注可用时间/版本。明确相反观点才能标long/short；风险标签、行情与未知方向不代替观点。置信度和作者身份未核验时不作为合格输入。人工抽查标注，模型与准确性尚未验证。",
+      "formula": "从可读原文提取资产、具体议题、时间尺度、方向和具体理由，保留证据引用与标注可用时间/版本。明确相反观点才能标long/short；风险标签、行情与未知方向不代替观点。置信度和作者身份未核验时不作为合格输入。人工抽查标注，模型与准确性尚未验证。",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "计算分歧榜得分": {
+      "definition": "分歧榜简版 · 统计最近24小时同资产、同主题、同时间范围的观点。每作者先取最新原文观点，再统计明确立场，支持与反对各至少一人，分数取双方较少人数。每资产选择最高分主题，平分按 topic_key、horizon 升序。",
+      "formula": "min(long_authors, short_authors)",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "计算升温榜得分": {
+      "definition": "升温榜简版 · 比较同一资产当前和一小时前的 total_heat，只保留增加的资产，按增加分数排序。",
+      "formula": "current_score - previous_score",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "计算新出现榜得分": {
+      "definition": "新出现榜简版 · 读取 assets.created_at，只选最近24小时新建档的资产；越新分数越高。这表示本系统新发现，不表示资产刚发行。",
+      "formula": "24 - age_hours",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "计算最热榜得分": {
+      "definition": "最热榜 v1 · 监测范围内最近24小时的有效关注规模。（设计已定义，真实数据待验证）",
+      "formula": "H = sum(2 ** (-age_hours / 6))",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · hottest"
+    },
+    "计算降温榜得分": {
+      "definition": "降温榜简版 · 先选一小时前热榜前100的资产，比较当前 total_heat，只保留下降的资产，按减少分数排序。",
+      "formula": "previous_score - current_score",
+      "notes": "catalog/leaderboard-simple.v1.json"
+    },
+    "记录首次有效发现": {
+      "definition": "由第一条有效关联证据记录每资产不可重置的system_first_seen（首次可用时间）。只有明确原文支持的上市/发行事件才记录source_listing/verified_launch及原文事件时间。每类型保持最早事件，独立发布方去重佐证。首次状态长期保存；转载、重试、恢复补采和新池不能重置或伪造发行。",
+      "formula": "由第一条有效关联证据记录每资产不可重置的system_first_seen（首次可用时间）。只有明确原文支持的上市/发行事件才记录source_listing/verified_launch及原文事件时间。每类型保持最早事件，独立发布方去重佐证。首次状态长期保存；转载、重试、恢复补采和新池不能重置或伪造发行。",
+      "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+    },
+    "候选代币筛选": {
+      "definition": "从五榜有效完整结果各取前N，按稳定asset_id合并去重；只确定本轮维护范围。",
+      "formula": "先校验各榜资格、时间与完整批次，再按未舍入分数降序、asset_id升序各取前N。合并稳定asset_id，同一代币跨榜只保留一次。本卡不查内容时间，不生成文案，也不保存内容。",
+      "notes": "catalog/content-refresh.v1.json"
+    }
+  },
+  "previous_edges": [
+    [
+      "asset_identifiers",
+      "归一榜单证据"
+    ],
+    [
+      "asset_scores_current",
+      "Redis · 升温榜数据区"
+    ],
+    [
+      "asset_scores_current",
+      "Redis · 降温榜数据区"
+    ],
+    [
+      "asset_scores_current",
+      "保存现有热榜快照"
+    ],
+    [
+      "asset_scores_current",
+      "候选代币筛选"
+    ],
+    [
+      "assets",
+      "Redis · 新出现榜数据区"
+    ],
+    [
+      "assets",
+      "归一榜单证据"
+    ],
+    [
+      "leaderboard_cooling",
+      "候选代币筛选"
+    ],
+    [
+      "leaderboard_coverage",
+      "Redis · 最热榜数据区"
+    ],
+    [
+      "leaderboard_coverage",
+      "保存关注历史快照"
+    ],
+    [
+      "leaderboard_divergence",
+      "候选代币筛选"
+    ],
+    [
+      "leaderboard_emerging",
+      "候选代币筛选"
+    ],
+    [
+      "leaderboard_evidence",
+      "Redis · 最热榜数据区"
+    ],
+    [
+      "leaderboard_evidence",
+      "保存关注历史快照"
+    ],
+    [
+      "leaderboard_evidence",
+      "标注可比较观点"
+    ],
+    [
+      "leaderboard_evidence",
+      "记录首次有效发现"
+    ],
+    [
+      "leaderboard_heat_snapshots",
+      "Redis · 升温榜数据区"
+    ],
+    [
+      "leaderboard_heat_snapshots",
+      "Redis · 降温榜数据区"
+    ],
+    [
+      "leaderboard_opinions",
+      "Redis · 分歧榜数据区"
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选"
+    ],
+    [
+      "Redis · 分歧榜数据区",
+      "计算分歧榜得分"
+    ],
+    [
+      "Redis · 升温榜数据区",
+      "计算升温榜得分"
+    ],
+    [
+      "Redis · 新出现榜数据区",
+      "计算新出现榜得分"
+    ],
+    [
+      "Redis · 最热榜数据区",
+      "计算最热榜得分"
+    ],
+    [
+      "Redis · 降温榜数据区",
+      "计算降温榜得分"
+    ],
+    [
+      "rss.item",
+      "归一榜单证据"
+    ],
+    [
+      "telegram.bot.message",
+      "归一榜单证据"
+    ],
+    [
+      "telegram.telethon.message",
+      "归一榜单证据"
+    ],
+    [
+      "保存关注历史快照",
+      "leaderboard_attention_history"
+    ],
+    [
+      "保存现有热榜快照",
+      "leaderboard_heat_snapshots"
+    ],
+    [
+      "候选代币筛选",
+      "刷新判断"
+    ],
+    [
+      "归一榜单证据",
+      "leaderboard_evidence"
+    ],
+    [
+      "标注可比较观点",
+      "leaderboard_opinions"
+    ],
+    [
+      "计算分歧榜得分",
+      "leaderboard_divergence"
+    ],
+    [
+      "计算升温榜得分",
+      "leaderboard_warming"
+    ],
+    [
+      "计算新出现榜得分",
+      "leaderboard_emerging"
+    ],
+    [
+      "计算最热榜得分",
+      "leaderboard_hottest"
+    ],
+    [
+      "计算降温榜得分",
+      "leaderboard_cooling"
+    ],
+    [
+      "记录首次有效发现",
+      "leaderboard_discoveries"
+    ]
+  ],
+  "previous_variants": {
+    "leaderboard_discoveries": [
+      {
+        "definition": "v1 默认展示本系统首次有效发现，而非新发行。新收录和已核实发行须有明确原文/时间证据，不能由新池、账号建档或采集时间推断。每资产每类事件保留最早值；重试和新来源不能重置首次时间。系统首次发现可跨 coverage_key 保持原值。 佐证逐份保存可用时间，历史回放按截止时间过滤后计算数量，不能用后来增加的总数回写早期分数。",
+        "formula": "",
+        "notes": "catalog/leaderboard-scaffolds.v1.json · 2026-10-09-v1"
+      }
+    ]
+  },
+  "previous_contract_status": "migration_only_not_current_rules",
+  "previous_field_variants": {
+    "Redis · 分歧榜数据区": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "horizon",
+          "data_type": "string",
+          "definition": "相同讨论时间范围"
+        },
+        {
+          "name": "long_authors",
+          "data_type": "number",
+          "definition": "明确支持的独立作者数"
+        },
+        {
+          "name": "short_authors",
+          "data_type": "number",
+          "definition": "明确反对的独立作者数"
+        },
+        {
+          "name": "topic_key",
+          "data_type": "string",
+          "definition": "可比较主题"
+        }
+      ]
+    ],
+    "Redis · 升温榜数据区": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "current_score",
+          "data_type": "number",
+          "definition": "当前 total_heat"
+        },
+        {
+          "name": "previous_score",
+          "data_type": "number",
+          "definition": "一小时前 total_heat"
+        }
+      ]
+    ],
+    "Redis · 新出现榜数据区": [
+      [
+        {
+          "name": "age_hours",
+          "data_type": "number",
+          "definition": "建档距本次截止时间的小时数"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "created_at",
+          "data_type": "UTC timestamp",
+          "definition": "本系统首次建档时间"
+        }
+      ]
+    ],
+    "Redis · 最热榜数据区": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "来源集合版本"
+        },
+        {
+          "name": "coverage_records_json",
+          "data_type": "JSON array",
+          "definition": "coverage 的完整记录"
+        },
+        {
+          "name": "cutoff_at",
+          "data_type": "UTC timestamp",
+          "definition": "缓存共同截止时间"
+        },
+        {
+          "name": "evidence_records_json",
+          "data_type": "JSON array",
+          "definition": "evidence 的完整记录"
+        },
+        {
+          "name": "quality_reason",
+          "data_type": "string",
+          "definition": "缺失原因"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "enum",
+          "definition": "ready / unavailable"
+        }
+      ]
+    ],
+    "Redis · 降温榜数据区": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "current_score",
+          "data_type": "number",
+          "definition": "当前 total_heat"
+        },
+        {
+          "name": "previous_rank",
+          "data_type": "number",
+          "definition": "一小时前热榜排名"
+        },
+        {
+          "name": "previous_score",
+          "data_type": "number",
+          "definition": "一小时前 total_heat"
+        }
+      ]
+    ],
+    "leaderboard_attention_history": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "基础热度定义版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产 ID"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "definition": "历史快照可用时间"
+        },
+        {
+          "name": "bucket_at",
+          "data_type": "UTC timestamp",
+          "definition": "快照 UTC 时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "固定来源集合版本"
+        },
+        {
+          "name": "eligible",
+          "data_type": "boolean",
+          "definition": "当时最热资格"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "对应证据引用"
+        },
+        {
+          "name": "heat",
+          "data_type": "number",
+          "definition": "按最热规则计算的当时热度"
+        },
+        {
+          "name": "hottest_rank",
+          "data_type": "integer | null",
+          "definition": "当时合格最热榜排名，最多50"
+        },
+        {
+          "name": "hour_count",
+          "data_type": "number",
+          "definition": "最近完整一小时有效贡献数"
+        }
+      ]
+    ],
+    "leaderboard_cooling": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "leaderboard_coverage": [
+      [
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "definition": "状态到达时间"
+        },
+        {
+          "name": "bucket_at",
+          "data_type": "UTC timestamp",
+          "definition": "5 分钟桶起点"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "来源集合与版本"
+        },
+        {
+          "name": "expected_poll_count",
+          "data_type": "integer",
+          "definition": "该桶约定采集次数"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "definition": "故障或未完成原因"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "definition": "来源操作"
+        },
+        {
+          "name": "status",
+          "data_type": "enum",
+          "definition": "healthy / missing / partial"
+        },
+        {
+          "name": "successful_poll_count",
+          "data_type": "integer",
+          "definition": "成功次数"
+        }
+      ]
+    ],
+    "leaderboard_discoveries": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "confirmations_json",
+          "data_type": "JSON array",
+          "definition": "每份佐证的发布方、证据ID及可用时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "发现时来源集合版本"
+        },
+        {
+          "name": "discovery_id",
+          "data_type": "string",
+          "definition": "稳定出现事件 ID"
+        },
+        {
+          "name": "event_kind",
+          "data_type": "enum",
+          "definition": "system_first_seen / source_listing / verified_launch"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "已核对的原文依据"
+        },
+        {
+          "name": "first_available_at",
+          "data_type": "UTC timestamp",
+          "definition": "本系统首次有效发现时间"
+        },
+        {
+          "name": "independent_confirmations",
+          "data_type": "integer",
+          "definition": "不同独立发布方佐证数"
+        },
+        {
+          "name": "occurred_at",
+          "data_type": "UTC timestamp",
+          "definition": "该类事件最早有效时间"
+        }
+      ]
+    ],
+    "leaderboard_divergence": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "leaderboard_emerging": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "leaderboard_evidence": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "已映射内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "definition": "来源内稳定作者 ID"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "definition": "证据完成归一并可用的时间"
+        },
+        {
+          "name": "canonical_story_id",
+          "data_type": "string",
+          "definition": "转载同文组"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "definition": "首次采集时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "监测集合版本"
+        },
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "definition": "稳定证据 ID"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "definition": "原文发布时间"
+        },
+        {
+          "name": "publisher_id",
+          "data_type": "string",
+          "definition": "独立发布方"
+        },
+        {
+          "name": "raw_ref",
+          "data_type": "string",
+          "definition": "持久原始记录引用"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "definition": "来源操作"
+        },
+        {
+          "name": "source_record_id",
+          "data_type": "string",
+          "definition": "源内记录 ID"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "definition": "可读正文"
+        },
+        {
+          "name": "url",
+          "data_type": "string",
+          "definition": "原文链接"
+        }
+      ]
+    ],
+    "leaderboard_heat_snapshots": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名称"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "原评分 UTC 时间"
+        },
+        {
+          "name": "hottest_rank",
+          "data_type": "number",
+          "definition": "同批全量热度排名，从1开始"
+        },
+        {
+          "name": "score_key",
+          "data_type": "string",
+          "definition": "仅保存 total_heat"
+        },
+        {
+          "name": "score_value",
+          "data_type": "number",
+          "definition": "快照时的完整精度分数"
+        }
+      ]
+    ],
+    "leaderboard_hottest": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "参与计算的来源集合及版本"
+        },
+        {
+          "name": "cycle_id",
+          "data_type": "string",
+          "definition": "本次完整计算批次"
+        },
+        {
+          "name": "details_json",
+          "data_type": "JSON object",
+          "definition": "资格、输入摘要与判定理由"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "可追溯的证据 ID"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "参与计算的来源集合及版本"
+        },
+        {
+          "name": "cycle_id",
+          "data_type": "string",
+          "definition": "本次完整计算批次"
+        },
+        {
+          "name": "details_json",
+          "data_type": "JSON object",
+          "definition": "资格、输入摘要与判定理由"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "可追溯的证据 ID"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "leaderboard_opinions": [
+      [
+        {
+          "name": "annotation_version",
+          "data_type": "string",
+          "definition": "标注方法/模型版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "definition": "独立作者"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "definition": "标注可用时间"
+        },
+        {
+          "name": "confidence",
+          "data_type": "number",
+          "definition": "方向标注置信度0至1"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "覆盖版本"
+        },
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "definition": "原文证据 ID"
+        },
+        {
+          "name": "horizon",
+          "data_type": "enum",
+          "definition": "short / medium / long"
+        },
+        {
+          "name": "opinion_id",
+          "data_type": "string",
+          "definition": "观点 ID"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "definition": "原文时间"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "definition": "原文支持的具体理由"
+        },
+        {
+          "name": "stance",
+          "data_type": "enum",
+          "definition": "long / short / neutral / unknown"
+        },
+        {
+          "name": "topic_key",
+          "data_type": "string",
+          "definition": "同一具体可比较议题"
+        }
+      ]
+    ],
+    "leaderboard_warming": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "保存关注历史快照": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "基础热度定义版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产 ID"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "definition": "历史快照可用时间"
+        },
+        {
+          "name": "bucket_at",
+          "data_type": "UTC timestamp",
+          "definition": "快照 UTC 时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "固定来源集合版本"
+        },
+        {
+          "name": "eligible",
+          "data_type": "boolean",
+          "definition": "当时最热资格"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "对应证据引用"
+        },
+        {
+          "name": "heat",
+          "data_type": "number",
+          "definition": "按最热规则计算的当时热度"
+        },
+        {
+          "name": "hottest_rank",
+          "data_type": "integer | null",
+          "definition": "当时合格最热榜排名，最多50"
+        },
+        {
+          "name": "hour_count",
+          "data_type": "number",
+          "definition": "最近完整一小时有效贡献数"
+        }
+      ]
+    ],
+    "保存现有热榜快照": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名称"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "原评分 UTC 时间"
+        },
+        {
+          "name": "hottest_rank",
+          "data_type": "number",
+          "definition": "同批全量热度排名，从1开始"
+        },
+        {
+          "name": "score_key",
+          "data_type": "string",
+          "definition": "仅保存 total_heat"
+        },
+        {
+          "name": "score_value",
+          "data_type": "number",
+          "definition": "快照时的完整精度分数"
+        }
+      ]
+    ],
+    "归一榜单证据": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "已映射内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "definition": "来源内稳定作者 ID"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "definition": "证据完成归一并可用的时间"
+        },
+        {
+          "name": "canonical_story_id",
+          "data_type": "string",
+          "definition": "转载同文组"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "definition": "首次采集时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "监测集合版本"
+        },
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "definition": "稳定证据 ID"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "definition": "原文发布时间"
+        },
+        {
+          "name": "publisher_id",
+          "data_type": "string",
+          "definition": "独立发布方"
+        },
+        {
+          "name": "raw_ref",
+          "data_type": "string",
+          "definition": "持久原始记录引用"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "definition": "来源操作"
+        },
+        {
+          "name": "source_record_id",
+          "data_type": "string",
+          "definition": "源内记录 ID"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "definition": "可读正文"
+        },
+        {
+          "name": "url",
+          "data_type": "string",
+          "definition": "原文链接"
+        }
+      ]
+    ],
+    "标注可比较观点": [
+      [
+        {
+          "name": "annotation_version",
+          "data_type": "string",
+          "definition": "标注方法/模型版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "author_id",
+          "data_type": "string",
+          "definition": "独立作者"
+        },
+        {
+          "name": "available_at",
+          "data_type": "UTC timestamp",
+          "definition": "标注可用时间"
+        },
+        {
+          "name": "confidence",
+          "data_type": "number",
+          "definition": "方向标注置信度0至1"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "覆盖版本"
+        },
+        {
+          "name": "evidence_id",
+          "data_type": "string",
+          "definition": "原文证据 ID"
+        },
+        {
+          "name": "horizon",
+          "data_type": "enum",
+          "definition": "short / medium / long"
+        },
+        {
+          "name": "opinion_id",
+          "data_type": "string",
+          "definition": "观点 ID"
+        },
+        {
+          "name": "published_at",
+          "data_type": "UTC timestamp",
+          "definition": "原文时间"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "definition": "原文支持的具体理由"
+        },
+        {
+          "name": "stance",
+          "data_type": "enum",
+          "definition": "long / short / neutral / unknown"
+        },
+        {
+          "name": "topic_key",
+          "data_type": "string",
+          "definition": "同一具体可比较议题"
+        }
+      ]
+    ],
+    "计算分歧榜得分": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "计算升温榜得分": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "计算新出现榜得分": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "计算最热榜得分": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "参与计算的来源集合及版本"
+        },
+        {
+          "name": "cycle_id",
+          "data_type": "string",
+          "definition": "本次完整计算批次"
+        },
+        {
+          "name": "details_json",
+          "data_type": "JSON object",
+          "definition": "资格、输入摘要与判定理由"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "可追溯的证据 ID"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "参与计算的来源集合及版本"
+        },
+        {
+          "name": "cycle_id",
+          "data_type": "string",
+          "definition": "本次完整计算批次"
+        },
+        {
+          "name": "details_json",
+          "data_type": "JSON object",
+          "definition": "资格、输入摘要与判定理由"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "可追溯的证据 ID"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "计算降温榜得分": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，算法待定"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "产生此分数的算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "资产名称，仅供展示"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "definition": "实际计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "本榜独立分数，不截断、不跨榜比较"
+        }
+      ]
+    ],
+    "记录首次有效发现": [
+      [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "内部资产 ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "definition": "展示名"
+        },
+        {
+          "name": "confirmations_json",
+          "data_type": "JSON array",
+          "definition": "每份佐证的发布方、证据ID及可用时间"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "definition": "发现时来源集合版本"
+        },
+        {
+          "name": "discovery_id",
+          "data_type": "string",
+          "definition": "稳定出现事件 ID"
+        },
+        {
+          "name": "event_kind",
+          "data_type": "enum",
+          "definition": "system_first_seen / source_listing / verified_launch"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "definition": "已核对的原文依据"
+        },
+        {
+          "name": "first_available_at",
+          "data_type": "UTC timestamp",
+          "definition": "本系统首次有效发现时间"
+        },
+        {
+          "name": "independent_confirmations",
+          "data_type": "integer",
+          "definition": "不同独立发布方佐证数"
+        },
+        {
+          "name": "occurred_at",
+          "data_type": "UTC timestamp",
+          "definition": "该类事件最早有效时间"
+        }
+      ]
+    ],
+    "候选代币筛选": [
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "algorithm_version"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "稳定内部资产ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "string",
+          "definition": "calculated_at"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "score"
+        },
+        {
+          "name": "score_key",
+          "data_type": "string",
+          "definition": "score_key"
+        },
+        {
+          "name": "score_value",
+          "data_type": "number",
+          "definition": "score_value"
+        }
+      ],
+      [
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "definition": "榜单算法版本"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "definition": "稳定内部资产ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "string",
+          "definition": "榜单计算时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "definition": "未舍入榜单分数"
+        },
+        {
+          "name": "score_key",
+          "data_type": "string",
+          "definition": "评分维度；本流程只取total_heat"
+        },
+        {
+          "name": "score_value",
+          "data_type": "number",
+          "definition": "未舍入资产得分"
+        }
+      ]
+    ]
+  }
+}

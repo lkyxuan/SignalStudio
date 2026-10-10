@@ -68,6 +68,11 @@ def infer_kind(node):
 
 
 def definition_refs(node):
+    if node['notes'].startswith('catalog/leaderboard-trends.v1.json · '):
+        file = ROOT / 'catalog/leaderboard-trends.v1.json'
+        return [{'path': 'catalog/leaderboard-trends.v1.json',
+                 'revision': hashlib.sha256(file.read_bytes()).hexdigest(),
+                 'selector': {'key': node['notes'].split(' · ', 1)[1]}}]
     paths = MODEL['migration']['module_refs'].get(str(legacy_reference(node)), [])
     if infer_kind(node) == 'source':
         paths = ['source-contracts.v1.json']
@@ -344,10 +349,14 @@ class CardModel:
 
     def action_registry(self):
         source_catalog = json.loads((ROOT/'catalog/source-contracts.v1.json').read_text())
+        trends = json.loads((ROOT/'catalog/leaderboard-trends.v1.json').read_text())
         return [{'id':'module.'+ref,'version':1,'definition_paths':['catalog/'+path for path in paths],
                  'implementation':'unknown'} for ref,paths in MODEL['migration']['module_refs'].items()] + [
                 {'id':'source.'+entry['id'],'version':1,'definition_paths':['catalog/source-contracts.v1.json'],
-                 'implementation':'unknown'} for key in ('operations','resources') for entry in source_catalog[key]]
+                 'implementation':'unknown'} for key in ('operations','resources') for entry in source_catalog[key]] + [
+                {'id':'threeboards.'+entry['key'],'version':1,
+                 'definition_paths':['catalog/leaderboard-trends.v1.json'],'implementation':'unknown'}
+                for entry in trends['nodes'] if entry['role'] == 'process']
 
     def bindings(self):
         return [{**dict(row), 'config':json.loads(row['config'])} for row in self.db.execute('SELECT * FROM edge_bindings ORDER BY id')]

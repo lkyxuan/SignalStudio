@@ -18,6 +18,7 @@ from table_backfill_store import TableBackfillStore
 from leaderboard_scaffolds import ensure_leaderboard_scaffolds
 from leaderboard_algorithms import ensure_leaderboard_algorithms
 from leaderboard_simple import ensure_leaderboard_simple
+from leaderboard_trends import ensure_leaderboard_trends
 from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 from coingecko_trending import ensure_coingecko_trending
@@ -48,6 +49,7 @@ ensure_initial_score_sources(service)
 card_model = CardModel(service)
 card_model.migrate()
 ensure_score_rollup_alignment(service)
+ensure_leaderboard_trends(service)
 
 
 class Handler(BaseHTTPRequestHandler):

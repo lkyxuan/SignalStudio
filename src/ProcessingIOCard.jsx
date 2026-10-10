@@ -16,6 +16,7 @@ import identityPilot from '../catalog/identity-flow-case.v1.json';
 import publicCalls from '../catalog/public-call-examples.json';
 import signalContracts from '../catalog/signal-contracts.v1.json';
 import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldCard';
+import { TrendDesignCard, trendDesign } from './TrendDesignCard';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
 import { SupabaseScoreSyncCard } from './SupabaseScoreSyncCard';
 import supabaseSync from '../catalog/supabase-score-sync.v1.json';
@@ -379,6 +380,7 @@ export function ProcessingIOCard(props) {
   const { node } = props;
   const kind = detailKind(node);
   if (kind === 'channel') return <RedpandaTopicCard {...props} />;
+  if (trendDesign(node.name)) return <TrendDesignCard {...props}/>;
   if (kind === 'state') return leaderboardCard(node.name) && node.name !== 'Redis · 最热榜数据区'
     ? <LeaderboardScaffoldCard {...props} /> : <RedisWindowCard {...props} />;
   if (isCoinGeckoTrending(node.name)) return <CoinGeckoTrendingCard {...props} />;

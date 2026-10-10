@@ -3,12 +3,13 @@ import catalog from '../catalog/leaderboard-scaffolds.v1.json';
 import { LeaderboardSimpleCard, simpleLeaderboardCard } from './LeaderboardSimpleCard';
 import { BusinessTableRows } from './BusinessTableRows';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
+import { TrendDesignCard, trendDesign } from './TrendDesignCard';
 import type { Graph, GraphNode, Language } from './contracts';
 import './processing-io-card.css';
 
 type Column = { name: string; data_type: string; label_zh: string; meaning_en: string };
 type Props = { node: GraphNode; graph?: Graph; openNode?: (id: string) => void; language: Language };
-export const leaderboardCard = (name: string) => simpleLeaderboardCard(name) || catalog.boards.find(board =>
+export const leaderboardCard = (name: string) => trendDesign(name) || simpleLeaderboardCard(name) || catalog.boards.find(board =>
   [board.cache_name, board.calculator_name, board.table_name].includes(name)) ||
   catalog.data_nodes.find(item => item.name === name) || catalog.preprocessors.find(item => item.name === name);
 
@@ -20,6 +21,7 @@ function Fields({ columns, values }: { columns: Column[]; values?: Record<string
 }
 
 export function LeaderboardScaffoldCard({ node, graph, openNode, language }: Props) {
+  if (trendDesign(node.name)) return <TrendDesignCard node={node} graph={graph} openNode={openNode} language={language}/>;
   if (simpleLeaderboardCard(node.name)) return <LeaderboardSimpleCard node={node} graph={graph} openNode={openNode} language={language} />;
   if (['Redis · 最热榜数据区', '计算最热榜得分', 'leaderboard_hottest'].includes(node.name)) return <div className="business-table-card">
     {cardKind(node) === 'table' && <BusinessTableRows table={catalog} rows={[]} language={language} />}

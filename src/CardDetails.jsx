@@ -5,6 +5,7 @@ import { ProcessingIOCard, ScoreRollupExplanation } from './ProcessingIOCard';
 import { BusinessTableCard } from './BusinessTableCard';
 import { ContentRefreshCard, contentRefreshCard } from './ContentRefreshCard';
 import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldCard';
+import { trendDesign } from './TrendDesignCard';
 import { GenericTableCard } from './CardDefinitionSettings';
 import { SourceCaseInspector } from './SourceCaseInspector';
 import { OtherSourceCaseInspector } from './OtherSourceCaseInspector';
@@ -119,7 +120,7 @@ export function CardDetails(props) {
   return <div className={`card-details card-details-${kind}`} data-card-detail-kind={kind}>
     <CardDetailContext.Provider value={true}>
       {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : <>
-        {['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
+        {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
         <ProcessingIOCard {...props}/>
         {kind === 'state' && leaderboardCard(node.name) && <section className="card-detail-execution"><h3>{words(language,'窗口与保留规则','Window and retention')}</h3><p>{node.definition}</p><p>{words(language,'业务比较窗口见上述定义；存储 TTL、更新时间索引及丢失后的重建绑定尚未核验，不能按业务窗口推断。','See the definition for the business window. TTL, update time index and recovery bindings remain unverified.')}</p></section>}
         {kind === 'decision' && <Branches {...props}/>}
