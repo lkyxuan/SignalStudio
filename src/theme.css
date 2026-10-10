@@ -101,18 +101,62 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
 .top-meta { color: var(--ss-muted); }
 .node-top { flex-wrap: wrap; row-gap: 6px; }
 .node-kind, .node-field-count { white-space: nowrap; }
-.logic-node { border-top-width: 1px; background: var(--ss-surface); box-shadow: none; }
+.graph-wrap {
+  --ss-bg: #202020;
+  --ss-grid: #363636;
+  --ss-minimap-mask: #202020b8;
+}
+.logic-node.logic-node {
+  --ss-node-bg: #30343b;
+  --ss-node-border: #4b515d;
+  --ss-node-color: var(--ss-neutral);
+  --ss-muted: #b8b8b8;
+  border-top-width: 3px;
+  background: var(--ss-node-bg);
+  border-color: var(--ss-node-border);
+  border-top-color: var(--ss-node-color);
+  box-shadow: none;
+}
+.logic-node.source, .logic-node.state {
+  --ss-node-bg: #293844;
+  --ss-node-border: #445664;
+  --ss-node-color: var(--ss-blue);
+}
+.logic-node.metric {
+  --ss-node-bg: #293c32;
+  --ss-node-border: #435e4e;
+  --ss-node-color: var(--ss-success);
+}
+.logic-node.rule {
+  --ss-node-bg: #40362a;
+  --ss-node-border: #61513d;
+  --ss-node-color: var(--ss-warning);
+}
+.logic-node.topic {
+  --ss-node-bg: #352f42;
+  --ss-node-border: #574967;
+  --ss-node-color: var(--ss-purple);
+}
+.logic-node.cache {
+  --ss-node-bg: #402f3a;
+  --ss-node-border: #624758;
+  --ss-node-color: var(--ss-pink);
+}
+.logic-node .node-glyph, .logic-node .node-kind { color: var(--ss-node-color); }
 .logic-node:hover, .logic-node.is-selected,
 .react-flow__node.graph-related .logic-node {
   border-color: var(--ss-accent); box-shadow: 0 0 0 1px var(--ss-accent-glow);
 }
-.logic-node.is-selected { background: var(--ss-accent-soft); }
+.logic-node.is-selected { background: var(--ss-node-bg); }
 .logic-node.is-selected .node-ref { color: var(--ss-accent); }
 .logic-node.state-node, .logic-node.decision-node {
-  background: var(--ss-surface); border-color: var(--ss-border); box-shadow: none;
+  background: var(--ss-node-bg); border-color: var(--ss-node-border);
+  border-top-color: var(--ss-node-color); box-shadow: none;
 }
 .logic-node.state-node.is-selected, .logic-node.decision-node.is-selected,
-.logic-node.state-node:hover, .logic-node.decision-node:hover { border-color: var(--ss-accent); }
+.logic-node.state-node:hover, .logic-node.decision-node:hover,
+.react-flow__node.graph-related .logic-node.state-node,
+.react-flow__node.graph-related .logic-node.decision-node { border-color: var(--ss-accent); }
 .node-definition { height: 32px; }
 .node-ref, .table-node-ref, .inspector-node-ref {
   color: var(--ss-muted); background: transparent; border-color: var(--ss-border);
