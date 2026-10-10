@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def get(url, method='GET', body=None, revision=None):
-    headers = {'Content-Type': 'application/json'}
+    headers = {'Content-Type': 'application/json', 'X-Card-Model': 'card-model.v1'}
     if revision:
         headers['If-Match'] = revision
     request = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,

@@ -25,7 +25,8 @@ class DesktopServerTest(unittest.TestCase):
             def request(path, payload=None):
                 data = json.dumps(payload).encode() if payload is not None else None
                 req = Request(f"http://127.0.0.1:{port}{path}", data=data,
-                              headers={"Content-Type": "application/json"})
+                              headers={"Content-Type": "application/json", "X-Card-Model":"card-model.v1",
+                                       **({'If-Match':request('/api/graph')['revision']} if payload is not None else {})})
                 with opener.open(req, timeout=1) as response:
                     return json.load(response)
 

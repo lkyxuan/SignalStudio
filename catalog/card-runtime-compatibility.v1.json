@@ -1,0 +1,21 @@
+{
+  "version": "card-runtime-compatibility.v1",
+  "audit_date": "2026-10-10",
+  "repository": "https://github.com/cyberight-cap/fewunderstand",
+  "code_revision": "53cc7bb04eff427ea51614d328805b53c838ec2e",
+  "audit_method": "Read-only code and documentation inspection; no Few Understand tests, infrastructure or runtime invoked.",
+  "unified_package_adapter": "unverified",
+  "search_limit": "Full-tree package-token search failed during partial-clone object retrieval; absence of a generic adapter has not been proven.",
+  "findings": [
+    {"references":[3005,1006],"code":"runtime_rollup_scope_differs","message_zh":"Few Understand 候选代码每分钟读取全部登记资产；Studio 当前模块按事件资产计算，且另有即时触发请求。兼容适配前须对齐批准的业务范围。","evidence_paths":["common/asset_score/materializer.py","consumer/asset_total_heat/minute_materializer_flow.py","consumer/asset_total_heat/README.md"],"implementation":"code_present","deployment":"unverified"},
+    {"references":[3009,1020],"code":"runtime_initial_policy_unverified","message_zh":"Few Understand 首次评分代码采用固定初始规则；尚未验证新来源配置表及缺配置待处理语义的兼容。","evidence_paths":["common/asset_score/contract.py","common/asset_score/outbox.py"],"implementation":"partial_reference","deployment":"unverified"},
+    {"references":[3006,5001,3007,3008,6001,1005],"code":"runtime_score_payload_mapping_unverified","message_zh":"Few Understand 定义八项事件字段与独立消费组；Studio 表与显示还含资产名称，需显式映射。代码或候选部署文档不证明 Topic、消费或归档正在运行。","evidence_paths":["common/asset_score/contract.py","consumer/asset_total_heat/README.md"],"implementation":"code_present","deployment":"unverified"},
+    {"references":[3027,3029,3030,3031,1019],"code":"runtime_content_adapter_unverified","message_zh":"本次核对未确认内容刷新四步的运行适配、租约和失败保存支持；不能据图或默认配置声称已执行。","evidence_paths":[],"implementation":"unverified","deployment":"unverified"}
+  ],
+  "capabilities": [
+    {"id":"scheduled_jobs","evidence_paths":["ai-system/L2-modules/scheduler.md","ai-system/registry/pipeline_jobs.yaml"],"finding":"Prefect/Celery and per-job retry/idempotency declarations exist; not a guarantee of unified graph semantics."},
+    {"id":"score_independent_consumers","evidence_paths":["consumer/asset_total_heat/README.md"],"finding":"Separate consumer groups and commit-after-write are specified; no live run verified."},
+    {"id":"score_recovery","evidence_paths":["consumer/asset_total_heat/README.md"],"finding":"Guarded generation/CAS rebuild is documented; no rebuild executed."},
+    {"id":"generic_branches_joins_loops_error_routes","evidence_paths":[],"finding":"Unified graph-definition.v1 adapter and capability conformance remain unverified."}
+  ]
+}

@@ -14,6 +14,7 @@ export function request(path: '/source-contracts/v1', options?: RequestOptions):
 export function request(path: string, options?: RequestOptions): Promise<unknown>;
 export async function request(path: string, options: RequestOptions = {}): Promise<unknown> {
   const headers = new Headers(options.headers);
+  headers.set('X-Card-Model', 'card-model.v1');
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   const response = await fetch(`/api${path}`, {
     cache: 'no-store', ...options, headers,

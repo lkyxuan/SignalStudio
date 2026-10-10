@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { graphSchema } from './contracts';
 
 // Exercise the real Python producer against a disposable database.
-export function serverGraph() {
+export function serverGraph(unified = false) {
   const output = execFileSync('python3', ['-c', `
 import json, tempfile
 from pathlib import Path
@@ -18,6 +18,7 @@ with tempfile.TemporaryDirectory() as directory:
     output = service.create_field(target['id'], {'name': 'result', 'data_type': 'Decimal'})
     service.create_field_usage(edge['id'], {'source_field_id': field['id'], 'target_field_id': output['id']})
     service.create_requirement(target['id'], {'name': 'Market volume'})
+    ${unified ? "from card_model import CardModel; CardModel(service).migrate()" : ""}
     print(json.dumps(service.graph()))
     service.db.close()
 `], {

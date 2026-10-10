@@ -593,8 +593,9 @@ class GraphService:
         usages = [dict(row) for row in self.db.execute("SELECT * FROM edge_field_usages ORDER BY created_at")]
         requirements = [dict(row) for row in self.db.execute(
             "SELECT * FROM data_requirements ORDER BY created_at")]
-        return {"nodes": nodes, "edges": edges, "fields": fields,
-                "field_usages": usages, "requirements": requirements, "types": list(TYPES)}
+        from card_model import CardModel
+        return CardModel(self).decorate({"nodes": nodes, "edges": edges, "fields": fields,
+                "field_usages": usages, "requirements": requirements, "types": list(TYPES)})
 
 
     def get_requirements(self, node_id):
@@ -980,13 +981,19 @@ class GraphService:
         return self._one("SELECT * FROM nodes WHERE name=? COLLATE NOCASE", (name.strip(),))
 
     def create_node(self, data, actor="user", commit=True):
+        from card_model import CardModel, KINDS
+        canonical_kind = data.get('kind')
+        if canonical_kind is not None:
+            if canonical_kind not in KINDS:
+                raise GraphError('Invalid card kind')
+            data = {**data, 'type': KINDS[canonical_kind]['legacy_type']}
         name = str(data.get("name", "")).strip()
         node_type = data.get("type", "Metric")
         if not name:
             raise GraphError("Name is required")
         if node_type not in TYPES:
             raise GraphError("Invalid node type")
-        if node_type in STATE_TYPES and actor != "system":
+        if node_type in STATE_TYPES and actor != "system" and canonical_kind != 'table':
             raise GraphError("System state nodes are created by the application")
         workflow_lane = data.get("workflow_lane", DEFAULT_LANES.get(node_type, "signal"))
         if workflow_lane not in WORKFLOW_LANES:
@@ -1002,6 +1009,8 @@ class GraphService:
         grouped = self._one("SELECT value FROM schema_meta WHERE key=?",
                             (GROUPED_NODE_REFERENCE_MARKER,))
         group = self._node_reference_group(node_type) if grouped else None
+        if grouped and canonical_kind:
+            group = KINDS[canonical_kind]['number_group']
         requested_group = data.get("reference_group")
         if grouped and requested_group is not None:
             if node_type not in CHOOSABLE_REFERENCE_GROUP_TYPES or str(requested_group) not in {"3", "4"}:
@@ -1030,6 +1039,9 @@ class GraphService:
         self.db.execute("UPDATE schema_meta SET value=? WHERE key=?",
                         (str(reference_number + 1), number_key))
         node = self.get_node(node_id)
+        model = CardModel(self)
+        if model.enabled():
+            model.ensure_node(node, kind=canonical_kind, migrated=actor not in ('user','proposal'))
         self._event(actor, "create", "node", node_id, after=node)
         if commit:
             self.db.commit()
@@ -1037,6 +1049,14 @@ class GraphService:
 
     def update_node(self, node_id, data, actor="user"):
         before = self.get_node(node_id)
+        from card_model import CardModel
+        model = CardModel(self)
+        if model.enabled():
+            contract = model.contract(node_id)
+            if contract['config'].get('read_only'):
+                raise GraphError('Unknown imported definitions are read-only')
+            if ('kind' in data and data['kind'] != contract['kind']) or ('type' in data and data['type'] != before['type']):
+                raise GraphError('Card kind and legacy subtype cannot be silently changed')
         changes = {key: data[key] for key in NODE_FIELDS if key in data}
         if not changes:
             return before
@@ -1145,18 +1165,22 @@ class GraphService:
         return False
 
     def create_edge(self, data, actor="user", commit=True):
+        from card_model import CardModel
+        model = CardModel(self)
         upstream = data.get("upstream_id")
         downstream = data.get("downstream_id")
         source_node = self.get_node(upstream)
         target_node = self.get_node(downstream)
+        if model.enabled() and any(model.contract(node_id)['config'].get('read_only') for node_id in (upstream,downstream)):
+            raise GraphError('Unknown imported definitions are read-only')
         if upstream == downstream:
             raise GraphError("A node cannot depend on itself")
         if self._one("SELECT id FROM edges WHERE upstream_id=? AND downstream_id=?", (upstream, downstream)):
             raise GraphError("Connection already exists")
-        if not target_node["is_system_state"] and self._reachable(downstream, upstream):
+        if not model.enabled() and not target_node["is_system_state"] and self._reachable(downstream, upstream):
             raise GraphError("Connection would create a dependency cycle")
         transport = self._transport_data(data)
-        if source_node["is_system_state"] or target_node["is_system_state"]:
+        if source_node["is_system_state"] or target_node["is_system_state"] or (model.enabled() and any(model.contract(node_id)['kind'] in ('table','state') for node_id in (upstream,downstream))):
             if transport["transport_kind"] == "redpanda":
                 raise GraphError("Table access cannot use a Redpanda transport edge")
             transport["transport_kind"] = "direct"
@@ -1174,6 +1198,18 @@ class GraphService:
         self.db.execute("UPDATE schema_meta SET value=? WHERE key='next_edge_number'",
                         (str(reference_number + 1),))
         edge = self._one("SELECT * FROM edges WHERE id=?", (edge_id,))
+        if model.enabled():
+            try:
+                if data.get('bindings'):
+                    for binding in data['bindings']:
+                        model.add_binding(edge, binding)
+                else:
+                    model.ensure_edge(edge)
+                if model.cycles():
+                    raise GraphError('Immediate execution cycle; define an explicit next-run boundary')
+            except Exception:
+                self.db.execute('DELETE FROM edges WHERE id=?', (edge_id,))
+                raise
         self._event(actor, "create", "edge", edge_id, after=edge)
         if commit:
             self.db.commit()
@@ -1187,11 +1223,13 @@ class GraphService:
 
     def update_edge(self, edge_id, data, actor="user"):
         before = self.get_edge(edge_id)
+        from card_model import CardModel
+        model = CardModel(self)
         changes = {key: str(data[key] or "").strip() if key == "branch_label" else str(data[key] or "")
                    for key in ("rationale", "transformation", "branch_label") if key in data}
         if any(key in data for key in ("transport_kind", "transport_topic", "transport_key", "payload_schema", "transport_headers", "consumer_group")):
             changes.update(self._transport_data({**before, **data}))
-        if self.get_node(before["upstream_id"])["is_system_state"] or self.get_node(before["downstream_id"])["is_system_state"]:
+        if self.get_node(before["upstream_id"])["is_system_state"] or self.get_node(before["downstream_id"])["is_system_state"] or (model.enabled() and any(model.contract(before[key])['kind'] in ('table','state') for key in ('upstream_id','downstream_id'))):
             if changes.get("transport_kind") == "redpanda":
                 raise GraphError("Table access cannot use a Redpanda transport edge")
             if "transport_kind" in changes:
@@ -1376,10 +1414,13 @@ class GraphService:
         return self._propose_locally(prompt)
 
     def _propose_with_model(self, prompt):
+        from card_model import CardModel, KINDS
+        unified = CardModel(self).enabled()
         nodes = [{"name": row["name"], "type": row["type"]} for row in self.search_nodes()]
+        proposal_fields = tuple(key for key in TEXT_FIELDS if key != 'type') + ('kind',) if unified else TEXT_FIELDS
         node_schema = {"type": "object", "properties": {
-            key: {"type": "string", **({"enum": list(TYPES)} if key == "type" else {})}
-            for key in TEXT_FIELDS}, "required": list(TEXT_FIELDS), "additionalProperties": False}
+            key: {"type": "string", **({"enum": list(TYPES)} if key == "type" else {"enum":list(KINDS)} if key == 'kind' else {})}
+            for key in proposal_fields}, "required": list(proposal_fields), "additionalProperties": False}
         schema = {"type": "object", "properties": {
             "node": node_schema,
             "upstream_names": {"type": "array", "items": {"type": "string"}},
@@ -1423,6 +1464,10 @@ class GraphService:
         except json.JSONDecodeError:
             raise GraphError("Model returned an invalid proposal")
         draft["node"]["name"] = draft["node"]["name"].strip()
+        if unified:
+            if draft['node'].get('kind') not in KINDS:
+                raise GraphError('Model returned an unknown card kind')
+            draft['node']['type'] = KINDS[draft['node']['kind']]['legacy_type']
         if not draft["node"]["name"] or self.find_name(draft["node"]["name"]):
             raise GraphError("Proposed node name is empty or already exists")
         for name in draft["upstream_names"] + draft["downstream_names"]:
@@ -1469,8 +1514,17 @@ class GraphService:
                 upstream.append(existing)
         definition_match = re.search(r"(?:用来|用于|以便|to\s+)([^。；;]+)", prompt, re.I)
         definition = definition_match.group(1).strip() if definition_match else ""
-        return {"prompt": prompt, "source": "local", "node": {"name": name, "type": node_type,
-                "definition": definition}, "upstream_names": upstream,
+        node = {"name":name,"type":node_type,"definition":definition}
+        from card_model import CardModel, KINDS
+        if CardModel(self).enabled():
+            kind = 'source' if node_type == 'Source' else 'process'
+            for word, proposed in [('消息通道','channel'),('缓存','state'),('窗口','state'),('数据表','table'),('判断','decision')]:
+                if word in prompt[:marker.end()]:
+                    kind=proposed
+                    break
+            node.update(kind=kind,type=KINDS[kind]['legacy_type'])
+        return {"prompt": prompt, "source": "local", "node": node,
+                "upstream_names": upstream,
                 "downstream_names": downstream,
                 "warnings": [] if upstream or downstream else ["没有识别到现有节点；请检查名称或之后手动连线。"]}
 

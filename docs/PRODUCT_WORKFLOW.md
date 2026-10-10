@@ -51,6 +51,11 @@ The neutral refinement was checked again on the graph, #4001 details, #1002 raw 
 
 ## Card UI standard
 
+The approved unified model uses six top-level kinds: source, process, decision,
+table, channel and state. Legacy business type names and historical reference
+numbers remain for compatibility. Creation, primary filters and card labels use
+the shared model. See [the precise model and migration contract](CARD_MODEL.md).
+
 Graph card presentation requirement (approved 2026-10-10; refined after user feedback):
 ordinary graph nodes share a horizontal 300 × 160 CSS-pixel frame, 12px padding and 8px
 corners, including table and decision nodes. Keep type/status metadata in the top region,

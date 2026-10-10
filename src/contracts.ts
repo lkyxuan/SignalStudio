@@ -15,6 +15,21 @@ export type Translate = (text: string) => string;
 const text = z.string();
 const id = text.min(1);
 const reference = z.number().int().positive().nullable();
+export const cardContractSchema = z.looseObject({
+  node_id: id, model_version: id, kind: id, revision: z.number().int().positive(),
+  config: z.looseObject({ subtype: text, technology: text, environment: text,
+    definition_refs: z.array(z.looseObject({path:id,revision:id})),
+    action: z.looseObject({id:text,version:z.number().int().positive(),implementation:text}),
+    profile: id, trigger:z.looseObject({kind:id}), join:z.looseObject({mode:id}),
+    branches:z.array(z.looseObject({id,condition:text,terminal:z.boolean().optional()})),
+    draft:z.boolean(),read_only:z.boolean(),
+  }),
+});
+export const portSchema = z.object({id,node_id:id,key:id,direction:z.enum(['input','output']),schema_id:id.nullable()});
+export const bindingSchema = z.object({id,edge_id:id,source_port_id:id,target_port_id:id,
+  kind:z.enum(['data','control','read','write','publish','consume','error','reference']),branch:text,
+  config:z.looseObject({trigger:z.enum(['none','event','change']).optional(),completion:z.enum(['success','error','completed']).optional()}),
+});
 
 export const nodeSchema = z.looseObject({
   id, name: id, type: z.enum(nodeTypes), reference_number: reference,
@@ -26,6 +41,7 @@ export const nodeSchema = z.looseObject({
   decision_question: text, observation_window: text, trigger_rule: text,
   validation_plan: text, validation_evidence: text, signal_key: text,
   created_at: text, updated_at: text,
+  kind: text.optional(), card_contract: cardContractSchema.nullable().optional(),
 });
 export const edgeSchema = z.looseObject({
   id, reference_number: reference, upstream_id: id, downstream_id: id,
@@ -50,14 +66,17 @@ export const requirementSchema = z.looseObject({
 });
 export const graphSchema = z.looseObject({
   revision: z.string().optional(), contract_revision: z.string().optional(),
+  model_version: text.optional(), semantic_revision:text.optional(),presentation_revision:text.optional(),
+  ports:z.array(portSchema).optional(),bindings:z.array(bindingSchema).optional(),
+  data_schemas:z.array(z.object({id,node_id:id,version:z.number().int().positive(),field_ids:z.array(id)})).optional(),
   nodes: z.array(nodeSchema), edges: z.array(edgeSchema), fields: z.array(fieldSchema),
   field_usages: z.array(usageSchema), requirements: z.array(requirementSchema),
   types: z.array(z.enum(nodeTypes)),
 }).superRefine((graph, context) => {
-  const collections = ['nodes', 'edges', 'fields', 'field_usages', 'requirements'] as const;
+  const collections = ['nodes', 'edges', 'fields', 'field_usages', 'requirements','ports','bindings','data_schemas'] as const;
   for (const key of collections) {
     const seen = new Set<string>();
-    graph[key].forEach((item, index) => {
+    (graph[key] || []).forEach((item, index) => {
       if (seen.has(item.id)) context.addIssue({ code: 'custom', path: [key, index, 'id'], message: 'Duplicate ID' });
       seen.add(item.id);
     });
@@ -68,10 +87,29 @@ export const graphSchema = z.looseObject({
   const check = (valid: boolean, path: (string | number)[]) => {
     if (!valid) context.addIssue({ code: 'custom', path, message: 'Invalid graph reference' });
   };
+  graph.nodes.forEach((node,index)=>{
+    if(node.card_contract) {
+      check(node.card_contract.node_id===node.id,['nodes',index,'card_contract','node_id']);
+      check(node.card_contract.kind===node.kind,['nodes',index,'kind']);
+    }
+  });
   graph.edges.forEach((edge, index) => {
     check(nodes.has(edge.upstream_id), ['edges', index, 'upstream_id']);
     check(nodes.has(edge.downstream_id), ['edges', index, 'downstream_id']);
   });
+  const ports = new Map((graph.ports || []).map(port => [port.id,port]));
+  const schemas = new Map((graph.data_schemas || []).map(schema => [schema.id,schema]));
+  (graph.ports || []).forEach((port,index) => {
+    check(nodes.has(port.node_id),['ports',index,'node_id']);
+    check(!port.schema_id || schemas.get(port.schema_id)?.node_id === port.node_id,['ports',index,'schema_id']);
+  });
+  (graph.bindings || []).forEach((binding,index) => {
+    const edge = edges.get(binding.edge_id), source = ports.get(binding.source_port_id), target = ports.get(binding.target_port_id);
+    check(!!edge && source?.node_id === edge.upstream_id && source?.direction === 'output',['bindings',index,'source_port_id']);
+    check(!!edge && target?.node_id === edge.downstream_id && target?.direction === 'input',['bindings',index,'target_port_id']);
+  });
+  (graph.data_schemas || []).forEach((schema,index) => schema.field_ids.forEach(field =>
+    check(fields.get(field)?.node_id === schema.node_id,['data_schemas',index,'field_ids'])));
   graph.fields.forEach((field, index) => check(nodes.has(field.node_id), ['fields', index, 'node_id']));
   graph.requirements.forEach((need, index) => {
     check(nodes.has(need.node_id), ['requirements', index, 'node_id']);

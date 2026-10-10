@@ -51,9 +51,12 @@ class GracefulShutdownTest(unittest.TestCase):
                 else:
                     self.fail('Startup failed')
                 def write():
+                    with urllib.request.urlopen(f'http://127.0.0.1:{port}/api/graph', timeout=2) as response:
+                        revision = json.load(response)['revision']
                     request = urllib.request.Request(f'http://127.0.0.1:{port}/api/nodes',
                         data=json.dumps({'name': 'write survives shutdown', 'type': 'Metric'}).encode(),
-                        headers={'Content-Type': 'application/json'})
+                        headers={'Content-Type': 'application/json', 'X-Card-Model': 'card-model.v1',
+                                 'If-Match': revision})
                     with urllib.request.urlopen(request, timeout=5) as response:
                         return json.load(response)
                 with concurrent.futures.ThreadPoolExecutor() as pool:

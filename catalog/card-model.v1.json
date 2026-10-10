@@ -1,0 +1,1176 @@
+{
+  "version": "card-model.v1",
+  "package_version": "graph-definition.v1",
+  "kinds": [
+    {
+      "id": "source",
+      "label_zh": "数据来源",
+      "label_en": "Source",
+      "legacy_type": "Source",
+      "number_group": 2,
+      "style": "source"
+    },
+    {
+      "id": "process",
+      "label_zh": "处理",
+      "label_en": "Process",
+      "legacy_type": "Metric",
+      "number_group": 3,
+      "style": "metric"
+    },
+    {
+      "id": "decision",
+      "label_zh": "判断",
+      "label_en": "Decision",
+      "legacy_type": "Rule Evaluation",
+      "number_group": 4,
+      "style": "rule"
+    },
+    {
+      "id": "table",
+      "label_zh": "数据表",
+      "label_en": "Table",
+      "legacy_type": "Ranking Table",
+      "number_group": 1,
+      "style": "state"
+    },
+    {
+      "id": "channel",
+      "label_zh": "消息通道",
+      "label_en": "Channel",
+      "legacy_type": "Redpanda Topic",
+      "number_group": 5,
+      "style": "topic"
+    },
+    {
+      "id": "state",
+      "label_zh": "缓存／窗口",
+      "label_en": "Cache / window",
+      "legacy_type": "Redis Window",
+      "number_group": 6,
+      "style": "cache"
+    }
+  ],
+  "relations": [
+    "data",
+    "control",
+    "read",
+    "write",
+    "publish",
+    "consume",
+    "error",
+    "reference"
+  ],
+  "joins": [
+    "merge",
+    "one_of",
+    "all"
+  ],
+  "triggers": [
+    "unspecified",
+    "manual",
+    "schedule",
+    "event",
+    "change"
+  ],
+  "profiles": {
+    "read_only_io": {
+      "timeout_seconds": 30,
+      "max_attempts": 3,
+      "backoff_seconds": [
+        1,
+        5
+      ],
+      "respect_retry_after": true,
+      "deadline_required": true
+    },
+    "ordinary_process": {
+      "timeout_seconds": 300,
+      "max_attempts": 1,
+      "concurrency": 1,
+      "serialization": "per_key"
+    },
+    "manual_review": {
+      "timeout_seconds": null,
+      "max_attempts": 1,
+      "concurrency": 1
+    },
+    "existing_module": {
+      "inherits": "definition_refs",
+      "missing_values": "unknown"
+    },
+    "unresolved": {
+      "missing_values": "unknown"
+    }
+  },
+  "status_dimensions": [
+    "structure",
+    "implementation",
+    "deployment",
+    "health",
+    "coverage",
+    "research_validity"
+  ],
+  "legacy_kind_overrides": {
+    "3029": "decision",
+    "4001": "decision",
+    "4002": "process",
+    "4003": "decision",
+    "3002": "process",
+    "3003": "process"
+  },
+  "migration": {
+    "reference_edges": [
+      86,
+      87,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103
+    ],
+    "branches": {
+      "5": [
+        "unmatched"
+      ],
+      "21": [
+        "matched"
+      ],
+      "25": [
+        "approve"
+      ],
+      "26": [
+        "conflict"
+      ],
+      "123": [
+        "first",
+        "due"
+      ]
+    },
+    "event_edges": [
+      1,
+      2,
+      5,
+      21,
+      25,
+      26,
+      33,
+      34,
+      41,
+      42,
+      43,
+      48,
+      50,
+      52,
+      54,
+      56,
+      58,
+      112,
+      115,
+      121,
+      123,
+      126
+    ],
+    "module_refs": {
+      "3001": [
+        "signal-contracts.v1.json"
+      ],
+      "3002": [
+        "identity-flow-case.v1.json"
+      ],
+      "3003": [
+        "identity-flow-case.v1.json"
+      ],
+      "3004": [
+        "identity-flow-case.v1.json"
+      ],
+      "3005": [
+        "score-rollup.v1.json"
+      ],
+      "3006": [
+        "score-event-topic-proposal.v1.json",
+        "identity-flow-case.v1.json"
+      ],
+      "3007": [
+        "score-event-topic-proposal.v1.json"
+      ],
+      "3008": [
+        "score-event-topic-proposal.v1.json"
+      ],
+      "3009": [
+        "asset-initial-score-sources.v1.json"
+      ],
+      "3010": [
+        "supabase-score-sync.v1.json"
+      ],
+      "3011": [
+        "coingecko-implemented-signals.v1.json"
+      ],
+      "3012": [
+        "coingecko-implemented-signals.v1.json"
+      ],
+      "3013": [
+        "coingecko-implemented-signals.v1.json"
+      ],
+      "3014": [
+        "coingecko-implemented-signals.v1.json"
+      ],
+      "3015": [
+        "coingecko-implemented-signals.v1.json"
+      ],
+      "3016": [
+        "coingecko-implemented-signals.v1.json"
+      ],
+      "3017": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3018": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3019": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3020": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3021": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3022": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3023": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3024": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3025": [
+        "leaderboard-scaffolds.v1.json"
+      ],
+      "3026": [
+        "leaderboard-simple.v1.json"
+      ],
+      "3027": [
+        "content-refresh.v1.json"
+      ],
+      "3028": [
+        "coingecko-trending-contribution.v1.json"
+      ],
+      "3029": [
+        "content-refresh.v1.json"
+      ],
+      "3030": [
+        "content-refresh.v1.json"
+      ],
+      "3031": [
+        "content-refresh.v1.json"
+      ],
+      "4001": [
+        "identity-flow-case.v1.json"
+      ],
+      "4002": [
+        "identity-flow-case.v1.json"
+      ],
+      "4003": [
+        "identity-flow-case.v1.json"
+      ],
+      "5001": [
+        "score-event-topic-proposal.v1.json"
+      ],
+      "6001": [
+        "score-rollup.v1.json"
+      ]
+    },
+    "known_differences": [
+      {
+        "references": [
+          3005,
+          1006
+        ],
+        "code": "score_rollup_trigger_conflict",
+        "message_zh": "现行60秒配置、即时触发请求与旧表说明有差异；保留各自来源，未改变评分行为。"
+      },
+      {
+        "references": [
+          2014,
+          2025
+        ],
+        "code": "historical_source_conflict",
+        "message_zh": "历史操作调用与旧文档描述冲突，当前上游能力尚未重新验证。"
+      }
+    ],
+    "expected_names": {
+      "1001": "assets",
+      "1002": "asset_identifiers",
+      "1003": "asset_relationships",
+      "1004": "asset_monitoring_rules",
+      "2001": "binance.usdm.exchangeInfo",
+      "2002": "binance.usdm.globalLongShortAccountRatio",
+      "2003": "binance.usdm.klines",
+      "2004": "binance.usdm.openInterest",
+      "2005": "binance.usdm.openInterestHist",
+      "2006": "binance.usdm.premiumIndex",
+      "2007": "binance.usdm.takerlongshortRatio",
+      "2008": "binance.usdm.topLongShortAccountRatio",
+      "2009": "binance.usdm.topLongShortPositionRatio",
+      "2010": "coingecko.coins_markets",
+      "2011": "dexscreener.token_pairs_by_address",
+      "2012": "kaito.mcp.kaito_advanced_search",
+      "2013": "kaito.mcp.kaito_engagement",
+      "2014": "kaito.mcp.kaito_entities",
+      "2015": "kaito.mcp.kaito_events",
+      "2016": "kaito.mcp.kaito_feeds",
+      "2017": "kaito.mcp.kaito_ict_impressions",
+      "2018": "kaito.mcp.kaito_market_sentiment",
+      "2019": "kaito.mcp.kaito_mentions",
+      "2020": "kaito.mcp.kaito_mindshare_entity",
+      "2021": "kaito.mcp.kaito_mindshare_entity_arena",
+      "2022": "kaito.mcp.kaito_mindshare_entity_by_account",
+      "2023": "kaito.mcp.kaito_mindshare_entity_delta",
+      "2024": "kaito.mcp.kaito_mindshare_narrative",
+      "2025": "kaito.mcp.kaito_narratives",
+      "2026": "kaito.mcp.kaito_search",
+      "2027": "kaito.mcp.kaito_sentiment_entity",
+      "2028": "kaito.mcp.kaito_smart_followers",
+      "2029": "kaito.mcp.kaito_smart_following",
+      "2030": "kaito.mcp.kaito_smart_following_market",
+      "2031": "kaito.mcp.kaito_tweet_engagement_info",
+      "2032": "kaito.mcp.kaito_twitter_user_metadata",
+      "2033": "rss.item",
+      "2034": "taoli.funding_page",
+      "2035": "telegram.bot.message",
+      "2036": "telegram.telethon.message",
+      "2037": "kaito.resource.narratives",
+      "2038": "kaito.resource.tokens",
+      "3001": "市场交易活跃候选",
+      "4001": "市场账号查询内部资产",
+      "3002": "新账号建立待识别资产",
+      "4002": "定期 AI 检查资产地图",
+      "4003": "人工审核资产纠错建议",
+      "3003": "执行获批资产纠错",
+      "3004": "已有 X 账号资产结果",
+      "1005": "asset_score_events",
+      "1006": "asset_scores_current",
+      "3005": "计算当前资产评分",
+      "3006": "提交评分事件",
+      "5001": "评分事件 Topic",
+      "3007": "维护近期评分窗口",
+      "3008": "归档评分流水",
+      "5002": "CoinGecko 市场 Topic",
+      "5003": "Kaito 新关注账号 Topic",
+      "6001": "Redis 近期评分窗口",
+      "3009": "确定资产起始评分",
+      "1007": "supabase_asset_scores",
+      "3010": "同步资产得分到 Supabase",
+      "5004": "Few Understand · market.snapshot",
+      "5005": "Few Understand · signal.data",
+      "3011": "CoinGecko · 24 小时大涨",
+      "3012": "CoinGecko · 24 小时大跌",
+      "3013": "CoinGecko · 成交量市值比偏高",
+      "3014": "CoinGecko · 接近历史高点",
+      "3015": "CoinGecko · 较历史高点深度回撤",
+      "3016": "CoinGecko · 首次收录新资产",
+      "6002": "Redis · 升温榜数据区",
+      "3017": "计算升温榜得分",
+      "1008": "leaderboard_warming",
+      "6003": "Redis · 最热榜数据区",
+      "3018": "计算最热榜得分",
+      "1009": "leaderboard_hottest",
+      "6004": "Redis · 新出现榜数据区",
+      "3019": "计算新出现榜得分",
+      "1010": "leaderboard_emerging",
+      "6005": "Redis · 降温榜数据区",
+      "3020": "计算降温榜得分",
+      "1011": "leaderboard_cooling",
+      "6006": "Redis · 分歧榜数据区",
+      "3021": "计算分歧榜得分",
+      "1012": "leaderboard_divergence",
+      "1013": "leaderboard_evidence",
+      "1014": "leaderboard_coverage",
+      "1015": "leaderboard_attention_history",
+      "1016": "leaderboard_discoveries",
+      "1017": "leaderboard_opinions",
+      "3022": "归一榜单证据",
+      "3023": "保存关注历史快照",
+      "3024": "记录首次有效发现",
+      "3025": "标注可比较观点",
+      "3026": "保存现有热榜快照",
+      "1018": "leaderboard_heat_snapshots",
+      "3027": "候选代币筛选",
+      "1019": "asset_information_content",
+      "2039": "coingecko.search_trending",
+      "3028": "CoinGecko · 热榜上榜加分",
+      "3029": "刷新判断",
+      "3030": "数据采集与内容生成",
+      "3031": "验证与保存",
+      "1020": "asset_initial_score_sources"
+    },
+    "edge_rules": [
+      {
+        "source": "CoinGecko 市场 Topic",
+        "target": "市场交易活跃候选",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "Kaito 新关注账号 Topic",
+        "target": "市场账号查询内部资产",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "asset_identifiers",
+        "target": "市场账号查询内部资产",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "市场账号查询内部资产",
+        "target": "新账号建立待识别资产",
+        "kind": "control",
+        "branches": [
+          "unmatched"
+        ],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "assets",
+        "target": "定期 AI 检查资产地图",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "定期 AI 检查资产地图",
+        "target": "人工审核资产纠错建议",
+        "kind": "data",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "执行获批资产纠错",
+        "target": "assets",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "assets",
+        "target": "执行获批资产纠错",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "市场账号查询内部资产",
+        "target": "已有 X 账号资产结果",
+        "kind": "control",
+        "branches": [
+          "matched"
+        ],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "新账号建立待识别资产",
+        "target": "assets",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "新账号建立待识别资产",
+        "target": "asset_identifiers",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_identifiers",
+        "target": "定期 AI 检查资产地图",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "人工审核资产纠错建议",
+        "target": "执行获批资产纠错",
+        "kind": "control",
+        "branches": [
+          "approve"
+        ],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "市场账号查询内部资产",
+        "target": "人工审核资产纠错建议",
+        "kind": "control",
+        "branches": [
+          "conflict"
+        ],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "执行获批资产纠错",
+        "target": "asset_identifiers",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_identifiers",
+        "target": "执行获批资产纠错",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Redis 近期评分窗口",
+        "target": "计算当前资产评分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "计算当前资产评分",
+        "target": "asset_scores_current",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "提交评分事件",
+        "target": "评分事件 Topic",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "评分事件 Topic",
+        "target": "维护近期评分窗口",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "评分事件 Topic",
+        "target": "归档评分流水",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "归档评分流水",
+        "target": "asset_score_events",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "coingecko.coins_markets",
+        "target": "CoinGecko 市场 Topic",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "kaito.mcp.kaito_smart_following_market",
+        "target": "Kaito 新关注账号 Topic",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "维护近期评分窗口",
+        "target": "Redis 近期评分窗口",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "新账号建立待识别资产",
+        "target": "确定资产起始评分",
+        "kind": "data",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "已有 X 账号资产结果",
+        "target": "确定资产起始评分",
+        "kind": "data",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "确定资产起始评分",
+        "target": "提交评分事件",
+        "kind": "data",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "asset_scores_current",
+        "target": "同步资产得分到 Supabase",
+        "kind": "read",
+        "branches": [],
+        "trigger": "change",
+        "handles_error": false
+      },
+      {
+        "source": "同步资产得分到 Supabase",
+        "target": "supabase_asset_scores",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "coingecko.coins_markets",
+        "target": "Few Understand · market.snapshot",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Few Understand · market.snapshot",
+        "target": "CoinGecko · 24 小时大涨",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "CoinGecko · 24 小时大涨",
+        "target": "Few Understand · signal.data",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Few Understand · market.snapshot",
+        "target": "CoinGecko · 24 小时大跌",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "CoinGecko · 24 小时大跌",
+        "target": "Few Understand · signal.data",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Few Understand · market.snapshot",
+        "target": "CoinGecko · 成交量市值比偏高",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "CoinGecko · 成交量市值比偏高",
+        "target": "Few Understand · signal.data",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Few Understand · market.snapshot",
+        "target": "CoinGecko · 接近历史高点",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "CoinGecko · 接近历史高点",
+        "target": "Few Understand · signal.data",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Few Understand · market.snapshot",
+        "target": "CoinGecko · 较历史高点深度回撤",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "CoinGecko · 较历史高点深度回撤",
+        "target": "Few Understand · signal.data",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Few Understand · market.snapshot",
+        "target": "CoinGecko · 首次收录新资产",
+        "kind": "consume",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "CoinGecko · 首次收录新资产",
+        "target": "Few Understand · signal.data",
+        "kind": "publish",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Redis · 升温榜数据区",
+        "target": "计算升温榜得分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "计算升温榜得分",
+        "target": "leaderboard_warming",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Redis · 最热榜数据区",
+        "target": "计算最热榜得分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "计算最热榜得分",
+        "target": "leaderboard_hottest",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Redis · 新出现榜数据区",
+        "target": "计算新出现榜得分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "计算新出现榜得分",
+        "target": "leaderboard_emerging",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Redis · 降温榜数据区",
+        "target": "计算降温榜得分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "计算降温榜得分",
+        "target": "leaderboard_cooling",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "Redis · 分歧榜数据区",
+        "target": "计算分歧榜得分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "计算分歧榜得分",
+        "target": "leaderboard_divergence",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "rss.item",
+        "target": "归一榜单证据",
+        "kind": "data",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "telegram.bot.message",
+        "target": "归一榜单证据",
+        "kind": "data",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "telegram.telethon.message",
+        "target": "归一榜单证据",
+        "kind": "data",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "assets",
+        "target": "归一榜单证据",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_identifiers",
+        "target": "归一榜单证据",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "归一榜单证据",
+        "target": "leaderboard_evidence",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_evidence",
+        "target": "保存关注历史快照",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_coverage",
+        "target": "保存关注历史快照",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "保存关注历史快照",
+        "target": "leaderboard_attention_history",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_evidence",
+        "target": "记录首次有效发现",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "记录首次有效发现",
+        "target": "leaderboard_discoveries",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_evidence",
+        "target": "标注可比较观点",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "标注可比较观点",
+        "target": "leaderboard_opinions",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_evidence",
+        "target": "Redis · 最热榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_coverage",
+        "target": "Redis · 最热榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_scores_current",
+        "target": "保存现有热榜快照",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "保存现有热榜快照",
+        "target": "leaderboard_heat_snapshots",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_scores_current",
+        "target": "Redis · 升温榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_heat_snapshots",
+        "target": "Redis · 升温榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "assets",
+        "target": "Redis · 新出现榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_scores_current",
+        "target": "Redis · 降温榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_heat_snapshots",
+        "target": "Redis · 降温榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_opinions",
+        "target": "Redis · 分歧榜数据区",
+        "kind": "reference",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "coingecko.search_trending",
+        "target": "CoinGecko · 热榜上榜加分",
+        "kind": "data",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "asset_identifiers",
+        "target": "CoinGecko · 热榜上榜加分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "assets",
+        "target": "CoinGecko · 热榜上榜加分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "CoinGecko · 热榜上榜加分",
+        "target": "提交评分事件",
+        "kind": "data",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "asset_scores_current",
+        "target": "候选代币筛选",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_warming",
+        "target": "候选代币筛选",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_emerging",
+        "target": "候选代币筛选",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_cooling",
+        "target": "候选代币筛选",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "leaderboard_divergence",
+        "target": "候选代币筛选",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "候选代币筛选",
+        "target": "刷新判断",
+        "kind": "data",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "asset_information_content",
+        "target": "刷新判断",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "刷新判断",
+        "target": "数据采集与内容生成",
+        "kind": "control",
+        "branches": [
+          "first",
+          "due"
+        ],
+        "trigger": "event",
+        "handles_error": false
+      },
+      {
+        "source": "asset_identifiers",
+        "target": "数据采集与内容生成",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_information_content",
+        "target": "数据采集与内容生成",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "数据采集与内容生成",
+        "target": "验证与保存",
+        "kind": "data",
+        "branches": [],
+        "trigger": "event",
+        "handles_error": true
+      },
+      {
+        "source": "asset_information_content",
+        "target": "验证与保存",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "验证与保存",
+        "target": "asset_information_content",
+        "kind": "write",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      },
+      {
+        "source": "asset_initial_score_sources",
+        "target": "确定资产起始评分",
+        "kind": "read",
+        "branches": [],
+        "trigger": "none",
+        "handles_error": false
+      }
+    ]
+  }
+}
