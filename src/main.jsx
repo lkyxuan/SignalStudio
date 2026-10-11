@@ -23,9 +23,9 @@ import { SourceCasePage } from './SourceCasePage';
 import { OtherSourceCasePage } from './OtherSourceCasePage';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { createCardClickDispatcher } from './cardClicks';
-import { LAYOUT_VERSION, autoLayout, layoutGroups, feedbackRoutes, supportRoutes, traceRoute, layoutStages } from './autoLayout';
+import { LAYOUT_VERSION, autoLayout, layoutGroups, traceRoute, layoutStages } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
-import { portPoint, routeDetours, curvedRoute, bezierRoute, directCurveIsClear } from './edgeRouting';
+import { arcStyles, bezierRoute } from './edgeRouting';
 import { graphEmphasis } from './graphEmphasis';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
@@ -139,18 +139,10 @@ function LogicNode({ id, data, selected }) {
 function GroupLabel({ data }) {
   return <div className="graph-group-label"><strong>{data.title}</strong><span>{data.count}</span></div>;
 }
-function DetourEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
-  // XYFlow's measured handle centers can differ slightly from the frame model.
-  const points = data.points?.map(p => [...p]);
-  if (!points?.length) return null;
-  points[0] = [sourceX, sourceY]; points[points.length - 1] = [targetX, targetY];
-  if (points.length > 2) {
-    if (data.sourceSide === 'normal') points[1][0] = sourceX; else points[1][1] = sourceY;
-    if (data.targetSide === 'normal') points[points.length - 2][0] = targetX; else points[points.length - 2][1] = targetY;
-  }
-  return <BaseEdge id={id} path={data.direct ? bezierRoute({ ...data, source: [sourceX, sourceY], target: [targetX, targetY] }) : curvedRoute(points)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
+function DirectArcEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
+  return <BaseEdge id={id} path={bezierRoute({ ...data, source: [sourceX, sourceY], target: [targetX, targetY] })} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
 }
-const edgeTypes = { detour: DetourEdge };
+const edgeTypes = { directArc: DirectArcEdge };
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
 
 function IconButton({ children, title, onClick, active, className = '' }) {
@@ -226,34 +218,21 @@ function App() {
     const pendingNeedNames = new Map();
     for (const requirement of graph.requirements || []) if (!requirement.source_field_id) pendingNeedNames.set(requirement.node_id, [...(pendingNeedNames.get(requirement.node_id) || []), requirement.name]);
     const ports = new Map(graph.nodes.map(node => [node.id, { inputPorts: [], outputPorts: [] }]));
-    const feedback = feedbackRoutes(graph.nodes, graph.edges);
-    const support = supportRoutes(graph.nodes, graph.edges);
+    const arcs = arcStyles(graph.nodes, graph.edges);
     for (const edge of graph.edges) {
-      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: support.get(edge.id)?.sourceSide || 'normal' });
-      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: support.get(edge.id)?.targetSide || 'normal' });
+      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.sourceSide || 'normal' });
+      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.targetSide || 'normal' });
     }
     for (const [id, nodePorts] of ports) {
       nodePorts.inputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.outputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}`).join(',')}`;
     }
-    const detourLinks = graph.edges.filter(e => support.has(e.id) || feedback.has(e.id)).map(e => {
-      const endpoint = (id, output) => {
-        const nodePorts = ports.get(id)[output ? 'outputPorts' : 'inputPorts'];
-        const side = nodePorts.find(p => p.id === e.id)?.side || 'normal';
-        const sameSide = nodePorts.filter(p => p.side === side);
-        return { side, point: portPoint(nodeById.get(id), side, output, sameSide.findIndex(p => p.id === e.id), sameSide.length) };
-      };
-      const source = endpoint(e.upstream_id, true), target = endpoint(e.downstream_id, false);
-      return { id: e.id, source: source.point, target: target.point, sourceSide: source.side, targetSide: target.side };
-    });
-    const detours = routeDetours(graph.nodes, detourLinks);
-    const detourById = new Map(detourLinks.map(e => [e.id, { ...e, direct: directCurveIsClear(graph.nodes, e) }]));
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
     setEdges(graph.edges.map(e => { const color = 'var(--ss-edge)';
-      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: detours.has(e.id) ? 'detour' : 'default', data: { ...detourById.get(e.id), points: detours.get(e.id) }, animated: false,
+      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: 'directArc', data: arcs.get(e.id), animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
-        style: { stroke: color, strokeWidth: 1.5, strokeDasharray: feedback.has(e.id) ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
+        style: { stroke: color, strokeWidth: 1.5, strokeDasharray: arcs.get(e.id)?.dashed ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
   }, [graph, language, catalogEntityInfo, setNodes, setEdges]);
 
   const selected = graph.nodes.find(n => n.id === selectedId);
