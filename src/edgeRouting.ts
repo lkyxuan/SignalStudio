@@ -3,7 +3,7 @@ export type Point = [number, number];
 export type RouteSide = 'left' | 'right' | 'normal';
 export type RouteCard = { id: string; position_x: number; position_y: number; width?: number; height?: number };
 export type RouteLink = { id: string; source: Point; target: Point; sourceSide: RouteSide; targetSide: RouteSide };
-const clearance = 12;
+const clearance = 24;
 
 export function portPoint(card: RouteCard, side: RouteSide, output: boolean, index: number, count: number): Point {
   const w = card.width ?? 300, h = card.height ?? 160, fraction = (index + 1) / (count + 1);
@@ -11,7 +11,7 @@ export function portPoint(card: RouteCard, side: RouteSide, output: boolean, ind
     : [card.position_x + (side === 'left' ? 0 : w), card.position_y + h * (output ? .15 + fraction * .4 : .65 + fraction * .25)];
 }
 function escape(p: Point, side: RouteSide, output: boolean): Point {
-  return side === 'normal' ? [p[0], p[1] + (output ? 24 : -24)] : [p[0] + (side === 'left' ? -24 : 24), p[1]];
+  return side === 'normal' ? [p[0], p[1] + (output ? 36 : -36)] : [p[0] + (side === 'left' ? -36 : 36), p[1]];
 }
 class Heap {
   values: [number, number][] = [];
@@ -112,13 +112,54 @@ export function routeDetours(cards: RouteCard[], links: RouteLink[]): Map<string
   return result;
 }
 
-export function roundedRoute(points: Point[]): string {
+export function curvedRoute(points: Point[]): string {
   if (!points.length) return '';
   let path = `M ${points[0]![0]} ${points[0]![1]}`;
+  let current = points[0]!;
+  const connect = (end: Point) => {
+    path += ` C ${current[0]} ${current[1]} ${end[0]} ${end[1]} ${end[0]} ${end[1]}`;
+    current = end;
+  };
   for (let i = 1; i < points.length - 1; i++) {
     const [x, y] = points[i]!, [px, py] = points[i - 1]!, [nx, ny] = points[i + 1]!;
-    const radius = Math.min(6, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
-    path += ` L ${x - Math.sign(x - px) * radius} ${y - Math.sign(y - py) * radius} Q ${x} ${y} ${x + Math.sign(nx - x) * radius} ${y + Math.sign(ny - y) * radius}`;
+    // A wide quadratic-equivalent cubic cuts the corner by at most radius/4,
+    // within the 24px obstacle margin even at the maximum 80px bend radius.
+    const radius = Math.min(80, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
+    const entry: Point = [x - Math.sign(x - px) * radius, y - Math.sign(y - py) * radius];
+    const exit: Point = [x + Math.sign(nx - x) * radius, y + Math.sign(ny - y) * radius];
+    connect(entry);
+    path += ` C ${entry[0] + (x - entry[0]) * 2 / 3} ${entry[1] + (y - entry[1]) * 2 / 3} ${exit[0] + (x - exit[0]) * 2 / 3} ${exit[1] + (y - exit[1]) * 2 / 3} ${exit[0]} ${exit[1]}`;
+    current = exit;
   }
-  return path + ` L ${points.at(-1)![0]} ${points.at(-1)![1]}`;
+  connect(points.at(-1)!);
+  return path;
+}
+
+export function bezierControls(link: RouteLink): [Point, Point, Point, Point] {
+  const { source: a, target: b } = link;
+  const reach = Math.max(64, Math.min(320, Math.hypot(b[0] - a[0], b[1] - a[1]) * .5));
+  const control = (p: Point, side: RouteSide, output: boolean): Point => side === 'normal'
+    ? [p[0], p[1] + (output ? reach : -reach)] : [p[0] + (side === 'left' ? -reach : reach), p[1]];
+  return [a, control(a, link.sourceSide, true), control(b, link.targetSide, false), b];
+}
+export function bezierRoute(link: RouteLink): string {
+  const [a, c, d, b] = bezierControls(link);
+  return `M ${a[0]} ${a[1]} C ${c[0]} ${c[1]} ${d[0]} ${d[1]} ${b[0]} ${b[1]}`;
+}
+
+// Use the ordinary single curve whenever it is clear. Recursive convex-hull
+// subdivision is conservative; uncertain near-touches use the obstacle route.
+export function directCurveIsClear(cards: RouteCard[], link: RouteLink): boolean {
+  const controls = bezierControls(link);
+  const midpoint = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  function hits(points: [Point, Point, Point, Point], card: RouteCard, depth = 0): boolean {
+    const l = card.position_x, t = card.position_y, r = l + (card.width ?? 300), b = t + (card.height ?? 160);
+    const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+    if (Math.max(...xs) <= l || Math.min(...xs) >= r || Math.max(...ys) <= t || Math.min(...ys) >= b) return false;
+    if (depth === 16) return true;
+    const [a, c, d, end] = points, ac = midpoint(a, c), cd = midpoint(c, d), de = midpoint(d, end);
+    const left = midpoint(ac, cd), right = midpoint(cd, de), mid = midpoint(left, right);
+    return hits([a, ac, left, mid], card, depth + 1) || hits([mid, right, de, end], card, depth + 1);
+  }
+  return cards.every(card => !hits(controls, card));
 }

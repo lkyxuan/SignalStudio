@@ -25,7 +25,7 @@ import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { createCardClickDispatcher } from './cardClicks';
 import { LAYOUT_VERSION, autoLayout, layoutGroups, feedbackRoutes, supportRoutes, traceRoute, layoutStages } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
-import { portPoint, routeDetours, roundedRoute } from './edgeRouting';
+import { portPoint, routeDetours, curvedRoute, bezierRoute, directCurveIsClear } from './edgeRouting';
 import { graphEmphasis } from './graphEmphasis';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
@@ -148,7 +148,7 @@ function DetourEdge({ id, sourceX, sourceY, targetX, targetY, data, style, marke
     if (data.sourceSide === 'normal') points[1][0] = sourceX; else points[1][1] = sourceY;
     if (data.targetSide === 'normal') points[points.length - 2][0] = targetX; else points[points.length - 2][1] = targetY;
   }
-  return <BaseEdge id={id} path={roundedRoute(points)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
+  return <BaseEdge id={id} path={data.direct ? bezierRoute({ ...data, source: [sourceX, sourceY], target: [targetX, targetY] }) : curvedRoute(points)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
 }
 const edgeTypes = { detour: DetourEdge };
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
@@ -248,7 +248,7 @@ function App() {
       return { id: e.id, source: source.point, target: target.point, sourceSide: source.side, targetSide: target.side };
     });
     const detours = routeDetours(graph.nodes, detourLinks);
-    const detourById = new Map(detourLinks.map(e => [e.id, e]));
+    const detourById = new Map(detourLinks.map(e => [e.id, { ...e, direct: directCurveIsClear(graph.nodes, e) }]));
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
     setEdges(graph.edges.map(e => { const color = 'var(--ss-edge)';
       return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: detours.has(e.id) ? 'detour' : 'default', data: { ...detourById.get(e.id), points: detours.get(e.id) }, animated: false,
