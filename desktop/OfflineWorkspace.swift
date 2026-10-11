@@ -150,7 +150,7 @@ final class OfflineWorkspace: NSObject, WKURLSchemeHandler, WKScriptMessageHandl
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         request.httpMethod = method
         if let headers = value["headers"] as? [String: String] {
-            for (name, value) in headers where ["content-type", "if-match", "if-none-match", "x-card-model", "x-workspace-identity"].contains(name.lowercased()) {
+            for (name, value) in headers where ["content-type", "if-match", "if-none-match", "x-card-model", "x-workspace-identity", "x-graph-transport", "x-graph-base"].contains(name.lowercased()) {
                 request.setValue(value, forHTTPHeaderField: name)
             }
         }

@@ -73,13 +73,17 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
     } finally { pendingWrites.current -= 1; publish(); }
     });
   }, [enqueue, publish, setGraph, state]);
+  const loadDetails = useCallback((ids: string[]) => enqueue(async () => {
+    try { if (await state.loadDetails(ids) && state.graph) setGraph(state.graph); }
+    finally { publish(); }
+  }), [enqueue, publish, setGraph, state]);
   const receivePending = () => { if (state.pending && state.receive(state.pending) && state.graph) setGraph(state.graph); publish(); };
   const discard = useCallback(() => {
     state.clear(); setConflict(false); setEditorEpoch(value => value + 1);
     if (state.pending) { const next = state.pending; state.pending = null; state.graph = next; state.expected = String(next.revision); setGraph({ ...next }); }
     else void reload();
   }, [reload, state, setGraph]);
-  return { reload, reconnect: () => reload(true), retryPhase, connectionError, write, status, conflict, confirmedAt, cacheAvailable, editorEpoch, getGraph: () => state.graph,
+  return { reload, loadDetails, reconnect: () => reload(true), retryPhase, connectionError, write, status, conflict, confirmedAt, cacheAvailable, editorEpoch, getGraph: () => state.graph,
     writePending: () => state.dragging || pendingWrites.current !== 0,
     canQuit: () => !state.dirty && !state.dragging && pendingWrites.current === 0,
     markEdited: () => { state.dirty = true; },

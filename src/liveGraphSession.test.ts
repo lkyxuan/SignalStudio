@@ -18,7 +18,7 @@ test('cache is isolated by endpoint, project/database, format and validated grap
   assert.equal(cache.save(workspace, { ...graph('b'), workspace: { ...workspace, project_root: '/other' } }, new Date().toISOString()), false);
   const blocked = new GraphCache({ getItem() { throw Error('blocked'); }, setItem() { throw Error('quota'); }, removeItem() {} }, 'http://host');
   assert.equal(blocked.read(), null); assert.equal(blocked.save(workspace, graph('a'), new Date().toISOString()), false);
-  store.setItem(`signalstudio:graph:v1:${JSON.stringify(['http://host', workspace.project_root, workspace.database_path])}`, 'corrupt');
+  store.setItem(`signalstudio:graph:v2:${JSON.stringify(['http://host', workspace.project_root, workspace.database_path])}`, 'corrupt');
   assert.equal(cache.read(), null);
 });
 test('offline cache blocks writes; 304 confirms it without losing pending conflict; failure revokes writes', async context => {

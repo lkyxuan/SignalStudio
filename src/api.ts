@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { cachedSourceContracts } from './sourceContractCache';
+import { decodeGraph } from './graphTransport';
 import type { Workspace } from './graphCache';
 import { graphSchema, sourceContractsSchema, sourceOperationSchema, type Graph, type SourceContracts } from './contracts';
 
@@ -15,9 +17,14 @@ export function request(path: '/graph', options?: RequestOptions): Promise<Graph
 export function request(path: '/source-contracts/v1', options?: RequestOptions): Promise<SourceContracts>;
 export function request(path: string, options?: RequestOptions): Promise<unknown>;
 export async function request(path: string, options: RequestOptions = {}): Promise<unknown> {
+  if (path === '/source-contracts/v1' && (options.method ?? 'GET') === 'GET') {
+    let storage: Pick<Storage, 'getItem'|'setItem'> | undefined;
+    try { storage = typeof window !== 'undefined' ? window.signalstudioStorage ?? window.localStorage : undefined; } catch { /* Storage optional. */ }
+    return cachedSourceContracts(route => requestData(route, options), storage);
+  }
   return requestData(path, options);
 }
-async function requestData(path: string, options: RequestOptions = {}, conditional = false): Promise<unknown> {
+async function requestData(path: string, options: RequestOptions = {}, conditional = false, base?: Graph | null): Promise<unknown> {
   const headers = new Headers(options.headers);
   headers.set('X-Card-Model', 'card-model.v1');
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
@@ -36,6 +43,13 @@ async function requestData(path: string, options: RequestOptions = {}, condition
     throw new ApiError(error.success ? error.data.error : 'Request failed', response.status, path);
   }
   if ((options.method ?? 'GET') === 'GET') {
+    if (path === '/graph') {
+      try { return decodeGraph(data, base); }
+      catch (error) {
+        if ((data as Record<string, unknown>)?.transport === 'delta.v1') throw error;
+        throw new ApiError(`Invalid API response at ${path}: ${error instanceof Error ? error.message : 'Invalid data'}`, response.status, path);
+      }
+    }
     const schema = path === '/graph' ? graphSchema : path === '/source-contracts/v1' ? sourceContractsSchema
       : /^\/source-contracts\/v1\/(operations|resources)\/[^/]+$/.test(path) ? sourceOperationSchema : null;
     if (schema) {
@@ -50,6 +64,15 @@ async function requestData(path: string, options: RequestOptions = {}, condition
   return data;
 }
 
-export async function requestGraph(revision?: string, workspace?: Workspace): Promise<Graph | typeof NOT_MODIFIED> {
-  return await requestData('/graph', { headers: { ...(revision ? { 'If-None-Match': `"${revision}"` } : {}), ...(workspace ? { 'X-Workspace-Identity': JSON.stringify(workspace) } : {}) } }, true) as Graph | typeof NOT_MODIFIED;
+export async function requestGraph(revision?: string, workspace?: Workspace, base?: Graph | null): Promise<Graph | typeof NOT_MODIFIED> {
+  const headers = { 'X-Graph-Transport': 'canvas.v1', ...(revision ? { 'If-None-Match': `"${revision}"` } : {}),
+    ...(base?.transport === 'canvas.v1' && revision ? { 'X-Graph-Base': revision } : {}),
+    ...(workspace ? { 'X-Workspace-Identity': JSON.stringify(workspace) } : {}) };
+  try { return await requestData('/graph', { headers }, true, base) as Graph | typeof NOT_MODIFIED; }
+  catch (error) {
+    // A malformed/outdated delta never reaches the editor/cache. Re-read once without a base.
+    if (!('X-Graph-Base' in headers) || error instanceof ApiError || error instanceof TypeError || error instanceof DOMException) throw error;
+    return await requestData('/graph', {headers: { 'X-Graph-Transport': 'canvas.v1',
+      ...(workspace ? {'X-Workspace-Identity':JSON.stringify(workspace)} : {}) }}) as Graph;
+  }
 }
