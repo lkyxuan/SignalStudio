@@ -14,6 +14,10 @@
 
 公开包只含原生程序、心跳图标及其 Lucide 许可证；没有私人连接地址、项目源码、数据库、Node/Python、Tailscale 密钥或其他凭证。它不赋予 tailnet 访问权；当前后台没有独立用户登录，不应公开后台端口。现有开发客户端仍用 `desktop/connection.json`，默认构建行为保持原样，两种客户端不共享连接配置。
 
+## 客户端自动更新
+
+SS-59 共享版接入 Sparkle，自动检查、下载和校验，正常退出时安装；未保存编辑阻止退出。首次从无更新器的旧版升级仍需协助安装一次。更新签名、公钥、发布顺序、失败行为与验证契约见 [CLIENT_UPDATES.md](CLIENT_UPDATES.md)。运行限制与实际交付证据按对应 Release 记录。
+
 ## 构建与发布
 
 需要 Apple Silicon Mac、Command Line Tools（Swift、SDK）、Python 3 和 macOS 自带 `sips`、`iconutil`、`codesign`、`hdiutil`。Python 仅参与构建；运行 App 不需要 Node/Python/源码。使用干净且已提交的工作区构建以保证内嵌 Git 版本可追溯。版本必须是三个数字段，产物路径必须新建，不覆盖既有 App/DMG。

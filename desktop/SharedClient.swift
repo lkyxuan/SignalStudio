@@ -1,7 +1,7 @@
 import Cocoa
 import WebKit
 
-final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate, NSWindowDelegate {
     private var window: NSWindow!
     private var webView: WKWebView!
     private var status: NSTextField!
@@ -10,6 +10,9 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
     private var generation = 0
     private var loaded = false
     private var offlineWorkspace: OfflineWorkspace?
+    private let updater = ClientUpdater()
+    private var checkingQuit = false
+    private var allowQuit = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let path = Bundle.main.url(forResource: "SignalStudio", withExtension: "icns"), let icon = NSImage(contentsOf: path) {
@@ -19,6 +22,8 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
         let appItem = NSMenuItem()
         menu.addItem(appItem)
         let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "检查更新…", action: #selector(checkUpdates), keyEquivalent: "")
+        appMenu.addItem(withTitle: "自动更新设置…", action: #selector(updateSettings), keyEquivalent: "")
         appMenu.addItem(withTitle: "工作台连接…", action: #selector(configure), keyEquivalent: ",")
         appMenu.addItem(withTitle: "退出 SignalStudio", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
@@ -34,6 +39,10 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
         NSApp.mainMenu = menu
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        window.delegate = self
+        updater.changed = { [weak self] in self?.publishUpdater() }
+        updater.allows = { [weak self] url in self?.trustedWorkspace(url) == true }
+        updater.start()
         window.title = "SignalStudio · 共享工作台"
         window.minSize = NSSize(width: 900, height: 600)
         window.isReleasedWhenClosed = false
@@ -142,6 +151,7 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
                 let offline = OfflineWorkspace(endpoint: address, root: connection.projectRoot, shell: shell)
                 let configuration = WKWebViewConfiguration()
                 try offline.configure(configuration)
+                updater.configure(configuration)
                 webView.removeFromSuperview()
                 webView = WKWebView(frame: window.contentView!.bounds, configuration: configuration)
                 webView.autoresizingMask = [.width, .height]; webView.navigationDelegate = self
@@ -186,10 +196,63 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
         }
     }
 
+    private func trustedWorkspace(_ url: URL) -> Bool {
+        guard let connection = connection, let endpoint = URL(string: connection.baseURL) else { return false }
+        return offlineWorkspace?.allows(url) == true || (url.scheme == endpoint.scheme && url.host == endpoint.host && url.port == endpoint.port)
+    }
+    private func publishUpdater() {
+        guard let url = webView?.url, trustedWorkspace(url),
+              let data = try? JSONSerialization.data(withJSONObject: updater.snapshot),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webView.evaluateJavaScript("window.signalstudioClient = \(json); window.dispatchEvent(new Event('signalstudio-client-update'));")
+    }
+    @objc private func checkUpdates() { updater.check() }
+    @objc private func updateSettings() {
+        let enabled = updater.snapshot["automatic"] as? Bool == true
+        let alert = NSAlert()
+        alert.messageText = "自动更新"
+        alert.informativeText = enabled ? "已开启：后台下载并校验，正常退出时安装。不会为更新强制退出正在编辑的工作台。" : "已关闭：可通过“检查更新…”手动获取新版并自动安装。"
+        alert.addButton(withTitle: enabled ? "关闭自动更新" : "开启自动更新")
+        alert.addButton(withTitle: "保持当前设置")
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn { self.updater.toggleAutomatic() }
+        }
+    }
+    // Ask the current editor at termination time, rather than trusting an old dirty flag.
+    private func approveQuit(_ reply: @escaping (Bool) -> Void) {
+        guard loaded else { reply(true); return }
+        guard let url = webView.url, trustedWorkspace(url) else { reply(false); return }
+        webView.evaluateJavaScript("typeof window.signalstudioQuitState === 'function' ? window.signalstudioQuitState() : null") { value, error in
+            if error == nil && value as? String == "safe" { reply(true); return }
+            let alert = NSAlert()
+            alert.messageText = "先保存工作台编辑"
+            alert.informativeText = "还有未保存编辑或正在进行的操作，或当前界面无法确认草稿状态。请保存后再退出或安装更新；更新可以稍后安装。"
+            alert.addButton(withTitle: "返回工作台")
+            let canDiscard = error == nil && value as? String == "draft"
+            if canDiscard { alert.addButton(withTitle: "放弃草稿并退出") }
+            alert.beginSheetModal(for: self.window) { response in reply(canDiscard && response == .alertSecondButtonReturn) }
+        }
+    }
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        NSApp.terminate(nil); return false
+    }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if allowQuit { return .terminateNow }
+        if checkingQuit { return .terminateCancel }
+        checkingQuit = true
+        // Evaluate after returning .terminateLater, even for an unloaded window.
+        DispatchQueue.main.async {
+            self.approveQuit { approved in
+                self.checkingQuit = false; self.allowQuit = approved
+                sender.reply(toApplicationShouldTerminate: approved)
+            }
+        }
+        return .terminateLater
+    }
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         status.isHidden = true; retry.isHidden = true; webView.isHidden = false
     }
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { loaded = true }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { loaded = true; publishUpdater() }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         if (error as NSError).code == NSURLErrorCancelled { return }
         if let offline = offlineWorkspace, webView.url?.scheme != "signalstudio" { offline.load(in: webView); return }

@@ -152,6 +152,16 @@ class DevRuntimeTest(unittest.TestCase):
                     with self.assertRaises(urllib.error.HTTPError) as cross_origin:
                         urllib.request.urlopen(request, timeout=2)
                     self.assertEqual(cross_origin.exception.code, 403)
+                    updater_url = f'http://127.0.0.1:{client}/__signalstudio_updater'
+                    updater = get(updater_url)
+                    self.assertIn('phase', updater)
+                    self.assertNotIn('backup', updater)
+                    request = urllib.request.Request(updater_url, headers={'Origin': 'https://untrusted.example'})
+                    with self.assertRaises(urllib.error.HTTPError) as denied:
+                        urllib.request.urlopen(request, timeout=2)
+                    self.assertEqual(denied.exception.code, 403)
+                    with self.assertRaises(urllib.error.HTTPError):
+                        get(updater_url, 'POST', {'action': 'resume'})
                     initial = get(api + '/graph')
                     # Startup is idempotent across backend restarts for an existing workspace.
                     target = root / 'server/app.py'

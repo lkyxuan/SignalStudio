@@ -190,6 +190,11 @@ function App() {
   const flash = (message, error = false) => { setNotice({ message, error }); setTimeout(() => setNotice(null), 4200); };
   const live = useLiveGraph(setGraph);
   const serverVersion = useServerVersion();
+  useEffect(() => {
+    window.signalstudioCanQuit = () => live.canQuit() && !busy && !showCreate && !showPrompt;
+    window.signalstudioQuitState = () => busy || live.writePending() ? 'busy' : window.signalstudioCanQuit() ? 'safe' : 'draft';
+    return () => { delete window.signalstudioCanQuit; delete window.signalstudioQuitState; };
+  }, [live, busy, showCreate, showPrompt]);
   useEffect(() => { live.resetEdited(); }, [selectedId, selectedEdgeId]);
   useEffect(() => {
     request('/source-contracts/v1')

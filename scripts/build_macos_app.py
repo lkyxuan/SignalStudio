@@ -8,11 +8,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from sparkle import distribution, configuration
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def build_shared(output, version, revision):
+def build_shared(output, version, revision, updater_config=None):
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
         raise ValueError("Version must be three numeric components")
     if output.exists():
@@ -27,8 +28,15 @@ def build_shared(output, version, revision):
         binary.parent.mkdir()
         build_icon(resources)
         bundle_ui(resources, revision)
+        sparkle = distribution()
+        frameworks = contents / "Frameworks"
+        frameworks.mkdir()
+        shutil.copytree(sparkle / "Sparkle.framework", frameworks / "Sparkle.framework", symlinks=True)
+        shutil.copyfile(sparkle / "LICENSE", resources / "SPARKLE-LICENSE")
+        updater = updater_config or configuration()
         subprocess.run(["xcrun", "swiftc", "-O", "-target", "arm64-apple-macos14.0",
-                        str(ROOT / "desktop/SharedConnection.swift"), str(ROOT / "desktop/SharedClient.swift"), str(ROOT / "desktop/OfflineWorkspace.swift"),
+                        str(ROOT / "desktop/SharedConnection.swift"), str(ROOT / "desktop/SharedClient.swift"), str(ROOT / "desktop/OfflineWorkspace.swift"), str(ROOT / "desktop/ClientUpdater.swift"),
+                        "-F", str(frameworks), "-framework", "Sparkle", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks",
                         "-o", str(binary), "-framework", "Cocoa", "-framework", "WebKit"], check=True)
         with (contents / "Info.plist").open("wb") as file:
             plistlib.dump({"CFBundleName": "SignalStudio", "CFBundleDisplayName": "SignalStudio",
@@ -36,6 +44,11 @@ def build_shared(output, version, revision):
                           "CFBundlePackageType": "APPL", "CFBundleVersion": version,
                           "CFBundleShortVersionString": version, "SignalStudioRevision": revision,
                           "CFBundleIconFile": "SignalStudio.icns", "LSMinimumSystemVersion": "14.0",
+                          "SUFeedURL": updater["feedURL"], "SUPublicEDKey": updater["publicKey"],
+                          "SUEnableAutomaticChecks": True, "SUAutomaticallyUpdate": True,
+                          "SUVerifyUpdateBeforeExtraction": True, "SURequireSignedFeed": True,
+                          "SUSignedFeedFailureExpirationInterval": 0,
+                          "SUEnableSystemProfiling": False,
                           "NSHighResolutionCapable": True,
                           "NSLocalNetworkUsageDescription": "SignalStudio 连接你的 Tailscale 共享工作台。",
                           "NSAppTransportSecurity": {"NSAllowsArbitraryLoads": True}}, file)
