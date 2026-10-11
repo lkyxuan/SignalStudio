@@ -70,10 +70,14 @@ def ensure_trending_channel(service):
         usages = service.get_field_usages(edge['id'])
         if any(by_id.get(u['source_field_id']) not in names for u in usages):
             raise ValueError('Trending channel upgrade: unmapped source field')
+        # The existing source and consumer may be stacked too closely for a card between them.
+        x = min(source['position_x'], consumer['position_x']) - 380
+        y = (source['position_y'] + consumer['position_y']) / 2
+        while any(abs(x - n['position_x']) < 340 and abs(y - n['position_y']) < 200 for n in graph['nodes']):
+            x -= 380
         channel = service.create_node({'name': spec['channel'], 'type': 'Redpanda Topic',
             'workflow_lane': 'shared', 'definition': '复用既有social.data关注观测通道；本卡列出CoinGecko搜索热榜消息类别，专用注册项及运行待验证。',
-            'notes': '', 'position_x': (source['position_x'] + consumer['position_x']) / 2,
-            'position_y': consumer['position_y'] - 210, 'caveats': 'Studio设计已定义，不证明Broker消息、采集或评分已运行。'},
+            'notes': '', 'position_x': x, 'position_y': y, 'caveats': 'Studio设计已定义，不证明Broker消息、采集或评分已运行。'},
             actor=ACTOR, commit=False)
         fields = {}
         for field in spec['fields']:
