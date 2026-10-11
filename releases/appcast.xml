@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0"><channel><title>SignalStudio shared preview updates</title><item><title>SignalStudio 0.2.0 (Preview)</title><pubDate>Sun, 11 Oct 2026 10:27:55 +0000</pubDate><description>Automatic client updates and unified update status. Preview release.</description><sparkle:version>0.2.0</sparkle:version><sparkle:shortVersionString>0.2.0</sparkle:shortVersionString><sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion><enclosure url="https://github.com/lkyxuan/SignalStudio/releases/download/v0.2.0/SignalStudio-0.2.0-arm64.zip" length="1678060" type="application/octet-stream" sparkle:edSignature="xXDVcgJVc1JhDlt1XlNvO7XRqyczdAsZJLCP5l8FXtaZFHD34bPhjGxSTT4Umrx/0WNE1k5yMrFR+ZrYV8ejDA==" sparkle:os="macos" sparkle:installationType="application"></enclosure></item></channel></rss><!-- sparkle-signatures:
+edSignature: GVL1AUsxso8yPwtXO9ji8/2uQmQAScJz8m2fQJlOsvPTDO8vZC5ToIC5FslICSwtFE+a+gSoEdI5pqbVsCaACg==
+length: 1162
+-->
