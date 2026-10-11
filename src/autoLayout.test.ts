@@ -16,23 +16,23 @@ test('global dependencies cross workflow ownership and keep shared resources in 
   const nodes = [node('source', 'source'), { ...node('process'), workflow_lane: 'knowledge' }, { ...node('topic', 'channel'), workflow_lane: 'shared' }, { ...node('sink', 'table'), workflow_lane: 'signal' }];
   const edges = [edge('source', 'process'), edge('process', 'topic'), edge('topic', 'sink')];
   const p = verify(nodes, edges);
-  for (const e of edges) assert.ok(p.get(e.upstream_id)!.position_x < p.get(e.downstream_id)!.position_x);
+  for (const e of edges) assert.ok(p.get(e.upstream_id)!.position_y < p.get(e.downstream_id)!.position_y);
   assert.equal(layoutGroups(nodes, edges).length, 1);
 });
-test('all connected sources share the left column, even in a tall layer', () => {
+test('all connected sources share the top row, even in a wide layer', () => {
   const sources = Array.from({ length: 12 }, (_, i) => node(`s${i}`, 'source'));
   const p = verify([...sources, node('join')], sources.map(n => edge(n.id, 'join')));
-  assert.ok(sources.every(n => p.get(n.id)!.position_x === 0));
-  assert.ok(p.get('join')!.position_x > 0);
+  assert.ok(sources.every(n => p.get(n.id)!.position_y === 96));
+  assert.ok(p.get('join')!.position_y > 96);
 });
-test('Supabase is the rightmost top endpoint with its longest upstream route on top', () => {
+test('Supabase and terminal outputs share the bottom boundary', () => {
   const nodes = [node('s', 'source'), node('p'), node('table', 'table'), node('sync'), node('supabase', 'table', 'supabase_asset_scores'), node('branch'), node('other', 'table')];
   const edges = [edge('s', 'p'), edge('p', 'table'), edge('table', 'sync'), edge('sync', 'supabase'), edge('p', 'branch'), edge('branch', 'other')];
   const p = verify(nodes, edges), end = p.get('supabase')!;
-  assert.equal(end.position_x, Math.max(...[...p.values()].map(n => n.position_x)));
-  assert.equal(end.position_y, Math.min(...[...p.values()].map(n => n.position_y)));
-  assert.ok(p.get('other')!.position_y > end.position_y);
-  for (const id of ['s', 'p', 'table', 'sync']) assert.equal(p.get(id)!.position_y, end.position_y);
+  assert.equal(end.position_y, Math.max(...[...p.values()].map(n => n.position_y)));
+  assert.equal(p.get('other')!.position_y, end.position_y);
+  assert.equal(end.position_y - p.get('sync')!.position_y, 256);
+  for (const id of ['s', 'p', 'table', 'sync']) assert.equal(p.get(id)!.position_x, end.position_x);
 });
 test('only cycle-closing writes become feedback; intermediate and terminal writes remain forward', () => {
   const nodes = [node('s', 'source'), node('lookup'), node('identity', 'table'), node('create'), node('window', 'state'), node('rollup'), node('current', 'table'), node('sync'), node('end', 'table', 'supabase_asset_scores')];
@@ -40,17 +40,17 @@ test('only cycle-closing writes become feedback; intermediate and terminal write
   const p = verify(nodes, edges), forward = forwardLayoutEdges(nodes, edges);
   assert.equal(forward.length, edges.length - 1);
   assert.ok(!forward.some(e => e.upstream_id === 'create' && e.downstream_id === 'identity'));
-  for (const e of forward) assert.ok(p.get(e.upstream_id)!.position_x < p.get(e.downstream_id)!.position_x);
+  for (const e of forward) assert.ok(p.get(e.upstream_id)!.position_y < p.get(e.downstream_id)!.position_y);
   const positioned = nodes.map(n => ({ ...n, ...p.get(n.id)! }));
   const routes = feedbackRoutes(positioned, edges);
   assert.deepEqual([...routes.keys()], ['create-identity']);
-  assert.ok(routes.get('create-identity')! > p.get('create')!.position_y + 160);
+  assert.ok(routes.get('create-identity')! > p.get('create')!.position_x + 300);
 });
-test('unused sources are grouped below the connected route without graph mutations', () => {
+test('unused sources are grouped beside the connected route without graph mutations', () => {
   const nodes = [node('s', 'source'), node('end'), ...Array.from({ length: 19 }, (_, i) => node(`unused${i}`, 'source', `platform.operation${i}`)), node('aux', 'table')];
   const edges = [edge('s', 'end')], p = verify(nodes, edges);
   assert.equal(layoutGroups(nodes, edges).find(g => g.key === 'source:platform')!.nodes.length, 19);
-  assert.ok(nodes.filter(n => n.id.startsWith('unused')).every(n => p.get(n.id)!.position_y > p.get('end')!.position_y + 160));
+  assert.ok(nodes.filter(n => n.id.startsWith('unused')).every(n => p.get(n.id)!.position_x > p.get('end')!.position_x + 300));
 });
 test('cycles, self links, duplicate and dangling edges produce deterministic finite positions', () => {
   const nodes = ['a', 'b', 'c'].map(id => node(id));
@@ -60,16 +60,21 @@ test('cycles, self links, duplicate and dangling edges produce deterministic fin
   assert.deepEqual(autoLayout([], edges), []);
 });
 
-test('output boundary is fixed and the last sync steps stay adjacent to Supabase', () => {
-  const nodes = [node('source', 'source'), node('topic', 'channel'), node('lookup'), node('input', 'table'), node('end', 'table', 'supabase_asset_scores'), node('short'), node('deep1'), node('deep2'), node('deep3')];
-  const edges = [edge('source', 'topic'), edge('topic', 'lookup'), edge('input', 'lookup'), edge('lookup', 'end'), edge('source', 'short'), edge('lookup', 'deep1'), edge('deep1', 'deep2'), edge('deep2', 'deep3')];
-  const p = verify(nodes, edges);
-  assert.equal(p.get('source')!.position_y, 96);
-  assert.equal(p.get('topic')!.position_y, 96);
-  assert.ok(p.get('input')!.position_y > 96);
-  assert.equal(p.get('short')!.position_x, p.get('end')!.position_x);
-  assert.ok(p.get('deep1')!.position_y > 96);
-  assert.ok(p.get('deep2')!.position_y > 96);
+test('three leaderboards form the bottom row while real downstream content remains a side branch', () => {
+  const boards = ['warming', 'hottest', 'emerging'].map(name => node(name, 'table', `leaderboard_${name}`));
+  const nodes = [node('source', 'source'), node('p'), ...boards, node('candidate'), node('refresh'), node('content', 'table'), node('supabase', 'table', 'supabase_asset_scores')];
+  const edges = [edge('source', 'p'), ...boards.map(n => edge('p', n.id)), ...boards.map(n => edge(n.id, 'candidate')), edge('candidate', 'refresh'), edge('refresh', 'content'), edge('content', 'refresh'), edge('p', 'supabase')];
+  const p = verify(nodes, edges), footer = p.get('supabase')!.position_y;
+  for (const board of boards) assert.equal(p.get(board.id)!.position_y, footer);
+  assert.equal(p.get('hottest')!.position_x - p.get('warming')!.position_x, 380);
+  assert.equal(p.get('emerging')!.position_x - p.get('hottest')!.position_x, 380);
+  for (const id of ['candidate', 'refresh', 'content']) {
+    assert.ok(p.get(id)!.position_y < footer);
+    assert.ok(p.get(id)!.position_x > Math.max(...boards.map(n => p.get(n.id)!.position_x + 300)));
+  }
+  const routes = feedbackRoutes(nodes.map(n => ({ ...n, ...p.get(n.id)! })), edges);
+  assert.ok(boards.every(n => routes.has(`${n.id}-candidate`)));
+  assert.equal(traceRoute(nodes, edges, 'warming').nodeIds.has('content'), true);
 });
 
 test('selected route includes complete ancestors and descendants without unrelated fork siblings', () => {
@@ -92,6 +97,6 @@ test('stage labels are presentation data and preserve saved coordinates', () => 
   const positions = verify(nodes, edges);
   const positioned = nodes.map(n => ({ ...n, ...positions.get(n.id)! }));
   const stages = layoutStages(positioned, edges);
-  assert.equal(stages[0]!.title, '爬虫入口'); assert.equal(stages.at(-1)!.title, '最终输出');
+  assert.equal(stages[0]!.title, '爬虫入口'); assert.equal(stages.at(-1)!.title, '榜单与输出');
   assert.equal(stages.length, 3);
 });
