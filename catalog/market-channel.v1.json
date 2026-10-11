@@ -1,0 +1,60 @@
+{
+  "version": "market-channel.v1",
+  "rationale_url": "https://app.notion.com/p/3f6038a63d5a817faa97dde8657a379e",
+  "source": "coingecko.coins_markets",
+  "channel": "Few Understand · market.snapshot",
+  "retire": "CoinGecko 市场 Topic",
+  "normalizer": "归一结构化榜单观测",
+  "candidate": "市场交易活跃候选",
+  "topic": "market.snapshot",
+  "message_key": "id",
+  "payload_schema": "market.snapshot.v1",
+  "payload_record_path": "",
+  "metadata_path": "meta",
+  "message_status": "planned_not_observed",
+  "field_mapping": {
+    "id": "source_object_id",
+    "symbol": "symbol",
+    "name": "asset_name",
+    "current_price": "current_price",
+    "price_change_percentage_24h": "price_change_percentage_24h",
+    "total_volume": "total_volume",
+    "market_cap": "market_cap",
+    "last_updated": "observed_at",
+    "meta.operation_id": "source_id",
+    "meta.source_run_id": "run_id",
+    "meta.source_observation_id": "observation_id",
+    "meta.collected_at": "collected_at",
+    "meta.requested_at": "requested_at",
+    "meta.snapshot_ref": "snapshot_ref",
+    "meta.quote_currency": "quote_currency",
+    "meta.coverage_key": "coverage_key",
+    "meta.quality_status": "quality_status"
+  },
+  "required_metadata": {
+    "meta.operation_id": "source_id",
+    "meta.source_run_id": "run_id",
+    "meta.source_observation_id": "observation_id",
+    "meta.collected_at": "collected_at",
+    "meta.requested_at": "requested_at",
+    "meta.snapshot_ref": "snapshot_ref",
+    "meta.quote_currency": "quote_currency",
+    "meta.coverage_key": "coverage_key",
+    "meta.quality_status": "quality_status"
+  },
+  "metadata_status": "required_design_extension_not_verified_in_emitted_messages",
+  "consumers": {
+    "市场交易活跃候选": "signalstudio.coingecko_market_turnover_candidate",
+    "归一结构化榜单观测": "signalstudio.market_observation_normalizer"
+  },
+  "rules_zh": [
+    "单一行情通道；爬虫只发布一次，同一通道支持独立消费者。",
+    "Value根对象为单币种行情；保留现有原始字段，meta为待实现的采集元数据扩展。id为设计要求的分区键，实际发送键未核验。",
+    "collected_at已在代码参考中声明；meta.collected_at须复制同一首次接收时间，不得用发送时间替代。meta.operation_id仍为coingecko.coins_markets，不因Topic改名而变化。",
+    "稳定source_observation_id须包含来源、运行、稳定对象；同一观测重试沿用ID及请求/接收时间。",
+    "消费组各自读取全部消息，幂等写入成功后确认offset；失败重试不重复写入或计分，异常身份隔离。",
+    "回放用于恢复/核验，保留原采集时间与版本，不为闭合历史槽补加分。",
+    "缺少请求时间、报价、覆盖、原始引用时显式标记未知，不冒充健康观测，不发布评分。",
+    "保留期与原始响应持久归档未定；通道不等于永久历史库。设计图不证明消息已发送或消费者已运行。"
+  ]
+}

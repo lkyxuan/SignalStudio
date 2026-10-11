@@ -25,7 +25,7 @@ class SignalContractStoreTest(unittest.TestCase):
         self.assertEqual(seed(self.graph, self.sources, self.signals)["id"], self.node["id"])
         package = self.signals.package(self.graph, self.node["signal_key"])
         self.assertEqual(package["implementation_readiness"], {"status": "ready", "issues": []})
-        self.assertEqual(package["signal_version"], 2)
+        self.assertEqual(package["signal_version"], 3)
         self.assertEqual(package["definition"]["design_status"], "hypothesis")
         self.assertFalse(package["runtime_evidence"]["signal_validated"])
         self.assertFalse(package["runtime_evidence"]["crawler_records_verified"])
@@ -39,7 +39,7 @@ class SignalContractStoreTest(unittest.TestCase):
         line = package["connection_contracts"][0]
         self.assertEqual(line["reference"], "L001")
         self.assertEqual(line["payload"]["payload_policy"], "preserve_complete_upstream_record")
-        self.assertEqual(line["transport"]["message_key"], "data.id")
+        self.assertEqual(line["transport"]["message_key"], "id")
         self.assertEqual(line["transport"]["consumer_group"],
                          "signalstudio.coingecko_market_turnover_candidate")
         self.assertEqual([header["name"] for header in line["transport"]["headers"]],
@@ -47,12 +47,12 @@ class SignalContractStoreTest(unittest.TestCase):
         self.assertNotIn("consumed_fields", line)
         self.assertNotIn("consumer_output", line)
         self.assertEqual(len(line["declared_upstream_field_inventory"]), 34)
-        self.assertEqual(line["declared_upstream_field_inventory"][0]["message_path"], "data.id")
+        self.assertEqual(line["declared_upstream_field_inventory"][0]["message_path"], "id")
         self.assertEqual(self.signals.connection(self.graph, line["edge_id"])["connection"], line)
         processor = package["processor_contract"]
         self.assertEqual(processor["input_line_reference"], "L001")
         self.assertEqual(len(processor["consumed_fields"]), 4)
-        self.assertEqual(processor["consumed_fields"][2]["message_path"], "data.total_volume")
+        self.assertEqual(processor["consumed_fields"][2]["message_path"], "total_volume")
         self.assertEqual(processor["processing"]["calculation"]["output"], "turnover_ratio_24h")
         self.assertEqual(self.signals.processor(self.graph, self.node["id"])["processor"], processor)
 
@@ -129,7 +129,7 @@ class SignalContractStoreTest(unittest.TestCase):
 
     def test_line_transport_mismatch_blocks_ready_status(self):
         line = self.signals.package(self.graph, self.node["id"])["connection_contracts"][0]
-        self.graph.update_edge(line["edge_id"], {"transport_key": "id"})
+        self.graph.update_edge(line["edge_id"], {"transport_key": "wrong-key"})
         changed = self.signals.package(self.graph, self.node["id"])
         self.assertIn("Input transport does not match the signal contract",
                       changed["implementation_readiness"]["issues"])

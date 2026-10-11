@@ -64,7 +64,7 @@ def seed(graph, source_contracts, signal_contracts):
     transport = spec["transport"]["input"]
     graph.update_edge(edge["id"], {
         "rationale": "把 CoinGecko 市场列表中每个币种的完整来源记录送入 Redpanda，供下游节点读取。",
-        "transformation": "每个币种一条消息；data 保留上游完整记录，meta 记录采集运行与观察 ID。",
+        "transformation": "每个币种一条消息；根对象保留行情记录，meta 记录采集运行与观察 ID。",
         "transport_kind": transport["kind"],
         "transport_topic": transport["topic"],
         "transport_key": transport["message_key"],

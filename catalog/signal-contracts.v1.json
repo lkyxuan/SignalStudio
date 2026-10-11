@@ -4,7 +4,7 @@
   "signals": [
     {
       "signal_key": "coingecko_market_turnover_candidate",
-      "version": 2,
+      "version": 3,
       "graph_node_name": "市场交易活跃候选",
       "design_status": "hypothesis",
       "question_zh": "哪些币种的最近 24 小时成交额相对其市值偏高，值得进一步调查？",
@@ -59,9 +59,9 @@
       "transport": {
         "input": {
           "kind": "redpanda",
-          "topic": "source.coingecko.coins_markets.v1",
-          "message_key": "data.id",
-          "payload_schema": "coingecko.coins_markets.v1",
+          "topic": "market.snapshot",
+          "message_key": "id",
+          "payload_schema": "market.snapshot.v1",
           "serialization": "json_utf8",
           "deployment_status": "planned"
         },
@@ -77,10 +77,10 @@
       "input_message": {
         "role": "crawler_produces_consumer_reads",
         "record_grain": "one_coingecko_coin_record_per_message",
-        "payload_record_path": "data",
+        "payload_record_path": "",
         "metadata_path": "meta",
         "payload_policy": "preserve_complete_upstream_record",
-        "unknown_upstream_fields_policy": "pass_through_in_data",
+        "unknown_upstream_fields_policy": "pass_through_in_record",
         "declared_field_inventory_status": "upstream_contract_lower_bound_not_emitted_record_evidence",
         "message_status": "planned_not_observed",
         "metadata_fields": [
@@ -129,10 +129,10 @@
         "open_implementation_decisions": ["reuse_existing_scorer_or_polars_engine", "map_planned_topics_to_existing_topics_or_provision_new_topics", "choose_raw_response_storage_location"]
       },
       "inputs": [
-        {"name": "coin_id", "upstream_path": "id", "message_path": "data.id", "type": "string", "required": true},
-        {"name": "last_updated", "upstream_path": "last_updated", "message_path": "data.last_updated", "type": "string", "required": true},
-        {"name": "total_volume_usd_24h", "upstream_path": "total_volume", "message_path": "data.total_volume", "type": "number", "required": true},
-        {"name": "market_cap_usd", "upstream_path": "market_cap", "message_path": "data.market_cap", "type": "number", "required": true}
+        {"name": "coin_id", "upstream_path": "id", "message_path": "id", "type": "string", "required": true},
+        {"name": "last_updated", "upstream_path": "last_updated", "message_path": "last_updated", "type": "string", "required": true},
+        {"name": "total_volume_usd_24h", "upstream_path": "total_volume", "message_path": "total_volume", "type": "number", "required": true},
+        {"name": "market_cap_usd", "upstream_path": "market_cap", "message_path": "market_cap", "type": "number", "required": true}
       ],
       "processing": {
         "dedupe_key": ["coin_id", "last_updated"],

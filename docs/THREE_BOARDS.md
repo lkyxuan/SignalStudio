@@ -49,3 +49,15 @@ B为同资产、来源、coin ID、USD与覆盖版本，在本次原始requested
 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_leaderboard_foundation server.test_market_scoring_reference`覆盖结构保留、文本断开、Redis投影、重入/冲突/回滚和数学参考边界：最高档、来源缺失、放量基线、双向价格、时间槽、发现基线、衰减/重复事件、旧+100隔离、历史门槛、稳定排序及过期投影。另运行项目契约、布局、构建及全部卡片双语详情渲染。
 
 这些检查不能证明Few已运行或参数有效。后续以真实上榜原因、规模/低基数偏置、重复出现、覆盖和延迟校准，版本化记录理由、前后结果与回退依据；未建立自动调参服务或监控。Few运行、历史覆盖及榜单质量仍是待验证事项。
+
+## CoinGecko 单一行情通道（SS-60）
+
+用户2026-10-11明确要求爬虫只进入一个行情消息通道，并将#3022接在Redpanda后面。[独立批准与交付卡 SS-60](https://app.notion.com/p/3f6038a63d5a817faa97dde8657a379e)。当前传输补充契约为`catalog/market-channel.v1.json`，覆盖旧foundation中的爬虫直连输入；历史安装器仅用于有序升级。
+
+#2010 `coingecko.coins_markets` → #5004 `market.snapshot` → #3022 `归一结构化榜单观测` → `leaderboard_observations`。#1001/#1002的资产与身份映射仍直接读取。早期#5002规划通道移除，其#3001候选消费者转到#5004；六条既有规则消费者保留，各消费组独立读取，评分事件Topic保持原语义。
+
+目标Value根对象为单币种行情，候选输入路径使用`id/last_updated/total_volume/market_cap`，不再要求`data`包装；现有来源参考会过滤部分字段，完整原始响应仍须持久归档。`meta`为待实现的运行/观测ID、首次请求/接收时间、报价、覆盖和原始响应引用扩展，不能伪装成上游返回字段或已发送消息。设计Message Key为`id`；现有发送键及扩展实际产出未核验。字段/时间/覆盖不足不猜值、不发布评分。
+
+#3022按稳定`observation_id`幂等持久化，成功后确认本消费组offset；重试保留原时间和ID，恢复回放不为闭合历史槽重复计分。保留期限与持久归档设施仍未知，Topic不等于永久历史库。此批交付Studio设计和迁移，不启动业务消费者、不证明真实消息或评分已运行。
+
+`server/market_channel.py`在foundation升级之后一次性迁移；先锁定并核对目标拓扑、消息字段和通道配置，冲突拒绝，事务失败回滚。保留#5004/#3022及消费者身份/位置、原映射ID和无关图。验证：`python3 -m unittest discover -s server -p 'test_market_channel.py'`及`test_signal_contract_store.py`；卡片渲染检查与服务身份核验另按主机交付流程执行。

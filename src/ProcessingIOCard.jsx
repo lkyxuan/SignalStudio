@@ -89,7 +89,7 @@ function RedpandaTopicCard({ node, graph, language, openNode }) {
   const consumers = Object.entries(settings.consumers || {});
   return <div className="redpanda-topic-card">
     <div className="source-case-inspector-heading"><h3>{zh ? '消息内容与结构' : 'Message content and structure'}</h3><span>{zh ? '定义与案例 · 非运行记录' : 'Definition and cases · not runtime records'}</span></div>
-    <div className="message-payload-fields"><strong>{scoringProposal ? 'Value.data' : 'data'} · {fields.length} {zh ? '个已列字段' : 'listed fields'}</strong>
+    <div className="message-payload-fields"><strong>{scoringProposal ? 'Value.data' : settings.payload_record_path === '' ? (zh ? 'Value 根对象' : 'Value root object') : 'data'} · {fields.length} {zh ? '个已列字段' : 'listed fields'}</strong>
       {fields.map(field => <div key={field.id}><code>{field.name}</code><span>{field.data_type}</span></div>)}
     </div>
     {node.reference_number === 5001 && <div className="processing-input-source">
@@ -98,9 +98,9 @@ function RedpandaTopicCard({ node, graph, language, openNode }) {
       <CaseRows rows={scoreCase(caseIndex, language).topicRows} />
       <ScoreTopicHeaders />
     </div>}
-    {node.reference_number === 5002 && <div className="processing-input-source">
+    {(node.reference_number === 5002 || settings.contract_ref === 'catalog/market-channel.v1.json') && <div className="processing-input-source">
       <strong>{zh ? '上游调用案例 · 预计进入 Topic 的数据' : 'Upstream call case · intended Topic data'}</strong>
-      <p className="processing-io-case-caption">{zh ? `真实 CoinGecko HTTP 调用（${coinGeckoCase.observed_at}）：请求 ids=bitcoin、vs_currency=usd，返回 1 条。下面只列这次保存的 4 个真实响应字段；其余 Topic 字段没有在该响应样本中保存。没有已验证的 Redpanda 消息，data.id 也不能仅凭请求参数当成实测响应值。` : `A real CoinGecko HTTP call at ${coinGeckoCase.observed_at} requested ids=bitcoin and vs_currency=usd and returned one row. Only four response fields were saved. No Redpanda message was verified, and the requested ID is not an observed data.id.`}</p>
+      <p className="processing-io-case-caption">{zh ? `真实 CoinGecko HTTP 调用（${coinGeckoCase.observed_at}）：请求 ids=bitcoin、vs_currency=usd，返回 1 条。下面只列这次保存的 4 个真实响应字段；其余 Topic 字段没有在该响应样本中保存。没有已验证的 Redpanda 消息，id 也不能仅凭请求参数当成实测响应值。` : `A real CoinGecko HTTP call at ${coinGeckoCase.observed_at} requested ids=bitcoin and vs_currency=usd and returned one row. Only four response fields were saved. No Redpanda message was verified, and the requested ID is not an observed id.`}</p>
       <CaseRows rows={Object.entries(coinGeckoCase.response)} />
     </div>}
     {node.reference_number === 5003 && <div className="processing-input-source">
@@ -110,6 +110,7 @@ function RedpandaTopicCard({ node, graph, language, openNode }) {
     </div>}
     {isCoinGeckoReference(node.name) && <details className="processing-advanced"><summary>{zh ? '现有代码参考 · 非实际消息' : 'Code reference · not observed messages'}</summary><CoinGeckoReferenceCard node={node} graph={graph} openNode={openNode} language={language}/></details>}
     <section className="card-detail-execution"><h3>{zh ? '投递、去重与重放规则' : 'Delivery, deduplication and replay'}</h3>
+      {(settings.rules || []).map(rule => <p key={rule}>{rule}</p>)}
       <p>{scoringProposal ? zh ? '两个独立消费组各读全部事件，按 event_key 幂等写入成功后才提交本组 offset；失败可重试，不阻塞另一组。保留期仍待评审，须覆盖归档完成和约定重放期，不按 asset_id 压缩。' : 'Independent groups write idempotently by event_key before committing their own offsets. Retry independently. Retention awaits review and must cover archive completion and agreed replay; no asset_id compaction.' : settings.retention || (zh ? '投递保证、去重键、保留期和重放范围未明确绑定，保持待定义。' : 'Delivery guarantees, dedupe key, retention and replay scope are not explicitly bound.')}</p>
     </section>
     <details className="processing-advanced"><summary>{zh ? '其他设置 · 消息格式与通道' : 'Other settings · envelope and channel'}</summary>
@@ -318,28 +319,29 @@ function ScoreEventConsumerCard({ node, graph, openNode, language }) {
 
 function MarketTurnoverCaseCard({ node, graph, openNode, language }) {
   const zh = language === 'zh-CN';
-  const topic = graph.nodes.find(item => item.reference_number === 5002);
+  const topic = graph.nodes.find(item => item.name === 'Few Understand · market.snapshot')
+    || graph.nodes.find(item => item.reference_number === 5002);
   const { total_volume: volume, market_cap: marketCap } = coinGeckoCase.response;
   const ratio = volume / marketCap;
   const threshold = turnoverContract.processing.trigger.conditions.find(item => item.field === 'turnover_ratio_24h').value;
   return <><div className="source-case-inspector processing-io-case" aria-label={zh ? '输入与输出' : 'Input and output'}>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输入' : 'Input'}</h3><span>{zh ? '上游实测值 · Topic 未验证' : 'Observed upstream values · Topic unverified'}</span></div>
       <div className="processing-input-source"><div className="processing-input-source-heading"><span>{zh ? '预计来自' : 'Intended source'}</span><button onClick={() => openNode(topic.id)}>{nodeRef(topic)} {topic.name}</button></div>
-        <p className="processing-io-case-caption">{zh ? `CoinGecko 真实 HTTP 调用于 ${coinGeckoCase.observed_at} 返回 1 条；保存了 4 个字段，这里只列计算使用的成交额和市值。#5002 尚无已验证消息；#3001 实际需要的 id 和 last_updated 不在这条保存的响应中。` : `A real CoinGecko HTTP call at ${coinGeckoCase.observed_at} returned one row. Four fields were saved; only volume and market cap are used here. #5002 has no verified message, and this sample lacks the id and last_updated needed by #3001.`}</p>
+        <p className="processing-io-case-caption">{zh ? `CoinGecko 真实 HTTP 调用于 ${coinGeckoCase.observed_at} 返回 1 条；保存了 4 个字段，这里只列计算使用的成交额和市值。行情 Topic 尚无已验证消息；#3001 实际需要的 id 和 last_updated 不在这条保存的响应中。` : `A real CoinGecko HTTP call at ${coinGeckoCase.observed_at} returned one row. Four fields were saved; only volume and market cap are used here. 行情 Topic has no verified message, and this sample lacks the id and last_updated needed by #3001.`}</p>
         <CaseRows rows={Object.entries(coinGeckoCase.response).filter(([name]) => ['total_volume', 'market_cap'].includes(name))} /></div>
     </section>
     <section className="source-case-inspector-section"><div className="source-case-inspector-heading"><h3>{zh ? '输出' : 'Output'}</h3><span>{zh ? '手工代入设计规则' : 'Apply the design rule to saved values'}</span></div>
       <div className="processing-input-source"><p className="processing-io-case-caption">{zh ? `成交额/市值 = ${volume} / ${marketCap} = ${ratio.toFixed(5)}，低于设计阈值 ${threshold}。即便补齐身份和时间字段，这条样本也不会触发候选；当前没有程序运行或发出的信号。` : `Volume/market cap = ${volume} / ${marketCap} = ${ratio.toFixed(5)}, below the design threshold ${threshold}. Even with identity and time fields, this sample would not trigger a candidate. No program run or signal emission exists.`}</p>
         <CaseRows rows={[
           ['turnover_ratio_24h', ratio.toFixed(5)], ['trigger_threshold', threshold],
-          ['data.id', zh ? '此响应样本未保存；不能由请求 ids 冒充' : 'Not saved in this response; request ids is not an observed value'],
-          ['data.last_updated', zh ? '此响应样本未保存' : 'Not saved in this response'],
+          ['id', zh ? '此响应样本未保存；不能由请求 ids 冒充' : 'Not saved in this response; request ids is not an observed value'],
+          ['last_updated', zh ? '此响应样本未保存' : 'Not saved in this response'],
           ['candidate', zh ? '预期不触发；不是已验证运行结果' : 'Expected no trigger; not an executed result'],
         ]} /></div>
     </section>
   </div><NodeCaseExplanation language={language} purpose={node.definition}
-    caseSummary={zh ? '这只验证了保存的两个数可以代入公式；没有 #5002 消息、完整必需输入、真实计算运行或候选产出。阈值仍是待验证的设计选择。' : 'Only the saved numbers can be substituted into the formula. There is no #5002 message, complete input, executed calculation, or candidate output. The threshold remains unvalidated.'}
-    recordGuide={zh ? '本例只用成交额和市值计算比例，完整响应请查看来源卡片。请求参数 ids=bitcoin 只能说明查询了什么，不能证明响应中的 data.id。' : 'Only volume and market cap are used for this ratio; the full response is on the source card. The requested ids=bitcoin says what was queried, not what data.id the saved response contained.'} /></>;
+    caseSummary={zh ? '这只验证了保存的两个数可以代入公式；没有 行情 Topic 消息、完整必需输入、真实计算运行或候选产出。阈值仍是待验证的设计选择。' : 'Only the saved numbers can be substituted into the formula. There is no 行情 Topic message, complete input, executed calculation, or candidate output. The threshold remains unvalidated.'}
+    recordGuide={zh ? '本例只用成交额和市值计算比例，完整响应请查看来源卡片。请求参数 ids=bitcoin 只能说明查询了什么，不能证明响应中的 id。' : 'Only volume and market cap are used for this ratio; the full response is on the source card. The requested ids=bitcoin says what was queried, not what id the saved response contained.'} /></>;
 }
 
 function ScoreEventPublisherCard({ node, graph, openNode, language }) {

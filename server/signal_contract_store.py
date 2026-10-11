@@ -76,11 +76,13 @@ class SignalContractStore:
         fields = {field["path"]: field for field in operation["fields"]}
         message = spec.get("input_message", {})
         metadata = message.get("metadata_fields")
+        record_path = message.get("payload_record_path")
+        prefix = "data." if record_path == "data" else ""
         if (message.get("role") != "crawler_produces_consumer_reads"
                 or message.get("payload_policy") != "preserve_complete_upstream_record"
-                or message.get("unknown_upstream_fields_policy") != "pass_through_in_data"
+                or message.get("unknown_upstream_fields_policy") != ("pass_through_in_data" if record_path == "data" else "pass_through_in_record")
                 or message.get("message_status") != "planned_not_observed"
-                or message.get("payload_record_path") != "data"
+                or record_path not in ("data", "")
                 or message.get("metadata_path") != "meta"
                 or not isinstance(metadata, list)
                 or len(metadata) != 4
@@ -98,7 +100,7 @@ class SignalContractStore:
             if (not isinstance(item, dict) or not isinstance(item.get("name"), str)
                     or not item["name"] or item["name"] in input_names
                     or item.get("upstream_path") not in fields
-                    or item.get("message_path") != "data." + item["upstream_path"]
+                    or item.get("message_path") != prefix + item["upstream_path"]
                     or item.get("required") is not True):
                 raise GraphError(f"Invalid signal input: {key}")
             input_names.add(item["name"])
@@ -142,7 +144,7 @@ class SignalContractStore:
                or transport[direction].get("serialization") != "json_utf8"
                for direction in ("input", "output")):
             raise GraphError(f"Invalid signal transport: {key}")
-        if transport["input"]["message_key"] != "data." + collection["record_identity_field"]:
+        if transport["input"]["message_key"] != prefix + collection["record_identity_field"]:
             raise GraphError(f"Invalid signal message key: {key}")
         guidance = spec.get("implementation_guidance", {})
         stages = guidance.get("stages")
@@ -318,7 +320,7 @@ class SignalContractStore:
                 "payload": spec["input_message"],
                 "declared_upstream_field_inventory": [
                     {**pick(field, ("path", "type", "evidence", "condition_zh")),
-                     "message_path": "data." + field["path"]}
+                     "message_path": ((spec["input_message"]["payload_record_path"] + ".") if spec["input_message"]["payload_record_path"] else "") + field["path"]}
                     for field in operation["fields"]],
                 "downstream_node": {"node_id": node["id"], "node_name": node["name"]},
                 "evidence_status": "design_only_no_emitted_message_verified",
