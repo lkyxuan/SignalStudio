@@ -19,6 +19,7 @@ from leaderboard_scaffolds import ensure_leaderboard_scaffolds
 from leaderboard_algorithms import ensure_leaderboard_algorithms
 from leaderboard_simple import ensure_leaderboard_simple
 from leaderboard_trends import ensure_leaderboard_trends
+from leaderboard_foundation import ensure_leaderboard_foundation
 from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 from coingecko_trending import ensure_coingecko_trending
@@ -50,6 +51,7 @@ card_model = CardModel(service)
 card_model.migrate()
 ensure_score_rollup_alignment(service)
 ensure_leaderboard_trends(service)
+ensure_leaderboard_foundation(service)
 
 
 class Handler(BaseHTTPRequestHandler):

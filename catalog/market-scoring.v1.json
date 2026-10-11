@@ -1,0 +1,207 @@
+{
+  "version": "market_v1",
+  "status": "user_delegated_initial_design",
+  "approved_on": "2026-10-11",
+  "rationale_url": "https://app.notion.com/p/3f5038a63d5a81c0abf5f64c1b14be0e",
+  "delivery_url": "https://app.notion.com/p/3f6038a63d5a81bcac15edae7a039870",
+  "runtime_status": "reference_math_verified_only_few_backend_not_implemented",
+  "parameters": {
+    "source": "coingecko.coins_markets",
+    "quote_currency": "usd",
+    "evaluation_slot_minutes": 5,
+    "max_source_age_minutes": 15,
+    "min_market_cap_usd": 10000000,
+    "min_volume_24h_usd": 1000000,
+    "top_n": 20,
+    "market_history_days": 14,
+    "volume_baseline_hours": 24,
+    "volume_baseline_tolerance_minutes": 30,
+    "min_baseline_volume_usd": 1000000,
+    "warming_min_volume_ratio": 1.5,
+    "warming_min_abs_price_pct": 5,
+    "warming_score_lookback_minutes": 60,
+    "score_history_tolerance_minutes": 10,
+    "new_max_age_days": 7,
+    "score_refresh_seconds": 60,
+    "max_score_age_seconds": 120
+  },
+  "rules": [
+    {
+      "key": "volume",
+      "label_zh": "24小时成交额规模",
+      "metric": "total_volume",
+      "tiers": [
+        [
+          1000000,
+          10
+        ],
+        [
+          10000000,
+          20
+        ],
+        [
+          100000000,
+          30
+        ],
+        [
+          1000000000,
+          40
+        ]
+      ],
+      "half_life_minutes": 30
+    },
+    {
+      "key": "turnover",
+      "label_zh": "成交活跃度（成交额/市值）",
+      "metric": "volume_to_market_cap",
+      "tiers": [
+        [
+          0.1,
+          5
+        ],
+        [
+          0.3,
+          10
+        ],
+        [
+          1,
+          20
+        ]
+      ],
+      "half_life_minutes": 30
+    },
+    {
+      "key": "price",
+      "label_zh": "绝对24小时价格变化",
+      "metric": "abs_price_pct",
+      "tiers": [
+        [
+          5,
+          5
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          20,
+          20
+        ]
+      ],
+      "half_life_minutes": 30
+    },
+    {
+      "key": "volume_growth",
+      "label_zh": "相对前一天成交额倍数",
+      "metric": "volume_ratio",
+      "tiers": [
+        [
+          1.5,
+          10
+        ],
+        [
+          2,
+          20
+        ],
+        [
+          3,
+          30
+        ],
+        [
+          5,
+          40
+        ]
+      ],
+      "half_life_minutes": 30
+    },
+    {
+      "key": "discovery",
+      "label_zh": "首次有效发现（基线后，一次性）",
+      "points": 20,
+      "half_life_minutes": 1440
+    }
+  ],
+  "scoring": {
+    "score_key": "total_heat",
+    "policy_prefix": "market_v1/",
+    "tier_policy": "highest_matching_tier_only",
+    "max_activity_points_per_slot": 120,
+    "decay_formula": "score_delta * 2 ** (-elapsed_minutes / half_life_minutes)",
+    "hot_score": "sum(decayed volume, turnover, price, volume_growth contributions)",
+    "new_score": "activity_score + discovery_score",
+    "warming_score": "activity_score(now) - saved_activity_score(60m earlier)",
+    "tie_break": "asset_id ascending; full precision; display 2 decimals",
+    "scope": "Exact market_v1 policy IDs only. Existing initial +100, search-trending and other rules stay on their existing chain, excluded from pure-market board projection."
+  },
+  "idempotency": {
+    "slot": "UTC floor(request_started_at/300)*300, frozen on retry",
+    "snapshot": "Freeze first valid successful response and mapping per source/slot; no late-slot awards or catch-up.",
+    "contribution": "One positive contribution per asset/rule/slot; repeated valid later slots may contribute again. Highest tier only.",
+    "decision_ref": "market_v1/{asset_id}/{rule_key}/{slot_start_utc}; discovery uses market_v1/{asset_id}/discovery/once",
+    "publisher": "#3006 assigns event_key and first created_at; persist and retry original values and decay parameters. No per-query awards.",
+    "discovery": "One award per verified asset/rule version after baseline; preserve first_seen_at. baseline/coverage_added/pending never award."
+  },
+  "quality": [
+    "Only finite valid USD market values; require unique verified asset_id before publishing scores.",
+    "Validate source and collected/request times; no future/over-15m source timestamps. Failed or missing coverage is not zero.",
+    "Rolling 24h volume snapshots are not 5m/1h volume; compare with causal same-source/currency/coverage baseline near t-24h.",
+    "History gaps skip only volume_growth contribution; warming requires a valid volume baseline and saved score baseline.",
+    "Price magnitude generates attention points for both directions; preserve up/down and do not infer buy/sell.",
+    "Queries never execute graph actions. Changes to tiers require a new rule version, no reinterpretation of frozen events.",
+    "Redis current projections older than 120 seconds are excluded; no refresh success is inferred from card definitions."
+  ],
+  "examples": [
+    {
+      "label": "假设A：放量上涨",
+      "volume": 50000000,
+      "market_cap": 100000000,
+      "price_pct": 8,
+      "baseline_volume": 25000000,
+      "expected": {
+        "volume": 20,
+        "turnover": 10,
+        "price": 5,
+        "volume_growth": 20
+      },
+      "total_per_slot": 55
+    },
+    {
+      "label": "假设B：大额平稳",
+      "volume": 2000000000,
+      "market_cap": 100000000000,
+      "price_pct": 2,
+      "baseline_volume": 2000000000,
+      "expected": {
+        "volume": 40,
+        "turnover": 0,
+        "price": 0,
+        "volume_growth": 0
+      },
+      "total_per_slot": 40
+    },
+    {
+      "label": "假设C：低量级放量下跌",
+      "volume": 2000000,
+      "market_cap": 20000000,
+      "price_pct": -22,
+      "baseline_volume": 1000000,
+      "expected": {
+        "volume": 10,
+        "turnover": 5,
+        "price": 20,
+        "volume_growth": 20
+      },
+      "total_per_slot": 55
+    }
+  ],
+  "calibration": {
+    "status": "initial_not_validated",
+    "check": [
+      "Top results and contribution explanation",
+      "Large-asset and low-baseline bias",
+      "Coverage gaps, duplicate awards and repeated appearances",
+      "Sensitivity to tiers and half-lives"
+    ],
+    "execution": "Versioned review against real observations; no autonomous production parameter mutation or scheduled monitor installed."
+  }
+}
