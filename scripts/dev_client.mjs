@@ -7,7 +7,7 @@ const [root, port, backend, token, host = '127.0.0.1', control = '18789'] = proc
 const shared = host !== '127.0.0.1';
 function configure(vite) {
   vite.middlewares.use((req, res, next) => {
-    if (req.url?.startsWith('/api/') && req.headers.origin &&
+    if ((req.url?.startsWith('/api/') || req.url?.startsWith('/__signalstudio_updater')) && req.headers.origin &&
         req.headers.origin !== `http://${req.headers.host}`) {
       res.statusCode = 403;
       res.end('Cross-origin API requests are not allowed');
@@ -45,6 +45,7 @@ function configure(vite) {
 }
 const endpoints = { host, port: Number(port), strictPort: true,
   proxy: { '/api': `http://127.0.0.1:${backend}`,
+    '/__signalstudio_updater': { target: `http://127.0.0.1:${control}`, rewrite: () => '/updater' },
     '/__signalstudio_health': { target: `http://127.0.0.1:${control}`, rewrite: () => '/health' } } };
 const config = {
   configFile: false, root,

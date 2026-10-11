@@ -13,6 +13,7 @@ import threading
 import time
 import urllib.request
 import uuid
+from update_status import summary as updater_summary
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
@@ -96,10 +97,10 @@ def main():
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path != '/health':
+            if self.path not in ('/health', '/updater'):
                 self.send_error(404)
                 return
-            payload = json.dumps(state.copy()).encode()
+            payload = json.dumps(updater_summary() if self.path == '/updater' else state.copy()).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Cache-Control', 'no-store')

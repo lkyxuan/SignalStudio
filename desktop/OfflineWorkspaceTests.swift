@@ -61,7 +61,24 @@ import WebKit
                         button.click();
                         await new Promise(resolve => setTimeout(resolve, 1800));
                         if (!document.body.innerText.includes('已连接主机')) throw Error('Recovery not confirmed');
-                        return 'retry running / timeout / recovery and fixed UI version passed';
+                        if (window.signalstudioCanQuit() !== true) throw Error('Clean editor cannot quit');
+                        document.querySelector('.top-actions .button-primary').click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        if (window.signalstudioCanQuit() !== false) throw Error('Open draft did not block quit');
+                        const input = document.querySelector('.modal input');
+                        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+                        setter.call(input, 'SS-59 unsaved draft');
+                        input.dispatchEvent(new Event('input', {bubbles: true}));
+                        input.dispatchEvent(new Event('change', {bubbles: true}));
+                        version.querySelector('button').click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        const panel = document.querySelector('[role=dialog]');
+                        if (!panel || !panel.innerText.includes('Mac 客户端')) throw Error('Missing update panel');
+                        if (window.signalstudioCanQuit() !== false || input.value !== 'SS-59 unsaved draft') throw Error('Check updates discarded draft');
+                        panel.querySelector('.modal-header button').click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        if (input.value !== 'SS-59 unsaved draft') throw Error('Closing update panel discarded draft');
+                        return 'retry recovery, version panel and unsaved quit protection passed';
                         """
                         view.callAsyncJavaScript(check, arguments: [:], in: nil, in: .page) { result in
                             switch result {

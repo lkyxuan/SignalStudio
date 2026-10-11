@@ -14,6 +14,7 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
   }
   const state = sessionRef.current;
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const pendingWrites = useRef(0);
   const reads = useRef(new RefreshQueue());
   const manual = useRef(false);
   const [retryPhase, setRetryPhase] = useState<RefreshPhase>('idle');
@@ -62,13 +63,16 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
     document.addEventListener('visibilitychange', focus);
     return () => { window.removeEventListener('signalstudio-storage-error', storageError); alive = false; clearTimeout(timer); window.removeEventListener('focus', focus); window.removeEventListener('online', focus); window.removeEventListener('offline', offline); document.removeEventListener('visibilitychange', focus); };
   }, [reload, state, setGraph, publish]);
-  const write = useCallback((path: string, method: string, body: unknown, preserveEdits = false) => enqueue(async () => {
+  const write = useCallback((path: string, method: string, body: unknown, preserveEdits = false) => {
+    pendingWrites.current += 1;
+    return enqueue(async () => {
     try {
       const result = await state.write(path, method, body, preserveEdits);
       if (state.graph) setGraph(state.graph);
       return result;
-    } finally { publish(); }
-  }), [enqueue, publish, setGraph, state]);
+    } finally { pendingWrites.current -= 1; publish(); }
+    });
+  }, [enqueue, publish, setGraph, state]);
   const receivePending = () => { if (state.pending && state.receive(state.pending) && state.graph) setGraph(state.graph); publish(); };
   const discard = useCallback(() => {
     state.clear(); setConflict(false); setEditorEpoch(value => value + 1);
@@ -76,6 +80,8 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
     else void reload();
   }, [reload, state, setGraph]);
   return { reload, reconnect: () => reload(true), retryPhase, connectionError, write, status, conflict, confirmedAt, cacheAvailable, editorEpoch, getGraph: () => state.graph,
+    writePending: () => state.dragging || pendingWrites.current !== 0,
+    canQuit: () => !state.dirty && !state.dragging && pendingWrites.current === 0,
     markEdited: () => { state.dirty = true; },
     beginDrag: () => { state.dragging = true; },
     endDrag: () => { state.dragging = false; if (!state.dirty) receivePending(); },

@@ -51,7 +51,7 @@ final class OfflineWorkspace: NSObject, WKURLSchemeHandler, WKScriptMessageHandl
             const url = new URL(raw, location.href);
             if (url.protocol !== 'signalstudio:' || url.host !== location.host) return original(input, options);
             const path = url.pathname + url.search;
-            if (!path.startsWith('/api/') && path !== '/__signalstudio_health') return original(input, options);
+            if (!path.startsWith('/api/') && !['/__signalstudio_health', '/__signalstudio_updater'].includes(path)) return original(input, options);
             const signal = options.signal;
             if (signal?.aborted) throw signal.reason;
             const response = window.webkit.messageHandlers.workspaceHTTP.postMessage({
@@ -141,7 +141,7 @@ final class OfflineWorkspace: NSObject, WKURLSchemeHandler, WKScriptMessageHandl
             return
         }
         guard frame.scheme == "signalstudio", let path = value["path"] as? String,
-              (path.hasPrefix("/api/") || path == "/__signalstudio_health"),
+              (path.hasPrefix("/api/") || (path == "/__signalstudio_health" || path == "/__signalstudio_updater")),
               let url = URL(string: path, relativeTo: endpoint)?.absoluteURL,
               url.scheme == endpoint.scheme, url.host == endpoint.host, url.port == endpoint.port,
               let method = value["method"] as? String, ["GET", "POST", "PATCH", "PUT", "DELETE"].contains(method) else {
