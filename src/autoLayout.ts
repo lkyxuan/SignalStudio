@@ -7,6 +7,7 @@ export type LayoutGroup = { key: string; title: string; titleEn: string; nodes: 
 const textOrder = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const nodeOrder = (a: LayoutNode, b: LayoutNode) => textOrder(a.workflow_lane || '', b.workflow_lane || '') || (a.reference_number ?? Infinity) - (b.reference_number ?? Infinity) || textOrder(a.name, b.name) || textOrder(a.id, b.id);
 const isSource = (n: LayoutNode) => cardKind(n) === 'source';
+const isLeaderboard = (n: LayoutNode) => ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_emerging'].includes(n.name);
 const isFinal = (n: LayoutNode) => n.name === 'supabase_asset_scores';
 
 export function layoutGroups(nodes: LayoutNode[], edges: LayoutEdge[]): LayoutGroup[] {
@@ -52,16 +53,35 @@ export function forwardLayoutEdges(nodes: LayoutNode[], edges: LayoutEdge[]): La
   return result;
 }
 
+function contentBranchIds(nodes: LayoutNode[], edges: LayoutEdge[]): Set<string> {
+  const sideIds = new Set<string>();
+  const pending = nodes.filter(isLeaderboard).map(n => n.id);
+  const activeById = new Map(nodes.map(n => [n.id, n]));
+  while (pending.length) {
+    const id = pending.pop()!;
+    for (const e of edges) {
+      const next = activeById.get(e.downstream_id);
+      if (e.upstream_id !== id || !next || isLeaderboard(next) || isFinal(next) || isSource(next) || sideIds.has(next.id)) continue;
+      sideIds.add(next.id); pending.push(next.id);
+    }
+  }
+  return sideIds;
+}
+
 export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
   const groups = layoutGroups(nodes, edges), active = groups.find(g => g.flow)?.nodes || [];
-  const links = forwardLayoutEdges(active, edges);
-  const incoming = new Map(active.map(n => [n.id, [] as string[]]));
-  const outgoing = new Map(active.map(n => [n.id, [] as string[]]));
+  // The approved output band anchors three real leaderboard cards. Their
+  // downstream content-maintenance branch remains a single, connected side branch.
+  const sideIds = contentBranchIds(active, edges);
+  const main = active.filter(n => !sideIds.has(n.id));
+  const links = forwardLayoutEdges(main, edges);
+  const incoming = new Map(main.map(n => [n.id, [] as string[]]));
+  const outgoing = new Map(main.map(n => [n.id, [] as string[]]));
   for (const e of links) { incoming.get(e.downstream_id)!.push(e.upstream_id); outgoing.get(e.upstream_id)!.push(e.downstream_id); }
-  const byId = new Map(active.map(n => [n.id, n]));
-  const remaining = new Map(active.map(n => [n.id, incoming.get(n.id)!.length]));
-  const depth = new Map(active.map(n => [n.id, isSource(n) ? 0 : 1]));
-  const queue = active.filter(n => !remaining.get(n.id)).sort(nodeOrder);
+  const byId = new Map(main.map(n => [n.id, n]));
+  const remaining = new Map(main.map(n => [n.id, incoming.get(n.id)!.length]));
+  const depth = new Map(main.map(n => [n.id, isSource(n) ? 0 : 1]));
+  const queue = main.filter(n => !remaining.get(n.id)).sort(nodeOrder);
   while (queue.length) {
     const n = queue.shift()!;
     for (const id of outgoing.get(n.id)!) {
@@ -71,28 +91,28 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
     }
     queue.sort(nodeOrder);
   }
-  // Keep Supabase at the far right; other endpoints retain their own depth. No new card
-  // is invented for a frontend that has no saved node/binding.
+  // Anchor actual endpoints and leaderboard outputs to the bottom band.
+  // A visual output anchor does not assert that it has no downstream consumers.
   const last = Math.max(0, ...depth.values());
-  const terminal = new Set(active.filter(n => !edges.some(e => e.upstream_id === n.id && byId.has(e.downstream_id)) && !isSource(n)).map(n => n.id));
-  for (const n of active) if (isFinal(n) || terminal.has(n.id)) depth.set(n.id, last);
+  const terminal = new Set(main.filter(n => !edges.some(e => e.upstream_id === n.id && byId.has(e.downstream_id)) && !isSource(n)).map(n => n.id));
+  for (const n of main) if (isFinal(n) || isLeaderboard(n) || terminal.has(n.id)) depth.set(n.id, last);
   // Keep the final sync chain adjacent to its anchored output. Stop at a fork:
   // shared predecessors must continue to serve their real downstream branches.
-  let endpoint = active.find(isFinal)?.id;
+  let endpoint = main.find(isFinal)?.id;
   while (endpoint && incoming.get(endpoint)!.length === 1) {
     const parent = incoming.get(endpoint)![0]!;
     if (outgoing.get(parent)!.length !== 1 || isSource(byId.get(parent)!)) break;
     depth.set(parent, depth.get(endpoint)! - 1); endpoint = parent;
   }
   const columns: LayoutNode[][] = Array.from({ length: last + 1 }, () => []);
-  for (const n of active) columns[depth.get(n.id)!]!.push(n);
-  // Reserve the top row for the longest real path ending at Supabase.
-  const sourced = new Map(active.map(n => [n.id, isSource(n)]));
-  for (const n of [...active].sort((a, b) => depth.get(a.id)! - depth.get(b.id)!)) {
+  for (const n of main) columns[depth.get(n.id)!]!.push(n);
+  // Reserve the left column for the longest real path ending at Supabase.
+  const sourced = new Map(main.map(n => [n.id, isSource(n)]));
+  for (const n of [...main].sort((a, b) => depth.get(a.id)! - depth.get(b.id)!)) {
     if (incoming.get(n.id)!.some(id => sourced.get(id))) sourced.set(n.id, true);
   }
   const spine = new Set<string>();
-  let cursor = active.find(isFinal)?.id;
+  let cursor = main.find(isFinal)?.id;
   while (cursor) {
     spine.add(cursor);
     cursor = [...incoming.get(cursor)!].sort((a, b) => Number(sourced.get(b)) - Number(sourced.get(a)) || depth.get(b)! - depth.get(a)! || nodeOrder(byId.get(a)!, byId.get(b)!))[0];
@@ -110,29 +130,49 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
     }
   };
   sweep(false); sweep(true); sweep(false);
-  const positions: NodePosition[] = active.map(n => ({ id: n.id, position_x: depth.get(n.id)! * 380, position_y: 96 + rows.get(n.id)! * 208 }));
-  // Leave a separate band for feedback routes before the unused source library.
-  let top = Math.max(56, ...positions.map(p => p.position_y + 160)) + 240;
+  // Keep the three boards contiguous, in warming/hottest/emerging order.
+  const boardNames = ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_emerging'];
+  columns[last]!.sort((a, b) => Number(isFinal(b)) - Number(isFinal(a)) || Number(isLeaderboard(a)) - Number(isLeaderboard(b)) || (isLeaderboard(a) && isLeaderboard(b) ? boardNames.indexOf(a.name) - boardNames.indexOf(b.name) : nodeOrder(a, b)));
+  columns[last]!.forEach((n, index) => rows.set(n.id, index));
+  const positions: NodePosition[] = main.map(n => ({ id: n.id, position_x: rows.get(n.id)! * 380, position_y: 96 + depth.get(n.id)! * 256 }));
+  const mainRight = Math.max(300, ...positions.map(p => p.position_x + 300));
+  const side = active.filter(n => sideIds.has(n.id));
+  // Order the side branch with the same cycle-safe DAG and keep it above the footer.
+  const sideLinks = forwardLayoutEdges(side, edges);
+  const sideDepth = new Map(side.map(n => [n.id, 0]));
+  for (let i = 0; i < side.length; i++) for (const e of sideLinks)
+    sideDepth.set(e.downstream_id, Math.max(sideDepth.get(e.downstream_id)!, sideDepth.get(e.upstream_id)! + 1));
+  const sideLevels = Math.max(0, ...sideDepth.values()) + 1;
+  const sidePitch = 224;
+  const sideTop = Math.max(96, 96 + last * 256 - sideLevels * sidePitch);
+  const sideRows = new Map<number, number>();
+  for (const n of side.sort((a, b) => sideDepth.get(a.id)! - sideDepth.get(b.id)! || nodeOrder(a, b))) {
+    const level = sideDepth.get(n.id)!, slot = sideRows.get(level) || 0;
+    positions.push({ id: n.id, position_x: mainRight + 180 + slot * 380, position_y: sideTop + level * sidePitch });
+    sideRows.set(level, slot + 1);
+  }
+  // The unused library stays beside the tree and outside its initial fit viewport.
+  const libraryLeft = Math.max(300, ...positions.map(p => p.position_x + 300)) + 280;
+  let top = 96;
   for (const g of groups.filter(g => !g.flow)) {
-    const count = Math.min(4, Math.ceil(Math.sqrt(g.nodes.length)));
-    g.nodes.forEach((n, i) => positions.push({ id: n.id, position_x: (i % count) * 432, position_y: top + Math.floor(i / count) * 224 }));
+    const count = Math.min(2, Math.ceil(Math.sqrt(g.nodes.length)));
+    g.nodes.forEach((n, i) => positions.push({ id: n.id, position_x: libraryLeft + (i % count) * 380, position_y: top + Math.floor(i / count) * 224 }));
     top += Math.ceil(g.nodes.length / count) * 224 + 80;
   }
   return positions.sort((a, b) => textOrder(a.id, b.id));
 }
 
-// Render backward or same-column links below the affected cards. Coordinates
-// are read on every graph refresh, so this also works after manual arrangement.
+// Backward/same-row links detour to the right of the connected graph.
+// The unused library does not contribute to the routing envelope.
 export function feedbackRoutes(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: (LayoutEdge & { id: string })[]): Map<string, number> {
   const byId = new Map(nodes.map(n => [n.id, n]));
   const result = new Map<string, number>();
   const connected = new Set(edges.flatMap(link => [link.upstream_id, link.downstream_id]));
+  const right = Math.max(0, ...nodes.filter(n => connected.has(n.id)).map(n => n.position_x + 300));
   for (const e of [...edges].sort((a, b) => textOrder(a.id, b.id))) {
     const a = byId.get(e.upstream_id), b = byId.get(e.downstream_id);
-    if (!a || !b || a.position_x < b.position_x) continue;
-    const between = nodes.filter(n => n.position_x >= Math.min(a.position_x, b.position_x) && n.position_x <= Math.max(a.position_x, b.position_x));
-    // Unconnected library cards are excluded from the routing envelope.
-    result.set(e.id, Math.max(...between.filter(n => connected.has(n.id)).map(n => n.position_y + 160)) + 40 + result.size * 12);
+    if (!a || !b || a.position_y < b.position_y) continue;
+    result.set(e.id, right + 40 + result.size * 16);
   }
   return result;
 }
@@ -164,9 +204,15 @@ export function traceRoute(nodes: LayoutNode[], edges: (LayoutEdge & { id: strin
 export function layoutStages(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: LayoutEdge[]) {
   const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
   const byId = new Map(nodes.map(n => [n.id, n]));
-  const xs = [...new Set(active.map(n => byId.get(n.id)!.position_x))].sort((a, b) => a - b);
-  return xs.map((x, i) => ({ id: `stage:${i}`, x, y: Math.min(...active.map(n => byId.get(n.id)!.position_y)) - 64,
-    title: i === 0 ? '爬虫入口' : i === xs.length - 1 ? '最终输出' : `第 ${i} 步`,
-    titleEn: i === 0 ? 'Crawler inputs' : i === xs.length - 1 ? 'Final outputs' : `Step ${i}`,
-    count: active.filter(n => byId.get(n.id)!.position_x === x).length }));
+  const sideIds = contentBranchIds(active, edges);
+  const main = active.filter(n => !sideIds.has(n.id));
+  const ys = [...new Set(main.map(n => byId.get(n.id)!.position_y))].sort((a, b) => a - b);
+  const left = Math.min(...main.map(n => byId.get(n.id)!.position_x)) - 320;
+  const stages = ys.map((y, i) => ({ id: `stage:${i}`, x: left, y,
+    title: i === 0 ? '爬虫入口' : i === ys.length - 1 ? '榜单与输出' : `第 ${i} 步`,
+    titleEn: i === 0 ? 'Crawler inputs' : i === ys.length - 1 ? 'Leaderboards & outputs' : `Step ${i}`,
+    count: main.filter(n => byId.get(n.id)!.position_y === y).length }));
+  const side = active.filter(n => !main.includes(n));
+  if (side.length) stages.push({ id: 'stage:content', x: Math.min(...side.map(n => byId.get(n.id)!.position_x)), y: Math.min(...side.map(n => byId.get(n.id)!.position_y)) - 48, title: '榜单后续 · 内容维护', titleEn: 'Content maintenance', count: side.length });
+  return stages;
 }
