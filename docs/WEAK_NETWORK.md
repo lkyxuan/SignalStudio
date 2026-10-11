@@ -58,8 +58,9 @@ snapshots; native snapshots are separate local files.
 Bundled fallback code is replaced on App rebuild/update; its hashed resources load from that bundle
 only, preventing mixed HTTP asset versions. An offline shell detects server-code changes and asks to
 save then reopen the App; an online reopen loads the latest server page. Normal online pages retain
-save-before-refresh behavior. No executable UI updater is installed. Existing installed Apps must be
-replaced once to obtain this native startup path; server deployment alone is insufficient.
+save-before-refresh behavior. Updater-enabled shared Apps obtain new bundled resources through the
+[SS-59 native updater](CLIENT_UPDATES.md); older Apps need its one-time installation.
+Server deployment alone does not replace bundled native resources.
 
 ## Reconnect feedback and build identity
 
