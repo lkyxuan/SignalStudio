@@ -1,3 +1,5 @@
+import layoutPolicy from './layoutPolicy.json';
+export const LAYOUT_VERSION = layoutPolicy.version;
 import type { GraphNode, GraphEdge } from './contracts';
 import { cardKind } from './cardModel';
 export type LayoutNode = Pick<GraphNode, 'id' | 'name'> & { type: string; is_system_state?: number; kind?: string; workflow_lane?: string; reference_number?: number | null };

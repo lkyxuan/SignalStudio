@@ -23,7 +23,7 @@ import { SourceCasePage } from './SourceCasePage';
 import { OtherSourceCasePage } from './OtherSourceCasePage';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { createCardClickDispatcher } from './cardClicks';
-import { autoLayout, layoutGroups, feedbackRoutes, supportRoutes, traceRoute, layoutStages } from './autoLayout';
+import { LAYOUT_VERSION, autoLayout, layoutGroups, feedbackRoutes, supportRoutes, traceRoute, layoutStages } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
@@ -444,7 +444,7 @@ function App() {
   const arrangeNodes = async () => {
     if (!graph.nodes.length) return;
     const positions = autoLayout(graph.nodes, graph.edges);
-    const result = await mutate('/nodes/layout', 'POST', { positions }, 'Nodes arranged');
+    const result = await mutate('/nodes/layout', 'POST', { layout_version: LAYOUT_VERSION, positions }, 'Nodes arranged');
     if (result) { setFocusNodeId(null); const active = layoutGroups(graph.nodes, graph.edges).find(group => group.flow)?.nodes || []; setTimeout(() => flowInstance?.fitView({ nodes: active.map(node => ({ id: node.id })), padding: 0.16, maxZoom: 0.85, duration: 450 }), 100); }
   };
   const discardEdits = () => {

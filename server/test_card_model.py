@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from card_model import CardModel, MODEL, VERSION, package_digest, stable
-from graph_service import GraphService
+from graph_service import LAYOUT_VERSION, GraphService
 from live_state import snapshot
 
 
@@ -140,7 +140,7 @@ class CardModelTest(unittest.TestCase):
         self.model.migrate(); node=self.node('stable')
         self.service.db.commit()
         before=snapshot(self.service); package=self.model.package()
-        self.service.update_layout({'positions':[{'id':node['id'],'position_x':500,'position_y':600}]})
+        self.service.update_layout({'layout_version': LAYOUT_VERSION, 'positions':[{'id':node['id'],'position_x':500,'position_y':600}]})
         after=snapshot(self.service)
         self.assertNotEqual(before['revision'],after['revision'])
         self.assertNotEqual(before['presentation_revision'],after['presentation_revision'])

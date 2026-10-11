@@ -11,6 +11,8 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+LAYOUT_VERSION = json.loads((Path(__file__).resolve().parent.parent / "src" / "layoutPolicy.json").read_text())["version"]
+
 TYPES = ("Source", "Raw Field", "Evidence Check", "Asset Resolution", "Relationship Lookup",
          "Relationship Discovery", "Review Decision", "Derived Field", "Metric",
          "Score", "Ranking", "Rule Evaluation", "Flow Result", "Signal Event", "Product Module",
@@ -1101,6 +1103,10 @@ class GraphService:
         return after
 
     def update_layout(self, data, actor="user"):
+        # Older open pages/native bundles compute their own obsolete coordinates.
+        # Refuse them before reading or changing the graph; do not replay the write.
+        if not isinstance(data, dict) or data.get("layout_version") != LAYOUT_VERSION:
+            raise GraphError("整理规则已更新，本次未修改布局。请先保存编辑并刷新工作台；若使用内置界面，请更新或重新打开软件。 Layout rules changed; save edits and refresh or update the client.")
         positions = data.get("positions") if isinstance(data, dict) else None
         if not isinstance(positions, list):
             raise GraphError("Positions must be a list")

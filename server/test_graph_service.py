@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from graph_service import GraphError, GraphService
+from graph_service import LAYOUT_VERSION, GraphError, GraphService
 from catalog_store import CatalogStore
 
 
@@ -295,16 +295,29 @@ class GraphServiceTest(unittest.TestCase):
         self.service.delete_node(node["id"])
         self.assertIsNone(self.service.find_name("Liquidity Signal"))
 
+    def test_layout_rejects_missing_or_obsolete_policy_without_writes(self):
+        self._flow()
+        positions = [{"id": n["id"], "position_x": 900, "position_y": 800}
+                     for n in self.service.graph()["nodes"]]
+        before = list(self.service.db.iterdump())
+        for version in [None, "ss58-vertical.v1", 1]:
+            body = {"positions": positions}
+            if version is not None:
+                body["layout_version"] = version
+            with self.subTest(version=version), self.assertRaisesRegex(GraphError, "本次未修改布局"):
+                self.service.update_layout(body)
+            self.assertEqual(list(self.service.db.iterdump()), before)
+
     def test_layout_updates_all_positions_atomically(self):
         self._flow()
         original = self.service.graph()["nodes"]
         positions = [{"id": node["id"], "position_x": index * 340,
                       "position_y": index * 160} for index, node in enumerate(original)]
         with self.assertRaises(GraphError):
-            self.service.update_layout({"positions": positions[:-1] + [{**positions[-1], "position_x": float("nan")}]})
+            self.service.update_layout({"layout_version": LAYOUT_VERSION, "positions": positions[:-1] + [{**positions[-1], "position_x": float("nan")}]})
         self.assertEqual([(node["position_x"], node["position_y"]) for node in self.service.graph()["nodes"]],
                          [(node["position_x"], node["position_y"]) for node in original])
-        self.assertEqual(self.service.update_layout({"positions": positions}), {"updated": len(original)})
+        self.assertEqual(self.service.update_layout({"layout_version": LAYOUT_VERSION, "positions": positions}), {"updated": len(original)})
         self.assertEqual([(node["position_x"], node["position_y"]) for node in self.service.graph()["nodes"]],
                          [(item["position_x"], item["position_y"]) for item in positions])
 

@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from card_model import CardModel
-from graph_service import GraphService
+from graph_service import LAYOUT_VERSION, GraphService
 from live_state import snapshot
 
 
@@ -45,7 +45,7 @@ class CardProgressTest(unittest.TestCase):
     def test_title_layout_do_not_invalidate_but_behavior_does(self):
         self.report()
         self.service.update_node(self.node['id'],{'name':'renamed'})
-        self.service.update_layout({'positions':[{'id':self.node['id'],'position_x':20,'position_y':30}]})
+        self.service.update_layout({'layout_version': LAYOUT_VERSION, 'positions':[{'id':self.node['id'],'position_x':20,'position_y':30}]})
         self.assertIsNotNone(self.progress()['report'])
         self.service.update_node(self.node['id'],{'formula':'different calculation'})
         self.assertIsNone(self.progress()['report'])
