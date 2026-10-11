@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout, feedbackRoutes, forwardLayoutEdges, layoutGroups, type LayoutNode } from './autoLayout';
+import { autoLayout, feedbackRoutes, forwardLayoutEdges, layoutGroups, traceRoute, layoutStages, type LayoutNode } from './autoLayout';
 const node = (id: string, kind = 'process', name = id): LayoutNode => ({ id, name, type: kind === 'source' ? 'Source' : 'Metric', kind });
 const edge = (a: string, b: string) => ({ id: `${a}-${b}`, upstream_id: a, downstream_id: b });
 function verify(nodes: LayoutNode[], edges: ReturnType<typeof edge>[]) {
@@ -60,14 +60,38 @@ test('cycles, self links, duplicate and dangling edges produce deterministic fin
   assert.deepEqual(autoLayout([], edges), []);
 });
 
-test('short branch endpoints stay near their producer and the Supabase connector has a clear top row', () => {
+test('output boundary is fixed and the last sync steps stay adjacent to Supabase', () => {
   const nodes = [node('source', 'source'), node('topic', 'channel'), node('lookup'), node('input', 'table'), node('end', 'table', 'supabase_asset_scores'), node('short'), node('deep1'), node('deep2'), node('deep3')];
   const edges = [edge('source', 'topic'), edge('topic', 'lookup'), edge('input', 'lookup'), edge('lookup', 'end'), edge('source', 'short'), edge('lookup', 'deep1'), edge('deep1', 'deep2'), edge('deep2', 'deep3')];
   const p = verify(nodes, edges);
-  assert.equal(p.get('source')!.position_y, 56);
-  assert.equal(p.get('topic')!.position_y, 56);
-  assert.ok(p.get('input')!.position_y > 56);
-  assert.ok(p.get('short')!.position_x < p.get('deep3')!.position_x);
-  assert.ok(p.get('deep1')!.position_y > 56);
-  assert.ok(p.get('deep2')!.position_y > 56);
+  assert.equal(p.get('source')!.position_y, 96);
+  assert.equal(p.get('topic')!.position_y, 96);
+  assert.ok(p.get('input')!.position_y > 96);
+  assert.equal(p.get('short')!.position_x, p.get('end')!.position_x);
+  assert.ok(p.get('deep1')!.position_y > 96);
+  assert.ok(p.get('deep2')!.position_y > 96);
+});
+
+test('selected route includes complete ancestors and descendants without unrelated fork siblings', () => {
+  const nodes = ['s', 'fork', 'chosen', 'next', 'end', 'sibling', 'other', 'isolated'].map(id => node(id));
+  const edges = [edge('s', 'fork'), edge('fork', 'chosen'), edge('chosen', 'next'), edge('next', 'end'), edge('fork', 'sibling'), edge('sibling', 'other')];
+  const result = traceRoute(nodes, edges, 'chosen');
+  assert.deepEqual([...result.nodeIds].sort(), ['chosen', 'end', 'fork', 'next', 's'].sort());
+  assert.equal(result.edgeIds.size, 4);
+  assert.equal(traceRoute(nodes, edges, 'missing').nodeIds.size, 0);
+  assert.deepEqual([...traceRoute(nodes, edges, 'isolated').nodeIds], ['isolated']);
+});
+test('complete route traversal preserves cycles and excludes dangling edges', () => {
+  const nodes = ['a', 'b', 'c'].map(id => node(id));
+  const edges = [edge('a', 'b'), edge('b', 'a'), edge('b', 'c'), edge('missing', 'a')];
+  const result = traceRoute(nodes, edges, 'b');
+  assert.equal(result.nodeIds.size, 3); assert.equal(result.edgeIds.size, 3);
+});
+test('stage labels are presentation data and preserve saved coordinates', () => {
+  const nodes = [node('s', 'source'), node('p'), node('end', 'table', 'supabase_asset_scores')], edges = [edge('s', 'p'), edge('p', 'end')];
+  const positions = verify(nodes, edges);
+  const positioned = nodes.map(n => ({ ...n, ...positions.get(n.id)! }));
+  const stages = layoutStages(positioned, edges);
+  assert.equal(stages[0]!.title, '爬虫入口'); assert.equal(stages.at(-1)!.title, '最终输出');
+  assert.equal(stages.length, 3);
 });

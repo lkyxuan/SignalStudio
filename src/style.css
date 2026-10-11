@@ -122,3 +122,5 @@
 .live-update-banner button:disabled{cursor:wait;opacity:.7}
 @keyframes connection-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.connection-spinner{animation:none}}
+
+.route-toolbar{position:absolute;top:12px;left:12px;z-index:8;display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--ss-sidebar);border:1px solid var(--ss-border);border-radius:8px;font-size:12px}.route-toolbar span{color:var(--ss-accent)}.route-toolbar button{background:var(--ss-raised);color:var(--ss-text);border:1px solid var(--ss-border);padding:5px 9px;border-radius:5px}.graph-group-label{border-top:2px solid var(--ss-accent);padding-top:8px}

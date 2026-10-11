@@ -74,7 +74,16 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
   // Keep Supabase at the far right; other endpoints retain their own depth. No new card
   // is invented for a frontend that has no saved node/binding.
   const last = Math.max(0, ...depth.values());
-  for (const n of active) if (isFinal(n)) depth.set(n.id, last);
+  const terminal = new Set(active.filter(n => !edges.some(e => e.upstream_id === n.id && byId.has(e.downstream_id)) && !isSource(n)).map(n => n.id));
+  for (const n of active) if (isFinal(n) || terminal.has(n.id)) depth.set(n.id, last);
+  // Keep the final sync chain adjacent to its anchored output. Stop at a fork:
+  // shared predecessors must continue to serve their real downstream branches.
+  let endpoint = active.find(isFinal)?.id;
+  while (endpoint && incoming.get(endpoint)!.length === 1) {
+    const parent = incoming.get(endpoint)![0]!;
+    if (outgoing.get(parent)!.length !== 1 || isSource(byId.get(parent)!)) break;
+    depth.set(parent, depth.get(endpoint)! - 1); endpoint = parent;
+  }
   const columns: LayoutNode[][] = Array.from({ length: last + 1 }, () => []);
   for (const n of active) columns[depth.get(n.id)!]!.push(n);
   // Reserve the top row for the longest real path ending at Supabase.
@@ -101,7 +110,7 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
     }
   };
   sweep(false); sweep(true); sweep(false);
-  const positions: NodePosition[] = active.map(n => ({ id: n.id, position_x: depth.get(n.id)! * 432, position_y: 56 + rows.get(n.id)! * 224 }));
+  const positions: NodePosition[] = active.map(n => ({ id: n.id, position_x: depth.get(n.id)! * 380, position_y: 96 + rows.get(n.id)! * 208 }));
   // Leave a separate band for feedback routes before the unused source library.
   let top = Math.max(56, ...positions.map(p => p.position_y + 160)) + 240;
   for (const g of groups.filter(g => !g.flow)) {
@@ -126,4 +135,38 @@ export function feedbackRoutes(nodes: (LayoutNode & { position_x: number; positi
     result.set(e.id, Math.max(...between.filter(n => connected.has(n.id)).map(n => n.position_y + 160)) + 40 + result.size * 12);
   }
   return result;
+}
+
+// Traverse each direction independently: walking back to a fork must not pull
+// every sibling branch into the selected route. Cycles are visited once.
+export function traceRoute(nodes: LayoutNode[], edges: (LayoutEdge & { id: string })[], focus: string) {
+  const valid = new Set(nodes.map(n => n.id));
+  const nodeIds = new Set<string>(), edgeIds = new Set<string>();
+  if (!valid.has(focus)) return { nodeIds, edgeIds };
+  nodeIds.add(focus);
+  for (const reverse of [true, false]) {
+    const visited = new Set<string>(), pending = [focus];
+    while (pending.length) {
+      const id = pending.pop()!;
+      if (visited.has(id)) continue;
+      visited.add(id);
+      for (const edge of edges) {
+        if (!valid.has(edge.upstream_id) || !valid.has(edge.downstream_id)) continue;
+        if ((reverse ? edge.downstream_id : edge.upstream_id) !== id) continue;
+        const next = reverse ? edge.upstream_id : edge.downstream_id;
+        nodeIds.add(next); edgeIds.add(edge.id); pending.push(next);
+      }
+    }
+  }
+  return { nodeIds, edgeIds };
+}
+
+export function layoutStages(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: LayoutEdge[]) {
+  const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  const xs = [...new Set(active.map(n => byId.get(n.id)!.position_x))].sort((a, b) => a - b);
+  return xs.map((x, i) => ({ id: `stage:${i}`, x, y: Math.min(...active.map(n => byId.get(n.id)!.position_y)) - 64,
+    title: i === 0 ? '爬虫入口' : i === xs.length - 1 ? '最终输出' : `第 ${i} 步`,
+    titleEn: i === 0 ? 'Crawler inputs' : i === xs.length - 1 ? 'Final outputs' : `Step ${i}`,
+    count: active.filter(n => byId.get(n.id)!.position_x === x).length }));
 }
