@@ -8,7 +8,7 @@ import { useLiveGraph } from './useLiveGraph';
 import { ServerUpdateNotice, WorkspaceVersion, useServerVersion } from './ServerUpdateNotice';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ReactFlow, Background, Controls, MiniMap, Handle, Position, MarkerType, useEdgesState, useNodesState, useUpdateNodeInternals } from '@xyflow/react';
+import { ReactFlow, BaseEdge, Background, Controls, MiniMap, Handle, Position, MarkerType, useEdgesState, useNodesState, useUpdateNodeInternals } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, CircleHelp, Database, GitBranch, Layers3, LayoutGrid, List, Maximize2, Network, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { EdgeMappingPanel, FieldCatalog } from './FieldPanels';
@@ -22,7 +22,7 @@ import { sourcePurpose } from './SourceUsageGuide';
 import { SourceCasePage } from './SourceCasePage';
 import { OtherSourceCasePage } from './OtherSourceCasePage';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
-import { autoLayout, layoutGroups } from './autoLayout';
+import { autoLayout, layoutGroups, feedbackRoutes } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
@@ -136,6 +136,13 @@ function LogicNode({ id, data, selected }) {
 function GroupLabel({ data }) {
   return <div className="graph-group-label"><strong>{data.title}</strong><span>{data.count}</span></div>;
 }
+function FeedbackEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
+  const right = sourceX + 36, left = targetX - 36;
+  const bottom = Math.max(data.routeY, sourceY + 60, targetY + 60);
+  const path = `M ${sourceX} ${sourceY} L ${right - 8} ${sourceY} Q ${right} ${sourceY} ${right} ${sourceY + 8} L ${right} ${bottom - 8} Q ${right} ${bottom} ${right - 8} ${bottom} L ${left + 8} ${bottom} Q ${left} ${bottom} ${left} ${bottom - 8} L ${left} ${targetY + 8} Q ${left} ${targetY} ${left + 8} ${targetY} L ${targetX} ${targetY}`;
+  return <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
+}
+const edgeTypes = { feedback: FeedbackEdge };
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
 
 function IconButton({ children, title, onClick, active, className = '' }) {
@@ -207,8 +214,9 @@ function App() {
     const pendingNeedNames = new Map();
     for (const requirement of graph.requirements || []) if (!requirement.source_field_id) pendingNeedNames.set(requirement.node_id, [...(pendingNeedNames.get(requirement.node_id) || []), requirement.name]);
     const ports = new Map(graph.nodes.map(node => [node.id, { inputPorts: [], outputPorts: [] }]));
+    const feedback = feedbackRoutes(graph.nodes, graph.edges);
     for (const edge of graph.edges) {
-      const side = nodeById.get(edge.downstream_id)?.is_system_state ? 'bottom' : 'normal';
+      const side = 'normal';
       ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side });
       ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side });
     }
@@ -219,9 +227,9 @@ function App() {
     }
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
     setEdges(graph.edges.map(e => { const color = 'var(--ss-edge)';
-      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: 'default', animated: false,
+      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: feedback.has(e.id) ? 'feedback' : 'default', data: { routeY: feedback.get(e.id) }, animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
-        style: { stroke: color, strokeWidth: 1.5 }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
+        style: { stroke: color, strokeWidth: 1.5, strokeDasharray: feedback.has(e.id) ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
   }, [graph, language, catalogEntityInfo, setNodes, setEdges]);
 
   const selected = graph.nodes.find(n => n.id === selectedId);
@@ -436,8 +444,8 @@ function App() {
       <section className="workspace-head"><div><div className="eyebrow"><span className="eyebrow-line" /> {t('DESIGN STUDIO')}</div><h1>{t('Signal design graph')}</h1><p>{language === 'zh-CN' ? '按数据来源、处理、判断、数据表、消息通道和缓存／窗口组织。历史编号保持不变，可按编号搜索。' : 'Six card types: source, process, decision, table, channel and cache / window. Historical reference numbers remain unchanged.'}</p></div><div className="workspace-stats"><div><strong>{contractSummary?.entries ?? '—'}</strong><span>{language === 'zh-CN' ? '上游入口' : 'UPSTREAM ENTRIES'}</span></div><i /><div><strong>{contractSummary?.fields ?? '—'}</strong><span title={language === 'zh-CN' ? '当前已列出的样本字段和文档计划字段；并非完整返回字段总数' : 'Sample paths and planned documented fields; not a complete output schema'}>{language === 'zh-CN' ? '已列字段定义' : 'LISTED FIELD DEFINITIONS'}</span></div><i /><div><strong>{graph.edges.length}</strong><span>{t('CONNECTIONS')}</span></div></div></section>
       <section className="work-card">
         <div className="workflow-tabs" role="tablist" aria-label={t('Workflow paths')}>{WORKFLOW_VIEWS.map(item => <button key={item.id} role="tab" aria-selected={laneView === item.id} className={laneView === item.id ? 'active' : ''} onClick={() => { setLaneView(item.id); setTypeFilter('All types'); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); }}>{t(item.name)}</button>)}<p>{language === 'zh-CN' ? '总览和两条路径使用同一张设计图' : 'Overview and both paths use the same design graph'}</p></div>
-        <div className="view-toolbar"><div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right">{view === 'graph' && <div className="local-view-switch" role="group" aria-label={language === 'zh-CN' ? '连线展示方式' : 'Connection display mode'}><button className={graphDisplayMode === 'full' ? 'active' : ''} aria-pressed={graphDisplayMode === 'full'} onClick={() => setGraphDisplayMode('full')}>{language === 'zh-CN' ? '完整图' : 'Full graph'}</button></div>}<div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '定位编号、名称或R字段关系' : 'Locate number, name, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{kindLabel(type, language)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Arrange by workflow; separate shared resources and source library') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
-        {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={graph} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap"><ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+        <div className="view-toolbar"><div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right">{view === 'graph' && <div className="local-view-switch" role="group" aria-label={language === 'zh-CN' ? '连线展示方式' : 'Connection display mode'}><button className={graphDisplayMode === 'full' ? 'active' : ''} aria-pressed={graphDisplayMode === 'full'} onClick={() => setGraphDisplayMode('full')}>{language === 'zh-CN' ? '完整图' : 'Full graph'}</button></div>}<div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '定位编号、名称或R字段关系' : 'Locate number, name, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{kindLabel(type, language)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Arrange data flow from sources to Supabase; route feedback separately') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
+        {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={graph} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap"><ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onNodeClick={(_, node) => openNode(node.id)} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { setSelectedId(null); setSelectedEdgeId(null); }}
           onNodeDragStart={live.beginDrag}
           onNodeDragStop={async (_, node) => { await mutate(`/nodes/${node.id}`, 'PATCH', { position_x: node.position.x, position_y: node.position.y }); live.endDrag(); }}

@@ -152,7 +152,7 @@ const zh: Record<string, string> = {
   'Fit graph': '适应画布',
   'Arrange nodes': '整理节点',
   'Arrange nodes by dependency': '按依赖关系整理节点',
-  'Arrange by workflow; separate shared resources and source library': '按业务流程分区；共用资源与未连接来源分别排列',
+  'Arrange data flow from sources to Supabase; route feedback separately': '从左侧来源沿数据流排列到右上 Supabase；回边单独绕行',
   'Nodes arranged': '节点已整理',
   'Drag from a node handle to create a dependency': '从节点连接点拖动以创建依赖',
   'Select a connection to remove it': '选中连接后可将其删除',
