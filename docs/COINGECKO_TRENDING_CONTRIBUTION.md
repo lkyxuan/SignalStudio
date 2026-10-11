@@ -49,8 +49,10 @@ and unverified for this rule. No credentials, scheduler or deployment is enabled
 
 ## Card implementation and verification
 
-`server/coingecko_trending.py` installs four edges: source/identifiers/assets → contribution →
-publisher. It records consumed fields and installs once transactionally, preserving existing
+`server/coingecko_trending.py` is the historical four-edge installer; the ordered
+`server/trending_channel.py` upgrade now replaces the direct source input with
+source → social.data → contribution. Identifiers/assets and contribution → publisher remain.
+It records consumed fields and installs once transactionally, preserving existing
 user formulas, positions and later deletions. It does not alter the shared publisher, initial
 scoring rule, current-score snapshot, or dormant leaderboard scaffold algorithms.
 
@@ -64,7 +66,7 @@ distinguishable in future admin explanations. No accepted runtime event is fabri
 Run:
 
 ```sh
-PYTHONPATH=server python3 -m unittest server.test_coingecko_trending server.test_source_contract_store
+PYTHONPATH=server python3 -m unittest server.test_coingecko_trending server.test_trending_channel server.test_source_contract_store
 npx tsx --test src/coingeckoTrendingDesign.test.ts
 npm run build
 ```
@@ -74,3 +76,42 @@ portable source cadence and evidence status, retry identity stability, slot boun
 missing/conflicting identity, failure/absence, and mixed/fractional per-event decay. Runtime
 acceptance still requires real paired collection evidence, durable decision recovery, publisher
 deduplication and end-to-end board/admin visibility in Fewunderstand.
+
+## Collection message channel (SS-61)
+
+Approved 2026-10-11 in [SS-61](https://app.notion.com/p/3f6038a63d5a81bda933cf5859c824f0).
+`catalog/trending-channel.v1.json` supplements the original contribution contract and
+overrides only its direct collection input. Reuse the existing broad `social.data` Topic:
+search attention is an upstream observation, similar in domain to the Kaito attention/ranking
+family in the local Fewunderstand registry. Do not create a per-source Topic or classify it
+as a computed indicator, strategy signal, project metadata, or price snapshot.
+
+The required new registry tuple is `source=coingecko`, `type=social-intelligence`,
+`category=coingecko_search_trending_snapshot`, mapped to
+`social.coingecko_search_trending_snapshot.v1`. These are Studio design requirements,
+not an already registered/emitted message. Consumers read the broad Topic then dispatch
+by the exact tuple and validate Value.data. Other registered types belong to their own
+handlers; unknown/invalid messages require durable isolation, not default trending parsing.
+Headers do not filter on the broker; the registry binds the schema version.
+
+One record contains the complete `coins` list plus `slot_start`, `request_started_at`,
+`collected_at`, `run_id`, `snapshot_ref`, and `status`. These fields live in Value.data.
+`status=success` requires a valid list, including an empty list; `failed` uses null coins
+and records health without implying absence. Preserve the complete original response/failure
+evidence behind a durable snapshot_ref. Request retries retain the first request's slot,
+transport retries retain the message and times, and the first valid success (even empty)
+is frozen atomically. The key `data.slot_start` keeps this category's same-slot messages
+together, but is not the scoring idempotency key.
+
+The independent group `signalstudio.coingecko_trending_contribution` persists the snapshot
+and idempotent decisions before resuming delivery through the original score publisher and
+committing its own offset. Never generate a second contribution on crash/retry. Responses
+arriving late and messages replayed after their original slot closes are evidence only,
+without retroactive awards. Source identity resolution and all existing scoring/decay rules
+remain authoritative.
+
+The local Fewunderstand registry at a4b410d declares social.data with six partitions and
+seven-day retention; live broker configuration, availability and archive/recovery coverage
+remain unverified. This batch implements Studio cards, atomic once-only graph migration
+and UI navigation. It does not edit Fewunderstand, register a running handler, create broker
+resources, start collection or establish scoring runtime success.

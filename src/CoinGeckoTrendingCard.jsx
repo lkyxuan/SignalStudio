@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import catalog from '../catalog/coingecko-trending-contribution.v1.json';
 import collectionPlans from '../catalog/source-collection-plans.v1.json';
+import channel from '../catalog/trending-channel.v1.json';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
 import { previewTrending, previewDecayedSum, trendingCases } from './coingeckoTrendingDesign';
 
@@ -35,9 +36,9 @@ export function CoinGeckoTrendingCard(props) {
       {trendingCases.map((item, index) => <option value={index} key={item.label}>{item.label}</option>)}</select></label>
     <div className="source-case-inspector processing-io-case">
       <section className="source-case-inspector-section"><h3>输入 · 本规则使用的字段</h3>
-        <div className="processing-input-source-heading processing-source-links">{links([catalog.source, 'asset_identifiers', 'assets'])}</div>
+        <div className="processing-input-source-heading processing-source-links">{links([props.graph.nodes.some(item => item.name === channel.channel) ? channel.channel : catalog.source, 'asset_identifiers', 'assets'])}</div>
         <Rows record={sample.input} />
-        <p className="processing-io-case-caption">coin_id和名次来自coins[].item；其余为采集元数据、身份映射和本案例状态，不是API原生字段。</p>
+        <p className="processing-io-case-caption">消费social.data中CoinGecko热榜类别的Value.data完整快照；coin_id和名次来自coins[].item，其余为采集元数据、身份映射和本案例状态，不是API原生字段。</p>
       </section>
       <section className="source-case-inspector-section"><h3>输出 · 假设演算</h3>
         <div className="processing-input-source-heading processing-source-links">{links([catalog.downstream])}</div>
@@ -51,7 +52,7 @@ export function CoinGeckoTrendingCard(props) {
       <p>{props.node.definition || catalog.node.definition}</p><p>{catalog.source_meaning_zh}</p>
       <p>前15名等额加10分，0基名次只保留追溯。自有榜单最多显示50个有数据的资产，单轮来源15个；不为填满榜单补币。</p>
       <h3>运行触发与时间</h3>
-      <p>采集计划每{interval}分钟一次，UTC整点/半点划槽；收到本槽首次有效成功快照后逐币判定。同槽重试复用，下一槽可以再加；不补发漏采奖励。单笔半衰期30分钟，既有汇总每60秒刷新是另一设置，即时触发仍以既有实现状态为准。</p>
+      <p>采集计划每{interval}分钟一次，UTC整点/半点划槽；消费者读后匹配source=coingecko、type=social-intelligence、category=coingecko_search_trending_snapshot；校验完整快照后逐币判定，冻结本槽首次有效成功结果。同槽重试复用，下一槽可以再加；不补发漏采奖励。单笔半衰期30分钟，既有汇总每60秒刷新是另一设置，即时触发仍以既有实现状态为准。</p>
       <h3>连续上榜时的来源贡献</h3>
       <Rows record={Object.fromEntries(events.map((event, index) => [`第${index + 1}轮加分后`, previewDecayedSum(events.slice(0, index + 1), event.created_at).toFixed(2)]))} />
       <p>假设每轮准时入账，从零开始：持续上榜时加分后趋近20、下次加分前趋近10。最后一次入账后停止上榜，上例18.75分在30分钟后为9.375；离榜不产生扣分事件。</p>
@@ -61,7 +62,9 @@ export function CoinGeckoTrendingCard(props) {
       <h3>真实执行证据</h3><p>{catalog.runtime_status_zh}</p><p>本规则已接受事件：未取得。真实运行结果：未取得。</p>
     </section>
     <details className="processing-advanced"><summary>其他设置 · 完整判定与执行边界</summary>
+      <p>采集 → social.data → 本规则 → 评分提交。完整快照与失败状态分开；已关闭槽的消息回放只存证、不补加分。消息结构及注册项尚无实际运行证据。</p>
       <Rows record={catalog.rule} />
+      <a href={channel.rationale_url} target="_blank" rel="noreferrer">查看消息通道批准方案 SS-61</a>
       <p>详细判定字段：{catalog.decision_record_fields.join('、')}</p>
       <p>原始快照及详细判定的存储、解析API、套餐鉴权、运行调度与验收须在Fewunderstand接入时落实。最热榜沿用现有total_heat排序和同分规则。</p>
       <a href={catalog.rationale_url} target="_blank" rel="noreferrer">查看已批准的Notion卡片</a>

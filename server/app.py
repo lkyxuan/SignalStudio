@@ -22,6 +22,7 @@ from leaderboard_simple import ensure_leaderboard_simple
 from leaderboard_trends import ensure_leaderboard_trends
 from leaderboard_foundation import ensure_leaderboard_foundation
 from market_channel import ensure_market_channel
+from trending_channel import ensure_trending_channel
 from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
 from coingecko_trending import ensure_coingecko_trending
@@ -55,6 +56,7 @@ ensure_score_rollup_alignment(service)
 ensure_leaderboard_trends(service)
 ensure_leaderboard_foundation(service)
 ensure_market_channel(service)
+ensure_trending_channel(service)
 
 
 class Handler(BaseHTTPRequestHandler):

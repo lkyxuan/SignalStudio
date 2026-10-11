@@ -1,0 +1,63 @@
+{
+  "version": "trending-channel.v1",
+  "status": "approved_design_not_runtime",
+  "rationale_url": "https://app.notion.com/p/3f6038a63d5a81bda933cf5859c824f0",
+  "approved_on": "2026-10-11",
+  "source": "coingecko.search_trending",
+  "channel": "Few Understand · social.data",
+  "consumer": "CoinGecko · 热榜上榜加分",
+  "topic": "social.data",
+  "message_key": "data.slot_start",
+  "payload_record_path": "data",
+  "payload_schema": "social.coingecko_search_trending_snapshot.v1",
+  "message_status": "planned_not_observed",
+  "registry_basis": {
+    "repository_revision": "a4b410d047d5bba7d870d30daeafe0769d924e83",
+    "paths": ["ai-system/registry/topics.yaml", "ai-system/registry/schemas/social.data/kaito.yaml"],
+    "existing_topics": ["market.snapshot", "derivatives.metrics", "indicator.data", "social.data", "market.kline", "market.microstructure", "onchain.data", "entity.labels", "project.metadata", "signal.data"],
+    "evidence": "local_repository_definition_not_broker_observation",
+    "registered_settings": {"retention_days": 7, "partitions": 6},
+    "runtime_settings": "unverified"
+  },
+  "reuse_assessment": [
+    {"topics": ["social.data"], "decision": "reuse", "reason_zh": "搜索热榜是来源观察到的关注热度；此宽通道已有Kaito注意力及排名原始观测。按消息类别登记专用结构，不新增专用Topic。"},
+    {"topics": ["market.snapshot", "market.kline", "market.microstructure", "derivatives.metrics", "onchain.data"], "decision": "exclude", "reason_zh": "热榜不是行情、K线、盘口、衍生品或链上活动。"},
+    {"topics": ["indicator.data", "signal.data"], "decision": "exclude", "reason_zh": "上游热榜是采集事实，不是本系统计算的指标或策略信号。"},
+    {"topics": ["entity.labels", "project.metadata"], "decision": "exclude", "reason_zh": "本轮上榜状态是时间观测，不是实体标签或项目维表属性。"}
+  ],
+  "headers": [
+    {"name": "source", "value": "coingecko", "description": "coingecko · 原始观测来源；专用注册项待Fewunderstand落实。"},
+    {"name": "type", "value": "social-intelligence", "description": "social-intelligence · 关注热度原始观测家族；设计值，非已发送证据。"},
+    {"name": "category", "value": "coingecko_search_trending_snapshot", "description": "coingecko_search_trending_snapshot · 一轮完整搜索热榜快照。"}
+  ],
+  "header_registry": {
+    "owner": "fewunderstand",
+    "status": "required_not_registered_or_verified",
+    "lookup_key_fields": ["source", "type", "category"],
+    "entry": {"source": "coingecko", "type": "social-intelligence", "category": "coingecko_search_trending_snapshot", "topic": "social.data", "value_schema_ref": "social.coingecko_search_trending_snapshot.v1"}
+  },
+  "consumers": {"CoinGecko · 热榜上榜加分": "signalstudio.coingecko_trending_contribution"},
+  "fields": [
+    {"name": "coins", "data_type": "JSON", "definition": "Value.data.coins：本轮完整coins数组，item.id为稳定coin ID、item.score为0基名次；成功空榜为[]，失败为null，不伪装成离榜。"},
+    {"name": "slot_start", "data_type": "Timestamp", "definition": "Value.data.slot_start：按首次请求起始时间取UTC半小时槽，重试沿用；也是本类别分区键。"},
+    {"name": "collected_at", "data_type": "Timestamp", "definition": "Value.data.collected_at：本次响应采集完成或失败判定的UTC时间；投递重试和回放保持原值。"},
+    {"name": "run_id", "data_type": "Text", "definition": "Value.data.run_id：采集运行引用，不是上游字段；传输重发保留。"},
+    {"name": "snapshot_ref", "data_type": "Text", "definition": "Value.data.snapshot_ref：可持久查询的完整原始响应或失败证据引用；不能只有无法解析的字符串。"},
+    {"name": "request_started_at", "data_type": "Timestamp", "definition": "Value.data.request_started_at：决定采集槽的首次请求起始UTC时间；同槽请求重试不重新划槽。"},
+    {"name": "status", "data_type": "Text", "definition": "Value.data.status：success或failed；success要求有效coins数组（可以为空），failed不计分且不能推断离榜。"}
+  ],
+  "retention": "实际保留期未核验；本地注册表写7天，恢复/归档覆盖仍待Fewunderstand验证。",
+  "rules": [
+    "复用既有social.data宽Topic；此处列的是CoinGecko热榜消息类别的字段，不是整个Topic的全部消息结构。",
+    "每条消息为一轮完整快照，不在采集器中提前拆成15条加分消息；原始完整响应另存snapshot_ref。",
+    "Header三元组须在Fewunderstand登记并绑定本类别Value.data结构；category识别消息类别，版本由注册表绑定，不新增schema_version Header。",
+    "消费者读后按精确source/type/category选择处理器；其他已登记类别跳过，未知类别或无效消息按隔离策略持久记录，不误按热榜解析；Redpanda不按Header过滤。",
+    "同槽消息按data.slot_start路由；这是传输分区键，不替代来源+coin ID+采集槽+规则版本的业务幂等键。",
+    "保持首次有效成功快照的原子冻结；成功空榜也冻结，本轮随后变化不能重写已冻结快照。失败只记来源健康，不冻结成功快照。",
+    "采集时迟到或消费回放时原时间槽已关闭，只存证不补奖励；回放不得把旧采集时间改为当前时间。",
+    "持久保存快照、身份判定与幂等评分决定后，通过原评分发布器恢复投递，再确认本消费组offset；崩溃重试不得重复加分。",
+    "缺失时间、运行引用、原始证据或唯一身份时不猜值、不加分；不得把采集失败表示成成功空榜。",
+    "沿用默认15币、30分钟、每币每槽+10及半衰期30分钟；其他评分规则和资产映射依赖保留。",
+    "设计卡片与字段声明不是已采集记录；Broker、专用注册项、持久存储和实际消费者尚未验证。"
+  ]
+}
