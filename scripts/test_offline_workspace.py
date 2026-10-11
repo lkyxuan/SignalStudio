@@ -19,6 +19,8 @@ class OfflineWorkspaceTest(unittest.TestCase):
             root = Path(temporary).resolve()
             for name in ('server', 'catalog'):
                 shutil.copytree(ROOT / name, root / name, ignore=shutil.ignore_patterns('__pycache__'))
+            (root / 'src').mkdir()
+            shutil.copyfile(ROOT / 'src/layoutPolicy.json', root / 'src/layoutPolicy.json')
             (root / 'data').mkdir()
             (root / 'dist').symlink_to(ROOT / 'dist')
             binary = root / 'native-check'

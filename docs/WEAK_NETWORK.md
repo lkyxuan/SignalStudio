@@ -5,7 +5,7 @@ The Mac mini remains the only writable database. No public endpoint or offline w
 
 ## First-batch behavior
 
-The browser saves the last schema-validated remote graph in localStorage. Native clients use an atomic private snapshot file through a storage bridge. Cache format v1 is isolated by
+The browser saves the last schema-validated remote graph in localStorage. Native clients use an atomic private snapshot file through a storage bridge. Cache format v2 is isolated by
 remote endpoint, project_root and database_path; its envelope includes the graph revision and the
 last successful remote confirmation time. Invalid, corrupt or unavailable storage falls back to
 remote loading; quota failure is visible. Graphs and database files are never committed as cache artifacts.
@@ -91,7 +91,7 @@ Run from an isolated checkout with dependencies and dist built:
 npm run build
 npm run test:contracts
 npm run test:layout
-PYTHONPATH=server python3 -m unittest server.test_weak_network server.test_live_state server.test_desktop_server
+PYTHONPATH=server python3 -m unittest server.test_graph_transport server.test_weak_network server.test_live_state server.test_desktop_server
 python3 -m unittest scripts.test_offline_workspace scripts.test_shared_client scripts.test_dev_runtime scripts.test_graceful_shutdown
 ```
 
@@ -101,6 +101,42 @@ opens a diagnostic WKWebView, stops the backend and starts a second WebKit proce
 read-only snapshot recovery. It simulates page visibility because its diagnostic window does not take
 keyboard focus. It does not establish behavior on another physical device or a cellular hotspot.
 
-Skeleton/detail loading, independent static-contract hash caching and entity deltas with deletion and
-full fallback remain later stages. Actual cellular latency, two physical clients, and the existing
-Tailscale relay bottleneck require separate field evidence; compression does not fix that path.
+## Canvas, details and entity deltas
+
+The approved continuation uses `X-Graph-Transport: canvas.v1` on GET /api/graph.
+Legacy clients still receive the complete graph. Canvas snapshots retain topology, identifiers,
+field definitions/names, search text, counts, types, contracts and progress. Node rationale/caveats/notes/
+validation text, field notes/examples/normalization, mapping usage notes and requirement examples
+load on demand; `detail_loaded=false` explicitly marks their placeholders. The inspector waits for
+selected cards and their immediate neighbors before rendering editing controls. A failed load shows
+retry; an uncached detail cannot be invented while offline. Search text and references remain available.
+
+GET /api/graph/details accepts `revision` and repeated `node_id` (1–100 per request), returns the
+selected nodes, their fields/requirements and incident mapping details, and rejects a stale revision
+with 409. Deferred-content hashes (128-bit SHA256 prefixes) allow previously fetched details to survive unrelated changes;
+a changed entity invalidates its cached details. All merge results pass the graph reference schema.
+Reads remain serialized with writes; identity mismatch fails closed. A partial graph never becomes
+a node PATCH body: the form only submits user-changed fields and excludes transport metadata.
+
+Clients with a validated canvas baseline send `X-Graph-Base`. The server returns delta.v1 with
+base_revision, changed/new entities, deleted IDs, changed collection order and changed graph metadata. Unchanged order/metadata reuse the baseline.
+The client applies changes to the confirmed remote baseline (independently of editor drafts), validates
+the assembled graph, then passes it through existing draft/drag conflict handling. Each server process
+retains up to 16 snapshots within a 16MB aggregate budget (one oversized current snapshot is allowed).
+A missing/expired baseline, server restart or delta larger than a canvas returns a complete canvas;
+malformed deltas trigger one baseline-free read. 304 remains an empty unchanged response. These are
+transport optimizations; the backend still computes its full consistent snapshot and revision.
+
+Snapshot cache v2 keeps partial graph data away from old v1 clients; a validated full v1 cache may be
+read as a migration source. Existing v1 files/connection settings are preserved. Native fallback HTTP
+bridges forward transport/base headers when rebuilt; older bridges can still use full graph responses.
+
+Source directories use their independent `sha256:` revision from /source-contracts/v1/meta. Validated
+full directories are persisted separately; the small metadata read determines reuse, and graph/data
+changes do not invalidate an unchanged directory. A local checksum detects storage corruption (not
+an authentication signature); schema/revision mismatch or unavailable/quota-limited storage falls
+back to a fresh fetch. Directory metadata failure is surfaced; this cache does not authorize offline writes.
+
+Actual cellular latency, two physical clients and the existing Tailscale relay bottleneck remain
+unmeasured here; compression and deltas do not fix that path. The user removed additional field
+coverage as a task-closure prerequisite on 2026-10-11; it is not reported as passed.

@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from graph_service import GraphError, GraphService
 from live_state import snapshot, guard, RevisionConflict
+from graph_transport import GraphTransport, details
 from source_contract_store import SourceContractStore
 from signal_contract_store import SignalContractStore
 from table_backfill_store import TableBackfillStore
@@ -32,6 +33,7 @@ from card_model import CardModel, MODEL, VERSION
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
+graph_transport = GraphTransport()
 LOCAL_KAITO_CASE = ROOT / "data" / "kaito-advanced-search-live.json"
 LOCAL_SOURCE_CASES = ROOT / "data" / "source-cases-live.json"
 service = GraphService(os.environ.get("SIGNALSTUDIO_DB"))
@@ -141,7 +143,18 @@ class Handler(BaseHTTPRequestHandler):
             if method == "POST":
                 return table_backfill.save(self.body())
         if parts == ["api", "graph"] and method == "GET":
-            return {**snapshot(service, CONTRACT_REVISION), "workspace": self.workspace()}
+            graph = {**snapshot(service, CONTRACT_REVISION), "workspace": self.workspace()}
+            if self.headers.get('X-Graph-Transport') == 'canvas.v1':
+                return graph_transport.response(graph, self.headers.get('X-Graph-Base') if self.headers.get('X-Workspace-Identity') else None)
+            return graph
+        if parts == ["api", "graph", "details"] and method == "GET":
+            graph = {**snapshot(service, CONTRACT_REVISION), "workspace": self.workspace()}
+            if query.get('revision', [''])[0] != graph['revision']:
+                raise RevisionConflict('详情版本已更新，请重试。')
+            node_ids = set(query.get('node_id', []))
+            if not node_ids or len(node_ids) > 100 or not node_ids.issubset({n['id'] for n in graph['nodes']}):
+                raise GraphError('Invalid detail selection')
+            return details(graph, node_ids)
         if parts == ['api','card-model'] and method == 'GET':
             return {**MODEL,'actions':card_model.action_registry()}
         if parts == ['api','graph','readiness'] and method == 'GET':

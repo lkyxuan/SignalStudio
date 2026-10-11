@@ -32,6 +32,7 @@ export const bindingSchema = z.object({id,edge_id:id,source_port_id:id,target_po
 });
 
 export const nodeSchema = z.looseObject({
+  detail_revision: text.optional(), detail_loaded:z.boolean().optional(),
   id, name: id, type: z.enum(nodeTypes), reference_number: reference,
   definition: text, formula: text, rationale: text, caveats: text, notes: text,
   workflow_lane: z.enum(['shared', 'signal', 'knowledge']),
@@ -51,16 +52,19 @@ export const edgeSchema = z.looseObject({
   transport_headers: text, consumer_group: text, created_at: text,
 });
 export const fieldSchema = z.looseObject({
+  detail_revision: text.optional(), detail_loaded:z.boolean().optional(),
   id, node_id: id, name: id, data_type: text, definition: text, notes: text,
   example_value: text, unit: text, min_value: z.number().nullable(),
   max_value: z.number().nullable(), normalization_rule: text,
   catalog_field_id: text, ordinal: z.number().int(), created_at: text, updated_at: text,
 });
 export const usageSchema = z.looseObject({
+  detail_revision: text.optional(), detail_loaded:z.boolean().optional(),
   id, reference_number: reference, edge_id: id, source_field_id: id,
   target_field_id: id.nullable(), usage_note: text, created_at: text,
 });
 export const requirementSchema = z.looseObject({
+  detail_revision: text.optional(), detail_loaded:z.boolean().optional(),
   id, node_id: id, name: id, purpose: text, expected_example: text,
   source_field_id: id.nullable(), created_at: text, updated_at: text,
 });

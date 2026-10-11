@@ -10,7 +10,7 @@
     "test:layout": "tsx --test src/autoLayout.test.ts src/edgeRouting.test.ts src/graphEmphasis.test.ts",
     "preview": "python3 server/app.py",
     "typecheck": "tsc --noEmit",
-    "test:contracts": "tsx --test src/contracts.test.ts src/api.test.ts src/cardDetailModel.test.ts src/liveGraph.test.ts src/liveGraphSession.test.ts src/refreshQueue.test.ts src/cardClicks.test.ts",
+    "test:contracts": "tsx --test src/contracts.test.ts src/api.test.ts src/cardDetailModel.test.ts src/liveGraph.test.ts src/liveGraphSession.test.ts src/refreshQueue.test.ts src/cardClicks.test.ts src/graphTransport.test.ts",
     "desktop:dev:build": "npm run desktop:build",
     "check:details": "node scripts/check_card_details.mjs"
   },

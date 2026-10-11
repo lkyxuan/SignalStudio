@@ -37,6 +37,12 @@ import WebKit
                         if (!version || !version.innerText.includes('界面版本')) throw Error('Missing UI version');
                         const href = version.querySelector('a').href;
                         if (!/github.com\\/lkyxuan\\/SignalStudio\\/commit\\/[a-f0-9]{40}$/.test(href)) throw Error('Invalid commit link');
+                        document.querySelector('.view-switch button:last-child').click();
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        document.querySelector('tbody tr').click();
+                        await new Promise(resolve => setTimeout(resolve, 1200));
+                        if (!document.querySelector('.inspector-title') || document.querySelector('.inspector [role=status]')) throw Error('On-demand details did not hydrate');
+                        document.querySelector('.inspector-head button').click();
                         const original = window.fetch;
                         window.fetch = async (input, options) => {
                           if (String(input).includes('/api/desktop-health')) {
