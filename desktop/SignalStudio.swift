@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var python = ""
     private var development = false
     private var node = ""
+    private var offlineWorkspace: OfflineWorkspace?
     private var remoteURL: URL?
     private var baseURL: URL { remoteURL ?? URL(string: development ? "http://127.0.0.1:15173" : "http://127.0.0.1:18787")! }
     private var healthURL: URL { remoteURL != nil ? baseURL.appendingPathComponent("__signalstudio_health") : (development ? URL(string: "http://127.0.0.1:18789/health")! : baseURL.appendingPathComponent("api/desktop-health")) }
@@ -93,10 +94,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             status.stringValue = "正在连接 Mac mini：\(address)…"
         }
         window.title = remoteURL == nil ? "SignalStudio" : "SignalStudio · Mac mini"
-        probe(initial: true)
+        if let endpoint = remoteURL, let shell = Bundle.main.resourceURL?.appendingPathComponent("workspace-ui"),
+           FileManager.default.fileExists(atPath: shell.appendingPathComponent("index.html").path) {
+            do {
+                let offline = OfflineWorkspace(endpoint: endpoint, root: root, shell: shell)
+                let configuration = WKWebViewConfiguration()
+                try offline.configure(configuration)
+                webView.removeFromSuperview()
+                webView = WKWebView(frame: window.contentView!.bounds, configuration: configuration)
+                webView.autoresizingMask = [.width, .height]; webView.navigationDelegate = self
+                window.contentView!.addSubview(webView)
+                offlineWorkspace = offline
+                offline.open(in: webView, failure: { [weak self] message in self?.fail(message) })
+            } catch { fail("无法加载离线界面：\(error.localizedDescription)") }
+        } else { probe(initial: true) }
     }
 
     @objc private func retryConnection() {
+        if let offline = offlineWorkspace { offline.open(in: webView, failure: { [weak self] message in self?.fail(message) }); return }
         if remoteURL != nil {
             attempts = 0
             retry.isHidden = true
@@ -292,6 +307,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         retry.isHidden = remoteURL == nil && (root.isEmpty || server?.isRunning == true)
     }
 
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        guard let offline = offlineWorkspace, let url = navigationAction.request.url else { decisionHandler(.allow); return }
+        if offline.allows(url) { decisionHandler(.allow) }
+        else {
+            decisionHandler(.cancel)
+            if navigationAction.navigationType == .linkActivated && ["http", "https"].contains(url.scheme ?? "") { NSWorkspace.shared.open(url) }
+        }
+    }
+
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         // Remote font requests must not keep an otherwise usable page hidden.
         status.isHidden = true
@@ -306,6 +331,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if (error as NSError).code == NSURLErrorCancelled { return }
+        if let offline = offlineWorkspace, webView.url?.scheme != "signalstudio" { offline.load(in: webView); return }
         fail("界面加载失败：\(error.localizedDescription)。请退出 App 后重试。")
     }
 
@@ -327,8 +354,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     }
 }
 
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.setActivationPolicy(.regular)
-app.run()
+@main struct SignalStudioMain {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.setActivationPolicy(.regular)
+        app.run()
+        withExtendedLifetime(delegate) {}
+    }
+}

@@ -1,6 +1,7 @@
 """Single-user local HTTP API and production static server."""
 
 import json
+import gzip
 import hashlib
 import mimetypes
 import os
@@ -64,14 +65,38 @@ class Handler(BaseHTTPRequestHandler):
         if urlparse(self.path).path != '/api/desktop-health':
             super().log_request(code, size)
 
-    def respond(self, status, data):
-        payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
+    def send_payload(self, status, payload, content_type, headers=None):
         self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Type", content_type)
+        self.send_header("Vary", "Accept-Encoding")
+        # Explicit gzip;q=0 overrides wildcard acceptance. Invalid q is rejected.
+        qualities = {}
+        for item in self.headers.get("Accept-Encoding", "").lower().split(","):
+            parts = [part.strip() for part in item.split(";")]
+            quality = 1.0
+            for parameter in parts[1:]:
+                if parameter.startswith("q="):
+                    try:
+                        quality = float(parameter[2:])
+                    except ValueError:
+                        quality = 0.0
+            qualities[parts[0]] = quality if 0 <= quality <= 1 else 0.0
+        if len(payload) >= 512 and qualities.get('gzip', qualities.get('*', 0)) > 0:
+            payload = gzip.compress(payload, compresslevel=5, mtime=0)
+            self.send_header("Content-Encoding", "gzip")
         self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Cache-Control", "no-store")
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(payload)
+
+    def respond(self, status, data, headers=None):
+        self.send_payload(status, json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                          "application/json; charset=utf-8", {"Cache-Control": "no-store", **(headers or {})})
+
+    def workspace(self):
+        return {"project_root": str(ROOT),
+                "database_path": str(Path(service.db.execute("PRAGMA database_list").fetchone()[2]).resolve())}
 
     def body(self):
         size = int(self.headers.get("Content-Length", "0"))
@@ -112,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
             if method == "POST":
                 return table_backfill.save(self.body())
         if parts == ["api", "graph"] and method == "GET":
-            return snapshot(service, CONTRACT_REVISION)
+            return {**snapshot(service, CONTRACT_REVISION), "workspace": self.workspace()}
         if parts == ['api','card-model'] and method == 'GET':
             return {**MODEL,'actions':card_model.action_registry()}
         if parts == ['api','graph','readiness'] and method == 'GET':
@@ -280,15 +305,16 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(404, {"error": "Build the client with npm run build first"})
             return
         content = candidate.read_bytes()
-        self.send_response(200)
-        self.send_header("Content-Type", mimetypes.guess_type(candidate.name)[0] or "application/octet-stream")
-        self.send_header("Content-Length", str(len(content)))
-        self.end_headers()
-        self.wfile.write(content)
+        self.send_payload(200, content, mimetypes.guess_type(candidate.name)[0] or "application/octet-stream",
+                          {"Cache-Control": "public, max-age=31536000, immutable" if candidate.parent.name == 'assets' and candidate != dist / 'index.html' else "no-cache"})
 
     def dispatch(self):
         try:
             if self.path.startswith("/api/"):
+                identity = self.headers.get('X-Workspace-Identity')
+                if identity and json.loads(identity) != self.workspace():
+                    self.respond(412, {'error': '工作台身份不匹配，已禁止读取与保存。'})
+                    return
                 expected = self.headers.get("If-Match")
                 if self.command != 'GET' and (self.headers.get('X-Card-Model') != VERSION or not expected):
                     raise RevisionConflict('卡片模型已更新，请刷新工作台后再编辑。')
@@ -301,7 +327,20 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception:
                     service.db.rollback()
                     raise
-                self.respond(200, result)
+                if self.command == 'GET' and urlparse(self.path).path == '/api/graph':
+                    revision_tag = '"' + result['revision'] + '"'
+                    etag = 'W/' + revision_tag  # Same logical graph across gzip representations.
+                    matches = [value.strip().removeprefix('W/') for value in self.headers.get('If-None-Match', '').split(',')]
+                    if identity and (revision_tag in matches or '*' in matches):
+                        self.send_response(304)
+                        self.send_header('ETag', etag)
+                        self.send_header('Cache-Control', 'no-store')
+                        self.send_header('Vary', 'Accept-Encoding')
+                        self.end_headers()
+                    else:
+                        self.respond(200, result, {'ETag': etag})
+                else:
+                    self.respond(200, result)
             elif self.command == "GET":
                 self.serve_file()
             else:

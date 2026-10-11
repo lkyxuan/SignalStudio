@@ -1,74 +1,76 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Graph } from './contracts';
-import { request, ApiError } from './api';
-import { LiveGraphState } from './liveGraph';
+import { GraphCache, type Workspace } from './graphCache';
+import { LiveGraphSession } from './liveGraphSession';
 
+declare global { interface Window { signalstudioWorkspace?: { endpoint: string; workspace: Workspace; codeRevision: string | null }; signalstudioStorage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> } }
 export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
-  const state = useRef(new LiveGraphState()).current;
+  const sessionRef = useRef<LiveGraphSession | null>(null);
+  if (!sessionRef.current) {
+    let cache: GraphCache | null = null;
+    try { cache = new GraphCache(window.signalstudioStorage ?? localStorage, window.signalstudioWorkspace?.endpoint ?? location.origin); } catch { /* Storage unavailable. */ }
+    sessionRef.current = new LiveGraphSession(cache, window.signalstudioWorkspace?.workspace);
+  }
+  const state = sessionRef.current;
   const queue = useRef<Promise<unknown>>(Promise.resolve());
-  const [status, setStatus] = useState('connecting');
+  const poll = useRef<Promise<void> | null>(null);
+  const [status, setStatus] = useState(state.status);
   const [conflict, setConflict] = useState(false);
+  const [confirmedAt, setConfirmedAt] = useState(state.confirmedAt);
+  const [cacheAvailable, setCacheAvailable] = useState(true);
   const [editorEpoch, setEditorEpoch] = useState(0);
+  const publish = useCallback(() => {
+    setStatus(state.status); setConflict(state.conflict); setConfirmedAt(state.confirmedAt); setCacheAvailable(state.cacheAvailable);
+  }, [state]);
   const enqueue = useCallback(<T,>(work: () => Promise<T>): Promise<T> => {
     const result = queue.current.then(work);
     queue.current = result.catch(() => {});
     return result;
   }, []);
-  const receive = useCallback((next: Graph) => {
-    if (typeof next.revision !== 'string') { setStatus('outdated'); return; }
-    if (state.receive(next)) setGraph(next);
-    setConflict(state.conflict);
-    setStatus('ready');
-  }, [state, setGraph]);
-  const reload = useCallback(() => enqueue(async () => {
-    try { receive(await request('/graph')); }
-    catch { setStatus('reconnecting'); }
-  }), [enqueue, receive]);
+  const reload = useCallback(() => {
+    if (poll.current) return poll.current;
+    poll.current = enqueue(async () => {
+      try { if (await state.refresh() && state.graph) setGraph(state.graph); }
+      catch { /* Explicit connection state is published below. */ }
+      finally { publish(); }
+    }).finally(() => { poll.current = null; });
+    return poll.current;
+  }, [enqueue, publish, setGraph, state]);
   useEffect(() => {
+    if (state.graph) setGraph(state.graph);
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const tick = async () => {
       if (document.visibilityState !== 'hidden') await reload();
-      if (alive) timer = setTimeout(tick, 2000);
+      if (alive) timer = setTimeout(tick, state.writable ? 2000 : 5000);
     };
     const focus = () => { if (document.visibilityState !== 'hidden') void reload(); };
+    const offline = () => { state.fail(); publish(); };
+    const storageError = () => { state.cacheAvailable = false; publish(); };
+    window.addEventListener('signalstudio-storage-error', storageError);
     void tick();
-    window.addEventListener('focus', focus);
+    window.addEventListener('focus', focus); window.addEventListener('online', focus); window.addEventListener('offline', offline);
     document.addEventListener('visibilitychange', focus);
-    return () => { alive = false; clearTimeout(timer); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', focus); };
-  }, [reload]);
+    return () => { window.removeEventListener('signalstudio-storage-error', storageError); alive = false; clearTimeout(timer); window.removeEventListener('focus', focus); window.removeEventListener('online', focus); window.removeEventListener('offline', offline); document.removeEventListener('visibilitychange', focus); };
+  }, [reload, state, setGraph, publish]);
   const write = useCallback((path: string, method: string, body: unknown, preserveEdits = false) => enqueue(async () => {
-    if (state.conflict) throw new Error('请先处理外部更新冲突，再保存。');
-    if (!state.expected) throw new Error('工作台尚未就绪，请稍后重试。');
     try {
-      const result = await request(path, { method, body, headers: { 'If-Match': state.expected } });
-      const next = await request('/graph');
-      // Our own confirmed write becomes the new baseline. Other editor drafts
-      // remain protected if the caller has an independent unsaved node draft.
-      state.expected = String(next.revision);
-      if (!preserveEdits) state.clear();
-      state.pending = null;
-      state.graph = next;
-      setGraph(next); setConflict(false); setStatus('ready');
+      const result = await state.write(path, method, body, preserveEdits);
+      if (state.graph) setGraph(state.graph);
       return result;
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        state.dirty = true;
-        try { receive(await request('/graph')); } catch { setStatus('reconnecting'); }
-      }
-      throw error;
-    }
-  }), [enqueue, receive, setGraph, state]);
+    } finally { publish(); }
+  }), [enqueue, publish, setGraph, state]);
+  const receivePending = () => { if (state.pending && state.receive(state.pending) && state.graph) setGraph(state.graph); publish(); };
   const discard = useCallback(() => {
     state.clear(); setConflict(false); setEditorEpoch(value => value + 1);
     if (state.pending) { const next = state.pending; state.pending = null; state.graph = next; state.expected = String(next.revision); setGraph({ ...next }); }
     else void reload();
-  }, [receive, reload, state, setGraph]);
-  return { reload, write, status, conflict, editorEpoch, getGraph: () => state.graph,
+  }, [reload, state, setGraph]);
+  return { reload, write, status, conflict, confirmedAt, cacheAvailable, editorEpoch, getGraph: () => state.graph,
     markEdited: () => { state.dirty = true; },
     beginDrag: () => { state.dragging = true; },
-    endDrag: () => { state.dragging = false; if (!state.dirty && state.pending) receive(state.pending); },
-    resetEdited: () => { state.clear(); if (state.pending) receive(state.pending); },
+    endDrag: () => { state.dragging = false; if (!state.dirty) receivePending(); },
+    resetEdited: () => { state.clear(); receivePending(); },
     discard, accept: () => { state.accept(); setConflict(false); },
   };
 }

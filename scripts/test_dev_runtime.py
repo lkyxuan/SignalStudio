@@ -1,5 +1,7 @@
 """Real-process integration checks; all edits use a temporary project and DB."""
 import json
+import gzip
+import re
 import os
 from pathlib import Path
 import shutil
@@ -81,6 +83,20 @@ class DevRuntimeTest(unittest.TestCase):
                     try:
                         initial = wait(lambda: (h := get(health))['client_ready'] and h)
                         graph = get(api + '/graph')
+                        if host != '127.0.0.1':
+                            # Exercise the shared Vite preview middleware, not just Python static serving.
+                            entry = urllib.request.urlopen(f'http://{host}:{client}/', timeout=3).read().decode()
+                            asset = re.search(r'src="(/assets/[^"]+\.js)"', entry).group(1)
+                            asset_url = f'http://{host}:{client}' + asset
+                            plain = urllib.request.urlopen(asset_url, timeout=3).read()
+                            with urllib.request.urlopen(urllib.request.Request(asset_url, headers={'Accept-Encoding': 'gzip'}), timeout=3) as response:
+                                compressed = response.read()
+                                self.assertEqual(response.headers['Content-Encoding'], 'gzip')
+                                self.assertEqual(gzip.decompress(compressed), plain)
+                                self.assertIn('immutable', response.headers['Cache-Control'])
+                                self.assertLess(len(compressed), len(plain))
+                            with urllib.request.urlopen(urllib.request.Request(asset_url, headers={'Accept-Encoding': 'gzip;q=0, *;q=1'}), timeout=3) as response:
+                                self.assertIsNone(response.headers['Content-Encoding'])
                         with sqlite3.connect(root / 'data/logic.db') as db:
                             tables = [row[0] for row in db.execute(
                                 "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]

@@ -32,3 +32,16 @@ test('serializes mutation payloads without treating the response as a graph read
   });
   assert.deepEqual(await request('/nodes/node-1', { method: 'PATCH', body: { definition: 'updated' } }), { id: 'node-1' });
 });
+
+test('conditional graph responses skip JSON; reads have an enforced timeout and never retry writes', async context => {
+  const { requestGraph, NOT_MODIFIED } = await import('./api');
+  const fetch = context.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 304 }));
+  assert.equal(await requestGraph('a'), NOT_MODIFIED);
+  fetch.mock.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+    options!.signal!.addEventListener('abort', () => reject(options!.signal!.reason), { once: true });
+    // A real socket would keep the event loop alive until the timeout.
+    setTimeout(() => {}, 30);
+  }));
+  await assert.rejects(request('/nodes', { method: 'POST', body: {}, timeoutMs: 10 }), error => error instanceof DOMException && error.name === 'TimeoutError');
+  assert.equal(fetch.mock.callCount(), 2);
+});

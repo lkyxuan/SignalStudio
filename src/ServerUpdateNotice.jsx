@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 export function ServerUpdateNotice({ language }) {
-  const initial = useRef(null);
+  const initial = useRef(window.signalstudioWorkspace?.codeRevision ?? null);
   const [updated, setUpdated] = useState(false);
   useEffect(() => {
     let alive = true;
@@ -23,6 +23,6 @@ export function ServerUpdateNotice({ language }) {
     return () => { alive = false; clearTimeout(timer); };
   }, []);
   return updated ? <div className="live-update-banner" role="status">{language === 'zh-CN'
-    ? '工作台有新版本。请先保存编辑，再刷新页面。'
-    : 'A workspace update is available. Save your edits, then refresh the page.'}</div> : null;
+    ? (window.location.protocol === 'signalstudio:' ? '工作台有新版本。请先保存编辑，再重新打开 App。' : '工作台有新版本。请先保存编辑，再刷新页面。')
+    : (window.location.protocol === 'signalstudio:' ? 'A workspace update is available. Save edits, then reopen the App.' : 'A workspace update is available. Save your edits, then refresh the page.')}</div> : null;
 }

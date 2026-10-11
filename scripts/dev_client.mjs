@@ -1,5 +1,8 @@
 // Bind only the explicitly selected loopback or private Tailscale interface.
 import { createServer, preview } from 'vite';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve, sep, extname } from 'node:path';
+import { gzipSync } from 'node:zlib';
 const [root, port, backend, token, host = '127.0.0.1', control = '18789'] = process.argv.slice(2);
 const shared = host !== '127.0.0.1';
 function configure(vite) {
@@ -11,6 +14,28 @@ function configure(vite) {
       return;
     }
     next();
+  });
+  if (shared) vite.middlewares.use((req, res, next) => {
+    if (req.method !== 'GET' || req.url?.startsWith('/api/') || req.url?.startsWith('/__')) return next();
+    const pathname = new URL(req.url, 'http://localhost').pathname;
+    const dist = resolve(root, 'dist');
+    const file = resolve(dist, '.' + (pathname === '/' ? '/index.html' : pathname));
+    const types = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' };
+    if (!file.startsWith(dist + sep) || !types[extname(file)] || !existsSync(file)) return next();
+    const qualities = new Map((req.headers['accept-encoding'] || '').toLowerCase().split(',').map(item => {
+      const [name, ...parameters] = item.trim().split(';');
+      const q = Number(parameters.map(p => p.trim()).find(p => p.startsWith('q='))?.slice(2) ?? 1);
+      return [name, Number.isFinite(q) && q >= 0 && q <= 1 ? q : 0];
+    }));
+    let body = readFileSync(file);
+    if (body.length >= 512 && (qualities.get('gzip') ?? qualities.get('*') ?? 0) > 0) {
+      body = gzipSync(body); res.setHeader('Content-Encoding', 'gzip');
+    }
+    res.setHeader('Content-Type', types[extname(file)]);
+    res.setHeader('Vary', 'Accept-Encoding');
+    res.setHeader('Cache-Control', pathname.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache');
+    res.setHeader('Content-Length', body.length);
+    res.end(body);
   });
   vite.middlewares.use('/__signalstudio_dev', (_req, res) => {
     res.setHeader('Content-Type', 'application/json');

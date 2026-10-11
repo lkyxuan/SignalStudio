@@ -9,6 +9,7 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
     private var connection: SharedConnection?
     private var generation = 0
     private var loaded = false
+    private var offlineWorkspace: OfflineWorkspace?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let path = Bundle.main.url(forResource: "SignalStudio", withExtension: "icns"), let icon = NSImage(contentsOf: path) {
@@ -135,13 +136,27 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
         status.isHidden = false
         retry.isHidden = true
         status.stringValue = "正在连接共享工作台…"
+        if let shell = Bundle.main.resourceURL?.appendingPathComponent("workspace-ui"),
+           FileManager.default.fileExists(atPath: shell.appendingPathComponent("index.html").path) {
+            do {
+                let offline = OfflineWorkspace(endpoint: address, root: connection.projectRoot, shell: shell)
+                let configuration = WKWebViewConfiguration()
+                try offline.configure(configuration)
+                webView.removeFromSuperview()
+                webView = WKWebView(frame: window.contentView!.bounds, configuration: configuration)
+                webView.autoresizingMask = [.width, .height]; webView.navigationDelegate = self
+                window.contentView!.addSubview(webView)
+                offlineWorkspace = offline
+                offline.open(in: webView, failure: { [weak self] message in self?.showFailure(message) })
+            } catch { showFailure("无法加载离线界面：\(error.localizedDescription)") }
+            return
+        }
         SharedConnection.check(address, expectedRoot: connection.projectRoot) { result in
             DispatchQueue.main.async {
                 guard current == self.generation else { return }
                 switch result {
                 case .success: self.webView.load(URLRequest(url: address))
-                case .failure(let error):
-                    self.showFailure("无法连接共享工作台。\(error.localizedDescription) 请检查 Tailscale 与 Mac mini 服务，然后重新连接。可通过菜单修改地址。")
+                case .failure(let error): self.showFailure("无法连接共享工作台。\(error.localizedDescription)")
                 }
             }
         }
@@ -158,7 +173,10 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let target = navigationAction.request.url, let connection = connection,
               let origin = URL(string: connection.baseURL) else { decisionHandler(.cancel); return }
-        let sameOrigin = target.scheme == origin.scheme && target.host == origin.host && target.port == origin.port
+        if let offline = offlineWorkspace, offline.allows(target) {
+            decisionHandler(.allow); return
+        }
+        let sameOrigin = offlineWorkspace == nil && target.scheme == origin.scheme && target.host == origin.host && target.port == origin.port
         if sameOrigin { decisionHandler(.allow) }
         else {
             decisionHandler(.cancel)
@@ -173,6 +191,8 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate 
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { loaded = true }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if (error as NSError).code == NSURLErrorCancelled { return }
+        if let offline = offlineWorkspace, webView.url?.scheme != "signalstudio" { offline.load(in: webView); return }
         if (error as NSError).code != NSURLErrorCancelled { showFailure("页面加载失败：\(error.localizedDescription)。请检查网络后重新连接。") }
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

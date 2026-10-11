@@ -26,8 +26,9 @@ def build_shared(output, version, revision):
         resources.mkdir(parents=True)
         binary.parent.mkdir()
         build_icon(resources)
+        bundle_ui(resources, revision)
         subprocess.run(["xcrun", "swiftc", "-O", "-target", "arm64-apple-macos14.0",
-                        str(ROOT / "desktop/SharedConnection.swift"), str(ROOT / "desktop/SharedClient.swift"),
+                        str(ROOT / "desktop/SharedConnection.swift"), str(ROOT / "desktop/SharedClient.swift"), str(ROOT / "desktop/OfflineWorkspace.swift"),
                         "-o", str(binary), "-framework", "Cocoa", "-framework", "WebKit"], check=True)
         with (contents / "Info.plist").open("wb") as file:
             plistlib.dump({"CFBundleName": "SignalStudio", "CFBundleDisplayName": "SignalStudio",
@@ -41,6 +42,19 @@ def build_shared(output, version, revision):
         subprocess.run(["codesign", "--force", "--sign", "-", str(bundle)], check=True)
         subprocess.run(["codesign", "--verify", "--deep", "--strict", str(bundle)], check=True)
         shutil.move(str(bundle), output)
+
+
+def bundle_ui(resources, revision):
+    if not (ROOT / 'dist/index.html').exists():
+        raise SystemExit('Run npm run build before building a remote client.')
+    shell = resources / 'workspace-ui'
+    if shell.exists():
+        shutil.rmtree(shell)
+    shutil.copytree(ROOT / 'dist', shell)
+    index = shell / 'index.html'
+    # Offline UI startup cannot depend on remote font services.
+    index.write_text(re.sub(r'<link[^>]+href="https://fonts\.(?:googleapis|gstatic)\.com[^>]*>', '', index.read_text()))
+    (shell / 'revision.txt').write_text(revision)
 
 
 def build_icon(resources):
@@ -94,7 +108,10 @@ def main():
     binary.parent.mkdir(parents=True, exist_ok=True)
     resources.mkdir(parents=True, exist_ok=True)
     build_icon(resources)
-    subprocess.run(["xcrun", "swiftc", str(ROOT / "desktop/SignalStudio.swift"),
+    if remote:
+        revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        bundle_ui(resources, revision)
+    subprocess.run(["xcrun", "swiftc", str(ROOT / "desktop/SignalStudio.swift"), str(ROOT / "desktop/OfflineWorkspace.swift"),
                     "-o", str(binary), "-framework", "Cocoa", "-framework", "WebKit"], check=True)
     with (contents / "Info.plist").open("wb") as file:
         plistlib.dump({"CFBundleName": name, "CFBundleDisplayName": name,
