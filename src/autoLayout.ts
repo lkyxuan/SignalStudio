@@ -9,8 +9,17 @@ const nodeOrder = (a: LayoutNode, b: LayoutNode) => textOrder(a.workflow_lane ||
 const isSource = (n: LayoutNode) => cardKind(n) === 'source';
 const isLeaderboard = (n: LayoutNode) => ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_emerging'].includes(n.name);
 const isFinal = (n: LayoutNode) => n.name === 'supabase_asset_scores';
-// Explicitly approved shared lookup; resource type or fan-out alone is not enough.
-export const isSharedSupport = (n?: LayoutNode) => n?.name === 'asset_identifiers';
+// Presentation roles reviewed on SS-58; never infer them from type or fan-out.
+const sideSpecs = [
+  { key: 'assets', title: '公共资产 · 身份与标识', titleEn: 'Shared assets · identity', side: 'left', names: ['assets', 'asset_identifiers'] },
+  { key: 'maintenance', title: '资产维护 · 检查与审核', titleEn: 'Asset maintenance · review', side: 'left', names: ['定期 AI 检查资产地图', '人工审核资产纠错建议', '执行获批资产纠错'] },
+  { key: 'coverage', title: '公共支撑 · 采集覆盖', titleEn: 'Shared support · coverage', side: 'left', names: ['leaderboard_coverage'] },
+  { key: 'config', title: '公共配置 · 来源评分', titleEn: 'Shared config · initial scores', side: 'left', names: ['asset_initial_score_sources'] },
+  { key: 'archive', title: '独立旁路 · 评分归档', titleEn: 'Independent branch · archive', side: 'right', names: ['归档评分流水', 'asset_score_events'] },
+  { key: 'trend', title: '独立旁路 · 趋势状态', titleEn: 'Independent branch · trends', side: 'right', names: ['Redis · 关注变化比较数据区', '判定关注趋势状态', 'asset_attention_states'] },
+] as const;
+const explicitSide = (n?: LayoutNode) => n && sideSpecs.find(g => (g.names as readonly string[]).includes(n.name));
+export const isSharedSupport = (n?: LayoutNode) => explicitSide(n)?.side === 'left';
 
 export function layoutGroups(nodes: LayoutNode[], edges: LayoutEdge[]): LayoutGroup[] {
   const ids = new Set(nodes.map(n => n.id));
@@ -63,19 +72,30 @@ function contentBranchIds(nodes: LayoutNode[], edges: LayoutEdge[]): Set<string>
     const id = pending.pop()!;
     for (const e of edges) {
       const next = activeById.get(e.downstream_id);
-      if (e.upstream_id !== id || !next || isSharedSupport(next) || isLeaderboard(next) || isFinal(next) || isSource(next) || sideIds.has(next.id)) continue;
+      if (e.upstream_id !== id || !next || explicitSide(next) || isLeaderboard(next) || isFinal(next) || isSource(next) || sideIds.has(next.id)) continue;
       sideIds.add(next.id); pending.push(next.id);
     }
   }
   return sideIds;
 }
 
+// Connected groups only: unbound planned resources stay in the unused library.
+export function sideLayoutGroups(nodes: LayoutNode[], edges: LayoutEdge[]) {
+  const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
+  const content = contentBranchIds(active, edges);
+  return [
+    ...sideSpecs.map(g => ({ ...g, nodes: active.filter(n => (g.names as readonly string[]).includes(n.name)) })),
+    { key: 'content', title: '榜单后续 · 内容维护', titleEn: 'Content maintenance', side: 'right', nodes: active.filter(n => content.has(n.id)) },
+  ].filter(g => g.nodes.length);
+}
+
 export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
   const groups = layoutGroups(nodes, edges), active = groups.find(g => g.flow)?.nodes || [];
   // The approved output band anchors three real leaderboard cards. Their
   // downstream content-maintenance branch remains a single, connected side branch.
-  const sideIds = contentBranchIds(active, edges);
-  const main = active.filter(n => !sideIds.has(n.id) && !isSharedSupport(n));
+  const sideGroups = sideLayoutGroups(active, edges);
+  const sideIds = new Set(sideGroups.flatMap(g => g.nodes.map(n => n.id)));
+  const main = active.filter(n => !sideIds.has(n.id));
   const links = forwardLayoutEdges(main, edges);
   const incoming = new Map(main.map(n => [n.id, [] as string[]]));
   const outgoing = new Map(main.map(n => [n.id, [] as string[]]));
@@ -138,28 +158,31 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
   columns[last]!.forEach((n, index) => rows.set(n.id, index));
   const positions: NodePosition[] = main.map(n => ({ id: n.id, position_x: rows.get(n.id)! * 380, position_y: 96 + depth.get(n.id)! * 256 }));
   const mainRight = Math.max(300, ...positions.map(p => p.position_x + 300));
-  const side = active.filter(n => sideIds.has(n.id));
-  // Order the side branch with the same cycle-safe DAG and keep it above the footer.
-  const sideLinks = forwardLayoutEdges(side, edges);
-  const sideDepth = new Map(side.map(n => [n.id, 0]));
-  for (let i = 0; i < side.length; i++) for (const e of sideLinks)
-    sideDepth.set(e.downstream_id, Math.max(sideDepth.get(e.downstream_id)!, sideDepth.get(e.upstream_id)! + 1));
-  const sideLevels = Math.max(0, ...sideDepth.values()) + 1;
-  const sidePitch = 224;
-  const sideTop = Math.max(96, 96 + last * 256 - sideLevels * sidePitch);
-  const sideRows = new Map<number, number>();
-  for (const n of side.sort((a, b) => sideDepth.get(a.id)! - sideDepth.get(b.id)! || nodeOrder(a, b))) {
-    const level = sideDepth.get(n.id)!, slot = sideRows.get(level) || 0;
-    positions.push({ id: n.id, position_x: mainRight + 180 + slot * 380, position_y: sideTop + level * sidePitch });
-    sideRows.set(level, slot + 1);
-  }
-  // Keep the shared lookup beside its users, outside the processing layers.
+  // Each side group is a whole subflow, not an arbitrary collection of cards.
+  // Internal dependency order is retained; independent groups share a compact column.
   const positioned = new Map(positions.map(p => [p.id, p]));
-  for (const n of active.filter(isSharedSupport)) {
-    const users = new Set(edges.flatMap(e => e.upstream_id === n.id ? [e.downstream_id] : e.downstream_id === n.id ? [e.upstream_id] : []));
-    const ys = [...users].flatMap(id => positioned.has(id) ? [positioned.get(id)!.position_y] : []).sort((a, b) => a - b);
-    const middle = ys.length ? ys[Math.floor(ys.length / 2)]! : 96;
-    positions.push({ id: n.id, position_x: -640, position_y: middle });
+  for (const direction of ['left', 'right']) {
+    const blocks = sideGroups.filter(g => g.side === direction).map(g => {
+      const links = forwardLayoutEdges(g.nodes, edges);
+      const rank = new Map(g.nodes.map(n => [n.id, 0]));
+      for (let i = 0; i < g.nodes.length; i++) for (const e of links)
+        rank.set(e.downstream_id, Math.max(rank.get(e.downstream_id)!, rank.get(e.upstream_id)! + 1));
+      const members = [...g.nodes].sort((a, b) => rank.get(a.id)! - rank.get(b.id)! || nodeOrder(a, b));
+      const ids = new Set(members.map(n => n.id));
+      const users = new Set(edges.flatMap(e => ids.has(e.upstream_id) && !ids.has(e.downstream_id) ? [e.downstream_id] : ids.has(e.downstream_id) && !ids.has(e.upstream_id) ? [e.upstream_id] : []));
+      const ys = [...users].flatMap(id => positioned.has(id) ? [positioned.get(id)!.position_y] : []).sort((a, b) => a - b);
+      const ideal = g.key === 'content' ? 96 + last * 256 - members.length * 224 : ys.length ? ys[Math.floor(ys.length / 2)]! : 96;
+      return { ...g, members, top: ideal, ideal, height: members.length * 224 };
+    }).sort((a, b) => a.ideal - b.ideal || textOrder(a.key, b.key));
+    let bottom = 0;
+    for (const b of blocks) { b.top = Math.max(96, b.top, bottom + 96); bottom = b.top + b.height; }
+    // Keep side branches above the footer when the main tree has enough height.
+    const required = blocks.reduce((n, b) => n + b.height + 96, 0);
+    if (required <= last * 256) {
+      let ceiling = 96 + last * 256;
+      for (const b of [...blocks].reverse()) { b.top = Math.min(b.top, ceiling - b.height); ceiling = b.top - 96; }
+    }
+    for (const b of blocks) b.members.forEach((n, i) => positions.push({ id: n.id, position_x: direction === 'left' ? -640 : mainRight + 180, position_y: b.top + i * 224 }));
   }
   // The unused library stays beside the tree and outside its initial fit viewport.
   const libraryLeft = Math.max(300, ...positions.map(p => p.position_x + 300)) + 280;
@@ -179,25 +202,41 @@ export function feedbackRoutes(nodes: (LayoutNode & { position_x: number; positi
   const result = new Map<string, number>();
   const connected = new Set(edges.flatMap(link => [link.upstream_id, link.downstream_id]));
   const right = Math.max(0, ...nodes.filter(n => connected.has(n.id)).map(n => n.position_x + 300));
+  const sideRoutes = supportRoutes(nodes, edges);
   for (const e of [...edges].sort((a, b) => textOrder(a.id, b.id))) {
     const a = byId.get(e.upstream_id), b = byId.get(e.downstream_id);
-    if (!a || !b || isSharedSupport(a) || isSharedSupport(b) || a.position_y < b.position_y) continue;
+    if (!a || !b || sideRoutes.has(e.id) || a.position_y < b.position_y) continue;
     result.set(e.id, right + 40 + result.size * 16);
   }
   return result;
 }
 
-// Shared reads/writes use their own left-side corridor, independent of DAG feedback.
+// Side boundaries use corridors; forward links within a subflow retain bottom/top ports.
 export function supportRoutes(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: (LayoutEdge & { id: string })[]) {
   const byId = new Map(nodes.map(n => [n.id, n]));
-  const result = new Map<string, { routeX: number; sourceShared: boolean }>();
-  const connected = new Set(edges.flatMap(e => [e.upstream_id, e.downstream_id]));
-  const left = Math.min(0, ...nodes.filter(n => connected.has(n.id) && !isSharedSupport(n)).map(n => n.position_x));
-  for (const e of [...edges].sort((a, b) => textOrder(a.id, b.id))) {
+  const groups = sideLayoutGroups(nodes, edges);
+  const membership = new Map(groups.flatMap(g => g.nodes.map(n => [n.id, g] as const)));
+  type Side = 'left' | 'right' | undefined;
+  const candidates = [...edges].sort((a, b) => textOrder(a.id, b.id)).filter(e => {
     const a = byId.get(e.upstream_id), b = byId.get(e.downstream_id);
-    if (!a || !b || (!isSharedSupport(a) && !isSharedSupport(b))) continue;
-    result.set(e.id, { routeX: left - 180 - result.size * 16, sourceShared: isSharedSupport(a) });
-  }
+    const ga = membership.get(e.upstream_id), gb = membership.get(e.downstream_id);
+    return a && b && (ga || gb) && (ga !== gb || a.position_y >= b.position_y);
+  });
+  const main = nodes.filter(n => !membership.has(n.id) && edges.some(e => e.upstream_id === n.id || e.downstream_id === n.id));
+  const left = Math.min(0, ...main.map(n => n.position_x));
+  const right = Math.max(300, ...main.map(n => n.position_x + 300));
+  const rowGaps = [...new Set(main.flatMap(n => [n.position_y - 32, n.position_y + 192]))].sort((a, b) => a - b);
+  const nearestGap = (y: number) => [...rowGaps].sort((a, b) => Math.abs(a - y) - Math.abs(b - y) || a - b)[0] ?? y;
+  const result = new Map<string, { routeX: number; sourceShared: boolean; sourceSide: Side; targetSide: Side; sourceBottom: number; targetTop: number }>();
+  candidates.forEach((e, i) => {
+    const a = byId.get(e.upstream_id)!, b = byId.get(e.downstream_id)!;
+    const ga = membership.get(a.id), gb = membership.get(b.id);
+    const useLeft = ga?.side === 'left' || gb?.side === 'left';
+    const side = (g: typeof ga): Side => g ? g.side === 'left' ? 'right' : 'left' : undefined;
+    const fraction = (i + 1) / (candidates.length + 1);
+    result.set(e.id, { routeX: useLeft ? left - 60 - fraction * 240 : right + 40 + fraction * 100,
+      sourceShared: ga?.side === 'left', sourceSide: side(ga), targetSide: side(gb), sourceBottom: ga?.side === 'right' && gb?.side === 'left' ? nearestGap(a.position_y + 192) : a.position_y + 192, targetTop: ga?.side === 'left' && gb?.side === 'right' ? nearestGap(b.position_y - 32) : b.position_y - 32 });
+  });
   return result;
 }
 
@@ -228,17 +267,15 @@ export function traceRoute(nodes: LayoutNode[], edges: (LayoutEdge & { id: strin
 export function layoutStages(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: LayoutEdge[]) {
   const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
   const byId = new Map(nodes.map(n => [n.id, n]));
-  const sideIds = contentBranchIds(active, edges);
-  const support = active.filter(isSharedSupport);
-  const main = active.filter(n => !sideIds.has(n.id) && !isSharedSupport(n));
+  const sideGroups = sideLayoutGroups(active, edges);
+  const sideIds = new Set(sideGroups.flatMap(g => g.nodes.map(n => n.id)));
+  const main = active.filter(n => !sideIds.has(n.id));
   const ys = [...new Set(main.map(n => byId.get(n.id)!.position_y))].sort((a, b) => a - b);
-  const left = Math.min(...[...main, ...support].map(n => byId.get(n.id)!.position_x)) - 320;
+  const left = Math.min(...active.map(n => byId.get(n.id)!.position_x)) - 320;
   const stages = ys.map((y, i) => ({ id: `stage:${i}`, x: left, y,
     title: i === 0 ? '爬虫入口' : i === ys.length - 1 ? '榜单与输出' : `第 ${i} 步`,
     titleEn: i === 0 ? 'Crawler inputs' : i === ys.length - 1 ? 'Leaderboards & outputs' : `Step ${i}`,
     count: main.filter(n => byId.get(n.id)!.position_y === y).length }));
-  const side = active.filter(n => sideIds.has(n.id));
-  if (side.length) stages.push({ id: 'stage:content', x: Math.min(...side.map(n => byId.get(n.id)!.position_x)), y: Math.min(...side.map(n => byId.get(n.id)!.position_y)) - 48, title: '榜单后续 · 内容维护', titleEn: 'Content maintenance', count: side.length });
-  if (support.length) stages.push({ id: 'stage:support', x: Math.min(...support.map(n => byId.get(n.id)!.position_x)), y: Math.min(...support.map(n => byId.get(n.id)!.position_y)) - 48, title: '公共支撑 · 跨步骤查询', titleEn: 'Shared support · cross-step lookup', count: support.length });
+  for (const g of sideGroups) stages.push({ id: `stage:${g.key}`, x: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_x)), y: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_y)) - 48, title: g.title, titleEn: g.titleEn, count: g.nodes.length });
   return stages;
 }

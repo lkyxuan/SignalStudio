@@ -22,7 +22,7 @@ import { sourcePurpose } from './SourceUsageGuide';
 import { SourceCasePage } from './SourceCasePage';
 import { OtherSourceCasePage } from './OtherSourceCasePage';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
-import { autoLayout, layoutGroups, feedbackRoutes, supportRoutes, isSharedSupport, traceRoute, layoutStages } from './autoLayout';
+import { autoLayout, layoutGroups, feedbackRoutes, supportRoutes, traceRoute, layoutStages } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
@@ -103,8 +103,8 @@ function LogicNode({ id, data, selected }) {
     const sidePorts = ports.filter(item => item.side === port.side);
     const place = sidePorts.findIndex(item => item.id === port.id) + 1;
     const percent = `${(place / (sidePorts.length + 1)) * 100}%`;
-    return <Handle key={`${type}:${port.id}`} id={`${type}:${port.id}`} type={type} position={port.side === 'right' ? Position.Right : type === 'source' ? Position.Bottom : Position.Top}
-      className="flow-handle edge-port" style={port.side === 'right' ? { top: type === 'source' ? `${15 + place / (sidePorts.length + 1) * 40}%` : `${65 + place / (sidePorts.length + 1) * 25}%` } : { left: percent }} isConnectable={false} />;
+    return <Handle key={`${type}:${port.id}`} id={`${type}:${port.id}`} type={type} position={port.side === 'right' ? Position.Right : port.side === 'left' ? Position.Left : type === 'source' ? Position.Bottom : Position.Top}
+      className="flow-handle edge-port" style={port.side !== 'normal' ? { top: type === 'source' ? `${15 + place / (sidePorts.length + 1) * 40}%` : `${65 + place / (sidePorts.length + 1) * 25}%` } : { left: percent }} isConnectable={false} />;
   });
   return <div className={`logic-node ${kind} ${OUTPUT_TYPES.has(data.type) ? 'output-node' : ''} ${data.is_system_state ? 'state-node' : ''} ${isDecision ? 'decision-node' : ''} ${selected ? 'is-selected' : ''}`}>
     <Handle type="target" position={Position.Top} className="flow-handle" />
@@ -144,9 +144,13 @@ function FeedbackEdge({ id, sourceX, sourceY, targetX, targetY, data, style, mar
 }
 function SupportEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
   const bus = data.routeX;
-  const points = data.sourceShared
-    ? [[sourceX, sourceY], [bus, sourceY], [bus, targetY - 32], [targetX, targetY - 32], [targetX, targetY]]
-    : [[sourceX, sourceY], [sourceX, sourceY + 32], [bus, sourceY + 32], [bus, targetY], [targetX, targetY]];
+  const points = [[sourceX, sourceY]];
+  if (data.sourceSide === 'right') points.push([bus, sourceY]);
+  else if (data.sourceSide === 'left') points.push([sourceX - 24, sourceY], [sourceX - 24, data.sourceBottom], [bus, data.sourceBottom]);
+  else points.push([sourceX, sourceY + 32], [bus, sourceY + 32]);
+  if (data.targetSide === 'right') points.push([bus, targetY], [targetX, targetY]);
+  else if (data.targetSide === 'left') points.push([bus, data.targetTop], [targetX - 24, data.targetTop], [targetX - 24, targetY], [targetX, targetY]);
+  else points.push([bus, targetY - 32], [targetX, targetY - 32], [targetX, targetY]);
   // Round orthogonal corridor corners while preserving the saved edge direction.
   let path = `M ${points[0][0]} ${points[0][1]}`;
   for (let i = 1; i < points.length - 1; i++) {
@@ -237,8 +241,8 @@ function App() {
     const feedback = feedbackRoutes(graph.nodes, graph.edges);
     const support = supportRoutes(graph.nodes, graph.edges);
     for (const edge of graph.edges) {
-      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: isSharedSupport(nodeById.get(edge.upstream_id)) ? 'right' : 'normal' });
-      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: isSharedSupport(nodeById.get(edge.downstream_id)) ? 'right' : 'normal' });
+      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: support.get(edge.id)?.sourceSide || 'normal' });
+      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: support.get(edge.id)?.targetSide || 'normal' });
     }
     for (const [id, nodePorts] of ports) {
       nodePorts.inputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0));

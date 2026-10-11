@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout, feedbackRoutes, supportRoutes, forwardLayoutEdges, layoutGroups, traceRoute, layoutStages, type LayoutNode } from './autoLayout';
+import { autoLayout, feedbackRoutes, supportRoutes, sideLayoutGroups, forwardLayoutEdges, layoutGroups, traceRoute, layoutStages, type LayoutNode } from './autoLayout';
 const node = (id: string, kind = 'process', name = id): LayoutNode => ({ id, name, type: kind === 'source' ? 'Source' : 'Metric', kind });
 const edge = (a: string, b: string) => ({ id: `${a}-${b}`, upstream_id: a, downstream_id: b });
 function verify(nodes: LayoutNode[], edges: ReturnType<typeof edge>[]) {
@@ -72,7 +72,7 @@ test('three leaderboards form the bottom row while real downstream content remai
     assert.ok(p.get(id)!.position_y < footer);
     assert.ok(p.get(id)!.position_x > Math.max(...boards.map(n => p.get(n.id)!.position_x + 300)));
   }
-  const routes = feedbackRoutes(nodes.map(n => ({ ...n, ...p.get(n.id)! })), edges);
+  const routes = supportRoutes(nodes.map(n => ({ ...n, ...p.get(n.id)! })), edges);
   assert.ok(boards.every(n => routes.has(`${n.id}-candidate`)));
   assert.equal(traceRoute(nodes, edges, 'warming').nodeIds.has('content'), true);
 });
@@ -119,8 +119,36 @@ test('shared identifier lookup sits beside its users without changing processing
   assert.ok([...routes.values()].every(r => r.routeX > p.get('lookup')!.position_x + 300 && r.routeX < 0));
   assert.equal(feedbackRoutes(positioned, edges).size, 0);
   const stages = layoutStages(positioned, edges);
-  assert.equal(stages.filter(s => s.id !== 'stage:support').reduce((n, s) => n + s.count, 0), main.length);
-  assert.equal(stages.find(s => s.id === 'stage:support')!.count, 1);
+  assert.equal(stages.filter(s => s.id !== 'stage:assets').reduce((n, s) => n + s.count, 0), main.length);
+  assert.equal(stages.find(s => s.id === 'stage:assets')!.count, 1);
   const trace = traceRoute(nodes, edges, 'lookup');
   assert.ok(shared.every(e => trace.edgeIds.has(e.id)));
+});
+
+
+test('reviewed public services and complete side workflows retain boundaries and actual directions', () => {
+  const named = (id: string, name: string, kind = 'process') => node(id, kind, name);
+  const nodes = [node('s', 'source'), node('lookup'), node('create'), node('contribution'), node('topic', 'channel'), node('cache', 'state'), node('rollup'), node('current', 'table'), node('board', 'table', 'leaderboard_hottest'),
+    named('assets', 'assets', 'table'), named('ids', 'asset_identifiers', 'table'), named('ai', '定期 AI 检查资产地图'), named('review', '人工审核资产纠错建议', 'decision'), named('correct', '执行获批资产纠错'),
+    named('coverage', 'leaderboard_coverage', 'table'), named('config', 'asset_initial_score_sources', 'table'), named('archive', '归档评分流水'), named('ledger', 'asset_score_events', 'table'),
+    named('compare', 'Redis · 关注变化比较数据区', 'state'), named('trend', '判定关注趋势状态'), named('state', 'asset_attention_states', 'table'), named('unused', 'asset_relationships', 'table')];
+  const flow = [edge('s', 'lookup'), edge('lookup', 'create'), edge('create', 'contribution'), edge('contribution', 'topic'), edge('topic', 'cache'), edge('cache', 'rollup'), edge('rollup', 'current'), edge('current', 'board')];
+  const branches = [edge('assets', 'lookup'), edge('ids', 'lookup'), edge('create', 'assets'), edge('create', 'ids'), edge('assets', 'ai'), edge('ids', 'ai'), edge('ai', 'review'), edge('lookup', 'review'), edge('review', 'correct'), edge('correct', 'assets'), edge('correct', 'ids'), edge('coverage', 'rollup'), edge('config', 'contribution'), edge('topic', 'archive'), edge('archive', 'ledger'), edge('current', 'compare'), edge('coverage', 'compare'), edge('compare', 'trend'), edge('trend', 'state')];
+  const edges = [...flow, ...branches], p = verify(nodes, edges), positioned = nodes.map(n => ({ ...n, ...p.get(n.id)! }));
+  const groups = sideLayoutGroups(nodes, edges), ids = new Set(groups.flatMap(g => g.nodes.map(n => n.id)));
+  assert.equal(ids.size, 12);
+  assert.ok(!ids.has('unused') && !ids.has('topic') && !ids.has('cache') && !ids.has('current'));
+  for (const g of groups) for (const n of g.nodes) assert.ok(g.side === 'left' ? p.get(n.id)!.position_x + 300 < 0 : p.get(n.id)!.position_x > p.get('board')!.position_x + 300);
+  for (const [a, b] of [['ai', 'review'], ['review', 'correct'], ['archive', 'ledger'], ['compare', 'trend'], ['trend', 'state']] as const) assert.ok(p.get(a)!.position_y < p.get(b)!.position_y);
+  const routes = supportRoutes(positioned, edges);
+  assert.equal(routes.get('coverage-compare')!.sourceSide, 'right');
+  assert.equal(routes.get('coverage-compare')!.targetSide, 'left');
+  const crossY = routes.get('coverage-compare')!.targetTop;
+  assert.ok(nodes.filter(n => !ids.has(n.id) && n.id !== 'unused').every(n => crossY < p.get(n.id)!.position_y || crossY > p.get(n.id)!.position_y + 160));
+  assert.equal(routes.get('lookup-review')!.targetSide, 'right');
+  assert.ok(!routes.has('ai-review') && !routes.has('archive-ledger'));
+  assert.ok(branches.every(e => traceRoute(nodes, edges, e.upstream_id).edgeIds.has(e.id)));
+  const stages = layoutStages(positioned, edges);
+  assert.equal(stages.filter(g => /^stage:[0-9]+$/.test(g.id)).reduce((n, g) => n + g.count, 0), 9);
+  assert.equal(stages.reduce((n, g) => n + g.count, 0), nodes.length - 1);
 });
