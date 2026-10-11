@@ -47,6 +47,9 @@ def build_shared(output, version, revision):
 def bundle_ui(resources, revision):
     if not (ROOT / 'dist/index.html').exists():
         raise SystemExit('Run npm run build before building a remote client.')
+    metadata = json.loads((ROOT / 'dist/build-info.json').read_text())
+    if metadata != {"revision": revision, "dirty": False}:
+        raise SystemExit('UI build must be clean and match HEAD. Commit changes, then run npm run build.')
     shell = resources / 'workspace-ui'
     if shell.exists():
         shutil.rmtree(shell)

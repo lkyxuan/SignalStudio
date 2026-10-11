@@ -5,7 +5,7 @@ import { CardDefinitionSettings } from './CardDefinitionSettings';
 import { CardProgressBadge, CardProgressNote } from './CardProgress';
 import { request } from './api';
 import { useLiveGraph } from './useLiveGraph';
-import { ServerUpdateNotice } from './ServerUpdateNotice';
+import { ServerUpdateNotice, WorkspaceVersion, useServerVersion } from './ServerUpdateNotice';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, Background, Controls, MiniMap, Handle, Position, MarkerType, useEdgesState, useNodesState, useUpdateNodeInternals } from '@xyflow/react';
@@ -182,7 +182,7 @@ function App() {
 
   const flash = (message, error = false) => { setNotice({ message, error }); setTimeout(() => setNotice(null), 4200); };
   const live = useLiveGraph(setGraph);
-  const reload = live.reload;
+  const serverVersion = useServerVersion();
   useEffect(() => { live.resetEdited(); }, [selectedId, selectedEdgeId]);
   useEffect(() => {
     request('/source-contracts/v1')
@@ -416,17 +416,23 @@ function App() {
       <div className="sidebar-divider" />
       <div className="sidebar-section-label">{language === 'zh-CN' ? '画布节点' : 'GRAPH NODES'} <span>{graph.nodes.length}</span></div>
       <div className="library-list">{NODE_GROUPS.map(group => <div className="library-group" key={group.name}><div className="library-group-label">{language === 'zh-CN' ? '卡片类型' : group.name}</div>{group.types.map(type => <button key={type} className={`library-item ${typeFilter === type ? 'library-active' : ''}`} onClick={() => { setTypeFilter(typeFilter === type ? 'All types' : type); setFocusNodeId(null); }}><span className={`type-dot ${cardKinds.find(item => item.id === type)?.style}`} />{kindLabel(type, language)}<span>{graph.nodes.filter(n => cardKind(n) === type).length}</span></button>)}</div>)}</div>
-      <div className="sidebar-bottom"><div className="language-switch" role="group" aria-label={language === 'zh-CN' ? '界面语言' : 'Interface language'}><button className={language === 'zh-CN' ? 'active' : ''} onClick={() => setLanguage('zh-CN')} aria-pressed={language === 'zh-CN'}>中文</button><button className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')} aria-pressed={language === 'en'}>English</button></div><button className="sidebar-link" onClick={() => setShowHelp(true)}><CircleHelp size={17} /> {t('How it works')}</button><div className="local-status"><span className="status-dot" /> {language === 'zh-CN' ? (live.status === 'ready' ? '已连接主机' : '只读 · 等待同步') : (live.status === 'ready' ? 'Host connected' : 'Read-only · awaiting sync')} <span>Mac mini</span></div></div>
+      <div className="sidebar-bottom"><div className="language-switch" role="group" aria-label={language === 'zh-CN' ? '界面语言' : 'Interface language'}><button className={language === 'zh-CN' ? 'active' : ''} onClick={() => setLanguage('zh-CN')} aria-pressed={language === 'zh-CN'}>中文</button><button className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')} aria-pressed={language === 'en'}>English</button></div><button className="sidebar-link" onClick={() => setShowHelp(true)}><CircleHelp size={17} /> {t('How it works')}</button><WorkspaceVersion language={language} version={serverVersion} /><div className="local-status"><span className="status-dot" /> {language === 'zh-CN' ? (live.status === 'ready' ? '已连接主机' : '只读 · 等待同步') : (live.status === 'ready' ? 'Host connected' : 'Read-only · awaiting sync')} <span>Mac mini</span></div></div>
     </aside>
 
     <main className="main-pane">
-      <ServerUpdateNotice language={language} />
+      <ServerUpdateNotice language={language} version={serverVersion} />
       {(live.status !== 'ready' || !live.cacheAvailable) && <div className="live-update-banner" role="status"><span>{live.status === 'identity-error'
         ? (language === 'zh-CN' ? '工作台身份不匹配，已禁止保存。请核对地址后重新打开。' : 'Workspace identity mismatch. Saving is disabled. Check the address and reopen.')
         : live.status === 'ready' ? (language === 'zh-CN' ? '已连接；本地快照无法保存，下次断网可能无法查看。' : 'Connected; local snapshot storage is unavailable.')
         : language === 'zh-CN' ? `${live.confirmedAt ? '正在显示本地只读快照' : '正在连接工作台，尚无可用快照'}；联网并确认最新版本前不能保存。请求超时后会自动重试。`
         : `${live.confirmedAt ? 'Showing a local read-only snapshot' : 'Connecting; no snapshot available'}. Saving requires a confirmed connection. Timed-out reads retry automatically.`}
-        {live.confirmedAt && <small> {language === 'zh-CN' ? '上次确认：' : 'Last confirmed: '}{new Date(live.confirmedAt).toLocaleString(language)}</small>}</span><button onClick={reload}>{language === 'zh-CN' ? '重新连接' : 'Retry connection'}</button></div>}
+        {live.status !== 'ready' && <small className="connection-feedback">{live.retryPhase === 'queued' ? (language === 'zh-CN' ? '等待重新连接…' : 'Waiting to reconnect…')
+          : live.retryPhase === 'connecting' ? (language === 'zh-CN' ? '重新连接中…' : 'Reconnecting…')
+          : live.connectionError === 'timeout' ? (language === 'zh-CN' ? '连接请求超时，等待自动重试。' : 'Connection timed out. Waiting to retry.')
+          : live.connectionError === 'identity' ? (language === 'zh-CN' ? '连接被拒绝：工作台身份不匹配。' : 'Connection rejected: workspace identity mismatch.')
+          : live.connectionError ? (language === 'zh-CN' ? '连接失败，请检查网络或主机服务；稍后自动重试。' : 'Connection failed. Check the network or host; retrying shortly.')
+          : (language === 'zh-CN' ? '等待连接…' : 'Waiting to connect…')}</small>}
+        {live.confirmedAt && <small> {language === 'zh-CN' ? '上次确认：' : 'Last confirmed: '}{new Date(live.confirmedAt).toLocaleString(language)}</small>}</span><button onClick={live.reconnect} disabled={live.retryPhase !== 'idle'} aria-busy={live.retryPhase !== 'idle'}>{live.retryPhase !== 'idle' && <span className="connection-spinner" aria-hidden="true" />}{live.retryPhase === 'queued' ? (language === 'zh-CN' ? '等待重新连接…' : 'Waiting to reconnect…') : live.retryPhase === 'connecting' ? (language === 'zh-CN' ? '重新连接中…' : 'Reconnecting…') : (language === 'zh-CN' ? '重新连接' : 'Retry connection')}</button></div>}
       {live.conflict && <div className={`live-update-banner ${showCreate || showPrompt ? 'modal-conflict' : ''}`} role="alert"><span>{language === 'zh-CN' ? '工作台有外部更新，已保留未保存编辑。' : 'External changes detected. Your unsaved edits are preserved.'}</span><button onClick={discardEdits}>{language === 'zh-CN' ? '放弃草稿，载入最新' : 'Discard drafts and load latest'}</button><button onClick={live.accept}>{language === 'zh-CN' ? '保留编辑，允许覆盖后保存' : 'Keep edits and allow overwrite on save'}</button></div>}
 
       <header className="topbar"><div className="breadcrumb">{t('Workspace')} <span>/</span> {t('Signal design graph')} <span>/</span> <strong>{view === 'translations' ? language === 'zh-CN' ? '字段用途与案例' : 'Field guide and examples' : t(view === 'graph' ? 'Graph' : 'Table')}</strong></div><div className="top-actions"><span className="top-meta">{t('LOCAL PROJECT')}</span>{view !== 'translations' && <button className="button-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> {t('New node')}</button>}</div></header>

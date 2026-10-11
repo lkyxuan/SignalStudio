@@ -24,7 +24,7 @@ final class OfflineWorkspace: NSObject, WKURLSchemeHandler, WKScriptMessageHandl
     func configure(_ configuration: WKWebViewConfiguration) throws {
         let revision = (try? String(contentsOf: shell.appendingPathComponent("revision.txt"), encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "unknown"
         let context: [String: Any] = ["endpoint": endpoint.absoluteString,
-            "workspace": ["project_root": root, "database_path": root + "/data/logic.db"], "codeRevision": revision]
+            "workspace": ["project_root": root, "database_path": root + "/data/logic.db"], "codeRevision": revision, "appRevision": revision]
         let json = String(data: try JSONSerialization.data(withJSONObject: context), encoding: .utf8)!
         configuration.setURLSchemeHandler(self, forURLScheme: "signalstudio")
         configuration.userContentController.addScriptMessageHandler(self, contentWorld: .page, name: "workspaceHTTP")

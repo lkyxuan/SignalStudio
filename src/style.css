@@ -110,3 +110,15 @@
 .decision-node-badge{position:absolute;top:-12px;right:9px;padding:3px 7px;border:1px solid var(--ss-border);border-radius:11px;background:var(--ss-raised);color:var(--ss-text);font-size:11px;font-weight:800;white-space:nowrap}
 
 .inspector-focus-relations{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 10px;border:1px solid var(--ss-accent);border-radius:6px;background:var(--ss-accent-soft);color:var(--ss-accent);font-size:11px;font-weight:600}.inspector-focus-relations:hover{background:var(--ss-accent-soft);border-color:var(--ss-accent)}.inspector-focus-relations:focus-visible{outline:2px solid var(--ss-accent);outline-offset:3px}
+
+/* SS-57: persistent build identity and visible reconnect progress. */
+.workspace-version{font-size:11px;color:var(--ss-text-muted,#777);padding:8px 14px;line-height:1.8}
+.workspace-version a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.workspace-version summary{cursor:pointer}
+.version-details{overflow-wrap:anywhere;max-height:240px;overflow:auto;padding:4px 0}
+.version-details p{margin:6px 0}
+.connection-feedback{display:block;font-weight:600;margin:4px 0}
+.connection-spinner{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:connection-spin .8s linear infinite;margin-right:6px;vertical-align:middle}
+.live-update-banner button:disabled{cursor:wait;opacity:.7}
+@keyframes connection-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.connection-spinner{animation:none}}

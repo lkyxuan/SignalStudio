@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 import type { Graph } from './contracts';
 import { GraphCache, type Workspace } from './graphCache';
 import { LiveGraphSession } from './liveGraphSession';
+import { RefreshQueue, type RefreshPhase } from './refreshQueue';
 
-declare global { interface Window { signalstudioWorkspace?: { endpoint: string; workspace: Workspace; codeRevision: string | null }; signalstudioStorage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> } }
+declare global { interface Window { signalstudioWorkspace?: { endpoint: string; workspace: Workspace; codeRevision: string | null; appRevision?: string }; signalstudioStorage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> } }
 export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
   const sessionRef = useRef<LiveGraphSession | null>(null);
   if (!sessionRef.current) {
@@ -13,7 +14,10 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
   }
   const state = sessionRef.current;
   const queue = useRef<Promise<unknown>>(Promise.resolve());
-  const poll = useRef<Promise<void> | null>(null);
+  const reads = useRef(new RefreshQueue());
+  const manual = useRef(false);
+  const [retryPhase, setRetryPhase] = useState<RefreshPhase>('idle');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [status, setStatus] = useState(state.status);
   const [conflict, setConflict] = useState(false);
   const [confirmedAt, setConfirmedAt] = useState(state.confirmedAt);
@@ -27,14 +31,19 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
     queue.current = result.catch(() => {});
     return result;
   }, []);
-  const reload = useCallback(() => {
-    if (poll.current) return poll.current;
-    poll.current = enqueue(async () => {
-      try { if (await state.refresh() && state.graph) setGraph(state.graph); }
-      catch { /* Explicit connection state is published below. */ }
-      finally { publish(); }
-    }).finally(() => { poll.current = null; });
-    return poll.current;
+  const reload = useCallback((requested = false) => {
+    if (requested) manual.current = true;
+    const progress = () => setRetryPhase(manual.current || !state.writable ? reads.current.phase : 'idle');
+    return reads.current.run(enqueue, async () => {
+      try {
+        if (await state.refresh() && state.graph) setGraph(state.graph);
+        setConnectionError(null);
+      } catch (error) {
+        const name = error instanceof Error ? error.name : '';
+        setConnectionError(name === 'TimeoutError' || name === 'AbortError' ? 'timeout'
+          : state.status === 'identity-error' ? 'identity' : 'failed');
+      } finally { publish(); }
+    }, progress).finally(() => { manual.current = false; });
   }, [enqueue, publish, setGraph, state]);
   useEffect(() => {
     if (state.graph) setGraph(state.graph);
@@ -66,7 +75,7 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
     if (state.pending) { const next = state.pending; state.pending = null; state.graph = next; state.expected = String(next.revision); setGraph({ ...next }); }
     else void reload();
   }, [reload, state, setGraph]);
-  return { reload, write, status, conflict, confirmedAt, cacheAvailable, editorEpoch, getGraph: () => state.graph,
+  return { reload, reconnect: () => reload(true), retryPhase, connectionError, write, status, conflict, confirmedAt, cacheAvailable, editorEpoch, getGraph: () => state.graph,
     markEdited: () => { state.dirty = true; },
     beginDrag: () => { state.dragging = true; },
     endDrag: () => { state.dragging = false; if (!state.dirty) receivePending(); },

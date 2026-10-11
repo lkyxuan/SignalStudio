@@ -61,6 +61,28 @@ save then reopen the App; an online reopen loads the latest server page. Normal 
 save-before-refresh behavior. No executable UI updater is installed. Existing installed Apps must be
 replaced once to obtain this native startup path; server deployment alone is insufficient.
 
+## Reconnect feedback and build identity
+
+The 2026-10-11 approved follow-up exposes queued and running reads immediately during initial
+connection/recovery and manual retry. Repeated clicks/focus events join the existing read, including
+one queued behind a save. Buttons remain disabled until that read finishes. Failures distinguish timeout,
+identity rejection and other connection/service failures; the existing automatic retry continues.
+Successful recovery displays the connected state. Routine successful background polls do not show a spinner.
+Read-only and draft/conflict protection remain enforced independently of this presentation state.
+
+The sidebar shows the actual UI build's Git commit, with a link to that commit and expandable details.
+Vite embeds this identity in the compiled JS and dist/build-info.json; it never adopts a health response
+as its own version. Non-Git builds show unknown; source modifications show a local-changes marker.
+Only runtime data/logic.db (and its WAL/SHM) are excluded from the dirty check. Server identity in details
+is the last successfully observed ready health version with a timestamp; failed checks mark it unconfirmed.
+This is not a claim that it matches GitHub main. The main commit-list link allows manual comparison;
+no GitHub polling or automatic editor reload is added. Differing confirmed server/UI commits prompt
+save-before-refresh (or reopen for the native fallback).
+
+Native clients expose their bundle revision separately on both online and fallback pages. Packaging
+requires a clean UI build matching HEAD via build-info.json, preventing a new package label on stale UI.
+Run the UI build again after committing before producing a client package.
+
 ## Verification and remaining work
 
 Run from an isolated checkout with dependencies and dist built:

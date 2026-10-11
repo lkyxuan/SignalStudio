@@ -31,7 +31,48 @@ import WebKit
                 let parsed = text.data(using: .utf8).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
                 if text.contains(expected) && (args[4] == "empty" ? (parsed?["nodes"] as? Int ?? -1) == 0 : (parsed?["nodes"] as? Int ?? 0) > 0) && !finishing {
                     print("native shell \(args[4]): nodes=\(parsed?["nodes"] ?? 0), snapshots=\(parsed?["storage"] ?? 0)"); passed = true; finishing = true;
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { exit(0) }
+                    if args[4] == "online" {
+                        let check = """
+                        const version = document.querySelector('.workspace-version');
+                        if (!version || !version.innerText.includes('界面版本')) throw Error('Missing UI version');
+                        const href = version.querySelector('a').href;
+                        if (!/github.com\\/lkyxuan\\/SignalStudio\\/commit\\/[a-f0-9]{40}$/.test(href)) throw Error('Invalid commit link');
+                        const original = window.fetch;
+                        window.fetch = async (input, options) => {
+                          if (String(input).includes('/api/desktop-health')) {
+                            await new Promise(resolve => setTimeout(resolve, 700));
+                            throw new DOMException('test timeout', 'TimeoutError');
+                          }
+                          return original(input, options);
+                        };
+                        window.dispatchEvent(new Event('offline'));
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        const button = document.querySelector('.live-update-banner button');
+                        if (!button) throw Error('Missing retry button');
+                        button.click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        if (!button.disabled || !button.innerText.includes('重新连接中')) throw Error('No running feedback');
+                        if (!button.querySelector('.connection-spinner')) throw Error('Missing spinner');
+                        button.click();
+                        await new Promise(resolve => setTimeout(resolve, 900));
+                        if (button.disabled || !document.body.innerText.includes('连接请求超时')) throw Error('No timeout result');
+                        if (version.querySelector('a').href !== href) throw Error('UI version changed after a request');
+                        window.fetch = original;
+                        button.click();
+                        await new Promise(resolve => setTimeout(resolve, 1800));
+                        if (!document.body.innerText.includes('已连接主机')) throw Error('Recovery not confirmed');
+                        return 'retry running / timeout / recovery and fixed UI version passed';
+                        """
+                        view.callAsyncJavaScript(check, arguments: [:], in: nil, in: .page) { result in
+                            switch result {
+                            case .success(let value): print(value); DispatchQueue.main.asyncAfter(deadline: .now() + 2) { exit(0) }
+                            case .failure(let error): fputs("UI feedback check failed: \(error)\n", stderr); exit(1)
+                            }
+                        }
+                    } else {
+                        if !text.contains("界面版本") { fputs("Missing fallback UI version\n", stderr); exit(1) }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { exit(0) }
+                    }
                 } else if Date() > deadline {
                     fputs("Shell did not become ready: \(text) \(String(describing: error))\n", stderr)
                     exit(1)
