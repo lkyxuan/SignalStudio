@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout, feedbackRoutes, forwardLayoutEdges, layoutGroups, traceRoute, layoutStages, type LayoutNode } from './autoLayout';
+import { autoLayout, feedbackRoutes, supportRoutes, forwardLayoutEdges, layoutGroups, traceRoute, layoutStages, type LayoutNode } from './autoLayout';
 const node = (id: string, kind = 'process', name = id): LayoutNode => ({ id, name, type: kind === 'source' ? 'Source' : 'Metric', kind });
 const edge = (a: string, b: string) => ({ id: `${a}-${b}`, upstream_id: a, downstream_id: b });
 function verify(nodes: LayoutNode[], edges: ReturnType<typeof edge>[]) {
@@ -99,4 +99,28 @@ test('stage labels are presentation data and preserve saved coordinates', () => 
   const stages = layoutStages(positioned, edges);
   assert.equal(stages[0]!.title, '爬虫入口'); assert.equal(stages.at(-1)!.title, '榜单与输出');
   assert.equal(stages.length, 3);
+});
+
+test('shared identifier lookup sits beside its users without changing processing depths or dropping reads/writes', () => {
+  const lookup = node('lookup', 'table', 'asset_identifiers');
+  const main = [node('s', 'source'), node('check'), node('create'), node('score'), node('topic', 'channel'), node('cache', 'state'), node('end', 'table', 'supabase_asset_scores')];
+  const flow = [edge('s', 'check'), edge('check', 'create'), edge('create', 'score'), edge('score', 'topic'), edge('topic', 'cache'), edge('cache', 'end')];
+  const shared = [edge('lookup', 'check'), edge('lookup', 'score'), edge('create', 'lookup')];
+  const edges = [...flow, ...shared, edge('lookup', 'missing')], nodes = [...main, lookup];
+  const p = verify(nodes, edges), plain = autoLayout(main, flow);
+  for (const n of plain) assert.deepEqual(p.get(n.id), n);
+  assert.ok(p.get('lookup')!.position_x + 300 < Math.min(...plain.map(n => n.position_x)));
+  assert.equal(p.get('lookup')!.position_y, p.get('create')!.position_y);
+  const positioned = nodes.map(n => ({ ...n, ...p.get(n.id)! }));
+  const routes = supportRoutes(positioned, edges);
+  assert.equal(routes.size, 3);
+  assert.equal(routes.get('lookup-check')!.sourceShared, true);
+  assert.equal(routes.get('create-lookup')!.sourceShared, false);
+  assert.ok([...routes.values()].every(r => r.routeX > p.get('lookup')!.position_x + 300 && r.routeX < 0));
+  assert.equal(feedbackRoutes(positioned, edges).size, 0);
+  const stages = layoutStages(positioned, edges);
+  assert.equal(stages.filter(s => s.id !== 'stage:support').reduce((n, s) => n + s.count, 0), main.length);
+  assert.equal(stages.find(s => s.id === 'stage:support')!.count, 1);
+  const trace = traceRoute(nodes, edges, 'lookup');
+  assert.ok(shared.every(e => trace.edgeIds.has(e.id)));
 });

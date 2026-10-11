@@ -9,6 +9,8 @@ const nodeOrder = (a: LayoutNode, b: LayoutNode) => textOrder(a.workflow_lane ||
 const isSource = (n: LayoutNode) => cardKind(n) === 'source';
 const isLeaderboard = (n: LayoutNode) => ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_emerging'].includes(n.name);
 const isFinal = (n: LayoutNode) => n.name === 'supabase_asset_scores';
+// Explicitly approved shared lookup; resource type or fan-out alone is not enough.
+export const isSharedSupport = (n?: LayoutNode) => n?.name === 'asset_identifiers';
 
 export function layoutGroups(nodes: LayoutNode[], edges: LayoutEdge[]): LayoutGroup[] {
   const ids = new Set(nodes.map(n => n.id));
@@ -61,7 +63,7 @@ function contentBranchIds(nodes: LayoutNode[], edges: LayoutEdge[]): Set<string>
     const id = pending.pop()!;
     for (const e of edges) {
       const next = activeById.get(e.downstream_id);
-      if (e.upstream_id !== id || !next || isLeaderboard(next) || isFinal(next) || isSource(next) || sideIds.has(next.id)) continue;
+      if (e.upstream_id !== id || !next || isSharedSupport(next) || isLeaderboard(next) || isFinal(next) || isSource(next) || sideIds.has(next.id)) continue;
       sideIds.add(next.id); pending.push(next.id);
     }
   }
@@ -73,7 +75,7 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
   // The approved output band anchors three real leaderboard cards. Their
   // downstream content-maintenance branch remains a single, connected side branch.
   const sideIds = contentBranchIds(active, edges);
-  const main = active.filter(n => !sideIds.has(n.id));
+  const main = active.filter(n => !sideIds.has(n.id) && !isSharedSupport(n));
   const links = forwardLayoutEdges(main, edges);
   const incoming = new Map(main.map(n => [n.id, [] as string[]]));
   const outgoing = new Map(main.map(n => [n.id, [] as string[]]));
@@ -151,6 +153,14 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
     positions.push({ id: n.id, position_x: mainRight + 180 + slot * 380, position_y: sideTop + level * sidePitch });
     sideRows.set(level, slot + 1);
   }
+  // Keep the shared lookup beside its users, outside the processing layers.
+  const positioned = new Map(positions.map(p => [p.id, p]));
+  for (const n of active.filter(isSharedSupport)) {
+    const users = new Set(edges.flatMap(e => e.upstream_id === n.id ? [e.downstream_id] : e.downstream_id === n.id ? [e.upstream_id] : []));
+    const ys = [...users].flatMap(id => positioned.has(id) ? [positioned.get(id)!.position_y] : []).sort((a, b) => a - b);
+    const middle = ys.length ? ys[Math.floor(ys.length / 2)]! : 96;
+    positions.push({ id: n.id, position_x: -640, position_y: middle });
+  }
   // The unused library stays beside the tree and outside its initial fit viewport.
   const libraryLeft = Math.max(300, ...positions.map(p => p.position_x + 300)) + 280;
   let top = 96;
@@ -171,8 +181,22 @@ export function feedbackRoutes(nodes: (LayoutNode & { position_x: number; positi
   const right = Math.max(0, ...nodes.filter(n => connected.has(n.id)).map(n => n.position_x + 300));
   for (const e of [...edges].sort((a, b) => textOrder(a.id, b.id))) {
     const a = byId.get(e.upstream_id), b = byId.get(e.downstream_id);
-    if (!a || !b || a.position_y < b.position_y) continue;
+    if (!a || !b || isSharedSupport(a) || isSharedSupport(b) || a.position_y < b.position_y) continue;
     result.set(e.id, right + 40 + result.size * 16);
+  }
+  return result;
+}
+
+// Shared reads/writes use their own left-side corridor, independent of DAG feedback.
+export function supportRoutes(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: (LayoutEdge & { id: string })[]) {
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  const result = new Map<string, { routeX: number; sourceShared: boolean }>();
+  const connected = new Set(edges.flatMap(e => [e.upstream_id, e.downstream_id]));
+  const left = Math.min(0, ...nodes.filter(n => connected.has(n.id) && !isSharedSupport(n)).map(n => n.position_x));
+  for (const e of [...edges].sort((a, b) => textOrder(a.id, b.id))) {
+    const a = byId.get(e.upstream_id), b = byId.get(e.downstream_id);
+    if (!a || !b || (!isSharedSupport(a) && !isSharedSupport(b))) continue;
+    result.set(e.id, { routeX: left - 180 - result.size * 16, sourceShared: isSharedSupport(a) });
   }
   return result;
 }
@@ -205,14 +229,16 @@ export function layoutStages(nodes: (LayoutNode & { position_x: number; position
   const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
   const byId = new Map(nodes.map(n => [n.id, n]));
   const sideIds = contentBranchIds(active, edges);
-  const main = active.filter(n => !sideIds.has(n.id));
+  const support = active.filter(isSharedSupport);
+  const main = active.filter(n => !sideIds.has(n.id) && !isSharedSupport(n));
   const ys = [...new Set(main.map(n => byId.get(n.id)!.position_y))].sort((a, b) => a - b);
-  const left = Math.min(...main.map(n => byId.get(n.id)!.position_x)) - 320;
+  const left = Math.min(...[...main, ...support].map(n => byId.get(n.id)!.position_x)) - 320;
   const stages = ys.map((y, i) => ({ id: `stage:${i}`, x: left, y,
     title: i === 0 ? '爬虫入口' : i === ys.length - 1 ? '榜单与输出' : `第 ${i} 步`,
     titleEn: i === 0 ? 'Crawler inputs' : i === ys.length - 1 ? 'Leaderboards & outputs' : `Step ${i}`,
     count: main.filter(n => byId.get(n.id)!.position_y === y).length }));
-  const side = active.filter(n => !main.includes(n));
+  const side = active.filter(n => sideIds.has(n.id));
   if (side.length) stages.push({ id: 'stage:content', x: Math.min(...side.map(n => byId.get(n.id)!.position_x)), y: Math.min(...side.map(n => byId.get(n.id)!.position_y)) - 48, title: '榜单后续 · 内容维护', titleEn: 'Content maintenance', count: side.length });
+  if (support.length) stages.push({ id: 'stage:support', x: Math.min(...support.map(n => byId.get(n.id)!.position_x)), y: Math.min(...support.map(n => byId.get(n.id)!.position_y)) - 48, title: '公共支撑 · 跨步骤查询', titleEn: 'Shared support · cross-step lookup', count: support.length });
   return stages;
 }

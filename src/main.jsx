@@ -22,7 +22,7 @@ import { sourcePurpose } from './SourceUsageGuide';
 import { SourceCasePage } from './SourceCasePage';
 import { OtherSourceCasePage } from './OtherSourceCasePage';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
-import { autoLayout, layoutGroups, feedbackRoutes, traceRoute, layoutStages } from './autoLayout';
+import { autoLayout, layoutGroups, feedbackRoutes, supportRoutes, isSharedSupport, traceRoute, layoutStages } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
@@ -103,8 +103,8 @@ function LogicNode({ id, data, selected }) {
     const sidePorts = ports.filter(item => item.side === port.side);
     const place = sidePorts.findIndex(item => item.id === port.id) + 1;
     const percent = `${(place / (sidePorts.length + 1)) * 100}%`;
-    return <Handle key={`${type}:${port.id}`} id={`${type}:${port.id}`} type={type} position={type === 'source' ? Position.Bottom : Position.Top}
-      className="flow-handle edge-port" style={{ left: percent }} isConnectable={false} />;
+    return <Handle key={`${type}:${port.id}`} id={`${type}:${port.id}`} type={type} position={port.side === 'right' ? Position.Right : type === 'source' ? Position.Bottom : Position.Top}
+      className="flow-handle edge-port" style={port.side === 'right' ? { top: type === 'source' ? `${15 + place / (sidePorts.length + 1) * 40}%` : `${65 + place / (sidePorts.length + 1) * 25}%` } : { left: percent }} isConnectable={false} />;
   });
   return <div className={`logic-node ${kind} ${OUTPUT_TYPES.has(data.type) ? 'output-node' : ''} ${data.is_system_state ? 'state-node' : ''} ${isDecision ? 'decision-node' : ''} ${selected ? 'is-selected' : ''}`}>
     <Handle type="target" position={Position.Top} className="flow-handle" />
@@ -142,7 +142,22 @@ function FeedbackEdge({ id, sourceX, sourceY, targetX, targetY, data, style, mar
   const path = `M ${sourceX} ${sourceY} L ${sourceX} ${bottom - 8} Q ${sourceX} ${bottom} ${sourceX + 8} ${bottom} L ${right - 8} ${bottom} Q ${right} ${bottom} ${right} ${bottom - 8} L ${right} ${top + 8} Q ${right} ${top} ${right - 8} ${top} L ${targetX + 8} ${top} Q ${targetX} ${top} ${targetX} ${top + 8} L ${targetX} ${targetY}`;
   return <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
 }
-const edgeTypes = { feedback: FeedbackEdge };
+function SupportEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
+  const bus = data.routeX;
+  const points = data.sourceShared
+    ? [[sourceX, sourceY], [bus, sourceY], [bus, targetY - 32], [targetX, targetY - 32], [targetX, targetY]]
+    : [[sourceX, sourceY], [sourceX, sourceY + 32], [bus, sourceY + 32], [bus, targetY], [targetX, targetY]];
+  // Round orthogonal corridor corners while preserving the saved edge direction.
+  let path = `M ${points[0][0]} ${points[0][1]}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const [x, y] = points[i], [px, py] = points[i - 1], [nx, ny] = points[i + 1];
+    const radius = Math.min(8, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
+    path += ` L ${x - Math.sign(x - px) * radius} ${y - Math.sign(y - py) * radius} Q ${x} ${y} ${x + Math.sign(nx - x) * radius} ${y + Math.sign(ny - y) * radius}`;
+  }
+  path += ` L ${targetX} ${targetY}`;
+  return <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
+}
+const edgeTypes = { feedback: FeedbackEdge, support: SupportEdge };
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
 
 function IconButton({ children, title, onClick, active, className = '' }) {
@@ -220,10 +235,10 @@ function App() {
     for (const requirement of graph.requirements || []) if (!requirement.source_field_id) pendingNeedNames.set(requirement.node_id, [...(pendingNeedNames.get(requirement.node_id) || []), requirement.name]);
     const ports = new Map(graph.nodes.map(node => [node.id, { inputPorts: [], outputPorts: [] }]));
     const feedback = feedbackRoutes(graph.nodes, graph.edges);
+    const support = supportRoutes(graph.nodes, graph.edges);
     for (const edge of graph.edges) {
-      const side = 'normal';
-      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side });
-      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side });
+      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: isSharedSupport(nodeById.get(edge.upstream_id)) ? 'right' : 'normal' });
+      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: isSharedSupport(nodeById.get(edge.downstream_id)) ? 'right' : 'normal' });
     }
     for (const [id, nodePorts] of ports) {
       nodePorts.inputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0));
@@ -232,7 +247,7 @@ function App() {
     }
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
     setEdges(graph.edges.map(e => { const color = 'var(--ss-edge)';
-      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: feedback.has(e.id) ? 'feedback' : 'default', data: { routeX: feedback.get(e.id) }, animated: false,
+      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: support.has(e.id) ? 'support' : feedback.has(e.id) ? 'feedback' : 'default', data: support.get(e.id) || { routeX: feedback.get(e.id) }, animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
         style: { stroke: color, strokeWidth: 1.5, strokeDasharray: feedback.has(e.id) ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
   }, [graph, language, catalogEntityInfo, setNodes, setEdges]);
