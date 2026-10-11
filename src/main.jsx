@@ -25,6 +25,8 @@ import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { createCardClickDispatcher } from './cardClicks';
 import { LAYOUT_VERSION, autoLayout, layoutGroups, feedbackRoutes, supportRoutes, traceRoute, layoutStages } from './autoLayout';
 import { neighborLayout } from './neighborLayout';
+import { portPoint, routeDetours, roundedRoute } from './edgeRouting';
+import { graphEmphasis } from './graphEmphasis';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
 import './node-ref.css';
@@ -137,32 +139,18 @@ function LogicNode({ id, data, selected }) {
 function GroupLabel({ data }) {
   return <div className="graph-group-label"><strong>{data.title}</strong><span>{data.count}</span></div>;
 }
-function FeedbackEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
-  const bottom = sourceY + 32, top = targetY - 32;
-  const right = Math.max(data.routeX, sourceX + 40, targetX + 40);
-  const path = `M ${sourceX} ${sourceY} L ${sourceX} ${bottom - 8} Q ${sourceX} ${bottom} ${sourceX + 8} ${bottom} L ${right - 8} ${bottom} Q ${right} ${bottom} ${right} ${bottom - 8} L ${right} ${top + 8} Q ${right} ${top} ${right - 8} ${top} L ${targetX + 8} ${top} Q ${targetX} ${top} ${targetX} ${top + 8} L ${targetX} ${targetY}`;
-  return <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
-}
-function SupportEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
-  const bus = data.routeX;
-  const points = [[sourceX, sourceY]];
-  if (data.sourceSide === 'right') points.push([bus, sourceY]);
-  else if (data.sourceSide === 'left') points.push([sourceX - 24, sourceY], [sourceX - 24, data.sourceBottom], [bus, data.sourceBottom]);
-  else points.push([sourceX, sourceY + 32], [bus, sourceY + 32]);
-  if (data.targetSide === 'right') points.push([bus, targetY], [targetX, targetY]);
-  else if (data.targetSide === 'left') points.push([bus, data.targetTop], [targetX - 24, data.targetTop], [targetX - 24, targetY], [targetX, targetY]);
-  else points.push([bus, targetY - 32], [targetX, targetY - 32], [targetX, targetY]);
-  // Round orthogonal corridor corners while preserving the saved edge direction.
-  let path = `M ${points[0][0]} ${points[0][1]}`;
-  for (let i = 1; i < points.length - 1; i++) {
-    const [x, y] = points[i], [px, py] = points[i - 1], [nx, ny] = points[i + 1];
-    const radius = Math.min(8, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
-    path += ` L ${x - Math.sign(x - px) * radius} ${y - Math.sign(y - py) * radius} Q ${x} ${y} ${x + Math.sign(nx - x) * radius} ${y + Math.sign(ny - y) * radius}`;
+function DetourEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd, markerStart, interactionWidth }) {
+  // XYFlow's measured handle centers can differ slightly from the frame model.
+  const points = data.points?.map(p => [...p]);
+  if (!points?.length) return null;
+  points[0] = [sourceX, sourceY]; points[points.length - 1] = [targetX, targetY];
+  if (points.length > 2) {
+    if (data.sourceSide === 'normal') points[1][0] = sourceX; else points[1][1] = sourceY;
+    if (data.targetSide === 'normal') points[points.length - 2][0] = targetX; else points[points.length - 2][1] = targetY;
   }
-  path += ` L ${targetX} ${targetY}`;
-  return <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
+  return <BaseEdge id={id} path={roundedRoute(points)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth} />;
 }
-const edgeTypes = { feedback: FeedbackEdge, support: SupportEdge };
+const edgeTypes = { detour: DetourEdge };
 const nodeTypes = { logic: LogicNode, groupLabel: GroupLabel };
 
 function IconButton({ children, title, onClick, active, className = '' }) {
@@ -184,7 +172,6 @@ function App() {
   const [focusNodeId, setFocusNodeId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
-  const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
   const [filter, setFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('All types');
@@ -246,13 +233,25 @@ function App() {
       ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: support.get(edge.id)?.targetSide || 'normal' });
     }
     for (const [id, nodePorts] of ports) {
-      nodePorts.inputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0));
-      nodePorts.outputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0));
+      nodePorts.inputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
+      nodePorts.outputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}`).join(',')}`;
     }
+    const detourLinks = graph.edges.filter(e => support.has(e.id) || feedback.has(e.id)).map(e => {
+      const endpoint = (id, output) => {
+        const nodePorts = ports.get(id)[output ? 'outputPorts' : 'inputPorts'];
+        const side = nodePorts.find(p => p.id === e.id)?.side || 'normal';
+        const sameSide = nodePorts.filter(p => p.side === side);
+        return { side, point: portPoint(nodeById.get(id), side, output, sameSide.findIndex(p => p.id === e.id), sameSide.length) };
+      };
+      const source = endpoint(e.upstream_id, true), target = endpoint(e.downstream_id, false);
+      return { id: e.id, source: source.point, target: target.point, sourceSide: source.side, targetSide: target.side };
+    });
+    const detours = routeDetours(graph.nodes, detourLinks);
+    const detourById = new Map(detourLinks.map(e => [e.id, e]));
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
     setEdges(graph.edges.map(e => { const color = 'var(--ss-edge)';
-      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: support.has(e.id) ? 'support' : feedback.has(e.id) ? 'feedback' : 'default', data: support.get(e.id) || { routeX: feedback.get(e.id) }, animated: false,
+      return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: detours.has(e.id) ? 'detour' : 'default', data: { ...detourById.get(e.id), points: detours.get(e.id) }, animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
         style: { stroke: color, strokeWidth: 1.5, strokeDasharray: feedback.has(e.id) ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
   }, [graph, language, catalogEntityInfo, setNodes, setEdges]);
@@ -344,19 +343,12 @@ function App() {
     width: 300, height: 36, measured: { width: 300, height: 36 }, draggable: false, selectable: false, connectable: false,
     style: { pointerEvents: 'none' },
   })));
-  const focusNode = filteredIds.has(focusNodeId) ? focusNodeId : filteredIds.has(selectedId) ? selectedId : filteredIds.has(hoveredNodeId) ? hoveredNodeId : null;
-  const focusEdge = focusNode ? null : selectedEdgeId || hoveredEdgeId;
-  const route = traceRoute(graph.nodes, graph.edges, focusNodeId || selectedId || '');
-  const relatedNodeIds = route.nodeIds.size ? route.nodeIds : new Set(focusNode ? [focusNode] : []);
-  const relatedEdgeIds = route.edgeIds;
-  for (const edge of graph.edges) {
-    if (!route.nodeIds.size && focusNode && (edge.upstream_id === focusNode || edge.downstream_id === focusNode)) {
-      relatedNodeIds.add(edge.upstream_id); relatedNodeIds.add(edge.downstream_id); relatedEdgeIds.add(edge.id);
-    } else if (focusEdge === edge.id) {
-      relatedNodeIds.add(edge.upstream_id); relatedNodeIds.add(edge.downstream_id); relatedEdgeIds.add(edge.id);
-    }
-  }
-  const hasGraphFocus = Boolean(focusNode || relatedEdgeIds.size);
+  const emphasis = graphEmphasis(graph.nodes, graph.edges, {
+    routeNodeId: filteredIds.has(focusNodeId) ? focusNodeId : null,
+    detailNodeId: selectedId, selectedEdgeId, hoveredEdgeId,
+  });
+  const relatedNodeIds = emphasis.nodeIds, relatedEdgeIds = emphasis.edgeIds;
+  const hasGraphFocus = emphasis.active;
   const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: n.id === focusNodeId ? 'graph-search-target graph-route-focus' : searchMatchIds.has(n.id) ? 'graph-search-target' : hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : '' })), ...groupLabels];
   const displayEdges = edges.map(e => ({
     ...e,
@@ -490,7 +482,7 @@ function App() {
         <div className="workflow-tabs" role="tablist" aria-label={t('Workflow paths')}>{WORKFLOW_VIEWS.map(item => <button key={item.id} role="tab" aria-selected={laneView === item.id} className={laneView === item.id ? 'active' : ''} onClick={() => { setLaneView(item.id); setTypeFilter('All types'); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); }}>{t(item.name)}</button>)}<p>{language === 'zh-CN' ? '总览和两条路径使用同一张设计图' : 'Overview and both paths use the same design graph'}</p></div>
         <div className="view-toolbar"><div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right">{view === 'graph' && <div className="local-view-switch" role="group" aria-label={language === 'zh-CN' ? '连线展示方式' : 'Connection display mode'}><button className={graphDisplayMode === 'full' ? 'active' : ''} aria-pressed={graphDisplayMode === 'full'} onClick={() => setGraphDisplayMode('full')}>{language === 'zh-CN' ? '完整图' : 'Full graph'}</button></div>}<div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '定位编号、名称或R字段关系' : 'Locate number, name, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{kindLabel(type, language)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Arrange crawlers above, leaderboards below; content maintenance beside the flow') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
         {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={graph} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap">{focusNodeId && <div className="route-toolbar"><span>{language === 'zh-CN' ? '完整关联路线' : 'Complete route'}</span><button onClick={() => { const route = traceRoute(graph.nodes, graph.edges, focusNodeId); flowInstance?.fitView({ nodes: [...route.nodeIds].map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 350 }); }}>{language === 'zh-CN' ? '适应路线' : 'Fit route'}</button><button onClick={() => openNode(focusNodeId)}>{language === 'zh-CN' ? '查看卡片详情' : 'Card details'}</button><button onClick={() => setFocusNodeId(null)}>{language === 'zh-CN' ? '取消高亮' : 'Clear highlight'}</button></div>}<ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          onNodeClick={(event, node) => { if (node.type !== 'logic') return; cardClicks.current.single(() => openNode(node.id), event.detail); }} onNodeDoubleClick={(_, node) => { if (node.type === 'logic') cardClicks.current.double(() => showRoute(node.id)); }} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { cardClicks.current.cancel(); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); }}
+          onNodeClick={(event, node) => { if (node.type !== 'logic') return; cardClicks.current.single(() => openNode(node.id), event.detail); }} onNodeDoubleClick={(_, node) => { if (node.type === 'logic') cardClicks.current.double(() => showRoute(node.id)); }} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { cardClicks.current.cancel(); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); }}
           onNodeDragStart={() => { cardClicks.current.cancel(); live.beginDrag(); }}
           onNodeDragStop={async (_, node) => { await mutate(`/nodes/${node.id}`, 'PATCH', { position_x: node.position.x, position_y: node.position.y }); live.endDrag(); }}
           onConnect={connect} onEdgeClick={(_, edge) => openEdge(edge.id)} onInit={setFlowInstance} deleteKeyCode={null}
