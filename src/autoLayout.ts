@@ -270,14 +270,5 @@ export function layoutStages(nodes: (LayoutNode & { position_x: number; position
   const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
   const byId = new Map(nodes.map(n => [n.id, n]));
   const sideGroups = sideLayoutGroups(active, edges);
-  const sideIds = new Set(sideGroups.flatMap(g => g.nodes.map(n => n.id)));
-  const main = active.filter(n => !sideIds.has(n.id));
-  const ys = [...new Set(main.map(n => byId.get(n.id)!.position_y))].sort((a, b) => a - b);
-  const left = Math.min(...active.map(n => byId.get(n.id)!.position_x)) - 320;
-  const stages = ys.map((y, i) => ({ id: `stage:${i}`, x: left, y,
-    title: i === 0 ? '爬虫入口' : i === ys.length - 1 ? '榜单与输出' : `第 ${i} 步`,
-    titleEn: i === 0 ? 'Crawler inputs' : i === ys.length - 1 ? 'Leaderboards & outputs' : `Step ${i}`,
-    count: main.filter(n => byId.get(n.id)!.position_y === y).length }));
-  for (const g of sideGroups) stages.push({ id: `stage:${g.key}`, x: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_x)), y: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_y)) - 48, title: g.title, titleEn: g.titleEn, count: g.nodes.length });
-  return stages;
+  return sideGroups.map(g => ({ id: `stage:${g.key}`, x: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_x)), y: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_y)) - 48, title: g.title, titleEn: g.titleEn, count: g.nodes.length }));
 }

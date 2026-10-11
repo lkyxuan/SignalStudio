@@ -92,13 +92,12 @@ test('complete route traversal preserves cycles and excludes dangling edges', ()
   const result = traceRoute(nodes, edges, 'b');
   assert.equal(result.nodeIds.size, 3); assert.equal(result.edgeIds.size, 3);
 });
-test('stage labels are presentation data and preserve saved coordinates', () => {
+test('main flow has no stage labels and preserves saved coordinates', () => {
   const nodes = [node('s', 'source'), node('p'), node('end', 'table', 'supabase_asset_scores')], edges = [edge('s', 'p'), edge('p', 'end')];
   const positions = verify(nodes, edges);
   const positioned = nodes.map(n => ({ ...n, ...positions.get(n.id)! }));
   const stages = layoutStages(positioned, edges);
-  assert.equal(stages[0]!.title, '爬虫入口'); assert.equal(stages.at(-1)!.title, '榜单与输出');
-  assert.equal(stages.length, 3);
+  assert.deepEqual(stages, []);
 });
 
 test('shared identifier lookup sits beside its users without changing processing depths or dropping reads/writes', () => {
@@ -119,7 +118,7 @@ test('shared identifier lookup sits beside its users without changing processing
   assert.ok([...routes.values()].every(r => r.routeX > p.get('lookup')!.position_x + 300 && r.routeX < 0));
   assert.equal(feedbackRoutes(positioned, edges).size, 0);
   const stages = layoutStages(positioned, edges);
-  assert.equal(stages.filter(s => s.id !== 'stage:assets').reduce((n, s) => n + s.count, 0), main.length);
+  assert.deepEqual(stages.map(s => s.id), ['stage:assets']);
   assert.equal(stages.find(s => s.id === 'stage:assets')!.count, 1);
   const trace = traceRoute(nodes, edges, 'lookup');
   assert.ok(shared.every(e => trace.edgeIds.has(e.id)));
@@ -149,6 +148,6 @@ test('reviewed public services and complete side workflows retain boundaries and
   assert.ok(!routes.has('ai-review') && !routes.has('archive-ledger'));
   assert.ok(branches.every(e => traceRoute(nodes, edges, e.upstream_id).edgeIds.has(e.id)));
   const stages = layoutStages(positioned, edges);
-  assert.equal(stages.filter(g => /^stage:[0-9]+$/.test(g.id)).reduce((n, g) => n + g.count, 0), 9);
-  assert.equal(stages.reduce((n, g) => n + g.count, 0), nodes.length - 1);
+  assert.equal(stages.filter(g => /^stage:[0-9]+$/.test(g.id)).length, 0);
+  assert.equal(stages.reduce((n, g) => n + g.count, 0), ids.size);
 });
