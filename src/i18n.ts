@@ -152,7 +152,7 @@ const zh: Record<string, string> = {
   'Fit graph': '适应画布',
   'Arrange nodes': '整理节点',
   'Arrange nodes by dependency': '按依赖关系整理节点',
-  'Group unconnected nodes; arrange dependencies left to right': '未连接节点按来源分块；已连接节点按依赖方向排列',
+  'Arrange by workflow; separate shared resources and source library': '按业务流程分区；共用资源与未连接来源分别排列',
   'Nodes arranged': '节点已整理',
   'Drag from a node handle to create a dependency': '从节点连接点拖动以创建依赖',
   'Select a connection to remove it': '选中连接后可将其删除',
