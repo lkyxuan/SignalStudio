@@ -118,7 +118,7 @@ function LogicNode({ id, data, selected }) {
     <Handle type="target" position={Position.Top} className="flow-handle" />
     {renderPorts(data.inputPorts || [], 'target')}
     <div className="node-top">
-      <span className="node-ref">{nodeRef(data)}{data.shared && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '同编号共用同一份内容与配置；点击可同时高亮各处。显示副本的位置由整理规则安排。' : 'Same reference, shared content and settings. Select to highlight all occurrences. Mirrors are positioned by Arrange.'}>{data.language === 'zh-CN' ? '共用' : 'Shared'}</span>}</span>
+      <span className="node-ref">{nodeRef(data)}{data.card_contract?.config.resource?.parent_module && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '所属Polars模块' : 'Owning Polars module'}>{data.card_contract.config.resource.parent_module.reference_number}</span>}{data.shared && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '同编号共用同一份内容与配置；点击可同时高亮各处。显示副本的位置由整理规则安排。' : 'Same reference, shared content and settings. Select to highlight all occurrences. Mirrors are positioned by Arrange.'}>{data.language === 'zh-CN' ? '共用' : 'Shared'}</span>}</span>
       <div className="node-labels">
         <span className="node-glyph">{kind === 'product' ? <LayoutGrid size={15} /> : kind === 'source' || kind === 'state' || kind === 'topic' || kind === 'cache' ? <Database size={15} /> : kind === 'score' ? <Activity size={15} /> : kind === 'identity' || kind === 'relationship' ? <Network size={15} /> : <GitBranch size={15} />}</span>
         <span className="node-kind" title={kindLabel(cardKind(data), data.language)}>{kindLabel(cardKind(data), data.language)}</span>
@@ -131,7 +131,6 @@ function LogicNode({ id, data, selected }) {
       {!data.isContractSource && data.fieldCount > 0 && <span className="node-field-count">{data.language === 'zh-CN' ? `${data.fieldCount} ${t('fields')}` : `${data.fieldCount} ${data.fieldCount === 1 ? 'field' : 'fields'}`}</span>}
     </div>
     <div className="node-body">
-    {data.card_contract?.config.resource?.parent_module && <span className="shared-card-badge">{data.language === 'zh-CN' ? '所属Polars模块' : 'Polars module'} #{data.card_contract.config.resource.parent_module.reference_number}</span>}
     <CardProgressBadge progress={data.progress} language={data.language} />
     <div className="node-name" title={`${nodeRef(data)} ${data.isContractSource && data.language === 'zh-CN' ? data.catalogRecordLabel || data.name : displayNodeName(data.language, data.name)} · ${data.name}`}><span className="node-name-text">{data.isContractSource && data.language === 'zh-CN' ? data.catalogRecordLabel || data.name : displayNodeName(data.language, data.name)}</span></div>
     <div className="node-definition" title={BUSINESS_TABLE_NAMES.has(data.name) ? businessTables.tables[data.name].purpose_zh : cardSummary || data.definition || ''}>{BUSINESS_TABLE_NAMES.has(data.name)
