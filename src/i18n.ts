@@ -153,7 +153,7 @@ const zh: Record<string, string> = {
   'Fit graph': '适应画布',
   'Arrange nodes': '整理节点',
   'Arrange nodes by dependency': '按依赖关系整理节点',
-  'Arrange crawlers above, leaderboards below; content maintenance beside the flow': '顶部爬虫向下展开，底部排列榜单与输出；内容维护在侧方',
+  'Arrange each crawler in its own tower; shared cards appear beside each flow': '每条爬虫独立向下展开；共用卡片在各自流程旁显示',
   'Nodes arranged': '节点已整理',
   'Drag from a node handle to create a dependency': '从节点连接点拖动以创建依赖',
   'Select a connection to remove it': '选中连接后可将其删除',

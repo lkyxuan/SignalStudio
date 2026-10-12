@@ -1,2 +1,4 @@
 .react-flow__node.graph-search-target{opacity:1}
-.graph-search-status{position:absolute;bottom:14px;left:60px;z-index:5;padding:7px 10px;border:1px solid var(--ss-border);border-radius:6px;background:var(--ss-surface);color:var(--ss-text);font-size:12px;pointer-events:none}
+.graph-search-status{position:absolute;top:12px;left:60px;z-index:6;max-width:calc(100% - 76px);box-sizing:border-box;display:flex;flex-wrap:wrap;gap:6px;padding:7px 10px;border:1px solid var(--ss-border);border-radius:6px;background:var(--ss-surface);color:var(--ss-text);font-size:12px;pointer-events:none}
+
+.shared-location-nav{display:inline-flex;align-items:center;gap:8px;margin-left:12px}.shared-location-nav button{pointer-events:auto;border:1px solid var(--ss-border);border-radius:4px;background:var(--ss-raised);color:var(--ss-accent);padding:2px 7px;cursor:pointer}

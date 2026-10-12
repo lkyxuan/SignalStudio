@@ -115,7 +115,7 @@ npm run test:layout
 
 `catalog/application-interfaces.v1.json` 定义资产得分和资产纠错审核两张界面的内容、操作、限制及验收要求。实例 `config.interface` 保存该定义、未绑定的 endpoint/api_endpoint；定义通过 definition_refs 固定模块摘要并随图包交付。实际页面/API 未绑定时 readiness 报 interface_binding_unverified；实现、部署和运行证据仍只来自独立报告。
 
-`server/application_interfaces.py` 在原模块存在、CardModel 迁移后原子新增两卡和两条关系；只在首次安装写入新卡配置，后续启动不覆盖用户修改或恢复已删除的卡。同名用户卡冲突时停止并明确报错，不擅自接管。原卡、字段、关系、绑定及坐标不改。新卡放在目标附近的空位置；只有用户点击整理才应用 ss71-application-interfaces.v1 布局：得分页面在 Supabase 下游，审核页面归入既有维护支线，不增加职责区分框。
+`server/application_interfaces.py` 在原模块存在、CardModel 迁移后原子新增两卡和两条关系；只在首次安装写入新卡配置，后续启动不覆盖用户修改或恢复已删除的卡。同名用户卡冲突时停止并明确报错，不擅自接管。原卡、字段、关系、绑定及坐标不改。新卡放在目标附近的空位置；只有用户点击整理才应用当前 ss73-crawler-towers.v1 布局（SS-73 在每条爬虫独立分塔的基础上保留以下界面位置规则）：得分页面在 Supabase 下游，审核页面归入既有维护支线，不增加职责区分框。
 
 详情按用途、关联、内容、读取展示规则、用户动作、待实现限制和验收顺序显示；这是设计交付，不提供真实批准/纠错按钮。得分页面链接 #1007 frontend_read 单一规则，界面字段列表是交付要求而非第二份数据 schema。审核页面承载 #4003，保留原 #4002/#4001→#4003→#3003 分支语义和获批后当前记录核对。不能以本次新增定义声称 fewunderstand 已实现或接收需求。
 

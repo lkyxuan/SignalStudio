@@ -24,5 +24,6 @@
 .logic-node .node-body>.card-progress-badge{height:18px;flex:none;padding:0 6px}
 .logic-node .node-name{height:40px;flex:none;margin:0;gap:6px;align-items:flex-start;white-space:normal;font-size:14px;line-height:20px}
 .logic-node .node-ref{margin:0;padding:0;border:0;background:transparent;font-size:14px;line-height:20px;color:var(--ss-text)}
+.logic-node .shared-card-badge{display:inline-block;margin-left:6px;padding:0 4px;border:1px solid var(--ss-node-border);border-radius:4px;color:var(--ss-muted);font-size:9px;font-weight:500;line-height:16px;vertical-align:1px}
 .logic-node .node-name-text{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .logic-node .node-definition{height:32px;flex:none;line-height:16px;margin:0;overflow-wrap:anywhere}

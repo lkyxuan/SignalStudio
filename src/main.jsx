@@ -25,6 +25,7 @@ import { OtherSourceCasePage } from './OtherSourceCasePage';
 import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { createCardClickDispatcher } from './cardClicks';
 import { LAYOUT_VERSION, autoLayout, layoutGroups, traceRoute, layoutStages } from './autoLayout';
+import { crawlerPresentation } from './crawlerPresentation';
 import { neighborLayout } from './neighborLayout';
 import { arcStyles, bezierRoute, bezierControls } from './edgeRouting';
 import { graphEmphasis } from './graphEmphasis';
@@ -117,7 +118,7 @@ function LogicNode({ id, data, selected }) {
     <Handle type="target" position={Position.Top} className="flow-handle" />
     {renderPorts(data.inputPorts || [], 'target')}
     <div className="node-top">
-      <span className="node-ref">{nodeRef(data)}</span>
+      <span className="node-ref">{nodeRef(data)}{data.shared && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '同编号共用同一份内容与配置；点击可同时高亮各处。显示副本的位置由整理规则安排。' : 'Same reference, shared content and settings. Select to highlight all occurrences. Mirrors are positioned by Arrange.'}>{data.language === 'zh-CN' ? '共用' : 'Shared'}</span>}</span>
       <div className="node-labels">
         <span className="node-glyph">{kind === 'product' ? <LayoutGrid size={15} /> : kind === 'source' || kind === 'state' || kind === 'topic' || kind === 'cache' ? <Database size={15} /> : kind === 'score' ? <Activity size={15} /> : kind === 'identity' || kind === 'relationship' ? <Network size={15} /> : <GitBranch size={15} />}</span>
         <span className="node-kind" title={kindLabel(cardKind(data), data.language)}>{kindLabel(cardKind(data), data.language)}</span>
@@ -172,12 +173,15 @@ function App() {
   const [laneView, setLaneView] = useState('all');
   const [graphDisplayMode, setGraphDisplayMode] = useState('full');
   const [focusNodeId, setFocusNodeId] = useState(null);
+  const [routeOccurrenceId, setRouteOccurrenceId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [focusedEdgeId, setFocusedEdgeId] = useState(null);
   const [flowFocusId, setFlowFocusId] = useState(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
   const [filter, setFilter] = useState('');
+  const [searchOccurrenceIndex, setSearchOccurrenceIndex] = useState(0);
+  useEffect(() => setSearchOccurrenceIndex(0), [filter]);
   const [typeFilter, setTypeFilter] = useState('All types');
   const [showCreate, setShowCreate] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -202,6 +206,11 @@ function App() {
 
   const flash = (message, error = false) => { setNotice({ message, error }); setTimeout(() => setNotice(null), 4200); };
   const presentation = useMemo(() => processGraph(graph), [graph]);
+  const towerView = useMemo(() => crawlerPresentation(graph.nodes, graph.edges, presentation.edges), [graph, presentation]);
+  const visualNodes = new Map(towerView.nodes.map(node => [node.id, node]));
+  const visualEdges = new Map(towerView.edges.map(edge => [edge.id, edge]));
+  const logicalNodeId = id => visualNodes.get(id)?.logicalId || id;
+  const logicalEdgeId = id => visualEdges.get(id)?.logicalEdgeId || id;
   const live = useLiveGraph(setGraph);
   const serverVersion = useServerVersion();
   useEffect(() => {
@@ -224,31 +233,31 @@ function App() {
   }, [graph.contract_revision]);
   useEffect(() => {
     const fieldCounts = new Map();
-    const nodeById = new Map(graph.nodes.map(node => [node.id, node]));
-    const nodeNameById = new Map(graph.nodes.map(node => [node.id, node.name]));
+    const nodeById = new Map(towerView.nodes.map(node => [node.id, node]));
+    const nodeNameById = new Map(towerView.nodes.map(node => [node.id, node.name]));
     for (const field of graph.fields || []) if (!['internal', 'hidden'].includes(field.catalog_visibility))
       fieldCounts.set(field.node_id, (fieldCounts.get(field.node_id) || 0) + 1);
     const usageCounts = new Map();
     for (const usage of graph.field_usages || []) usageCounts.set(usage.edge_id, (usageCounts.get(usage.edge_id) || 0) + 1);
     const pendingNeedNames = new Map();
     for (const requirement of graph.requirements || []) if (!requirement.source_field_id) pendingNeedNames.set(requirement.node_id, [...(pendingNeedNames.get(requirement.node_id) || []), requirement.name]);
-    const ports = new Map(graph.nodes.map(node => [node.id, { inputPorts: [], outputPorts: [] }]));
-    const arcs = arcStyles(graph.nodes, presentation.edges);
-    for (const edge of presentation.edges) {
+    const ports = new Map(towerView.nodes.map(node => [node.id, { inputPorts: [], outputPorts: [] }]));
+    const arcs = arcStyles(towerView.nodes, towerView.edges);
+    for (const edge of towerView.edges) {
       ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.sourceSide || 'normal', paired: arcs.get(edge.id)?.sourcePort });
       ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.targetSide || 'normal', paired: arcs.get(edge.id)?.targetPort });
     }
     for (const [id, nodePorts] of ports) {
-      nodePorts.inputPorts.sort((a, b) => (nodeById.get(presentation.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(presentation.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
-      nodePorts.outputPorts.sort((a, b) => (nodeById.get(presentation.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(presentation.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
+      nodePorts.inputPorts.sort((a, b) => (nodeById.get(towerView.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(towerView.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
+      nodePorts.outputPorts.sort((a, b) => (nodeById.get(towerView.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(towerView.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}`;
     }
-    setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
-    setEdges(presentation.edges.map(e => { const color = 'var(--ss-edge)';
+    setNodes(towerView.nodes.map(n => ({ id: n.id, draggable: n.id === n.logicalId, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, id: n.logicalId, progress: graph.card_progress?.[n.logicalId], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.logicalId) || 0, pendingNeedNames: pendingNeedNames.get(n.logicalId) || [] } })));
+    setEdges(towerView.edges.map(e => { const color = 'var(--ss-edge)';
       return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: 'directArc', data: arcs.get(e.id), animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
         style: { stroke: color, strokeWidth: 1.5, strokeDasharray: arcs.get(e.id)?.dashed ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
-  }, [graph, presentation, language, catalogEntityInfo, setNodes, setEdges]);
+  }, [graph, towerView, language, catalogEntityInfo, setNodes, setEdges]);
 
   const selected = graph.nodes.find(n => n.id === selectedId);
   const isSignal = selected && SIGNAL_TYPES.has(selected.type) && selected.name !== scoreRollup.node.name;
@@ -326,6 +335,8 @@ function App() {
   const searchMatchIds = new Set(searchMatches.map(node => node.id));
   const searchMatchKey = searchMatches.map(node => node.id).join(',');
   const searchTarget = searchMatches.length === 1 ? searchMatches[0] : null;
+  const searchOccurrences = searchTarget ? towerView.nodes.filter(node => node.logicalId === searchTarget.id) : [];
+  const searchOccurrence = searchOccurrences[searchOccurrenceIndex % (searchOccurrences.length || 1)];
   const canvasNodes = locatingCard ? graph.nodes : filtered;
   const filteredIds = new Set(canvasNodes.map(n => n.id));
   const localFocus = graph.nodes.find(node => node.id === focusNodeId) || filtered.find(node => node.reference_number === IDENTITY_REFS.lookup) || filtered.find(node => connectedIds.has(node.id)) || filtered[0];
@@ -342,12 +353,16 @@ function App() {
       draggable: false, selectable: false, connectable: false, focusable: false, style: { pointerEvents: 'none' },
     }];
   });
-  groupLabels.push(...layoutStages(graph.nodes, graph.edges).map(stage => ({
-    id: stage.id, type: 'groupLabel', position: { x: stage.x, y: stage.y },
-    data: { title: language === 'zh-CN' ? stage.title : stage.titleEn, count: stage.count },
-    width: 300, height: 36, measured: { width: 300, height: 36 }, draggable: false, selectable: false, connectable: false,
-    style: { pointerEvents: 'none' },
-  })));
+  for (const towerId of new Set(towerView.nodes.map(node => node.towerId))) {
+    const members = towerView.nodes.filter(node => node.towerId === towerId && filteredIds.has(node.logicalId));
+    const ids = new Set(members.map(node => node.id));
+    groupLabels.push(...layoutStages(members, towerView.edges.filter(edge => ids.has(edge.upstream_id) && ids.has(edge.downstream_id))).map(stage => ({
+      id: `${stage.id}:${towerId || 'shared-area'}`, type: 'groupLabel', position: { x: stage.x, y: stage.y },
+      data: { title: language === 'zh-CN' ? stage.title : stage.titleEn, count: stage.count },
+      width: 300, height: 36, measured: { width: 300, height: 36 }, draggable: false, selectable: false, connectable: false,
+      style: { pointerEvents: 'none' },
+    })));
+  }
   const focusConnection = presentation.edges.find(edge => edge.id === (focusedEdgeId || selectedEdgeId));
   const flowChoices = edgeFlows(presentation, focusConnection);
   const relationOwner = graph.nodes.find(node => node.id === flowFocusId && flowChoices.some(choice => choice.id === node.id)) || relationFocus(presentation, selectedId, focusedEdgeId || selectedEdgeId);
@@ -358,20 +373,22 @@ function App() {
     detailNodeId: relationOwner?.id || selectedId, selectedEdgeId: selectedEdgeId || focusedEdgeId, hoveredEdgeId,
   }, presentation);
   const relatedNodeIds = emphasis.nodeIds, relatedEdgeIds = emphasis.edgeIds;
+  const routeStart = logicalNodeId(routeOccurrenceId) === focusNodeId ? routeOccurrenceId : focusNodeId;
+  const occurrenceRoute = focusNodeId ? traceRoute(towerView.nodes, towerView.edges, routeStart) : null;
   const hasGraphFocus = emphasis.active;
-  const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: n.id === focusNodeId ? 'graph-search-target graph-route-focus' : hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : searchMatchIds.has(n.id) ? 'graph-search-target' : '' })), ...groupLabels];
+  const displayNodes = [...nodes.map(n => { const id = n.data.id; const related = occurrenceRoute ? occurrenceRoute.nodeIds.has(n.id) : relatedNodeIds.has(id); return { ...n, hidden: !filteredIds.has(id), className: id === focusNodeId ? 'graph-search-target graph-route-focus' : hasGraphFocus ? related ? 'graph-related' : 'graph-dimmed' : searchMatchIds.has(id) ? 'graph-search-target' : '' }; }), ...groupLabels];
   const semanticEdges = new Map(presentation.edges.map(edge => [edge.id, edge]));
   const displayEdges = edges.map(e => {
-    const meaning = edgePresentation(presentation, semanticEdges.get(e.id), language, relationOwner);
+    const meaning = edgePresentation(presentation, semanticEdges.get(logicalEdgeId(e.id)), language, relationOwner);
     const color = ({ read: 'var(--ss-blue)', write: 'var(--ss-success)', trigger: 'var(--ss-purple)', error: 'var(--ss-error)', data: 'var(--ss-muted)' })[meaning.tone];
     return { ...e,
-      hidden: !filteredIds.has(e.source) || !filteredIds.has(e.target),
-      className: hasGraphFocus ? relatedEdgeIds.has(e.id) ? 'graph-related' : 'graph-dimmed' : referenceMatchEdges.some(edge => edge.id === e.id) ? 'graph-related' : '',
-      data: { ...e.data, meaning: meaning.displayLabel, onSelect: () => focusEdge(e.id) }, ariaLabel: `${e.ariaLabel} · ${meaning.displayLabel}`,
+      hidden: !filteredIds.has(logicalNodeId(e.source)) || !filteredIds.has(logicalNodeId(e.target)),
+      className: hasGraphFocus ? (occurrenceRoute ? occurrenceRoute.edgeIds.has(e.id) : relatedEdgeIds.has(logicalEdgeId(e.id))) ? 'graph-related' : 'graph-dimmed' : referenceMatchEdges.some(edge => edge.id === logicalEdgeId(e.id)) ? 'graph-related' : '',
+      data: { ...e.data, meaning: meaning.displayLabel, onSelect: () => focusEdge(logicalEdgeId(e.id)) }, ariaLabel: `${e.ariaLabel} · ${meaning.displayLabel}`,
       style: { ...e.style, stroke: color }, markerEnd: { ...e.markerEnd, color },
     };
   });
-  const visibleNodeIds = filtered.map(node => node.id).join(',');
+  const visibleNodeIds = towerView.nodes.filter(node => filteredIds.has(node.logicalId)).map(node => node.id).join(',');
   const wasLocatingCard = useRef(false);
   useEffect(() => {
     const leavingCardSearch = wasLocatingCard.current;
@@ -384,7 +401,7 @@ function App() {
           flowInstance.fitView({ nodes: searchMatches.map(node => ({ id: node.id })), padding: 0.2, maxZoom: 0.85, duration: 250 });
           return;
         }
-        const target = flowInstance.getNode(searchTarget.id);
+        const target = flowInstance.getNode(searchOccurrence?.id || searchTarget.id);
         if (!target) return;
         flowInstance.setCenter(target.position.x + (target.measured?.width ?? 286) / 2,
           target.position.y + (target.measured?.height ?? 174) / 2, { zoom: 0.85, duration: 250 });
@@ -397,7 +414,7 @@ function App() {
       nodes: visibleNodeIds.split(',').map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 250,
     }));
     return () => cancelAnimationFrame(frame);
-  }, [filter, typeFilter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchMatchKey]);
+  }, [filter, typeFilter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchMatchKey, searchOccurrenceIndex]);
 
   const mutate = async (path, method, body, success, saveMain = false) => {
     try { setBusy(true); const preserve = !saveMain && draft && selected && JSON.stringify(draft) !== JSON.stringify(selected); const result = await live.write(path, method, body, preserve); if (success) flash(success); return result; }
@@ -409,21 +426,24 @@ function App() {
     const result = await mutate(`/nodes/${selected.id}`, 'DELETE', null, 'Node deleted'); if (result) setSelectedId(null); };
   const addNode = async () => { const result = await mutate('/nodes', 'POST', newNode, 'Node created');
     if (result) { setShowCreate(false); setSelectedId(result.id); setNewNode({ name: '', kind: 'process', workflow_lane: 'signal', definition: '' }); setTimeout(() => flowInstance?.setCenter(result.position_x, result.position_y, { zoom: 0.85, duration: 450 }), 80); } };
-  const connect = async connection => { await mutate('/edges', 'POST', { upstream_id: connection.source, downstream_id: connection.target }, 'Connection created'); };
+  const connect = async connection => { await mutate('/edges', 'POST', { upstream_id: logicalNodeId(connection.source), downstream_id: logicalNodeId(connection.target) }, 'Connection created'); };
   const deleteEdge = async () => { if (!selectedEdgeId) return; const result = await mutate(`/edges/${selectedEdgeId}`, 'DELETE', null, 'Connection deleted'); if (result) setSelectedEdgeId(null); };
   const propose = async () => { try { setBusy(true); setProposal(await live.write('/proposals', 'POST', { prompt: normalizeNodeReferences(language, prompt, graph.nodes) }, true)); }
     catch (error) { flash(error.message, true); } finally { setBusy(false); } };
   const applyProposal = async () => { const result = await mutate('/proposals/apply', 'POST', proposal, 'Proposed changes applied');
     if (result) { setSelectedId(result.id); setProposal(null); setPrompt(''); setShowPrompt(false); setTimeout(() => flowInstance?.setCenter(result.position_x, result.position_y, { zoom: 0.85, duration: 450 }), 80); } };
-  const openNode = id => { cardClicks.current.cancel(); setSelectedId(id); setSelectedEdgeId(null); setFocusedEdgeId(null); setFocusNodeId(null); };
-  const showRoute = id => {
-    setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); setFocusNodeId(id);
-    const route = traceRoute(graph.nodes, graph.edges, id);
+  const openNode = id => { cardClicks.current.cancel(); setSelectedId(logicalNodeId(id)); setSelectedEdgeId(null); setFocusedEdgeId(null); setFocusNodeId(null); };
+  const fitRoute = id => {
+    const route = traceRoute(towerView.nodes, towerView.edges, id);
     flowInstance?.fitView({ nodes: [...route.nodeIds].map(nodeId => ({ id: nodeId })), padding: 0.2, maxZoom: 0.85, duration: 350 });
+  };
+  const showRoute = id => {
+    setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); setFocusNodeId(logicalNodeId(id)); setRouteOccurrenceId(id);
+    fitRoute(id);
   };
   const focusSelectedRelations = async () => {
     if (!selected || busy) return;
-    const renderedCards = new Map((flowInstance?.getNodes() || nodes).map(node => [node.id, node]));
+    const renderedCards = new Map((flowInstance?.getNodes() || nodes).filter(node => graph.nodes.some(original => original.id === node.id)).map(node => [node.id, node]));
     const cards = graph.nodes.map(node => renderedCards.get(node.id) || {
       id: node.id, position: { x: node.position_x, y: node.position_y },
     });
@@ -453,7 +473,7 @@ function App() {
     if (!graph.nodes.length) return;
     const positions = autoLayout(graph.nodes, graph.edges);
     const result = await mutate('/nodes/layout', 'POST', { layout_version: LAYOUT_VERSION, positions }, 'Nodes arranged');
-    if (result) { setFocusNodeId(null); const active = layoutGroups(graph.nodes, graph.edges).find(group => group.flow)?.nodes || []; setTimeout(() => flowInstance?.fitView({ nodes: active.map(node => ({ id: node.id })), padding: 0.16, maxZoom: 0.85, duration: 450 }), 100); }
+    if (result) { setFocusNodeId(null); const active = new Set((layoutGroups(graph.nodes, graph.edges).find(group => group.flow)?.nodes || []).map(node => node.id)); setTimeout(() => flowInstance?.fitView({ nodes: crawlerPresentation(graph.nodes.map(node => ({ ...node, ...positions.find(p => p.id === node.id) })), graph.edges).nodes.filter(node => active.has(node.logicalId)).map(node => ({ id: node.id })), padding: 0.16, maxZoom: 0.85, duration: 450 }), 100); }
   };
   const discardEdits = () => {
     setShowCreate(false); setShowPrompt(false); setProposal(null); setPrompt('');
@@ -496,17 +516,17 @@ function App() {
       <section className="workspace-head"><div><div className="eyebrow"><span className="eyebrow-line" /> {t('DESIGN STUDIO')}</div><h1>{t('Signal design graph')}</h1><p>{language === 'zh-CN' ? '按数据来源、处理、判断、数据表、消息通道、缓存／窗口和应用界面组织。历史编号保持不变，可按编号搜索。' : 'Seven card types: source, process, decision, table, channel, cache / window and application interface. Historical reference numbers remain unchanged.'}</p></div><div className="workspace-stats"><div><strong>{contractSummary?.entries ?? '—'}</strong><span>{language === 'zh-CN' ? '上游入口' : 'UPSTREAM ENTRIES'}</span></div><i /><div><strong>{contractSummary?.fields ?? '—'}</strong><span title={language === 'zh-CN' ? '当前已列出的样本字段和文档计划字段；并非完整返回字段总数' : 'Sample paths and planned documented fields; not a complete output schema'}>{language === 'zh-CN' ? '已列字段定义' : 'LISTED FIELD DEFINITIONS'}</span></div><i /><div><strong>{graph.edges.length}</strong><span>{t('CONNECTIONS')}</span></div></div></section>
       <section className="work-card">
         <div className="workflow-tabs" role="tablist" aria-label={t('Workflow paths')}>{WORKFLOW_VIEWS.map(item => <button key={item.id} role="tab" aria-selected={laneView === item.id} className={laneView === item.id ? 'active' : ''} onClick={() => { setLaneView(item.id); setTypeFilter('All types'); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{t(item.name)}</button>)}<p>{language === 'zh-CN' ? '总览和两条路径使用同一张设计图' : 'Overview and both paths use the same design graph'}</p></div>
-        <div className="view-toolbar">{graphDisplayMode === 'local' && <button className="button-secondary" onClick={() => { setGraphDisplayMode('full'); setFocusNodeId(null); }}>{language === 'zh-CN' ? '返回完整画布' : 'Back to full graph'}</button>}<div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right"><div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '定位编号、名称或R字段关系' : 'Locate number, name, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{kindLabel(type, language)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Arrange crawlers above, leaderboards below; content maintenance beside the flow') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
-        {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={presentation} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap">{focusNodeId && <div className="route-toolbar"><span>{language === 'zh-CN' ? '完整关联路线' : 'Complete route'}</span><button onClick={() => { const route = traceRoute(graph.nodes, graph.edges, focusNodeId); flowInstance?.fitView({ nodes: [...route.nodeIds].map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 350 }); }}>{language === 'zh-CN' ? '适应路线' : 'Fit route'}</button><button onClick={() => openNode(focusNodeId)}>{language === 'zh-CN' ? '查看卡片详情' : 'Card details'}</button><button onClick={() => setFocusNodeId(null)}>{language === 'zh-CN' ? '取消高亮' : 'Clear highlight'}</button></div>}<ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          onNodeClick={(event, node) => { if (node.type !== 'logic') return; cardClicks.current.single(() => openNode(node.id), event.detail); }} onNodeDoubleClick={(_, node) => { if (node.type === 'logic') cardClicks.current.double(() => showRoute(node.id)); }} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { cardClicks.current.cancel(); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}
+        <div className="view-toolbar">{graphDisplayMode === 'local' && <button className="button-secondary" onClick={() => { setGraphDisplayMode('full'); setFocusNodeId(null); }}>{language === 'zh-CN' ? '返回完整画布' : 'Back to full graph'}</button>}<div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right"><div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '定位编号、名称或R字段关系' : 'Locate number, name, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{kindLabel(type, language)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Arrange each crawler in its own tower; shared cards appear beside each flow') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
+        {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={presentation} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap">{focusNodeId && <div className="route-toolbar"><span>{language === 'zh-CN' ? '完整关联路线' : 'Complete route'}</span><button onClick={() => fitRoute(routeStart)}>{language === 'zh-CN' ? '适应路线' : 'Fit route'}</button><button onClick={() => openNode(focusNodeId)}>{language === 'zh-CN' ? '查看卡片详情' : 'Card details'}</button><button onClick={() => setFocusNodeId(null)}>{language === 'zh-CN' ? '取消高亮' : 'Clear highlight'}</button></div>}<ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+          onNodeClick={(event, node) => { if (node.type !== 'logic') return; cardClicks.current.single(() => openNode(node.id), event.detail); }} onNodeDoubleClick={(_, node) => { if (node.type === 'logic') cardClicks.current.double(() => showRoute(node.id)); }} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(logicalEdgeId(edge.id))} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { cardClicks.current.cancel(); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}
           onNodeDragStart={() => { cardClicks.current.cancel(); live.beginDrag(); }}
           onNodeDragStop={async (_, node) => { await mutate(`/nodes/${node.id}`, 'PATCH', { position_x: node.position.x, position_y: node.position.y }); live.endDrag(); }}
-          onConnect={connect} onEdgeClick={(_, edge) => focusEdge(edge.id)} onEdgeDoubleClick={(_, edge) => openEdge(edge.id)} onInit={setFlowInstance} deleteKeyCode={null}
+          onConnect={connect} onEdgeClick={(_, edge) => focusEdge(logicalEdgeId(edge.id))} onEdgeDoubleClick={(_, edge) => openEdge(logicalEdgeId(edge.id))} onInit={setFlowInstance} deleteKeyCode={null}
           zoomOnDoubleClick={false} fitView fitViewOptions={{ padding: 0.16, maxZoom: 0.75 }} minZoom={0.03} maxZoom={1.5} defaultEdgeOptions={{ type: 'default' }}>
           <Background variant="dots" color="var(--ss-grid)" gap={22} size={1} /><Controls showInteractive={false} />{canvasNodes.length > 0 && <MiniMap style={{ width: 140, height: 80 }} pannable zoomable nodeColor={node => ({ source: 'var(--ss-blue)', raw: 'var(--ss-neutral)', evidence: 'var(--ss-blue)', identity: 'var(--ss-blue)', relationship: 'var(--ss-blue)', review: 'var(--ss-purple)', derived: 'var(--ss-purple)', metric: 'var(--ss-success)', score: 'var(--ss-accent)', ranking: 'var(--ss-pink)', rule: 'var(--ss-warning)', event: 'var(--ss-warning)', product: 'var(--ss-error)', state: 'var(--ss-blue)', topic: 'var(--ss-purple)', cache: 'var(--ss-pink)' })[KIND[node.data.type]] || 'var(--ss-neutral)'} />}</ReactFlow>
-          <div className="edge-relation-guide"><details key={focusedEdgeId || relationOwner?.id || 'overview'} open={Boolean(focusedEdgeId)}><summary>{relationOwner ? `${nodeRef(relationOwner)} · ${language === 'zh-CN' ? '关联流程' : 'Related flow'}` : language === 'zh-CN' ? '连线说明 · 点击连线追溯触发源头' : 'Connections · select to trace trigger origins'}</summary><div className="edge-relation-legend"><span><i className="trigger" />{language === 'zh-CN' ? '触发 / 分支' : 'Trigger / branch'}</span><span><i className="read" />{language === 'zh-CN' ? '读取' : 'Read'}</span><span><i className="write" />{language === 'zh-CN' ? '写入' : 'Write'}</span><span><i />{language === 'zh-CN' ? '数据 / 引用' : 'Data / reference'}</span></div>{flowChoices.length > 1 && <div className="flow-memberships"><strong>{language === 'zh-CN' ? '这条线连接两个流程，可切换查看：' : 'This connection belongs to adjacent flows:'}</strong>{flowChoices.map(node => <button key={node.id} aria-pressed={relationOwner?.id === node.id} onClick={() => setFlowFocusId(node.id)}>{nodeRef(node)} · {displayName(node.name)}</button>)}</div>}<p>{focusConnection && !flowChoices.length ? language === 'zh-CN' ? '这条线尚未定义执行者，不能确认流程归属。保留原关系，待核对。' : 'No executing step is defined for this connection; flow membership remains unconfirmed.' : focusExplanation(graph, relationOwner, language)}</p>{currentFlow && <p className="flow-line-list">{language === 'zh-CN' ? '本组连线：' : 'Flow connections: '}{presentation.edges.filter(edge => currentFlow.edgeIds.has(edge.id)).map(edge => edgePresentation(presentation, edge, language, relationOwner).displayLabel).join('；')}</p>}{relationOwner && <div className="edge-trigger-origins"><strong>{language === 'zh-CN' ? '触发源头' : 'Trigger origins'}</strong>{triggerTrace.origins.map(origin => <button key={`${origin.node.id}:${origin.reason}`} onClick={() => openNode(origin.node.id)} title={displayName(origin.node.name)}>{origin.reason === 'schedule' && <AlarmClock size={13} />}{originLabel(origin, language)}</button>)}</div>}</details><div className="edge-relation-actions">{relationOwner && <button onClick={() => flowInstance?.fitView({ nodes: [...relatedNodeIds].map(id => ({ id })), padding: 0.25, maxZoom: 0.85, duration: 300 })}>{language === 'zh-CN' ? '适应关联流程' : 'Fit related flow'}</button>}{relationOwner && <button onClick={() => { setGraphDisplayMode('local'); setFocusNodeId(relationOwner.id); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '查看单步关系' : 'One-step view'}</button>}{focusedEdgeId && <button onClick={() => openEdge(focusedEdgeId)}>{language === 'zh-CN' ? '连线详情' : 'Connection details'}</button>}{(selectedId || selectedEdgeId || focusedEdgeId) && <button onClick={() => { setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '取消聚焦' : 'Clear focus'}</button>}</div></div>
+          <div className="edge-relation-guide"><details key={focusedEdgeId || relationOwner?.id || 'overview'} open={Boolean(focusedEdgeId)}><summary>{relationOwner ? `${nodeRef(relationOwner)} · ${language === 'zh-CN' ? '关联流程' : 'Related flow'}` : language === 'zh-CN' ? '连线说明 · 点击连线追溯触发源头' : 'Connections · select to trace trigger origins'}</summary><div className="edge-relation-legend"><span><i className="trigger" />{language === 'zh-CN' ? '触发 / 分支' : 'Trigger / branch'}</span><span><i className="read" />{language === 'zh-CN' ? '读取' : 'Read'}</span><span><i className="write" />{language === 'zh-CN' ? '写入' : 'Write'}</span><span><i />{language === 'zh-CN' ? '数据 / 引用' : 'Data / reference'}</span></div>{flowChoices.length > 1 && <div className="flow-memberships"><strong>{language === 'zh-CN' ? '这条线连接两个流程，可切换查看：' : 'This connection belongs to adjacent flows:'}</strong>{flowChoices.map(node => <button key={node.id} aria-pressed={relationOwner?.id === node.id} onClick={() => setFlowFocusId(node.id)}>{nodeRef(node)} · {displayName(node.name)}</button>)}</div>}<p>{focusConnection && !flowChoices.length ? language === 'zh-CN' ? '这条线尚未定义执行者，不能确认流程归属。保留原关系，待核对。' : 'No executing step is defined for this connection; flow membership remains unconfirmed.' : focusExplanation(graph, relationOwner, language)}</p>{currentFlow && <p className="flow-line-list">{language === 'zh-CN' ? '本组连线：' : 'Flow connections: '}{presentation.edges.filter(edge => currentFlow.edgeIds.has(edge.id)).map(edge => edgePresentation(presentation, edge, language, relationOwner).displayLabel).join('；')}</p>}{relationOwner && <div className="edge-trigger-origins"><strong>{language === 'zh-CN' ? '触发源头' : 'Trigger origins'}</strong>{triggerTrace.origins.map(origin => <button key={`${origin.node.id}:${origin.reason}`} onClick={() => openNode(origin.node.id)} title={displayName(origin.node.name)}>{origin.reason === 'schedule' && <AlarmClock size={13} />}{originLabel(origin, language)}</button>)}</div>}</details><div className="edge-relation-actions">{relationOwner && <button onClick={() => flowInstance?.fitView({ nodes: towerView.nodes.filter(node => relatedNodeIds.has(node.logicalId)).map(node => ({ id: node.id })), padding: 0.25, maxZoom: 0.85, duration: 300 })}>{language === 'zh-CN' ? '适应关联流程' : 'Fit related flow'}</button>}{relationOwner && <button onClick={() => { setGraphDisplayMode('local'); setFocusNodeId(relationOwner.id); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '查看单步关系' : 'One-step view'}</button>}{focusedEdgeId && <button onClick={() => openEdge(focusedEdgeId)}>{language === 'zh-CN' ? '连线详情' : 'Connection details'}</button>}{(selectedId || selectedEdgeId || focusedEdgeId) && <button onClick={() => { setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '取消聚焦' : 'Clear focus'}</button>}</div></div>
 
-          {locatingCard && <div className="graph-search-status" role="status">{searchTarget ? (language === 'zh-CN' ? `已定位 ${nodeRef(searchTarget)} · 保留完整图谱` : `Located ${nodeRef(searchTarget)} · Full graph preserved`) : (language === 'zh-CN' ? searchMatches.length ? `已定位 ${searchMatches.length} 张卡片 · 保留完整图谱` : `未找到匹配项 ${query} · 保留完整图谱` : searchMatches.length ? `Located ${searchMatches.length} cards · Full graph preserved` : `No matches for ${query} · Full graph preserved`)}</div>}
+          {locatingCard && <div className="graph-search-status" role="status">{searchTarget ? (language === 'zh-CN' ? `已定位 ${nodeRef(searchTarget)} · 保留完整图谱` : `Located ${nodeRef(searchTarget)} · Full graph preserved`) : (language === 'zh-CN' ? searchMatches.length ? `已定位 ${searchMatches.length} 张卡片 · 保留完整图谱` : `未找到匹配项 ${query} · 保留完整图谱` : searchMatches.length ? `Located ${searchMatches.length} cards · Full graph preserved` : `No matches for ${query} · Full graph preserved`)}{searchOccurrences.length > 1 && <span className="shared-location-nav">{language === 'zh-CN' ? `共用位置 ${searchOccurrenceIndex % searchOccurrences.length + 1}/${searchOccurrences.length}` : `Shared location ${searchOccurrenceIndex % searchOccurrences.length + 1}/${searchOccurrences.length}`}<button onClick={() => setSearchOccurrenceIndex(value => (value + 1) % searchOccurrences.length)}>{language === 'zh-CN' ? '下一处' : 'Next location'}</button></span>}</div>}
           </div>
           : <div className="table-wrap"><table><thead><tr><th>{t('NAME')}</th><th>{t('TYPE')}</th><th>{language === 'zh-CN' ? '实现核对' : 'Implementation'}</th><th>{t('PATH')}</th><th>{t('FIELDS')}</th><th>{t('FORMULA / DEFINITION')}</th><th>{t('UPSTREAM')}</th><th>{t('DOWNSTREAM')}</th><th>{t('PRODUCT')}</th><th></th></tr></thead><tbody>{tableRows.map(n => {
             const up = graph.edges.filter(e => e.downstream_id === n.id).length, down = graph.edges.filter(e => e.upstream_id === n.id).length;

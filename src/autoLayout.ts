@@ -91,7 +91,7 @@ export function sideLayoutGroups(nodes: LayoutNode[], edges: LayoutEdge[]) {
   ].filter(g => g.nodes.length);
 }
 
-export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
+function baseLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
   const groups = layoutGroups(nodes, edges), active = groups.find(g => g.flow)?.nodes || [];
   // The approved output band anchors three real leaderboard cards. Their
   // downstream content-maintenance branch remains a single, connected side branch.
@@ -197,6 +197,104 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
     top += Math.ceil(g.nodes.length / count) * 224 + 80;
   }
   return positions.sort((a, b) => textOrder(a.id, b.id));
+}
+
+export type CardOccurrence = NodePosition & { logicalId: string; towerId: string | null; shared: boolean };
+const occurrenceId = (tower: string, logical: string) => `occurrence:${encodeURIComponent(JSON.stringify([tower, logical]))}`;
+
+// Each crawler owns a complete reading tree. Repeated cards are occurrences of
+// the same logical node, never new processors, tables, bindings or runtime jobs.
+export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
+  const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
+  const roots = active.filter(isSource).sort((a, b) => textOrder(a.name.split('.')[0]!, b.name.split('.')[0]!) || nodeOrder(a, b));
+  if (roots.length < 2) {
+    const positions = baseLayout(nodes, edges);
+    return { positions, occurrences: positions.map(p => ({ ...p, logicalId: p.id, towerId: null, shared: false })) as CardOccurrence[] };
+  }
+  const sides = sideLayoutGroups(active, edges);
+  const sideIds = new Set(sides.flatMap(g => g.nodes.map(n => n.id)));
+  const support = new Set(sides.filter(g => ['assets', 'coverage', 'config'].includes(g.key)).flatMap(g => g.nodes.map(n => n.id)));
+  const central = (n: LayoutNode) => isLeaderboard(n) || isFinal(n) || cardKind(n) === 'interface';
+  const main = active.filter(n => !sideIds.has(n.id) && !central(n));
+  const forward = forwardLayoutEdges(main, edges);
+  const outgoing = new Map(main.map(n => [n.id, [] as string[]]));
+  for (const e of forward) outgoing.get(e.upstream_id)!.push(e.downstream_id);
+  const owners = new Map(main.map(n => [n.id, new Set<string>()]));
+  for (const root of roots) {
+    const pending = [root.id];
+    while (pending.length) {
+      const id = pending.pop()!;
+      if (owners.get(id)!.has(root.id)) continue;
+      owners.get(id)!.add(root.id); pending.push(...outgoing.get(id)!);
+    }
+  }
+  const occurrences: CardOccurrence[] = [], used = new Set<string>();
+  let left = 0;
+  for (const root of roots) {
+    const ids = new Set(main.filter(n => owners.get(n.id)!.has(root.id)).map(n => n.id));
+    // Source-less inputs (e.g. historical data) belong beside each reader. Do
+    // not walk backward through another crawler or its attributed pipeline.
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const e of forward) if (ids.has(e.downstream_id) && !ids.has(e.upstream_id) && !owners.get(e.upstream_id)!.size) {
+        ids.add(e.upstream_id); changed = true;
+      }
+    }
+    const readers = new Set(ids);
+    for (const e of edges) {
+      if (readers.has(e.downstream_id) && support.has(e.upstream_id)) ids.add(e.upstream_id);
+      if (readers.has(e.upstream_id) && support.has(e.downstream_id)) ids.add(e.downstream_id);
+    }
+    const members = active.filter(n => ids.has(n.id));
+    const placed = baseLayout(members, edges.filter(e => ids.has(e.upstream_id) && ids.has(e.downstream_id)));
+    const minX = Math.min(...placed.map(p => p.position_x));
+    const maxX = Math.max(...placed.map(p => p.position_x + 300));
+    for (const p of placed) {
+      occurrences.push({ ...p, id: used.has(p.id) ? occurrenceId(root.id, p.id) : p.id,
+        logicalId: p.id, towerId: root.id, shared: false, position_x: left + p.position_x - minX });
+      used.add(p.id);
+    }
+    left += maxX - minX + 360;
+  }
+  const globalIds = new Set(active.filter(n => !used.has(n.id)).map(n => n.id));
+  // Shared maintenance/content readers need their own local table occurrences,
+  // too; otherwise their lines would still run back up through a crawler tower.
+  const globalReaders = new Set(globalIds);
+  for (const e of edges) {
+    if (globalReaders.has(e.downstream_id) && support.has(e.upstream_id)) globalIds.add(e.upstream_id);
+    if (globalReaders.has(e.upstream_id) && support.has(e.downstream_id)) globalIds.add(e.downstream_id);
+  }
+  const global = active.filter(n => globalIds.has(n.id));
+  if (global.length) {
+    const ids = new Set(global.map(n => n.id));
+    const links = edges.filter(e => ids.has(e.upstream_id) && ids.has(e.downstream_id));
+    // A presentation-only root keeps disconnected final outputs in one band.
+    let ghostId = 'crawler-layout-output-anchor';
+    while (nodes.some(n => n.id === ghostId)) ghostId += ':';
+    const ghost: LayoutNode = { id: ghostId, name: ghostId, type: 'Source', kind: 'source' };
+    const placed = baseLayout([...global, ghost], [...links, ...global.map(n => ({ upstream_id: ghostId, downstream_id: n.id }))]).filter(p => p.id !== ghostId);
+    const minX = Math.min(...placed.map(p => p.position_x)), maxX = Math.max(...placed.map(p => p.position_x + 300));
+    const minY = Math.min(...placed.map(p => p.position_y));
+    const top = Math.max(...occurrences.map(p => p.position_y + 160)) + 256;
+    for (const p of placed) occurrences.push({ ...p, id: used.has(p.id) ? occurrenceId('shared-area', p.id) : p.id, logicalId: p.id, towerId: null, shared: false,
+      position_x: (left - 360 - (maxX - minX)) / 2 + p.position_x - minX, position_y: top + p.position_y - minY });
+  }
+  const unused = nodes.filter(n => !active.some(a => a.id === n.id));
+  if (unused.length) {
+    const placed = baseLayout(unused, []), minX = Math.min(...placed.map(p => p.position_x));
+    const libraryLeft = Math.max(...occurrences.map(p => p.position_x + 300)) + 360;
+    for (const p of placed) occurrences.push({ ...p, logicalId: p.id, towerId: null, shared: false, position_x: libraryLeft + p.position_x - minX });
+  }
+  const counts = new Map<string, number>();
+  for (const p of occurrences) counts.set(p.logicalId, (counts.get(p.logicalId) || 0) + 1);
+  for (const p of occurrences) p.shared = counts.get(p.logicalId)! > 1;
+  const positions = occurrences.filter(p => p.id === p.logicalId).map(({ logicalId, towerId, shared, ...p }) => p).sort((a, b) => textOrder(a.id, b.id));
+  return { positions, occurrences };
+}
+
+export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
+  return crawlerLayout(nodes, edges).positions;
 }
 
 // Backward/same-row links detour to the right of the connected graph.

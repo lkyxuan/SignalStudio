@@ -300,7 +300,7 @@ class GraphServiceTest(unittest.TestCase):
         positions = [{"id": n["id"], "position_x": 900, "position_y": 800}
                      for n in self.service.graph()["nodes"]]
         before = list(self.service.db.iterdump())
-        for version in [None, "ss58-vertical.v1", 1]:
+        for version in [None, "ss58-vertical.v1", "ss71-application-interfaces.v1", 1]:
             body = {"positions": positions}
             if version is not None:
                 body["layout_version"] = version
