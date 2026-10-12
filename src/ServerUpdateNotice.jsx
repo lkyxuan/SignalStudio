@@ -92,7 +92,7 @@ export function WorkspaceVersion({ language, version }) {
           <button className="button-primary" disabled={!client.canCheck} onClick={() => clientAction('check')}>{client.phase === 'ready' ? (zh ? '安装并重启' : 'Install and restart') : (zh ? '检查客户端更新' : 'Check client updates')}</button>
         </> : <p>{window.signalstudioWorkspace?.appRevision ? (zh ? '此客户端未提供自动更新能力或属于开发版；需要首次安装带更新器的共享版。' : 'This older or development client needs the first updater-enabled shared version.') : (zh ? '浏览器未提供Mac客户端版本；客户端更新在App内完成。' : 'Mac client version unavailable in this browser. Update from the App.')}</p>}
         {error && <p role="alert">{error}</p>}
-      </div><div className="modal-footer"><button className="button-secondary" onClick={refresh}>{zh ? '重新读取状态' : 'Refresh status'}</button></div>
+      </div><div className="modal-footer"><span>{zh ? '状态每5秒自动刷新' : 'Status refreshes automatically every 5 seconds'}</span></div>
     </section></div>}
     <details><summary>{zh ? '版本详情' : 'Version details'}</summary><div className="version-details">
       <p>{zh ? '当前界面' : 'Current UI'}<br />{revisionLink(uiBuild.revision)}{uiBuild.dirty && <span> · {zh ? '含本地修改' : 'Local changes'}</span>}</p>

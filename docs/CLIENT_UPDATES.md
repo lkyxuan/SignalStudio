@@ -41,6 +41,8 @@ python3 scripts/package_macos_release.py --version X.Y.Z --output /tmp/release/d
 
 ## 主机状态接口
 
+更新面板打开时立即读取状态，打开期间每5秒自动读取，并显示“状态每5秒自动刷新”；不提供重复的手动读取按钮。读取状态只展示更新器已有结果，不触发新的版本检查。界面精简依据：[SS-68](https://app.notion.com/p/3f7038a63d5a81e6bc5dd43c286e48ff)。
+
 `GET /__signalstudio_updater` 经现有同源入口代理到运行器 `/updater`。只读返回有限 `phase`、40位 `current_commit`/`candidate_commit`、`last_check`/`last_success`/`updated_at`、`stale` 和固定公开原因。检查时间缺失、超出180秒或在未来均为过期；无文件为 `not-installed`，损坏为 `unknown`。不返回日志、备份、项目路径或原始异常，不接受 resume/retry/部署动作。跨 Origin 请求拒绝。接口沿用私有网络访问边界，并没有新增用户认证。
 
 ## 验证
