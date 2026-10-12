@@ -16,6 +16,7 @@ ACTOR = 'ss72-polars-design'
 def ensure_market_polars(service):
     if service.db.execute('SELECT 1 FROM schema_meta WHERE key=?', (MARKER,)).fetchone():
         ensure_final_bindings(service)
+        ensure_score_triggers(service)
         return
     if not service.db.execute("SELECT 1 FROM schema_meta WHERE key='market_channel_v1'").fetchone():
         return
@@ -63,6 +64,10 @@ def ensure_market_polars(service):
         for name in {name for item in spec['nodes'] for name in item['sources']} - names:
             if not service.find_name(name):
                 raise ValueError('Polars upgrade: input missing: ' + name)
+        for relation in spec['additional_edges']:
+            for name in (relation['source'], relation['target']):
+                if name not in names and not service.find_name(name):
+                    raise ValueError('Polars upgrade: shared trigger missing: ' + name)
         ref = {'path': 'catalog/market-polars.v1.json', 'revision': hashlib.sha256(CATALOG.read_bytes()).hexdigest()}
         rules_ref = {'path': spec['rules_ref'], 'revision': hashlib.sha256((ROOT / spec['rules_ref']).read_bytes()).hexdigest()}
         anchor = existing['normalize']
@@ -162,6 +167,7 @@ def ensure_market_polars(service):
             raise ValueError('Polars upgrade: invalid graph')
         service.db.execute('INSERT INTO schema_meta VALUES (?,?)', (MARKER, spec['revision']))
         ensure_final_bindings(service)
+        ensure_score_triggers(service)
         service.db.commit()
     except Exception:
         service.db.rollback()
@@ -228,6 +234,53 @@ def ensure_final_bindings(service):
                 service.db.execute('UPDATE node_contracts SET revision=revision+1,config=? WHERE node_id=?', (encoded(config),node['id']))
         ensure_input_bindings(service)
         service.db.execute('INSERT INTO schema_meta VALUES (?,?)', (marker, spec['revision']))
+        if owned:
+            service.db.commit()
+    except Exception:
+        if owned:
+            service.db.rollback()
+        raise
+
+
+def ensure_score_triggers(service):
+    """Scoring publication and Redis/board refresh are explicit execution events."""
+    marker = MARKER + '_score_triggers'
+    if service.db.execute('SELECT 1 FROM schema_meta WHERE key=?', (marker,)).fetchone():
+        return
+    owned = not service.db.in_transaction
+    if owned:
+        service.db.execute('BEGIN IMMEDIATE')
+    try:
+        spec = json.loads(CATALOG.read_text())
+        model = CardModel(service)
+        for relation in spec['additional_edges']:
+            source, target = (service.find_name(relation[k]) for k in ('source','target'))
+            if not source or not target:
+                raise ValueError('Polars score trigger endpoint missing')
+            edge = service.db.execute('SELECT * FROM edges WHERE upstream_id=? AND downstream_id=?', (source['id'],target['id'])).fetchone()
+            if not edge:
+                edge = service.create_edge({'upstream_id':source['id'],'downstream_id':target['id'],
+                    'rationale':'持久化成功后的评分事件触发；读取指标或详情不加分。', 'transport_kind':'direct'},actor=ACTOR,commit=False)
+            for binding in service.db.execute('SELECT * FROM edge_bindings WHERE edge_id=?',(edge['id'],)).fetchall():
+                config = json.loads(binding['config'])
+                config['trigger']='event'
+                service.db.execute('UPDATE edge_bindings SET config=? WHERE id=?',(encoded(config),binding['id']))
+        revision = hashlib.sha256(CATALOG.read_bytes()).hexdigest()
+        for node in service.graph()['nodes']:
+            config = model.contract(node['id'])['config']
+            touched = False
+            for ref in config['definition_refs']:
+                if ref['path']=='catalog/market-polars.v1.json':
+                    ref['revision']=revision
+                    touched=True
+            trigger_ref=config.get('trigger',{}).get('configuration_ref')
+            if trigger_ref and trigger_ref.get('path')=='catalog/market-polars.v1.json':
+                trigger_ref['revision']=revision
+            if touched:
+                service.db.execute('UPDATE node_contracts SET revision=revision+1,config=? WHERE node_id=?',(encoded(config),node['id']))
+        if model.cycles():
+            raise ValueError('Polars score triggers form a cycle')
+        service.db.execute('INSERT INTO schema_meta VALUES (?,?)',(marker,spec['revision']))
         if owned:
             service.db.commit()
     except Exception:

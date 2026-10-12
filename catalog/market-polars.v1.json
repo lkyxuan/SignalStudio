@@ -2782,7 +2782,32 @@
         "decision_ref",
         "decay_policy_ref",
         "half_life_minutes"
-      ]
+      ],
+      "trigger": "event"
+    },
+    {
+      "source": "维护近期评分窗口",
+      "target": "量价评分 · 汇总Redis记分",
+      "fields": [],
+      "trigger": "event"
+    },
+    {
+      "source": "量价评分 · 汇总Redis记分",
+      "target": "生成基础升温榜",
+      "fields": [],
+      "trigger": "event"
+    },
+    {
+      "source": "量价评分 · 汇总Redis记分",
+      "target": "生成基础最热榜",
+      "fields": [],
+      "trigger": "event"
+    },
+    {
+      "source": "量价评分 · 汇总Redis记分",
+      "target": "生成新发现榜",
+      "fields": [],
+      "trigger": "event"
     }
   ],
   "example": {

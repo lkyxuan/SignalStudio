@@ -6,15 +6,16 @@ from unittest.mock import patch
 from card_model import CardModel
 from market_channel import ensure_market_channel
 from market_polars import CATALOG, MARKER, ensure_market_polars
-from test_market_channel import MarketChannelTest
+import test_market_channel
 
 
 class MarketPolarsTest(unittest.TestCase):
     def setUp(self):
-        self.fixture = MarketChannelTest()
+        self.fixture = test_market_channel.MarketChannelTest()
         self.fixture.setUp()
         self.service = self.fixture.service
         ensure_market_channel(self.service)
+        self.service.create_node({'name':'维护近期评分窗口', 'kind':'process'})
 
     def tearDown(self):
         self.fixture.tearDown()
@@ -30,6 +31,8 @@ class MarketPolarsTest(unittest.TestCase):
         pairs = {(s.get_node(e['upstream_id'])['name'], s.get_node(e['downstream_id'])['name']) for e in after['edges']}
         self.assertIn(('Polars · 计算 CoinGecko 量价指标', 'Few Understand · indicator.data'), pairs)
         self.assertIn(('Few Understand · indicator.data', '量价评分 · 生成贡献'), pairs)
+        self.assertIn(('维护近期评分窗口','量价评分 · 汇总Redis记分'), pairs)
+        self.assertIn(('量价评分 · 汇总Redis记分','生成基础升温榜'), pairs)
         self.assertNotIn(('coingecko_market_history', '量价评分 · 生成贡献'), pairs)
         self.assertNotIn(('Few Understand · market.snapshot', '量价评分 · 生成贡献'), pairs)
         for name in ('生成基础升温榜', '生成基础最热榜', '生成新发现榜'):
