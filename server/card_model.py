@@ -385,6 +385,9 @@ class CardModel:
                 {'id':'market_polars.'+entry['key'],'version':1,
                  'definition_paths':['catalog/market-polars.v1.json'],'implementation':'unknown'}
                 for entry in foundation['nodes'] if entry['role'] == 'process'] + [
+                {'id':'coingecko_alerts.'+entry['key'],'version':1,
+                 'definition_paths':['catalog/coingecko-indicator-signals.v1.json'],'implementation':'planned'}
+                for entry in json.loads((ROOT/'catalog/coingecko-indicator-signals.v1.json').read_text())['cards']] + [
                 {'id':'foundation.'+entry['key'],'version':1,'definition_paths':['catalog/leaderboard-foundation.v1.json'],'implementation':'unknown'}
                 for entry in json.loads((ROOT/'catalog/leaderboard-foundation.v1.json').read_text())['nodes']
                 if entry['role']=='process' and 'foundation.'+entry['key'] in active]

@@ -88,20 +88,58 @@ def new_eligible(discovery, observation, at):
 METRIC_VERSION = 'market_indicators_v1'
 
 
+def indicator_input_valid(observation, at):
+    """Shared provenance validation; board admission is a downstream concern."""
+    try:
+        at = timestamp(at)
+        requested, collected, observed = (timestamp(observation[k]) for k in ('requested_at', 'collected_at', 'observed_at'))
+        return (observation['source_id'] == PARAMS['source'] and observation['quote_currency'] == 'usd'
+                and observation['identity_status'] == 'resolved' and bool(observation['asset_id'])
+                and bool(observation['source_object_id']) and bool(observation['coverage_key'])
+                and bool(observation['observation_id']) and observation['quality_status'] == 'healthy'
+                and requested <= collected <= at and observed <= collected
+                and 0 <= (at - observed).total_seconds() <= PARAMS['max_source_age_minutes'] * 60)
+    except (KeyError, ValueError, TypeError, OverflowError):
+        return False
+
+
 def calculate_indicators(observation, history, at):
     """Reference math for the Polars stage, not a second scorer or runtime engine."""
-    if not eligible(observation, at) or not observation.get('observation_id'):
+    if not indicator_input_valid(observation, at):
         return None
     baseline = volume_baseline(observation, history)
-    return {**observation, 'metric_version': METRIC_VERSION,
+    normalized = {**observation}
+    for key in ('current_price', 'market_cap', 'total_volume', 'price_change_percentage_24h', 'ath_change_percentage'):
+        normalized[key] = observation.get(key) if finite(observation.get(key)) else None
+    volume, cap, pct = (normalized[k] for k in ('total_volume', 'market_cap', 'price_change_percentage_24h'))
+    return {**normalized, 'metric_version': METRIC_VERSION,
             'metric_id': observation['observation_id'] + '/' + METRIC_VERSION,
             'slot_start': slot_start(observation['requested_at']), 'calculated_at': timestamp(at),
-            'volume_to_market_cap': observation['total_volume'] / observation['market_cap'],
-            'abs_price_pct': abs(observation['price_change_percentage_24h']),
-            'volume_ratio': observation['total_volume'] / baseline['total_volume'] if baseline else None,
+            'volume_to_market_cap': volume / cap if volume is not None and volume >= 0 and cap is not None and cap > 0 else None,
+            'abs_price_pct': abs(pct) if pct is not None else None,
+            'volume_ratio': volume / baseline['total_volume'] if baseline and volume is not None and volume >= 0 else None,
             'baseline_observation_id': baseline['observation_id'] if baseline else None,
             'baseline_requested_at': baseline['requested_at'] if baseline else None,
             'baseline_volume': baseline['total_volume'] if baseline else None}
+
+
+def alert_conditions(metrics, at):
+    """Reference threshold decisions over published metrics; never calculates ratios."""
+    if not metrics or not indicator_input_valid(metrics, at):
+        return []
+    try:
+        if (metrics['metric_version'] != METRIC_VERSION
+                or metrics['metric_id'] != metrics['observation_id'] + '/' + METRIC_VERSION
+                or not timestamp(metrics['requested_at']) <= timestamp(metrics['calculated_at']) <= timestamp(at)):
+            return []
+    except (KeyError, ValueError, TypeError):
+        return []
+    rules = [('price_move_up', 'price_change_percentage_24h', lambda v: v >= 10),
+             ('price_move_down', 'price_change_percentage_24h', lambda v: v <= -10),
+             ('volume_spike', 'volume_to_market_cap', lambda v: v >= .2),
+             ('near_ath', 'ath_change_percentage', lambda v: v >= -5),
+             ('deep_from_ath', 'ath_change_percentage', lambda v: v <= -80)]
+    return [key for key, field, condition in rules if finite(metrics.get(field)) and condition(metrics[field])]
 
 
 def valid_indicators(metrics, at):

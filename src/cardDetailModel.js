@@ -6,6 +6,7 @@ import scaffolds from '../catalog/leaderboard-scaffolds.v1.json';
 import initial from '../catalog/asset-initial-score-sources.v1.json';
 import trending from '../catalog/coingecko-trending-contribution.v1.json';
 import reference from '../catalog/coingecko-implemented-signals.v1.json';
+import indicatorSignals from '../catalog/coingecko-indicator-signals.v1.json';
 import sync from '../catalog/supabase-score-sync.v1.json';
 import sources from '../catalog/source-contracts.v1.json';
 import rollup from '../catalog/score-rollup.v1.json';
@@ -32,6 +33,8 @@ export function cardExplanation(node, language) {
   const stage = refresh.stages.find(item => item.name === node.name);
   const board = simple.boards.find(item => item.calculator_name === node.name);
   const prep = scaffolds.preprocessors.find(item => item.name === node.name);
+  const approvedSignal = node.card_contract?.config.definition_refs?.some(ref => ref.path === 'catalog/coingecko-indicator-signals.v1.json') && indicatorSignals.cards.find(item => item.name === node.name);
+  if (approvedSignal) return approvedSignal.algorithm;
   const referenceCard = reference.cards.find(item => item.name === node.name);
   const moduleNode = [initial.node, trending.node, sync.node].find(item => item.name === node.name);
   if (zh && stage) return stage.algorithm_zh;

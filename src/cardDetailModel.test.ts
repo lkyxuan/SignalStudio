@@ -27,3 +27,12 @@ test('fallback copy requires module identity; broken legacy resource notes stay 
   assert.deepEqual(resourceSettings({notes:'[]'}),{});
   assert.deepEqual(resourceSettings({notes:'{"old":1}',card_contract:{config:{resource:{topic:'explicit'}}}}),{topic:'explicit'});
 });
+test('approved indicator consumers explain threshold decisions instead of legacy ratio calculation', () => {
+  const node={name:'CoinGecko · 成交量市值比偏高',formula:'old raw division',card_contract:{config:{definition_refs:[{path:'catalog/coingecko-indicator-signals.v1.json'}]}}};
+  for (const language of ['zh-CN','en']) {
+    const explanation=cardExplanation(node,language);
+    assert.ok(explanation.includes('volume_to_market_cap ≥ 0.2'));
+    assert.ok(explanation.includes('indicator.data'));
+    assert.ok(!explanation.includes('2500 万 ÷'));
+  }
+});

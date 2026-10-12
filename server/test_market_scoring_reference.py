@@ -2,7 +2,7 @@ import copy
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from market_scoring_reference import RULES, contributions, rollup, boards, tier_points, slot_start, eligible, calculate_indicators
+from market_scoring_reference import RULES, contributions, rollup, boards, tier_points, slot_start, eligible, calculate_indicators, alert_conditions
 
 
 class MarketScoringReferenceTest(unittest.TestCase):
@@ -80,6 +80,34 @@ class MarketScoringReferenceTest(unittest.TestCase):
         for changes in ({'metric_version':'old_10min'}, {'metric_id':'wrong'}, {'volume_to_market_cap':float('nan')},
                         {'volume_ratio':2, 'baseline_observation_id':None}):
             self.assertEqual(contributions({**metrics, **changes}, {}, self.at), [])
+
+    def test_alerts_consume_metrics_independently_of_board_gates_and_history(self):
+        # A small asset and missing history still have useful alert indicators.
+        observation = {**self.observation, 'market_cap':100000, 'total_volume':25000,
+                       'price_change_percentage_24h':10, 'ath_change_percentage':-5}
+        metrics = calculate_indicators(observation, [], self.at)
+        self.assertIsNone(metrics['volume_ratio'])
+        self.assertEqual(alert_conditions(metrics,self.at), ['price_move_up','volume_spike','near_ath'])
+        self.assertEqual(contributions(metrics, {}, self.at), [])
+        # Decisions use the published ratio, never redivide raw volume and cap.
+        metrics['volume_to_market_cap']=.199999
+        metrics['price_change_percentage_24h']=-10
+        metrics['ath_change_percentage']=-80
+        self.assertEqual(alert_conditions(metrics,self.at), ['price_move_down','deep_from_ath'])
+        metrics['metric_version']='old_10min'
+        self.assertEqual(alert_conditions(metrics,self.at), [])
+
+    def test_missing_indicators_skip_only_their_conditions(self):
+        observation={**self.observation,'price_change_percentage_24h':float('nan'),
+                     'market_cap':0,'ath_change_percentage':-90}
+        metrics=calculate_indicators(observation,[],self.at)
+        self.assertIsNone(metrics['price_change_percentage_24h'])
+        self.assertIsNone(metrics['volume_to_market_cap'])
+        self.assertEqual(alert_conditions(metrics,self.at), ['deep_from_ath'])
+        for ath in (None,True,float('inf')):
+            metrics=calculate_indicators({**observation,'ath_change_percentage':ath},[],self.at)
+            self.assertIsNone(metrics['ath_change_percentage'])
+            self.assertEqual(alert_conditions(metrics,self.at), [])
 
     def test_decay_deduplication_and_legacy_scores_excluded(self):
         events = self.events(self.discovery)

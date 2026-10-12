@@ -44,9 +44,9 @@ export function TrendDesignCard({ node, graph, openNode, language }: Props) {
     {status}{description}
     {spec.key === 'polars' && <section className="source-case-inspector-section">
       <h3>{zh ? '假设案例 · 行情输入 → 指标输出' : 'Hypothetical example · market input → indicators'}</h3>
-      <p>{zh ? '当前24h成交额2000万美元、市值1亿美元、24h涨幅12%；约24小时前可比成交额1000万美元。身份与质量假设已核实。' : 'Assume $20m current 24h volume, $100m market cap, +12% 24h price change, and $10m comparable volume one day earlier. Identity and quality are assumed valid.'}</p>
-      <BusinessTableRows table={{primary_key:['volume_ratio'],columns: [{name:'volume_to_market_cap',label_zh:'成交额/市值'}, {name:'abs_price_pct',label_zh:'绝对24h价格变化(%)'}, {name:'volume_ratio',label_zh:'相对前一天放量倍数'}]}} rows={[{volume_to_market_cap:0.2,abs_price_pct:12,volume_ratio:2}]} language={language}/>
-      <p>{zh ? '这里只输出指标；是否加分、加多少，由下一步评分规则决定。' : 'This stage outputs indicators only. The next scoring rule decides whether and how many points to award.'}</p>
+      <p>{zh ? '当前24h成交额2000万美元、市值1亿美元、24h涨幅12%、来源ATH变化−2%；约24小时前可比成交额1000万美元。身份与质量假设已核实。' : 'Assume $20m current 24h volume, $100m market cap, +12% 24h price change, source ATH change −2%, and $10m comparable volume one day earlier. Identity and quality are assumed valid.'}</p>
+      <BusinessTableRows table={{primary_key:['volume_ratio'],columns: [{name:'price_change_percentage_24h',label_zh:'有符号24h涨跌幅(%)'}, {name:'ath_change_percentage',label_zh:'来源ATH变化(%)'}, {name:'volume_to_market_cap',label_zh:'成交额/市值'}, {name:'abs_price_pct',label_zh:'绝对24h价格变化(%)'}, {name:'volume_ratio',label_zh:'相对前一天放量倍数'}]}} rows={[{price_change_percentage_24h:12,ath_change_percentage:-2,volume_to_market_cap:0.2,abs_price_pct:12,volume_ratio:2}]} language={language}/>
+      <p>{zh ? '指标直接发布到 Redpanda indicator.data；五类提醒及评分分别消费后判断条件，这里不判断提醒阈值或加分。' : 'Publish indicators directly to Redpanda indicator.data. Alert and scoring consumers evaluate their own conditions.'}</p>
     </section>}
     {spec.key === 'score_contributions' && <section className="source-case-inspector-section">
       <h3>{zh ? '假设案例 · 单次贡献，非真实榜单' : 'Hypothetical examples · contribution per slot'}</h3>

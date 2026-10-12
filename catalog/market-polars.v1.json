@@ -67,7 +67,7 @@
   },
   "rules_ref": "catalog/market-scoring.v1.json",
   "version": "market-polars.v1",
-  "revision": "ss72-polars-indicators-first",
+  "revision": "ss74-unified-coingecko-indicators",
   "status": "approved_design_backend_adaptation_pending",
   "rationale_url": "https://app.notion.com/p/3f7038a63d5a814da925c11ab3667bd2",
   "purpose": "CoinGecko → Polars计算指标 → 筛选加分 → Redis → 三榜；保留一份行情历史与独立评分历史。",
@@ -220,8 +220,8 @@
       "name": "Polars · 计算 CoinGecko 量价指标",
       "old_name": "",
       "role": "process",
-      "description": "Polars唯一负责量价指标计算；核对资产身份和输入质量，读取行情历史，输出可追溯指标，不生成加分。",
-      "algorithm": "当前行情核对CoinGecko稳定ID、USD、时间与覆盖；Polars计算成交额/市值、绝对24h涨跌幅、相对24小时前放量倍数。基线须同资产/来源/coin ID/报价/覆盖，取目标前最近且≤30分钟的有效观测，接收时间不晚于目标；缺基线只令volume_ratio为空。冻结首个有效槽输入与指标结果，重试沿用身份、版本、槽和基线引用。",
+      "description": "统一计算和整理 CoinGecko 行情指标，按需查询历史；产出后直接发布 Redpanda indicator.data，不判断提醒阈值或生成加分。",
+      "algorithm": "当前行情核对CoinGecko稳定ID、USD、时间与覆盖；Polars计算成交额/市值、绝对24h涨跌幅、相对24小时前放量倍数。基线须同资产/来源/coin ID/报价/覆盖，取目标前最近且≤30分钟的有效观测，接收时间不晚于目标；缺基线只令volume_ratio为空。每条观测按observation_id冻结输入与指标结果，重试沿用身份、版本、槽和基线引用；五分钟槽首个有效指标的评分冻结由评分层保留，不抑制同槽其他观测的指标发布。 保留来源有符号24h涨跌幅与相对全历史最高价百分比ath_change_percentage，缺失或非有限值为null；不以本地14天最高价替代ATH。所有指标发布到indicator.data，提醒条件及加分由下游分别判断。 指标产出不套用三榜市值/成交额准入或贡献去重门槛；缺失数值仅影响对应指标，其他可用指标仍输出。",
       "sources": [
         "Few Understand · market.snapshot",
         "coingecko_market_history",
@@ -399,6 +399,11 @@
           "name": "calculated_at",
           "data_type": "UTC timestamp",
           "label_zh": "指标计算时间，不替代来源或请求时间"
+        },
+        {
+          "name": "ath_change_percentage",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko提供的相对全历史最高价百分比；缺失不使用14天历史代替"
         }
       ]
     },
@@ -587,6 +592,11 @@
           "name": "calculated_at",
           "data_type": "UTC timestamp",
           "label_zh": "指标计算时间，不替代来源或请求时间"
+        },
+        {
+          "name": "ath_change_percentage",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko提供的相对全历史最高价百分比；缺失不使用14天历史代替"
         }
       ]
     },
@@ -2571,7 +2581,8 @@
     "行情历史复用Delta/Parquet；完整原始响应仍另由snapshot_ref引用。",
     "保留market_v1分值、半衰期、五分钟幂等槽、覆盖/首见与三榜定义。",
     "现有10分钟指标不能冒充本版24小时前放量倍数。",
-    "没有真实回填时仅显示结构及明确假设案例。"
+    "没有真实回填时仅显示结构及明确假设案例。",
+    "CoinGecko五类行情提醒只消费market_indicators_v1；指标计算与历史查询统一归Polars。来源24h和ATH口径保留，缺失指标跳过对应条件；五类提醒独立于榜单准入和加分。"
   ],
   "pending": [
     "Few Polars需要适配本版基线/指标契约；现有组件不等于已符合。",
@@ -2750,6 +2761,11 @@
         "name": "calculated_at",
         "data_type": "UTC timestamp",
         "label_zh": "指标计算时间，不替代来源或请求时间"
+      },
+      {
+        "name": "ath_change_percentage",
+        "data_type": "number | null",
+        "label_zh": "CoinGecko提供的相对全历史最高价百分比；缺失不使用14天历史代替"
       }
     ],
     "identity": [
@@ -2761,15 +2777,22 @@
       "slot_start",
       "coverage_key"
     ],
-    "missing_baseline": "volume_ratio=null; other valid contributions may proceed",
-    "retry": "freeze first successful valid slot input, identity, baseline and result; unchanged retry is idempotent, conflicting same metric_id rejected",
+    "missing_baseline": "volume_ratio=null; other valid indicators and alert conditions may proceed",
+    "retry": "freeze each observation input, identity, baseline and result; same metric_id retry is idempotent, conflicting contents rejected; scoring freezes the first valid indicator per slot without suppressing later indicator messages",
     "mapping": {
       "volume": "total_volume",
       "turnover": "volume_to_market_cap",
       "price": "abs_price_pct",
       "volume_growth": "volume_ratio"
     },
-    "implementation": "required_not_runtime_verified"
+    "implementation": "required_not_runtime_verified",
+    "alert_mapping": {
+      "price_move_up": "price_change_percentage_24h",
+      "price_move_down": "price_change_percentage_24h",
+      "volume_spike": "volume_to_market_cap",
+      "near_ath": "ath_change_percentage",
+      "deep_from_ath": "ath_change_percentage"
+    }
   },
   "additional_edges": [
     {

@@ -1,0 +1,266 @@
+{
+  "version": "coingecko-indicator-signals.v1",
+  "status": "approved_design_backend_adaptation_pending",
+  "rationale_url": "https://app.notion.com/p/3f7038a63d5a8113b00dc8508a860764",
+  "input": "Few Understand · indicator.data",
+  "output": "Few Understand · signal.data",
+  "metric_version": "market_indicators_v1",
+  "consumer_group": "signalstudio.market_v1.alerts",
+  "previous_polars": {
+    "description": "Polars唯一负责量价指标计算；核对资产身份和输入质量，读取行情历史，输出可追溯指标，不生成加分。",
+    "algorithm": "当前行情核对CoinGecko稳定ID、USD、时间与覆盖；Polars计算成交额/市值、绝对24h涨跌幅、相对24小时前放量倍数。基线须同资产/来源/coin ID/报价/覆盖，取目标前最近且≤30分钟的有效观测，接收时间不晚于目标；缺基线只令volume_ratio为空。冻结首个有效槽输入与指标结果，重试沿用身份、版本、槽和基线引用。"
+  },
+  "rules": [
+    "#3035统一计算/整理指标并直接发布Redpanda；五个判断节点不读原始行情或历史、不重算比值。",
+    "五条条件独立判断，可同时命中；保持原阈值和强度公式，强度不是校准概率。",
+    "仅接受本版指标，身份需已核实、来源/报价/时间/质量有效；缺失或非有限指标仅跳过对应条件。",
+    "提醒不继承榜单市值/成交额准入、5分钟贡献去重或评分窗口限制；不声明已有跨消息冷却或去重。",
+    "signal.data需携带metric_id、metric_version、observation_id，可追溯指标；实际Few消费与发布未核验。",
+    "五卡属于同一逻辑提醒消费者，单条指标在该消费者内评估全部五项；不是五个独立进程用同组互抢消息。评分使用独立消费者组。"
+  ],
+  "cards": [
+    {
+      "key": "price_move_up",
+      "name": "CoinGecko · 24 小时大涨",
+      "type": "Metric",
+      "condition": "price_change_percentage_24h ≥ 10%",
+      "algorithm": "消费 indicator.data 的 market_indicators_v1；price_change_percentage_24h ≥ 10% 时生成 price_move_up，不满足或所需指标无效则跳过。指标及历史查询统一在 #3035 完成。",
+      "confidence_formula": "confidence = min(0.95, 0.6 + (abs(pct) − 10) × 0.01)，保留 3 位小数。",
+      "input": {
+        "symbol": "EXM",
+        "asset_id": "illustrative-asset-id",
+        "price_change_percentage_24h": 12,
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation",
+        "observed_at": "2026-10-08T00:00:00Z"
+      },
+      "output": {
+        "signal_type": "price_move_up",
+        "rule_id": "coingecko_market.price_move_up",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "medium",
+        "confidence": 0.62,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "price_change_percentage_24h": 12
+        },
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation"
+      },
+      "negative_input": {
+        "price_change_percentage_24h": 9.99
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。",
+      "reference_number": 3011,
+      "description": "消费 Polars 已发布指标，判断条件后生成 price_move_up 信号；不执行指标计算。",
+      "input_fields": [
+        "price_change_percentage_24h"
+      ],
+      "previous": {
+        "condition": "price_change_percentage_24h ≥ 10%",
+        "algorithm": "读取上游给出的 24 小时涨幅，达到或超过 10% 就发出上涨提醒。没有在这里用价格历史重新计算涨幅。"
+      }
+    },
+    {
+      "key": "price_move_down",
+      "name": "CoinGecko · 24 小时大跌",
+      "type": "Metric",
+      "condition": "price_change_percentage_24h ≤ −10%",
+      "algorithm": "消费 indicator.data 的 market_indicators_v1；price_change_percentage_24h ≤ −10% 时生成 price_move_down，不满足或所需指标无效则跳过。指标及历史查询统一在 #3035 完成。",
+      "confidence_formula": "confidence = min(0.95, 0.6 + (abs(pct) − 10) × 0.01)，保留 3 位小数。",
+      "input": {
+        "symbol": "EXM",
+        "asset_id": "illustrative-asset-id",
+        "price_change_percentage_24h": -15,
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation",
+        "observed_at": "2026-10-08T00:00:00Z"
+      },
+      "output": {
+        "signal_type": "price_move_down",
+        "rule_id": "coingecko_market.price_move_down",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "high",
+        "confidence": 0.65,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "price_change_percentage_24h": -15
+        },
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation"
+      },
+      "negative_input": {
+        "price_change_percentage_24h": -9.99
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。",
+      "reference_number": 3012,
+      "description": "消费 Polars 已发布指标，判断条件后生成 price_move_down 信号；不执行指标计算。",
+      "input_fields": [
+        "price_change_percentage_24h"
+      ],
+      "previous": {
+        "condition": "price_change_percentage_24h ≤ −10%",
+        "algorithm": "读取上游给出的 24 小时跌幅，达到或低于 −10% 就发出下跌提醒。"
+      }
+    },
+    {
+      "key": "volume_spike",
+      "name": "CoinGecko · 成交量市值比偏高",
+      "type": "Metric",
+      "condition": "volume_to_market_cap ≥ 0.2",
+      "algorithm": "消费 indicator.data 的 market_indicators_v1；volume_to_market_cap ≥ 0.2 时生成 volume_spike，不满足或所需指标无效则跳过。指标及历史查询统一在 #3035 完成。",
+      "confidence_formula": "confidence = min(0.95, max(0.6, 0.6 + ratio − 0.2))，保留3位；ratio读取Polars未舍入的volume_to_market_cap，不再除算。",
+      "input": {
+        "symbol": "EXM",
+        "asset_id": "illustrative-asset-id",
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation",
+        "observed_at": "2026-10-08T00:00:00Z",
+        "volume_to_market_cap": 0.25
+      },
+      "output": {
+        "signal_type": "volume_spike",
+        "rule_id": "coingecko_market.volume_spike",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "medium",
+        "confidence": 0.65,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "total_volume": 25000000,
+          "market_cap": 100000000,
+          "volume_to_market_cap": 0.25
+        },
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation"
+      },
+      "negative_input": {
+        "volume_to_market_cap": null
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。",
+      "reference_number": 3013,
+      "description": "消费 Polars 已发布指标，判断条件后生成 volume_spike 信号；不执行指标计算。",
+      "input_fields": [
+        "volume_to_market_cap"
+      ],
+      "previous": {
+        "condition": "market_cap > 0 且 total_volume / market_cap ≥ 0.2",
+        "algorithm": "先确认市值大于零，再用 24 小时成交额除以市值。本例 2500 万 ÷ 1 亿 = 0.25，达到 0.2，生成 volume_spike 提醒。它没有比较过去的成交量，不能由此证明成交量突然放大。"
+      }
+    },
+    {
+      "key": "near_ath",
+      "name": "CoinGecko · 接近历史高点",
+      "type": "Metric",
+      "condition": "ath_change_percentage ≥ −5%",
+      "algorithm": "消费 indicator.data 的 market_indicators_v1；ath_change_percentage ≥ −5% 时生成 near_ath，不满足或所需指标无效则跳过。指标及历史查询统一在 #3035 完成。",
+      "confidence_formula": "confidence = min(0.95, 0.7 + (pct + 5) × 0.02)，保留 3 位小数。",
+      "input": {
+        "symbol": "EXM",
+        "asset_id": "illustrative-asset-id",
+        "ath_change_percentage": -2,
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation",
+        "observed_at": "2026-10-08T00:00:00Z"
+      },
+      "output": {
+        "signal_type": "near_ath",
+        "rule_id": "coingecko_market.near_ath",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "medium",
+        "confidence": 0.76,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "ath_change_percentage": -2
+        },
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation"
+      },
+      "negative_input": {
+        "ath_change_percentage": -5.01
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。",
+      "reference_number": 3014,
+      "description": "消费 Polars 已发布指标，判断条件后生成 near_ath 信号；不执行指标计算。",
+      "input_fields": [
+        "ath_change_percentage"
+      ],
+      "previous": {
+        "condition": "ath_change_percentage ≥ −5%",
+        "algorithm": "读取上游相对历史最高价的百分比，达到或超过 −5% 就提醒接近历史高点。本例 −2% 满足条件；代码没有额外限制该数值必须不大于零。"
+      }
+    },
+    {
+      "key": "deep_from_ath",
+      "name": "CoinGecko · 较历史高点深度回撤",
+      "type": "Metric",
+      "condition": "ath_change_percentage ≤ −80%",
+      "algorithm": "消费 indicator.data 的 market_indicators_v1；ath_change_percentage ≤ −80% 时生成 deep_from_ath，不满足或所需指标无效则跳过。指标及历史查询统一在 #3035 完成。",
+      "confidence_formula": "confidence = min(0.95, 0.65 + (−80 − pct) × 0.015)，保留 3 位小数。",
+      "input": {
+        "symbol": "EXM",
+        "asset_id": "illustrative-asset-id",
+        "ath_change_percentage": -90,
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation",
+        "observed_at": "2026-10-08T00:00:00Z"
+      },
+      "output": {
+        "signal_type": "deep_from_ath",
+        "rule_id": "coingecko_market.deep_from_ath",
+        "rule_version": "1.0.0",
+        "asset_id": "illustrative-asset-id",
+        "risk_level": "high",
+        "confidence": 0.8,
+        "observed_at": "2026-10-08T00:00:00Z",
+        "evidence": {
+          "ath_change_percentage": -90
+        },
+        "metric_id": "example-observation/market_indicators_v1",
+        "metric_version": "market_indicators_v1",
+        "observation_id": "example-observation"
+      },
+      "negative_input": {
+        "ath_change_percentage": -79.99
+      },
+      "negative_result": "本规则不产生信号；其他规则仍各自判断。",
+      "reference_number": 3015,
+      "description": "消费 Polars 已发布指标，判断条件后生成 deep_from_ath 信号；不执行指标计算。",
+      "input_fields": [
+        "ath_change_percentage"
+      ],
+      "previous": {
+        "condition": "ath_change_percentage ≤ −80%",
+        "algorithm": "读取上游相对历史最高价的百分比，达到或低于 −80% 就提醒深度回撤。本例 −90% 满足条件，不表示已见底或出现买入机会。"
+      }
+    }
+  ],
+  "envelope_fields": [
+    "metric_id",
+    "metric_version",
+    "observation_id",
+    "asset_id",
+    "observed_at",
+    "identity_status",
+    "quality_status",
+    "source_id",
+    "source_object_id",
+    "quote_currency",
+    "coverage_key",
+    "requested_at",
+    "collected_at",
+    "calculated_at"
+  ]
+}

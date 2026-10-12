@@ -14,7 +14,7 @@ try {
   const counts={};
   const verify=(node,language)=>{
     const html=renderToStaticMarkup(createElement(CardDetails,{node,graph,language,openNode:()=>{},mutate:()=>{throw new Error('Render must not mutate');},busy:false,onOpenSource:()=>{}}));
-    const kind=['source','process','decision','table','channel','state'].includes(node.kind) ? node.kind : 'unknown';
+    const kind=['source','process','decision','table','channel','state','interface'].includes(node.kind) ? node.kind : 'unknown';
     assert.ok(html.includes(`data-card-detail-kind="${kind}"`),`#${node.reference_number} incorrect template`);
     if (language==='zh-CN' && kind!=='unknown') {
       assert.ok(html.includes('数据流向'),`#${node.reference_number} lacks connections`);
