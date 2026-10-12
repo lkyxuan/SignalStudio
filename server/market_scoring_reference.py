@@ -88,13 +88,14 @@ def new_eligible(discovery, observation, at):
 METRIC_VERSION = 'market_indicators_v1'
 
 
-def indicator_input_valid(observation, at):
+def indicator_input_valid(observation, at, allow_source_only=False):
     """Shared provenance validation; board admission is a downstream concern."""
     try:
         at = timestamp(at)
         requested, collected, observed = (timestamp(observation[k]) for k in ('requested_at', 'collected_at', 'observed_at'))
         return (observation['source_id'] == PARAMS['source'] and observation['quote_currency'] == 'usd'
-                and observation['identity_status'] == 'resolved' and bool(observation['asset_id'])
+                and ((observation['identity_status'] == 'resolved' and bool(observation['asset_id']))
+                     or (allow_source_only and observation['identity_status'] == 'source_only' and observation['asset_id'] is None))
                 and bool(observation['source_object_id']) and bool(observation['coverage_key'])
                 and bool(observation['observation_id']) and observation['quality_status'] == 'healthy'
                 and requested <= collected <= at and observed <= collected
@@ -103,11 +104,31 @@ def indicator_input_valid(observation, at):
         return False
 
 
+def source_volume_baseline(observation, history):
+    """Source-only reference math: nullable UUIDs never identify or join coins."""
+    target = timestamp(observation['requested_at']) - timedelta(hours=PARAMS['volume_baseline_hours'])
+    matches = []
+    for row in history:
+        try:
+            stamp = timestamp(row['requested_at'])
+            if (all(row[k] == observation[k] for k in ('source_id', 'source_object_id', 'quote_currency', 'coverage_key'))
+                    and indicator_input_valid(row, row['collected_at'], allow_source_only=True)
+                    and timestamp(row['collected_at']) <= target
+                    and 0 <= (target - stamp).total_seconds() <= PARAMS['volume_baseline_tolerance_minutes'] * 60
+                    and all(finite(row[k]) for k in ('current_price', 'market_cap', 'total_volume', 'price_change_percentage_24h'))
+                    and row['current_price'] > 0 and row['market_cap'] >= PARAMS['min_market_cap_usd']
+                    and row['total_volume'] >= PARAMS['min_baseline_volume_usd']):
+                matches.append(row)
+        except (KeyError, ValueError, TypeError, OverflowError):
+            continue
+    return max(matches, key=lambda row: timestamp(row['requested_at']), default=None)
+
+
 def calculate_indicators(observation, history, at):
     """Reference math for the Polars stage, not a second scorer or runtime engine."""
-    if not indicator_input_valid(observation, at):
+    if not indicator_input_valid(observation, at, allow_source_only=True):
         return None
-    baseline = volume_baseline(observation, history)
+    baseline = source_volume_baseline(observation, history) if observation['asset_id'] is None else volume_baseline(observation, history)
     normalized = {**observation}
     for key in ('current_price', 'market_cap', 'total_volume', 'price_change_percentage_24h', 'ath_change_percentage'):
         normalized[key] = observation.get(key) if finite(observation.get(key)) else None

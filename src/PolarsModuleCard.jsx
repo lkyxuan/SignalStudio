@@ -28,9 +28,9 @@ export function PolarsMetricNotes({ node, language }) {
     <p>{zh ? '同一Polars程序内执行；后台实现与运行未核验。' : 'Runs within one Polars program; backend implementation and execution unverified.'}</p>
     {settings.parent_module && <p>{zh ? '所属模块' : 'Owning module'} #{settings.parent_module.reference_number}</p>}
     {child && <>
-      <p>{child.context_note}</p>
+      <p>{settings.nullable_identity_context ? (zh ? '沿用同一observation_id；asset_id可为空，确认无映射时仍计算指标。不生成UUID、不以空UUID合并不同币种。' : 'Keep observation_id; asset_id may be null. Compute source-only indicators without creating a UUID or merging unrelated null IDs.') : child.context_note}</p>
       <dl className="source-case-inspector-fields">{Object.entries(child.input_origins).map(([name, origin]) => <div key={name}><dt><code>{name}</code></dt><dd>{origin}</dd></div>)}</dl>
-      {child.history && <><h4>{zh ? '历史基线' : 'History baseline'}</h4><p>{child.history.target}</p><p>{child.history.selection}</p></>}
+      {child.history && <><h4>{zh ? '历史基线' : 'History baseline'}</h4><p>{child.history.target}</p><p>{settings.nullable_identity_context ? (zh ? '已识别资产沿用原基线规则；无UUID按相同来源范围+稳定coin ID、USD、覆盖版本匹配可比历史，不按null UUID关联。仍取24小时前目标之前最近、相距≤30分钟的有效快照；缺失基线时放量倍数为空。' : 'Resolved assets keep the existing baseline. For null UUIDs match the same source, stable coin ID, USD and coverage; never join on null asset IDs. Keep the prior 24-hour target and 30-minute tolerance; missing baseline yields null.') : child.history.selection}</p></>}
       <p>{child.missing}</p>
       <p>{zh ? '假设案例，非真实运行：' : 'Hypothetical example, not an observed run: '}<code>{JSON.stringify(child.example.input)}</code> → <code>{String(child.example.output)}</code></p>
       <p>{zh ? 'Polars计算方式：共享校验先将非数值、布尔及非有限来源归一为Float64 null，并选择历史基线；条件表达式不保证分支短路。' : 'Polars expression: shared validation first normalizes nonnumeric, boolean and nonfinite values to Float64 null and selects the baseline. Conditions do not guarantee short-circuit evaluation.'}</p>

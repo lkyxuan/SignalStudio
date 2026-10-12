@@ -24,6 +24,7 @@ import supabaseSync from '../catalog/supabase-score-sync.v1.json';
 import { ContentRefreshCard, contentRefreshCard } from './ContentRefreshCard';
 import { AssetReviewCase } from './AssetReviewCase';
 import { CoinGeckoReferenceCard, isCoinGeckoReference } from './CoinGeckoReferenceCard';
+import { IdentityHandoffCard, IdentityHandoffNotes } from './IdentityHandoffCard';
 import { CoinGeckoTrendingCard, isCoinGeckoTrending } from './CoinGeckoTrendingCard';
 import './source-case-inspector.css';
 import './processing-io-card.css';
@@ -89,6 +90,7 @@ function RedpandaTopicCard({ node, graph, language, openNode }) {
   const headers = scoringProposal ? scoreTopicProposal.headers : settings.headers || [];
   const consumers = Object.entries(settings.consumers || {});
   return <div className="redpanda-topic-card">
+    <IdentityHandoffNotes node={node} language={language}/>
     <div className="source-case-inspector-heading"><h3>{zh ? '消息内容与结构' : 'Message content and structure'}</h3><span>{zh ? '定义与案例 · 非运行记录' : 'Definition and cases · not runtime records'}</span></div>
     <div className="message-payload-fields"><strong>{scoringProposal ? 'Value.data' : settings.payload_record_path === '' ? (zh ? 'Value 根对象' : 'Value root object') : 'data'} · {fields.length} {zh ? '个已列字段' : 'listed fields'}</strong>
       {fields.map(field => <div key={field.id}><code>{field.name}</code><span>{field.data_type}</span></div>)}
@@ -383,7 +385,8 @@ export function ProcessingIOCard(props) {
   const { node } = props;
   const kind = detailKind(node);
   if (kind === 'channel') return <RedpandaTopicCard {...props} />;
-  if (isPolarsModuleCard(node)) return <ProcessingCardFrame {...props}><ProcessingCardContent {...props}/><PolarsMetricNotes {...props}/></ProcessingCardFrame>;
+  if (['gate', 'writer', 'signal'].includes(node.card_contract?.config.resource?.identity_handoff?.key)) return <IdentityHandoffCard {...props}/>;
+  if (isPolarsModuleCard(node)) return <ProcessingCardFrame {...props}><IdentityHandoffNotes {...props}/><ProcessingCardContent {...props}/><PolarsMetricNotes {...props}/></ProcessingCardFrame>;
   if (trendDesign(node.name)) return <TrendDesignCard {...props}/>;
   if (kind === 'state') return leaderboardCard(node.name) && node.name !== 'Redis · 最热榜数据区'
     ? <LeaderboardScaffoldCard {...props} /> : <RedisWindowCard {...props} />;

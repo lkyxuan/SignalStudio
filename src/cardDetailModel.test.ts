@@ -36,3 +36,7 @@ test('approved indicator consumers explain threshold decisions instead of legacy
     assert.ok(!explanation.includes('2500 万 ÷'));
   }
 });
+test('identity handoff formula supersedes the legacy raw-market discovery explanation', () => {
+  const node={name:'CoinGecko · 首次收录新资产',formula:'仅建档提交created结果生成通知，不直接消费原始行情。',card_contract:{config:{resource:{identity_handoff:{key:'signal'}}}}};
+  for (const language of ['zh-CN','en']) assert.equal(cardExplanation(node,language),node.formula);
+});

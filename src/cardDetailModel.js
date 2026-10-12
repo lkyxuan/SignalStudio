@@ -30,6 +30,7 @@ function acceptedCopy(node) {
 }
 export function cardExplanation(node, language) {
   const zh = language === 'zh-CN';
+  if (node.card_contract?.config.resource?.identity_handoff) return node.formula || '';
   const stage = refresh.stages.find(item => item.name === node.name);
   const board = simple.boards.find(item => item.calculator_name === node.name);
   const prep = scaffolds.preprocessors.find(item => item.name === node.name);

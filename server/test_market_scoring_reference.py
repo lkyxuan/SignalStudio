@@ -21,6 +21,22 @@ class MarketScoringReferenceTest(unittest.TestCase):
         proposed = contributions(calculate_indicators(self.observation, [self.baseline], self.at), discovery or {}, self.at)
         return [{**event, 'event_key':f'event-{i}', 'created_at':self.at} for i,event in enumerate(proposed)]
 
+    def test_source_only_metrics_survive_but_cannot_alert_or_score(self):
+        unknown={**self.observation,'asset_id':None,'identity_status':'source_only'}
+        base={**self.baseline,'asset_id':None,'identity_status':'source_only'}
+        wrong={**base,'source_object_id':'other-coin','total_volume':1_000_000}
+        result=calculate_indicators(unknown,[wrong,base],self.at)
+        self.assertIsNone(result['asset_id'])
+        self.assertEqual(result['identity_status'],'source_only')
+        self.assertEqual(result['volume_ratio'],2)
+        self.assertEqual(result['volume_to_market_cap'],.5)
+        self.assertEqual(result['metric_id'],'obs-current/market_indicators_v1')
+        self.assertEqual(alert_conditions(result,self.at),[])
+        self.assertEqual(contributions(result,self.discovery,self.at),[])
+        self.assertIsNone(calculate_indicators(unknown,[wrong],self.at)['volume_ratio'])
+        for status in ('lookup_error','conflict','resolved'):
+            self.assertIsNone(calculate_indicators({**unknown,'identity_status':status},[base],self.at))
+
     def test_declared_examples_and_highest_tier_boundaries(self):
         for example in RULES['examples']:
             observation = {**self.observation, 'total_volume':example['volume'], 'market_cap':example['market_cap'],

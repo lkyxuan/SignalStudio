@@ -1,0 +1,102 @@
+{
+  "version": "coingecko_identity_handoff_v1",
+  "rationale_url": "https://app.notion.com/p/3f7038a63d5a81a69ecbe469043b6174",
+  "implementation": "workspace_definition_only",
+  "supersedes": "Identity-required indicator publication and raw market input to 3016. Historical catalogs remain migration inputs; this overlay is current for identity handoff.",
+  "input_fields": [
+    "metric_id",
+    "metric_version",
+    "observation_id",
+    "asset_id",
+    "identity_status",
+    "source_id",
+    "source_object_id",
+    "source_name",
+    "symbol",
+    "snapshot_ref",
+    "run_id",
+    "requested_at",
+    "collected_at",
+    "observed_at",
+    "quality_status",
+    "quote_currency",
+    "market_cap"
+  ],
+  "identity_states": {
+    "resolved": "权威映射命中且内部资产有效；asset_id非空。",
+    "source_only": "缓存未命中后成功查权威数据库，确认没有映射；asset_id=null。",
+    "lookup_error": "权威查询失败或不可用；不得当成无映射。",
+    "conflict": "映射冲突或无效；不得自动创建。"
+  },
+  "rules": [
+    "3035只查询已有映射，不建档、不分配UUID。source_only仍计算指标并发布；失败和冲突不进入新资产分支。",
+    "3041以observation_id为组装键，核对source_id/source_object_id和身份快照一致；asset_id可为空，不以null资产键做inner join或跨币聚合。",
+    "指标消息键沿用observation_id/metric_id，不使用空asset_id。来源范围+稳定coin ID用于未知对象历史匹配，禁止symbol身份猜测。",
+    "3011—3015及量价评分仍要求resolved且asset_id非空；未识别指标只进入下游身份处理，不能直接产生资产级评分。",
+    "下游再次核对权威映射，按coingecko_coin_id+稳定ID幂等创建或复用，成功提交assets/asset_identifiers后才交付created。",
+    "created交3016通知及3009起始评分判断；reused、pending、conflict、error均不重复通知或评分。3009缺来源配置继续待处理，不猜分值。",
+    "建档新增映射必须更新/失效所有相关3035进程的缓存；更新机制待代码侧实现验证，不画成反馈触发或补发旧指标。",
+    "不混用market_v1首次有效发现+20与资产起始评分；初始全量导入通知/奖励策略待明确，不能宣称已上线。"
+  ],
+  "cards": {
+    "entry": {
+      "name": "Polars · 计算 CoinGecko 量价指标",
+      "description": "只查询已有资产映射，不建档、不生成UUID；确认无映射时保留空UUID并计算指标，交下方五张计算卡。",
+      "algorithm": "按来源范围+CoinGecko稳定coin ID查进程内缓存，未命中回查权威assets/asset_identifiers。命中有效映射为resolved并带已有asset_id；确认无映射为source_only、asset_id=null；查询失败为lookup_error，映射冲突为conflict。归一USD、时间、质量与数值；source_only不阻断本身可计算的指标，不在此建档。公共身份快照、来源名称与计算结果交3041。"
+    },
+    "assembly": {
+      "name": "Polars · 汇总指标并发布",
+      "description": "按观测收束五项结果与公共字段，保留asset_id=null及明确身份状态，发布5007。",
+      "algorithm": "按唯一observation_id组装，校验source_id/source_object_id和身份快照一致；不能以可空asset_id内连接导致未知资产丢失，也不能把多个null当同一资产。source_only保留空UUID及来源稳定ID、source_name、symbol、snapshot_ref；缺失指标仍为null。生成metric_id、calculated_at并一次发布完整指标，冻结原观测身份结果，不因后续建档改写或补发。"
+    },
+    "channel": {
+      "name": "Few Understand · indicator.data",
+      "description": "传递market_indicators_v1指标，允许确认无映射对象的asset_id=null；身份状态与来源稳定ID必须一起保留。",
+      "algorithm": "由3041统一发布。以observation_id/metric_id标识消息，不用空asset_id作为消息键；resolved与source_only均可携带可用指标。五条行情提醒及量价评分只接收已识别资产；新资产筛选卡只接受source_only且asset_id=null。lookup_error/conflict不当成新资产，旧观测不被后续建档原位改写。"
+    },
+    "gate": {
+      "name": "CoinGecko · 筛选无UUID资产",
+      "description": "只筛选5007中确认无映射的空UUID指标，交给下游核实建档；不计算分数。",
+      "algorithm": "消费market_indicators_v1，核验metric_id/observation_id、来源coingecko.coins_markets、稳定source_object_id、追溯与时间/质量。仅asset_id=null且identity_status=source_only进入核实建档。resolved跳过；lookup_error、conflict、空来源ID、无效或过期消息停止本分支并保留原因，不能用空UUID替代身份核实。重复观测与同一来源对象交由建档幂等收敛。"
+    },
+    "writer": {
+      "name": "CoinGecko · 核实并建档",
+      "description": "在指标下游核实未知CoinGecko对象，幂等创建或复用资产；成功新建后才交信号与评分。",
+      "algorithm": "仅接筛选通过的source_only指标。按coingecko_coin_id+source_object_id再次查权威映射，已存在则返回reused和原asset_id。沿用可信来源核实要求：稳定ID、source_name、symbol、正市值、可解析且有效的来源时间/追溯；资料不足为pending，冲突为conflict，写入失败为error。允许建档时以同一事务/唯一约束创建资产UUID与来源映射，持久保存判定结果；并发失败后回查复用，不重复创建。只有提交成功才输出action=created、asset_id、asset_name、source_id与decision_ref，分别交3016和3009。新增映射刷新/失效3035缓存；不补发或改写原无UUID指标。"
+    },
+    "signal": {
+      "name": "CoinGecko · 首次收录新资产",
+      "description": "读取下游建档成功结果，仅action=created生成一次new_asset_discovered；不直接消费原始行情或判定空UUID。",
+      "algorithm": "仅接CoinGecko核实建档的已提交created结果与非空asset_id，按持久化decision_ref及asset_id去重发布new_asset_discovered到5005，保留metric_id/observation_id与来源追溯。reused/pending/conflict/error不发发现信号。发现通知不等于评分事件；起始评分由3009按来源配置决定，缺配置待处理。初次全量导入的通知/奖励策略仍待明确，后台运行未核验。"
+    }
+  },
+  "examples": [
+    {
+      "label": "确认没有映射（假设案例）",
+      "input": {
+        "asset_id": null,
+        "identity_status": "source_only",
+        "source_object_id": "illustrative-coin",
+        "source_name": "示例代币",
+        "symbol": "EXAMPLE"
+      },
+      "result": "保留空UUID指标→筛选通过→核实建档；成功created后通知与起始评分判断。"
+    },
+    {
+      "label": "查询失败（假设案例）",
+      "input": {
+        "asset_id": null,
+        "identity_status": "lookup_error"
+      },
+      "result": "不进入建档/加分分支。"
+    },
+    {
+      "label": "并发已建档（假设案例）",
+      "input": {
+        "action": "reused",
+        "asset_id": "illustrative-existing-uuid"
+      },
+      "result": "复用UUID，不重复通知，不重复起始加分。"
+    }
+  ]
+}
