@@ -1,3 +1,4 @@
+import { edgePresentation, edgeProcess, focusExplanation, traceTriggers, originLabel } from './edgePresentation';
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Check, Plus, Trash2, X } from 'lucide-react';
 import { displayNodeName, translate } from './i18n';
@@ -117,7 +118,7 @@ export function FieldCatalog({ node, fields, mutate, busy, language }) {
   </section>;
 }
 
-export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, mutate, busy, language, nodeLabel }) {
+export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, mutate, busy, language, nodeLabel, graph }) {
   const [edgeDraft, setEdgeDraft] = useState(() => edgeForm(edge));
   const [lineContract, setLineContract] = useState(null);
   const t = text => translate(language, text);
@@ -160,6 +161,7 @@ export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, m
   }, 'Connection saved');
   return <div className="edge-detail-scroll">
     <div className="edge-path"><strong>{sourceNode && <><span className="path-node-ref">{nodeRef(sourceNode)}</span>{displayName(sourceNode.name)}</>}</strong><ArrowRight size={15} /><strong>{targetNode && <><span className="path-node-ref">{nodeRef(targetNode)}</span>{displayName(targetNode.name)}</>}</strong></div>
+    {graph && <section className="edge-semantics-detail"><strong>{edgePresentation(graph, edge, language, edgeProcess(graph, edge)).label}</strong><p>{focusExplanation(graph, edgeProcess(graph, edge), language)}</p><ul>{traceTriggers(graph, edgeProcess(graph, edge)).origins.map(origin => <li key={`${origin.node.id}:${origin.reason}`}>{originLabel(origin, language)} · {displayName(origin.node.name)}</li>)}</ul><small>{language === 'zh-CN' ? '连线说明定义关系，不代表实际执行记录。' : 'Connections describe defined relations, not an execution log.'}</small></section>}
     {edge.transport_kind !== 'redpanda' && <section className="edge-plain-summary">
       {edge.branch_label && <strong>{language === 'zh-CN' ? '分支：' : 'Branch: '}{edge.branch_label}</strong>}
       <h3>{language === 'zh-CN' ? isTableAccess ? '这条线表示什么' : '这条线传什么' : isTableAccess ? 'What this connection means' : 'What this connection carries'}</h3>
