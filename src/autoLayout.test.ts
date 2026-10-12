@@ -151,3 +151,12 @@ test('reviewed public services and complete side workflows retain boundaries and
   assert.equal(stages.filter(g => /^stage:[0-9]+$/.test(g.id)).length, 0);
   assert.equal(stages.reduce((n, g) => n + g.count, 0), ids.size);
 });
+
+test('score UI follows Supabase and review UI stays with maintenance without deleting original relations', () => {
+  const nodes = [node('s','source'), node('sync'), node('db','table','supabase_asset_scores'), node('ui','interface','资产得分页面'), node('review','decision','人工审核资产纠错建议'), node('review-ui','interface','资产纠错审核页面')];
+  const edges = [edge('s','sync'),edge('sync','db'),edge('db','ui'),edge('review-ui','review')];
+  const p=verify(nodes,edges);
+  assert.ok(p.get('ui')!.position_y > p.get('db')!.position_y);
+  assert.equal(p.get('ui')!.position_y,Math.max(...[...p.values()].map(n=>n.position_y)));
+  assert.deepEqual(sideLayoutGroups(nodes,edges).find(g=>g.key==='maintenance')!.nodes.map(n=>n.id).sort(),['review','review-ui']);
+});

@@ -4,7 +4,7 @@
 
 ## 定义所有权
 
-`catalog/card-model.v1.json` 是前后端共享的类型、关系和默认配置来源。顶层类型固定为 `source/process/decision/table/channel/state`；业务子类、技术、环境独立。旧 `nodes.type` 保留兼容，不决定新类别。历史编号不变，也不作为类别依据。
+`catalog/card-model.v1.json` 是前后端共享的类型、关系和默认配置来源。顶层类型为 `source/process/decision/table/channel/state/interface`；业务子类、技术、环境独立。旧 `nodes.type` 保留兼容，不决定新类别。历史编号不变，也不作为类别依据。
 
 已确认业务模块继续由原 catalog 定义；`definition_refs` 固定文件摘要和选择器。数据库保存实例配置、动作绑定、布局。启动只能补缺，不能覆盖实例；模块变化显示待审阅升级。动作登记和协议适配仍需开发，新增业务无需新增核心类型。
 
@@ -14,7 +14,7 @@
 
 ## 详情展示
 
-[SS-49 已批准详情标准](https://app.notion.com/p/3f5038a63d5a8120826fd3b2a444e24f)由 `CardDetails` 按共享 kind 分派，六类信息顺序、证据边界及验证命令见 [Card UI standard](PRODUCT_WORKFLOW.md#card-ui-standard)。展示解释不修改模块摘要、端口、字段血缘、关系绑定或执行含义。分支跳转按实际端点的绑定与稳定分支 ID 解析，不能用分支标题猜路径；未知导入继续只读。专用组件保留已有业务案例和数值推导，运行核对报告仍独立归属 Few Understand。
+[SS-49 已批准详情标准](https://app.notion.com/p/3f5038a63d5a8120826fd3b2a444e24f)由 `CardDetails` 按共享 kind 分派，原六类信息顺序、证据边界及验证命令见 [Card UI standard](PRODUCT_WORKFLOW.md#card-ui-standard)。展示解释不修改模块摘要、端口、字段血缘、关系绑定或执行含义。分支跳转按实际端点的绑定与稳定分支 ID 解析，不能用分支标题猜路径；未知导入继续只读。专用组件保留已有业务案例和数值推导，运行核对报告仍独立归属 Few Understand。
 
 ## 执行含义
 
@@ -34,7 +34,7 @@ Studio 负责定义、存储、校验、迁移、展示及交付；Few Understan
 
 | 接口 | 用途 |
 | --- | --- |
-| `GET /api/card-model` | 六类、默认配置、动作登记 |
+| `GET /api/card-model` | 七类、默认配置、动作登记 |
 | `GET/PATCH /api/nodes/:id/definition` | 实例契约及就绪；修改须带实例 revision，禁止静默换类或替换固定模块 |
 | `GET/PUT /api/edges/:id/bindings` | 一条视觉线的多种绑定；原子替换 |
 | `GET /api/graph/readiness` | 结构与独立运行兼容差异 |
@@ -89,7 +89,7 @@ Studio 负责定义、存储、校验、迁移、展示及交付；Few Understan
 
 ## 展示与迁移
 
-创建和主分类只使用六类，业务子类/技术折叠。继续使用 300×160 共享卡片及业务组件。来源/处理先展示输入输出，仅列本步相关输入并链接来源，自然语言算法置后。表先展示横向原始结构/记录，来源说明在后，字段设置折叠。通道/缓存展示自身结构与设置，不添加处理输入输出面板。未知定义只读。没有回填数据的新通用表显示空记录状态，不放虚构行；已有设计案例保持原证据标记。
+创建和主分类使用七类，业务子类/技术折叠。继续使用 300×160 共享卡片及业务组件。来源/处理先展示输入输出，仅列本步相关输入并链接来源，自然语言算法置后。表先展示横向原始结构/记录，来源说明在后，字段设置折叠。通道/缓存展示自身结构与设置，不添加处理输入输出面板。未知定义只读。没有回填数据的新通用表显示空记录状态，不放虚构行；已有设计案例保持原证据标记。
 
 `CardModel.migrate()` 在业务安装器结束后事务性增量迁移，保留旧节点、连线、字段、血缘、文字、位置。新增 `node_contracts/data_schemas/node_ports/edge_bindings/graph_definition_reports`，重启只补缺项。迁移按批准的业务身份匹配，不能将历史连线编号套用到新安装图。
 
@@ -106,3 +106,17 @@ npm run test:layout
 脚本只在临时副本检查旧行摘要、外键、完整性、重复迁移及撤销新增定义表后的摘要，不改源库。共享主机更新须停止服务、备份、快进源码、启动并检查健康和客户端；见 [Mac mini 操作说明](MAC_MINI_HOST.md)。不得用测试库覆盖在线库，不提交在线库。
 
 测试覆盖 Studio 模型及隔离接口/界面，不构成 Few Understand 运行验证。`catalog/card-runtime-compatibility.v1.json` 固定代码核对版本及计算范围、来源评分配置、消息映射和内容能力差异。全树适配器搜索未完整完成，不能断言不存在适配器；未运行或部署其任何设施。具体已验证结果以 Notion 交付记录和提交为准。
+
+## 应用界面卡（SS-71）
+
+[批准依据与交付范围](https://app.notion.com/p/3f7038a63d5a81db8607df99250738df)。`interface` 是附加的第七类，兼容类型 `Application Interface`，使用 7xxx 新编号，已有编号不变。沿用 `card-model.v1` 的加法扩展；不识别新 kind 的导入器仍须按现有规则将整个未知包隔离只读，不能猜为处理动作。旧客户端需保存后刷新更新。
+
+界面表示用户看到的内容及操作要求，不是调度任务。其动作 ID 为空、trigger 为 unspecified、无判断分支或循环；不允许配置执行动作或定时/事件触发。资源到界面为 read/none。界面与判断之间可以用 reference/none、`config.role=human_review_surface` 明确关联人工审核界面，不作自动控制或数据直连；接口/建议存储未定义仍明示未知。界面关系只允许 read/reference、trigger=none，不允许写入、发布、消费或自动执行关系。
+
+`catalog/application-interfaces.v1.json` 定义资产得分和资产纠错审核两张界面的内容、操作、限制及验收要求。实例 `config.interface` 保存该定义、未绑定的 endpoint/api_endpoint；定义通过 definition_refs 固定模块摘要并随图包交付。实际页面/API 未绑定时 readiness 报 interface_binding_unverified；实现、部署和运行证据仍只来自独立报告。
+
+`server/application_interfaces.py` 在原模块存在、CardModel 迁移后原子新增两卡和两条关系；只在首次安装写入新卡配置，后续启动不覆盖用户修改或恢复已删除的卡。同名用户卡冲突时停止并明确报错，不擅自接管。原卡、字段、关系、绑定及坐标不改。新卡放在目标附近的空位置；只有用户点击整理才应用 ss71-application-interfaces.v1 布局：得分页面在 Supabase 下游，审核页面归入既有维护支线，不增加职责区分框。
+
+详情按用途、关联、内容、读取展示规则、用户动作、待实现限制和验收顺序显示；这是设计交付，不提供真实批准/纠错按钮。得分页面链接 #1007 frontend_read 单一规则，界面字段列表是交付要求而非第二份数据 schema。审核页面承载 #4003，保留原 #4002/#4001→#4003→#3003 分支语义和获批后当前记录核对。不能以本次新增定义声称 fewunderstand 已实现或接收需求。
+
+验证：`PYTHONPATH=server python3 -m unittest test_application_interfaces test_card_model test_graph_service`、`npm run test:contracts`、`npm run test:layout`、`npm run build`。隔离副本验证安装、重启幂等、原内容不变及图包导入导出；浏览器核对中文/英文、详情和连线。真实审核 API、账号权限、AI 检查、执行程序与业务前端部署不属于本次实现。

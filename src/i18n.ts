@@ -22,6 +22,7 @@ const zh: Record<string, string> = {
   'Flow Result': '流程结果',
   'Signal Event': '信号事件',
   'Product Module': '产品模块',
+  'Application Interface': '应用界面',
   'Asset Registry': '资产身份与关系库',
   'Rule Registry': '监控规则库',
   'State reference': '状态引用',
@@ -343,6 +344,8 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  if (name === '资产得分页面') return language === 'zh-CN' ? name : 'Asset scores page';
+  if (name === '资产纠错审核页面') return language === 'zh-CN' ? name : 'Asset correction review page';
   const dataNames: Record<string, string> = {
     leaderboard_evidence: '榜单有效证据', leaderboard_coverage: '榜单采集覆盖',
     leaderboard_attention_history: '有效关注历史', leaderboard_discoveries: '首次有效发现',

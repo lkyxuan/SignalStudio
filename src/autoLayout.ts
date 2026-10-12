@@ -14,7 +14,7 @@ const isFinal = (n: LayoutNode) => n.name === 'supabase_asset_scores';
 // Presentation roles reviewed on SS-58; never infer them from type or fan-out.
 const sideSpecs = [
   { key: 'assets', title: '公共资产 · 身份与标识', titleEn: 'Shared assets · identity', side: 'left', names: ['assets', 'asset_identifiers'] },
-  { key: 'maintenance', title: '资产维护 · 检查与审核', titleEn: 'Asset maintenance · review', side: 'left', names: ['定期 AI 检查资产地图', '人工审核资产纠错建议', '执行获批资产纠错'] },
+  { key: 'maintenance', title: '资产维护 · 检查与审核', titleEn: 'Asset maintenance · review', side: 'left', names: ['定期 AI 检查资产地图', '人工审核资产纠错建议', '执行获批资产纠错', '资产纠错审核页面'] },
   { key: 'coverage', title: '公共支撑 · 采集覆盖', titleEn: 'Shared support · coverage', side: 'left', names: ['leaderboard_coverage'] },
   { key: 'config', title: '公共配置 · 来源评分', titleEn: 'Shared config · initial scores', side: 'left', names: ['asset_initial_score_sources'] },
   { key: 'archive', title: '独立旁路 · 评分归档', titleEn: 'Independent branch · archive', side: 'right', names: ['归档评分流水', 'asset_score_events'] },
@@ -98,6 +98,8 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
   const sideGroups = sideLayoutGroups(active, edges);
   const sideIds = new Set(sideGroups.flatMap(g => g.nodes.map(n => n.id)));
   const main = active.filter(n => !sideIds.has(n.id));
+  const finalNode = main.find(n => cardKind(n) === 'interface' && n.name === '资产得分页面') || main.find(isFinal);
+  const isOutput = (n: LayoutNode) => n.id === finalNode?.id;
   const links = forwardLayoutEdges(main, edges);
   const incoming = new Map(main.map(n => [n.id, [] as string[]]));
   const outgoing = new Map(main.map(n => [n.id, [] as string[]]));
@@ -119,10 +121,10 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
   // A visual output anchor does not assert that it has no downstream consumers.
   const last = Math.max(0, ...depth.values());
   const terminal = new Set(main.filter(n => !edges.some(e => e.upstream_id === n.id && byId.has(e.downstream_id)) && !isSource(n)).map(n => n.id));
-  for (const n of main) if (isFinal(n) || isLeaderboard(n) || terminal.has(n.id)) depth.set(n.id, last);
+  for (const n of main) if (isOutput(n) || isLeaderboard(n) || terminal.has(n.id)) depth.set(n.id, last);
   // Keep the final sync chain adjacent to its anchored output. Stop at a fork:
   // shared predecessors must continue to serve their real downstream branches.
-  let endpoint = main.find(isFinal)?.id;
+  let endpoint = finalNode?.id;
   while (endpoint && incoming.get(endpoint)!.length === 1) {
     const parent = incoming.get(endpoint)![0]!;
     if (outgoing.get(parent)!.length !== 1 || isSource(byId.get(parent)!)) break;
@@ -136,7 +138,7 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
     if (incoming.get(n.id)!.some(id => sourced.get(id))) sourced.set(n.id, true);
   }
   const spine = new Set<string>();
-  let cursor = main.find(isFinal)?.id;
+  let cursor = finalNode?.id;
   while (cursor) {
     spine.add(cursor);
     cursor = [...incoming.get(cursor)!].sort((a, b) => Number(sourced.get(b)) - Number(sourced.get(a)) || depth.get(b)! - depth.get(a)! || nodeOrder(byId.get(a)!, byId.get(b)!))[0];
@@ -149,14 +151,14 @@ export function autoLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePositi
         const neighbors = (reverse ? outgoing : incoming).get(n.id)!.filter(id => rows.has(id));
         return neighbors.length ? neighbors.reduce((sum, id) => sum + rows.get(id)!, 0) / neighbors.length : Infinity;
       };
-      columns[i]!.sort((a, b) => Number(spine.has(b.id)) - Number(spine.has(a.id)) || Number(isFinal(b)) - Number(isFinal(a)) || score(a) - score(b) || nodeOrder(a, b));
+      columns[i]!.sort((a, b) => Number(spine.has(b.id)) - Number(spine.has(a.id)) || Number(isOutput(b)) - Number(isOutput(a)) || score(a) - score(b) || nodeOrder(a, b));
       columns[i]!.forEach((n, row) => rows.set(n.id, row + (spine.size && !columns[i]!.some(n => spine.has(n.id)) ? 1 : 0)));
     }
   };
   sweep(false); sweep(true); sweep(false);
   // Keep the three boards contiguous, in warming/hottest/emerging order.
   const boardNames = ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_emerging'];
-  columns[last]!.sort((a, b) => Number(isFinal(b)) - Number(isFinal(a)) || Number(isLeaderboard(a)) - Number(isLeaderboard(b)) || (isLeaderboard(a) && isLeaderboard(b) ? boardNames.indexOf(a.name) - boardNames.indexOf(b.name) : nodeOrder(a, b)));
+  columns[last]!.sort((a, b) => Number(isOutput(b)) - Number(isOutput(a)) || Number(isLeaderboard(a)) - Number(isLeaderboard(b)) || (isLeaderboard(a) && isLeaderboard(b) ? boardNames.indexOf(a.name) - boardNames.indexOf(b.name) : nodeOrder(a, b)));
   columns[last]!.forEach((n, index) => rows.set(n.id, index));
   const positions: NodePosition[] = main.map(n => ({ id: n.id, position_x: rows.get(n.id)! * 380, position_y: 96 + depth.get(n.id)! * 256 }));
   const mainRight = Math.max(300, ...positions.map(p => p.position_x + 300));

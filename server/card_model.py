@@ -56,6 +56,8 @@ def infer_kind(node):
         return override
     if node['is_system_state'] or node['type'] in ('Ranking Table', 'Asset Registry', 'Rule Registry'):
         return 'table'
+    if node['type'] == 'Application Interface':
+        return 'interface'
     if node['type'] == 'Source':
         return 'source'
     if node['type'] == 'Redpanda Topic':
@@ -203,6 +205,8 @@ class CardModel:
         source, target = (self.contract(edge[key])['kind'] for key in ('upstream_id','downstream_id'))
         if source in RESOURCE:
             return 'reference' if target in RESOURCE else 'read'
+        if 'interface' in (source, target):
+            return 'reference'
         if target in RESOURCE:
             return 'write'
         if target == 'channel':
@@ -257,13 +261,18 @@ class CardModel:
         if validate:
             if self.contract(edge['upstream_id'])['config'].get('read_only') or self.contract(edge['downstream_id'])['config'].get('read_only'):
                 raise ValueError('Unknown imported definitions are read-only')
-            allowed = {'read':source in RESOURCE and target in ('process','decision','source'),
+            allowed = {'read':source in RESOURCE and target in ('process','decision','source','interface'),
                        'write':target in RESOURCE and source in ('source','process'),
                        'publish':target == 'channel' and source in ('source','process','decision'),
                        'consume':source == 'channel' and target in ('process','decision'),
                        'control':source in ('process','decision') and target in ('process','decision'),
-                       'data':source not in RESOURCE and target not in RESOURCE and source != 'channel' and target != 'channel',
+                       'data':source not in RESOURCE and target not in RESOURCE and source not in ('channel','interface') and target not in ('channel','interface'),
                        'error':source in ('source','process','decision') and target in ('process','decision'), 'reference':True}
+            if config.get('role') == 'human_review_surface':
+                if kind != 'reference' or source != 'interface' or target != 'decision' or config.get('trigger', 'none') != 'none':
+                    raise ValueError('A review surface references a decision without triggering it')
+            if 'interface' in (source, target) and (kind not in ('read', 'reference') or config.get('trigger', 'none') != 'none'):
+                raise ValueError('Interfaces read resources or reference human actions; they do not execute jobs')
             if not allowed[kind]:
                 raise ValueError('This connection meaning is invalid for these card types')
             if branch and (source != 'decision' or branch not in {item['id'] for item in self.contract(edge['upstream_id'])['config']['branches']}):
@@ -312,6 +321,8 @@ class CardModel:
         if config.get('profile') not in MODEL['profiles'] or not isinstance(config.get('trigger'),dict) or config['trigger'].get('kind') not in MODEL['triggers']:
             raise ValueError('Invalid execution defaults or trigger')
         trigger = config['trigger']
+        if kind == 'interface' and (trigger['kind'] != 'unspecified' or (isinstance(config.get('action'), dict) and config['action'].get('id'))):
+            raise ValueError('An interface has user interactions, not a scheduled or executable action')
         if trigger['kind'] == 'schedule' and (not isinstance(trigger.get('interval_seconds'),(int,float)) or isinstance(trigger.get('interval_seconds'),bool) or trigger['interval_seconds'] <= 0):
             raise ValueError('Scheduled trigger needs a positive interval')
         join = config.get('join', {})
@@ -335,6 +346,18 @@ class CardModel:
             raise ValueError('Implementation evidence belongs in a runtime report')
         if not isinstance(config.get('definition_refs'),list) or not isinstance(config.get('draft'),bool) or config.get('read_only') is not False:
             raise ValueError('Invalid definition state')
+        if kind == 'interface':
+            ui = config.get('interface', {})
+            if not isinstance(ui, dict):
+                raise ValueError('Interface definition must be an object')
+            for key in ('display_fields','display_zh','display_en','actions_zh','actions_en','limitations_zh','limitations_en','acceptance'):
+                if key in ui and (not isinstance(ui[key], list) or any(not isinstance(value, str) for value in ui[key])):
+                    raise ValueError('Interface requirements must be text lists')
+            for key in ('endpoint','api_endpoint','purpose_zh','purpose_en','read_contract_ref'):
+                if ui.get(key) is not None and not isinstance(ui[key], str):
+                    raise ValueError('Interface binding and purpose must be text')
+            if ui.get('implementation', 'unverified') not in ('unverified','planned'):
+                raise ValueError('Interface implementation evidence belongs in a report')
         resource=config.get('resource',{})
         if not isinstance(resource,dict):
             raise ValueError('Resource settings must be an object')
@@ -431,6 +454,10 @@ class CardModel:
                     issue(node['id'],'action_unknown','处理动作尚未登记，运行支持未知。')
                 if config['trigger']['kind'] == 'unspecified' and not any(b['config'].get('trigger') in ('event','change') and e['downstream_id'] == node['id'] for b in graph['bindings'] for e in graph['edges'] if b['edge_id'] == e['id']):
                     issue(node['id'],'trigger_unspecified','执行触发尚未确认，不能从连线自动推断。')
+            if node['kind'] == 'interface':
+                ui = config.get('interface', {})
+                if not isinstance(ui, dict) or not ui.get('endpoint'):
+                    issue(node['id'],'interface_binding_unverified','应用界面的实际页面与 API 尚未绑定核验；当前仅交付定义。')
             if node['kind'] == 'decision' and not config['branches']:
                 issue(node['id'],'branches_missing','判断分支尚未定义。')
             if node['kind'] == 'decision':
@@ -450,7 +477,7 @@ class CardModel:
                 issue(node['id'],'schema_missing','数据结构尚未定义。')
         for binding in graph['bindings']:
             edge = next(e for e in graph['edges'] if e['id'] == binding['edge_id'])
-            if (edge['upstream_id'] in selected or edge['downstream_id'] in selected) and binding['kind'] == 'reference':
+            if (edge['upstream_id'] in selected or edge['downstream_id'] in selected) and binding['kind'] == 'reference' and binding['config'].get('role') != 'human_review_surface':
                 issue(edge['downstream_id'],'loader_missing' if 'loader_missing' in binding['config'].get('unresolved',[]) else 'meaning_missing',
                       '表到缓存仅有设计引用，缺少已确认的装载动作。' if 'loader_missing' in binding['config'].get('unresolved',[]) else '连接含义尚未确认。')
         for node in self.cycles():

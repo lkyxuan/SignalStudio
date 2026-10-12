@@ -31,6 +31,7 @@ from coingecko_trending import ensure_coingecko_trending
 from initial_score_sources import ensure_initial_score_sources
 from score_rollup_alignment import ensure_score_rollup_alignment
 from card_model import CardModel, MODEL, VERSION
+from application_interfaces import ensure_application_interfaces
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -61,6 +62,7 @@ ensure_leaderboard_foundation(service)
 ensure_market_channel(service)
 ensure_trending_channel(service)
 ensure_market_polars(service)
+ensure_application_interfaces(service)
 
 
 class Handler(BaseHTTPRequestHandler):

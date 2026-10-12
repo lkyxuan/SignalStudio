@@ -19,7 +19,7 @@ TYPES = ("Source", "Raw Field", "Evidence Check", "Asset Resolution", "Relations
          "Redpanda Topic", "Redis Window", "Ranking Table",
          "assets", "asset_identifiers", "asset_relationships", "asset_monitoring_rules",
          "asset_score_events", "asset_scores_current", "supabase_asset_scores", "asset_initial_score_sources",
-         "Asset Registry", "Rule Registry")
+         "Asset Registry", "Rule Registry", "Application Interface")
 SYSTEM_TABLES = (
     ("assets", "Internal asset objects and stable IDs, including pending identities; planned backend table.", 340, -220),
     ("asset_identifiers", "Source-scoped external IDs mapped to existing internal asset IDs in three columns; planned backend table.", 340, 160),
@@ -226,6 +226,8 @@ class GraphService:
                                    VALUES ('next_node_number_5', '5001')""")
                 self.db.execute("""INSERT OR IGNORE INTO schema_meta (key, value)
                                    VALUES ('next_node_number_6', '6001')""")
+                highest_interface = self.db.execute("SELECT COALESCE(MAX(reference_number),7000) FROM nodes WHERE reference_number BETWEEN 7001 AND 7999").fetchone()[0]
+                self.db.execute("INSERT OR IGNORE INTO schema_meta(key,value) VALUES (?,?)", ("next_node_number_7", str(highest_interface + 1)))
                 for row in self.db.execute("""SELECT id, type FROM nodes WHERE reference_number IS NULL
                                               ORDER BY created_at, name, id""").fetchall():
                     group = self._node_reference_group(row["type"])
@@ -392,6 +394,8 @@ class GraphService:
 
     @staticmethod
     def _node_reference_group(node_type):
+        if node_type == "Application Interface":
+            return 7
         if node_type == "Redpanda Topic":
             return 5
         if node_type == "Redis Window":
@@ -418,7 +422,7 @@ class GraphService:
             WHERE edges.branch_label != '' AND target.is_system_state=0
             GROUP BY edges.upstream_id HAVING COUNT(*) > 1
         """)}
-        next_numbers = {group: group * 1000 + 1 for group in range(1, 7)}
+        next_numbers = {group: group * 1000 + 1 for group in range(1, 8)}
         changes = []
         for row in rows:
             group = (4 if row["type"] not in STATE_TYPES and row["type"] != "Source"

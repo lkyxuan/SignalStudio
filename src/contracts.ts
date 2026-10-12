@@ -7,7 +7,7 @@ export const nodeTypes = [
   'Ranking', 'Rule Evaluation', 'Flow Result', 'Signal Event', 'Product Module',
   'Redpanda Topic', 'Redis Window', 'Ranking Table', 'assets', 'asset_identifiers', 'asset_relationships',
   'asset_initial_score_sources', 'asset_monitoring_rules', 'asset_score_events', 'asset_scores_current', 'supabase_asset_scores',
-  'Asset Registry', 'Rule Registry',
+  'Asset Registry', 'Rule Registry', 'Application Interface',
 ] as const;
 export type NodeType = typeof nodeTypes[number];
 export type Language = 'zh-CN' | 'en';

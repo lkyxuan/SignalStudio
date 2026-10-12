@@ -1,0 +1,42 @@
+{
+  "version": "application-interfaces.v1",
+  "status": "design_definition_not_runtime",
+  "runtime_owner": "few_understand",
+  "cards": [
+    {
+      "key": "asset_scores",
+      "name": "资产得分页面",
+      "name_en": "Asset scores page",
+      "target_name": "supabase_asset_scores",
+      "relation": "read",
+      "purpose_zh": "从 #1007 Supabase 资产得分表读取有效 total_heat，供用户查看资产得分。",
+      "purpose_en": "Read fresh total_heat scores from #1007 Supabase for users to inspect.",
+      "read_contract_ref": "catalog/supabase-score-sync.v1.json#/frontend_read",
+      "display_fields": ["asset_id", "asset_name", "score_value", "calculated_at"],
+      "display_zh": ["只显示 total_heat；按可信 UTC 时刻先过滤 calculated_at，再排序与分页。", "沿用 #1007 的可配置 180 秒有效期；达到 180 秒或时间在未来均不显示。页面打开期间也移除已过期条目，保留数据库旧行。", "按 score_value 降序、asset_id 升序；最多 100 条，首屏 20 条仅为示例。", "加载中、暂无有效记录、读取失败和数据陈旧分别说明；超时不表示资产被删除或已出榜。"],
+      "display_en": ["Read total_heat only; filter calculated_at at a trusted UTC query time before ordering and pagination.", "Use #1007's configurable 180-second validity; age >=180 seconds and future timestamps are excluded. Expire already loaded entries without deleting stored rows.", "Order score_value descending, asset_id ascending; at most 100 results, with 20 on the first page as an example.", "Distinguish loading, no fresh records, read failure and stale data. Expiration does not prove deletion or leaderboard exit."],
+      "actions_zh": ["查看与翻页；只读，不修改资产或评分。"],
+      "actions_en": ["Inspect and paginate; read-only, without changing assets or scores."],
+      "limitations_zh": ["实际页面、读取 API、查询身份与权限尚未绑定核验。", "稳定分数如何持续同步 calculated_at 的续期策略仍未确定；上线前须解决，不擅自新增心跳写入。"],
+      "limitations_en": ["The deployed page, read API and query identity/permissions remain unverified.", "Renewal for unchanged scores remains unresolved and must be settled before rollout; no heartbeat writes are introduced."],
+      "acceptance": ["reuse_frontend_read_without_copying_sync_rules", "freshness_before_sort_and_pagination", "expire_at_180_seconds_and_exclude_future", "expire_open_page_without_new_event", "read_only_no_business_writes", "resolve_stable_score_renewal_before_rollout"]
+    },
+    {
+      "key": "asset_review",
+      "name": "资产纠错审核页面",
+      "name_en": "Asset correction review page",
+      "target_name": "人工审核资产纠错建议",
+      "relation": "reference",
+      "purpose_zh": "承载 #4003 人工审核：查看 #4002 的建议及 #4001 的映射冲突，决定批准、暂缓或驳回，并查看 #3003 的执行结果。",
+      "purpose_en": "Host #4003 human review of #4002 proposals and #4001 mapping conflicts, and inspect #3003 correction outcomes.",
+      "display_fields": ["proposal_id", "affected_asset_ids", "before_after", "evidence_refs", "uncertainty", "review_decision", "execution_result"],
+      "display_zh": ["待审列表与详情包含问题、受影响资产、修改前后对比、证据和不确定性。字段是待实现的交付要求，不是已有接口响应。", "区分待审、暂缓、驳回、获批待执行、执行成功、执行失败及记录变化后需要重审。", "保留审核人、审核时间、决定及对应建议版本；展示修改结果与失败原因。"],
+      "display_en": ["List and detail show the issue, affected assets, before/after changes, evidence and uncertainty. Listed fields are delivery requirements, not an existing API response.", "Distinguish pending, held, rejected, approved awaiting execution, succeeded, failed and changed records requiring renewed review.", "Retain reviewer, review time, decision and proposal version; show outcomes and failure reasons."],
+      "actions_zh": ["批准、暂缓或驳回均须由用户明确操作；打开或刷新页面不作决定。", "仅持久化批准的具体纠错方案可交 #3003；暂缓/驳回不启动纠错。重复提交不能重复执行。", "实际写入前由 #3003 核对当前记录与批准版本；已变化或冲突停止并重审。页面不直接写 #1001/#1002。"],
+      "actions_en": ["Approve, hold or reject only on explicit user action; opening or refreshing makes no decision.", "Only a persisted, specifically approved change may reach #3003. Held/rejected items do not execute, and duplicate submission must not execute twice.", "#3003 checks current records against the approved version before writes; changes/conflicts stop execution and require review. The page never writes #1001/#1002 directly."],
+      "limitations_zh": ["建议存储、审核 API、执行反馈接口、实际页面和用户权限尚未绑定核验。", "与 #4003 的连线仅表达人工审核界面归属，不表示直连数据、自动触发或已有运行。"],
+      "limitations_en": ["Proposal storage, review/outcome APIs, deployed page and user permissions remain unverified.", "The #4003 reference identifies its human review surface; it does not establish direct data access, automatic triggering or runtime."],
+      "acceptance": ["show_evidence_before_after_and_uncertainty", "persist_explicit_approve_hold_reject_with_version_and_reviewer", "opening_page_never_approves", "hold_reject_never_execute", "approve_only_routes_to_existing_3003", "idempotent_submission_and_guarded_writes", "show_failure_and_re_review"]
+    }
+  ]
+}

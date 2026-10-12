@@ -7,7 +7,7 @@ export function cardKind(node: { kind?: unknown; type: string; reference_number?
   const override = (model.legacy_kind_overrides as Record<string, string>)[String(node.reference_number)];
   if (override && (model.migration.expected_names as Record<string,string>)[String(node.reference_number)] === (node as {name?:string}).name) return override;
   if (node.is_system_state || ['Ranking Table', 'Asset Registry', 'Rule Registry'].includes(node.type)) return 'table';
-  return ({ Source: 'source', 'Redpanda Topic': 'channel', 'Redis Window': 'state', 'Rule Evaluation': 'decision', 'Review Decision': 'decision', 'Asset Resolution': 'decision' } as Record<string, string>)[node.type] || 'process';
+  return ({ 'Application Interface': 'interface', Source: 'source', 'Redpanda Topic': 'channel', 'Redis Window': 'state', 'Rule Evaluation': 'decision', 'Review Decision': 'decision', 'Asset Resolution': 'decision' } as Record<string, string>)[node.type] || 'process';
 }
 export function kindLabel(kind: string, language: string): string {
   const item = cardKinds.find(item => item.id === kind);

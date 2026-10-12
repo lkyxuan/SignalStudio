@@ -18,6 +18,8 @@ import businessTables from '../catalog/business-tables.v1.json';
 import initial from '../catalog/asset-initial-score-sources.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import './card-details.css';
+import './application-interface.css';
+import { ApplicationInterfaceCard } from './ApplicationInterfaceCard';
 
 const words = (language, zh, en) => language === 'zh-CN' ? zh : en;
 const relationLabels = {data:['传递数据','Data'],control:['执行顺序','Sequence'],read:['读取','Read'],write:['写入','Write'],publish:['发布消息','Publish'],consume:['消费消息','Consume'],error:['失败路径','Error'],reference:['设计引用 · 未建立自动同步','Design reference · no automatic sync']};
@@ -27,13 +29,13 @@ function CardLink({ node, openNode, language }) {
 export function CardConnections({ node, graph, openNode, language }) {
   const relations = cardRelations(node, graph);
   const kind = detailKind(node);
-  const labels = kind === 'table' || kind === 'state' ? ['更新与写入方','读取与使用方','Writers / updates','Readers / uses']
+  const labels = kind === 'interface' ? ['读取来源','用户操作关联','Read sources','User action associations'] : kind === 'table' || kind === 'state' ? ['更新与写入方','读取与使用方','Writers / updates','Readers / uses']
     : kind === 'channel' ? ['消息发送方','订阅与消费方','Producers','Subscribers / consumers'] : ['输入来源','结果去向','Input sources','Output destinations'];
   return <section className="card-detail-connections" aria-label={words(language,'数据流向','Data flow')}>
     {[true,false].map((incoming,index) => <div key={String(incoming)}><h3>{labels[index + (language === 'zh-CN' ? 0 : 2)]}</h3>
       {relations.filter(item => item.incoming === incoming).map(({ edge, other, bindings }) => <div className="card-detail-relation" key={edge.id}>
         {other && <CardLink node={other} openNode={openNode} language={language} />}
-        <small>{bindings.length ? [...new Set(bindings.map(binding => relationLabels[binding.kind]?.[language === 'zh-CN' ? 0 : 1] || binding.kind))].join(' · ') : words(language,'设计连接 · 关系待定义','Design connection · relation undefined')}</small>
+        <small>{bindings.length ? [...new Set(bindings.map(binding => binding.config?.role === 'human_review_surface' ? words(language,'人工审核界面 · 不自动触发','Human review surface · no automatic trigger') : relationLabels[binding.kind]?.[language === 'zh-CN' ? 0 : 1] || binding.kind))].join(' · ') : words(language,'设计连接 · 关系待定义','Design connection · relation undefined')}</small>
       </div>)}
       {!relations.some(item => item.incoming === incoming) && <p>{words(language,'尚未连接','No connection defined')}</p>}
     </div>)}
@@ -114,12 +116,12 @@ function TableDetails(props) {
 export function CardDetails(props) {
   const {node,language}=props;
   const kind=detailKind(node);
-  if (kind === 'unknown' || node.card_contract?.config.read_only) return <section className="card-details card-detail-unknown" data-card-detail-kind="unknown"><h3>{words(language,'只读定义','Read-only definition')}</h3><p>{node.definition}</p><p>{words(language,'定义尚不能按当前六类安全解释，保留原始内容供核对。','This definition cannot be safely interpreted by the current templates. Original content is retained for review.')}</p><pre>{JSON.stringify(node.card_contract,null,2)}</pre></section>;
+  if (kind === 'unknown' || node.card_contract?.config.read_only) return <section className="card-details card-detail-unknown" data-card-detail-kind="unknown"><h3>{words(language,'只读定义','Read-only definition')}</h3><p>{node.definition}</p><p>{words(language,'定义尚不能按当前卡片类型安全解释，保留原始内容供核对。','This definition cannot be safely interpreted by the current templates. Original content is retained for review.')}</p><pre>{JSON.stringify(node.card_contract,null,2)}</pre></section>;
   const execution=kind === 'process'||kind === 'decision';
   const explanation=cardExplanation(node,language);
   return <div className={`card-details card-details-${kind}`} data-card-detail-kind={kind}>
     <CardDetailContext.Provider value={true}>
-      {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : <>
+      {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
         {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
         <ProcessingIOCard {...props}/>
         {kind === 'state' && leaderboardCard(node.name) && <section className="card-detail-execution"><h3>{words(language,'窗口与保留规则','Window and retention')}</h3><p>{node.definition}</p><p>{words(language,'业务比较窗口见上述定义；存储 TTL、更新时间索引及丢失后的重建绑定尚未核验，不能按业务窗口推断。','See the definition for the business window. TTL, update time index and recovery bindings remain unverified.')}</p></section>}

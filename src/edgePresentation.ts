@@ -49,6 +49,7 @@ function bindingText(graph: RelationGraph, edge: GraphEdge, binding: Binding, zh
   const relation = words[binding.kind]?.[zh ? 0 : 1] || (zh ? '待定义' : 'Undefined');
   const branch = branchText(graph, edge, binding, zh);
   const trigger = binding.config.trigger;
+  if (binding.kind === 'reference' && binding.config.role === 'human_review_surface') return zh ? '人工审核界面 · 不自动触发' : 'Human review surface · no automatic trigger';
   let label = binding.kind === 'control' && branch
     ? trigger === 'event' ? (zh ? `${branch}后触发` : `${branch} → trigger`) : (zh ? `分支：${branch}` : `Branch: ${branch}`)
     : relation;

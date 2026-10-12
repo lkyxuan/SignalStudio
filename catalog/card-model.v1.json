@@ -49,6 +49,14 @@
       "legacy_type": "Redis Window",
       "number_group": 6,
       "style": "cache"
+    },
+    {
+      "id": "interface",
+      "label_zh": "应用界面",
+      "label_en": "Application interface",
+      "legacy_type": "Application Interface",
+      "number_group": 7,
+      "style": "product"
     }
   ],
   "relations": [

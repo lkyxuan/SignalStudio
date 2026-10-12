@@ -41,7 +41,7 @@ test('preserves additional server metadata without claiming its type', () => {
 test('accepts the migrated Python producer and rejects cross-card ports and duplicate bindings',()=>{
   const modern=serverGraph(true);
   assert.equal(modern.model_version,'card-model.v1');
-  assert.equal(cardKinds.length,6);
+  assert.equal(cardKinds.length,7);
   assert.ok(modern.nodes.every(node=>node.card_contract?.kind===cardKind(node)));
   const binding=modern.bindings![0]!;
   const wrong=modern.ports!.find(port=>port.direction==='input' && port.id!==binding.target_port_id)!;

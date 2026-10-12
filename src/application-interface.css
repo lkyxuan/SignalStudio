@@ -1,0 +1,9 @@
+.application-interface-card { display: flex; flex-direction: column; gap: 18px; }
+.application-interface-card h3 { margin: 0 0 8px; font-size: 14px; }
+.application-interface-card p { margin: 6px 0; line-height: 1.7; }
+.application-interface-card ul { padding-left: 20px; margin: 6px 0; }
+.application-interface-card li { line-height: 1.7; margin-bottom: 7px; }
+.application-interface-card code { overflow-wrap: anywhere; }
+.interface-field-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.interface-field-list code { padding: 3px 6px; border: 1px solid var(--border); border-radius: 5px; }
+.interface-read-contract { padding: 12px; border: 1px solid var(--border); border-radius: 8px; }

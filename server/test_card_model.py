@@ -66,7 +66,7 @@ class CardModelTest(unittest.TestCase):
         self.assertEqual([b['kind'] for b in self.model.bindings()].count('error'),1)
         self.assertFalse(self.model.cycles())
 
-    def test_all_six_kinds_are_creatable_without_new_business_types(self):
+    def test_all_kinds_are_creatable_without_new_business_types(self):
         self.service.group_node_references_once()
         self.model.migrate()
         for kind,spec in [(k['id'],k) for k in MODEL['kinds']]:
