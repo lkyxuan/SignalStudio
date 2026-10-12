@@ -13,7 +13,7 @@ function Neighbor({ node, language, onFocus, direction, label, graph, edge, focu
       <span className="local-node-type">{node.is_system_state ? <Database size={14} /> : <GitBranch size={14} />}{node.is_system_state ? language === 'zh-CN' ? '表' : 'Table' : language === 'zh-CN' ? '卡片' : 'Card'}</span>
       <strong><span>{nodeRef(node)}</span>{label(node.name)}</strong><CardProgressBadge progress={graph.card_progress?.[node.id]} language={language}/>
     </button>
-    <button className="local-link" data-tone={meaning.tone} onClick={() => onOpenEdge(edge.id)} title={language === 'zh-CN' ? '查看连线含义' : 'Inspect connection'}><span>{meaning.label}</span>
+    <button className="local-link" data-tone={meaning.tone} onClick={() => onOpenEdge(edge.id)} title={language === 'zh-CN' ? '查看连线含义' : 'Inspect connection'}><span>{meaning.displayLabel}</span>
       {direction === 'input' && <ArrowRight size={15} />}
       {direction === 'output' && <ArrowRight size={15} />}
     </button>

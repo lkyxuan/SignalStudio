@@ -1,5 +1,6 @@
 import type { Graph, GraphEdge, GraphNode, Language } from './contracts';
 import { cardKind } from './cardModel';
+import { edgeRef } from './graphRefs';
 import copy from '../catalog/card-detail-copy.v1.json';
 import rollup from '../catalog/score-rollup.v1.json';
 
@@ -76,7 +77,9 @@ export function edgePresentation(graph: RelationGraph, edge: GraphEdge | undefin
   });
   const tones = new Set(bindings.map(binding => binding.config.trigger === 'event' || binding.config.trigger === 'change' || binding.kind === 'control' ? 'trigger' :
     binding.kind === 'read' ? 'read' : binding.kind === 'write' ? 'write' : binding.kind === 'error' ? 'error' : 'data'));
-  return { label: [...new Set(labels)].join(' / ') || (zh ? '关系待定义' : 'Relation undefined'),
+  const label = [...new Set(labels)].join(' / ') || (zh ? '关系待定义' : 'Relation undefined');
+  const reference = edgeRef(edge);
+  return { label, displayLabel: reference ? `${reference} · ${label}` : label,
     tone: tones.size === 1 ? [...tones][0]! : 'data' };
 }
 export function focusExplanation(graph: RelationGraph, focus: GraphNode | undefined, language: Language) {

@@ -359,7 +359,7 @@ function App() {
     return { ...e,
       hidden: !filteredIds.has(e.source) || !filteredIds.has(e.target),
       className: referenceMatchEdges.some(edge => edge.id === e.id) ? 'graph-related' : hasGraphFocus ? relatedEdgeIds.has(e.id) ? 'graph-related' : 'graph-dimmed' : '',
-      data: { ...e.data, meaning: meaning.label }, ariaLabel: `${e.ariaLabel} · ${meaning.label}`,
+      data: { ...e.data, meaning: meaning.displayLabel }, ariaLabel: `${e.ariaLabel} · ${meaning.displayLabel}`,
       style: { ...e.style, stroke: color }, markerEnd: { ...e.markerEnd, color },
     };
   });
