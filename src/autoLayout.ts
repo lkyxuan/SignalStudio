@@ -91,7 +91,7 @@ export function sideLayoutGroups(nodes: LayoutNode[], edges: LayoutEdge[]) {
   ].filter(g => g.nodes.length);
 }
 
-function baseLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
+function baseLayout(nodes: LayoutNode[], edges: LayoutEdge[], columnPitch = 380, supportOffset = 640): NodePosition[] {
   const groups = layoutGroups(nodes, edges), active = groups.find(g => g.flow)?.nodes || [];
   // The approved output band anchors three real leaderboard cards. Their
   // downstream content-maintenance branch remains a single, connected side branch.
@@ -160,7 +160,7 @@ function baseLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
   const boardNames = ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_emerging'];
   columns[last]!.sort((a, b) => Number(isOutput(b)) - Number(isOutput(a)) || Number(isLeaderboard(a)) - Number(isLeaderboard(b)) || (isLeaderboard(a) && isLeaderboard(b) ? boardNames.indexOf(a.name) - boardNames.indexOf(b.name) : nodeOrder(a, b)));
   columns[last]!.forEach((n, index) => rows.set(n.id, index));
-  const positions: NodePosition[] = main.map(n => ({ id: n.id, position_x: rows.get(n.id)! * 380, position_y: 96 + depth.get(n.id)! * 256 }));
+  const positions: NodePosition[] = main.map(n => ({ id: n.id, position_x: rows.get(n.id)! * columnPitch, position_y: 96 + depth.get(n.id)! * 256 }));
   const mainRight = Math.max(300, ...positions.map(p => p.position_x + 300));
   // Each side group is a whole subflow, not an arbitrary collection of cards.
   // Internal dependency order is retained; independent groups share a compact column.
@@ -186,7 +186,7 @@ function baseLayout(nodes: LayoutNode[], edges: LayoutEdge[]): NodePosition[] {
       let ceiling = 96 + last * 256;
       for (const b of [...blocks].reverse()) { b.top = Math.min(b.top, ceiling - b.height); ceiling = b.top - 96; }
     }
-    for (const b of blocks) b.members.forEach((n, i) => positions.push({ id: n.id, position_x: direction === 'left' ? -640 : mainRight + 180, position_y: b.top + i * 224 }));
+    for (const b of blocks) b.members.forEach((n, i) => positions.push({ id: n.id, position_x: direction === 'left' ? -supportOffset : mainRight + 180, position_y: b.top + i * 224 }));
   }
   // The unused library stays beside the tree and outside its initial fit viewport.
   const libraryLeft = Math.max(300, ...positions.map(p => p.position_x + 300)) + 280;
@@ -247,7 +247,8 @@ export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
       if (readers.has(e.upstream_id) && support.has(e.downstream_id)) ids.add(e.downstream_id);
     }
     const members = active.filter(n => ids.has(n.id));
-    const placed = baseLayout(members, edges.filter(e => ids.has(e.upstream_id) && ids.has(e.downstream_id)));
+    // Leave room for strategy branches beside each local asset/support card.
+    const placed = baseLayout(members, edges.filter(e => ids.has(e.upstream_id) && ids.has(e.downstream_id)), 600, 960);
     const minX = Math.min(...placed.map(p => p.position_x));
     const maxX = Math.max(...placed.map(p => p.position_x + 300));
     for (const p of placed) {
@@ -255,7 +256,7 @@ export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
         logicalId: p.id, towerId: root.id, shared: false, position_x: left + p.position_x - minX });
       used.add(p.id);
     }
-    left += maxX - minX + 360;
+    left += maxX - minX + 720;
   }
   const globalIds = new Set(active.filter(n => !used.has(n.id)).map(n => n.id));
   // Shared maintenance/content readers need their own local table occurrences,

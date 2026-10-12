@@ -32,11 +32,17 @@ test('each operation has a disjoint tower wide enough for its own complex branch
   const towers = ['markets', 'trending', 'kaito'].map(id => plan.occurrences.filter(n => n.towerId === id));
   for (const [i, tower] of towers.entries()) {
     assert.equal(tower.find(n => n.logicalId === ['markets', 'trending', 'kaito'][i])!.position_y, 96);
-    if (i) assert.ok(Math.min(...tower.map(n => n.position_x)) - Math.max(...towers[i - 1]!.map(n => n.position_x + 300)) >= 300);
+    if (i) assert.ok(Math.min(...tower.map(n => n.position_x)) - Math.max(...towers[i - 1]!.map(n => n.position_x + 300)) >= 720);
+    const support = tower.find(n => n.logicalId === 'table')!;
+    const main = tower.filter(n => n.logicalId !== 'table');
+    assert.ok(Math.min(...main.map(n => n.position_x)) - support.position_x >= 960);
   }
   for (const a of plan.occurrences) for (const b of plan.occurrences) if (a.id !== b.id)
     assert.ok(Math.abs(a.position_x - b.position_x) >= 300 || Math.abs(a.position_y - b.position_y) >= 160);
   for (const id of ['up', 'down', 'volume']) assert.equal(plan.occurrences.find(n => n.logicalId === id)!.towerId, 'markets');
+  const branches = ['up', 'down', 'volume'].map(id => plan.occurrences.find(n => n.logicalId === id)!);
+  for (const a of branches) for (const b of branches)
+    if (a.id !== b.id && a.position_y === b.position_y) assert.ok(Math.abs(a.position_x - b.position_x) >= 600);
   assert.equal(plan.occurrences.filter(n => n.logicalId === 'db').length, 1);
   assert.ok(plan.occurrences.find(n => n.logicalId === 'db')!.position_y > Math.max(...towers.flat().map(n => n.position_y)));
 });
