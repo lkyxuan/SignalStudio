@@ -1,0 +1,17 @@
+{
+  "version": "polars_indicator_flow_v1",
+  "rationale_url": "https://app.notion.com/p/3f7038a63d5a81d6a966cc2f4db8b162",
+  "supersedes": "The initial child-to-parent assembly drawing in polars-indicator-module.v1.json; metric formulas and downstream rules are unchanged.",
+  "parent_description": "Polars模块入口：统一取得行情、关联资产身份并检查USD、时间与质量；把共享输入交给下方五张指标计算卡。",
+  "parent_algorithm": "统一消费market.snapshot，按来源范围及稳定coin ID查询进程内资产映射；归一身份、报价、时间、质量和数值类型。五项指标分别由所属计算卡处理，公共字段与计算结果交给汇总卡；整个流程仍在同一Polars程序中执行。",
+  "assembly": {
+    "name": "Polars · 汇总指标并发布",
+    "description": "收束所属3035的五项指标及公共字段，按同一观测组装完整market_indicators_v1，统一发布到5007 indicator.data。",
+    "algorithm": "按相同observation_id与asset_id关联五项结果，保留缺失项为null、其他可用项不受影响；加入公共行情、身份、质量与追溯字段，生成metric_id与calculated_at，沿用原版本、冻结和重试规则。只有汇总步骤发布完整消息，不增加进程、订阅或计算指标。",
+    "action_id": "polars_indicator.assemble"
+  },
+  "flow": "3035 → five ordinary indicator cards → assembly → 5007",
+  "execution_scope": "shared_polars_program",
+  "presentation": "Use the existing ordinary process card and input/output inspector. Place calculation cards below 3035 and converge below them. No special module card format.",
+  "implementation": "workspace_definition_only"
+}

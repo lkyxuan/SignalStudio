@@ -26,6 +26,7 @@ from market_channel import ensure_market_channel
 from market_polars import ensure_market_polars
 from coingecko_indicator_signals import ensure_coingecko_indicator_signals
 from polars_indicator_module import ensure_polars_indicator_module
+from polars_indicator_flow import ensure_polars_indicator_flow
 from trending_channel import ensure_trending_channel
 from content_refresh import ensure_content_refresh
 from coingecko_reference_cards import ensure_coingecko_reference_cards
@@ -66,6 +67,7 @@ ensure_trending_channel(service)
 ensure_market_polars(service)
 ensure_coingecko_indicator_signals(service)
 ensure_polars_indicator_module(service)
+ensure_polars_indicator_flow(service)
 ensure_application_interfaces(service)
 
 

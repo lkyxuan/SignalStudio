@@ -391,6 +391,8 @@ class CardModel:
                 {'id':'polars_indicator.'+entry['key'],'version':1,
                  'definition_paths':['catalog/polars-indicator-module.v1.json'],'implementation':'planned'}
                 for entry in json.loads((ROOT/'catalog/polars-indicator-module.v1.json').read_text())['cards']] + [
+                {'id':'polars_indicator.assemble','version':1,
+                 'definition_paths':['catalog/polars-indicator-flow.v1.json'],'implementation':'planned'}] + [
                 {'id':'foundation.'+entry['key'],'version':1,'definition_paths':['catalog/leaderboard-foundation.v1.json'],'implementation':'unknown'}
                 for entry in json.loads((ROOT/'catalog/leaderboard-foundation.v1.json').read_text())['nodes']
                 if entry['role']=='process' and 'foundation.'+entry['key'] in active]

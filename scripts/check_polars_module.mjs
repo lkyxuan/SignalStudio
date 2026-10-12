@@ -14,7 +14,8 @@ try {
   }));
   const parent = graph.nodes.find(n => n.card_contract?.config.resource?.module_children);
   assert.ok(parent);
-  assert.match(render(parent), /模块内的5项指标职责/);
+  assert.match(render(parent), /输入/);
+  assert.match(render(parent), /输出/);
   const resource = parent.card_contract.config.resource;
   for (const c of resource.module_children) {
     const node = graph.nodes.find(n => n.id === c.node_id);
@@ -25,10 +26,21 @@ try {
     assert.match(html, /Polars计算方式/);
     assert.ok(render(node, 'en').includes('Owning module'));
   }
+  const assembly = graph.nodes.find(n => n.card_contract?.config.resource?.design_key === 'assemble');
+  if (assembly) {
+    assert.match(render(assembly), /输入/);
+    assert.match(render(assembly), /输出/);
+    const out = graph.edges.find(e => e.upstream_id === assembly.id && graph.nodes.find(n => n.id === e.downstream_id)?.reference_number === 5007);
+    assert.ok(out);
+    for (const c of resource.module_children) {
+      assert.ok(graph.edges.some(e => e.upstream_id === parent.id && e.downstream_id === c.node_id));
+      assert.ok(graph.edges.some(e => e.upstream_id === c.node_id && e.downstream_id === assembly.id));
+    }
+  }
   const channel = graph.nodes.find(n => n.card_contract?.config.resource?.publisher_module_id === parent.id);
   const html = render(channel);
-  for (const name of Object.keys(resource.field_producers)) assert.ok(html.includes(name));
-  assert.match(html, /完整消息字段定义/);
+  for (const name of Object.keys(resource.field_producers)) assert.ok(graph.fields.some(f => f.node_id === channel.id && f.name === name));
+  assert.match(html, /消息/);
   const consumers = graph.nodes.filter(n => n.card_contract?.config.resource?.indicator_dependency);
   assert.equal(consumers.length, 5);
   for (const node of consumers) {

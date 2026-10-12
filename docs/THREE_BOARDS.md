@@ -36,9 +36,9 @@ Polars 负责统一输入身份/时间/质量检查，计算成交额/市值、�
 | absolute_price | 来源24h涨跌幅 | `abs_price_pct = abs(price_change_percentage_24h)` |
 | relative_volume | 当前24h成交额、共享身份/来源/时间/覆盖、可比历史 | `volume_ratio = total_volume / baseline_volume`，并输出实际基线引用 |
 
-每张子卡有全局独立编号，`resource.parent_module.node_id`关联#3035稳定ID，`reference_number`仅用于展示，不要求连续。父模块`module_children`列全部子卡，`field_producers`将输出字段关联到生产卡；这些配置及其定义文件进入AI可读导出。子卡不是独立进程、调度器、消费者组或Topic。#3035保留统一身份缓存、USD/时间/质量检查、共享数据准备和消息组装职责，仍是#5007唯一发布方。
+每张子卡有全局独立编号，`resource.parent_module.node_id`关联#3035稳定ID，`reference_number`仅用于展示，不要求连续。父模块`module_children`列全部子卡，`field_producers`将输出字段关联到生产卡；这些配置及其定义文件进入AI可读导出。子卡不是独立进程、调度器、消费者组或Topic。#3035保留统一身份缓存、USD/时间/质量检查、共享数据准备和消息组装职责，同一程序通过汇总卡统一发布到#5007。2026-10-12用户修正展示要求：大图使用普通卡片，流程为#3035共享输入准备→五张指标卡→汇总卡→#5007；`catalog/polars-indicator-flow.v1.json`取代初版回到父卡的组装画法，不改变指标口径。详情沿用普通process输入/输出模板，计算说明放在折叠设置内。
 
-原始字段与共享输入须区分：`requested_at`来自`meta.requested_at`，`source_id`来自`meta.operation_id`，`source_object_id`来自来源`id`，报价和覆盖来自对应`meta.*`；内部`asset_id`由#3035共享身份关联取得，不宣称CoinGecko原始记录已带内部ID。子卡的`input_origins`声明这些来源。原始通道到子卡的引用线只表达共享输入，不创建独立订阅；子卡到父模块为程序内部结果依赖，历史读取沿用原基线选择。
+原始字段与共享输入须区分：`requested_at`来自`meta.requested_at`，`source_id`来自`meta.operation_id`，`source_object_id`来自来源`id`，报价和覆盖来自对应`meta.*`；内部`asset_id`由#3035共享身份关联取得，不宣称CoinGecko原始记录已带内部ID。子卡的`input_origins`声明这些来源。原始通道只由#3035消费；#3035到子卡为程序内部共享输入，子卡到汇总卡为内部结果依赖，历史读取沿用原基线选择。公共字段从#3035直接进入汇总卡；汇总卡的`parent_module`仍指向#3035，#5007的`publisher_node_id`指向汇总卡，`publisher_module_id`保留模块归属。所有线使用匹配端点的绑定与字段映射。
 
 当前价格、市值、24h成交额以及身份、时间、质量、追溯字段由模块共享处理保留或生成。每项结果携带共享的`observation_id`和`asset_id`，不独立生成身份；所有子卡结果按同一`observation_id`统一组装为完整`market_indicators_v1`后发布，不把每个子卡结果作为不完整消息发往#5007。每项缺失/非有限值按原口径为空，不影响其他可用分项；成交额须非负、市值分母须正；放量基线规则沿用上文，不用滚动24h成交额推断短窗新增量。
 
@@ -46,7 +46,7 @@ Polars 负责统一输入身份/时间/质量检查，计算成交额/市值、�
 
 子卡包含业务公式、窗口/历史依赖、缺失处理、假设案例及Polars表达式参考。表达式假定已做共享Float64/null归一与基线选择，不是后台执行代码或性能证据；优化须保持相同业务口径并验证结果和负载。Polars条件分支不能作为短路保护，参考[官方条件表达式说明](https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.when.html)。实际Few适配、运行与性能仍未核验。
 
-工作台验证：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_polars_indicator_module server.test_market_polars server.test_coingecko_indicator_signals server.test_market_scoring_reference`；对迁移后的完整图执行`node scripts/check_polars_module.mjs <graph.json>`与既有双语详情检查，并运行类型、构建、契约及布局检查。迁移在SS-74后执行，冲突/中断须事务回滚，重入不覆盖后续用户修改。
+工作台验证：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_polars_indicator_flow server.test_polars_indicator_module server.test_market_polars server.test_coingecko_indicator_signals server.test_market_scoring_reference`；对迁移后的完整图执行`node scripts/check_polars_module.mjs <graph.json>`与既有双语详情检查，并运行类型、构建、契约及布局检查。迁移在SS-74后执行，冲突/中断须事务回滚，重入不覆盖后续用户修改。
 
 ## 指标、事件与时间
 
@@ -90,7 +90,7 @@ SS-72 迁移保护其他卡片、保留存续ID与布局，拒绝定义/字段/�
 
 ## CoinGecko 提醒统一指标入口（SS-74）
 
-[批准依据](https://app.notion.com/p/3f7038a63d5a8113b00dc8508a860764)：#3035统一计算/整理指标，结果直接发布到 #5007 Redpanda `indicator.data`。#3011—#3015 消费 `market_indicators_v1`，各自判断条件后发布 #5005 `signal.data`；不再直接消费 #5004，不读取历史或重算成交额市值比。五类条件可同时命中，依次是有符号24h涨跌幅≥10%、≤−10%、成交额/市值≥0.2、相对ATH百分比≥−5%、≤−80%。阈值和强度公式保留原口径，强度不是校准概率。
+[批准依据](https://app.notion.com/p/3f7038a63d5a8113b00dc8508a860764)：#3035统一计算/整理指标，结果经模块内汇总卡统一发布到 #5007 Redpanda `indicator.data`。#3011—#3015 消费 `market_indicators_v1`，各自判断条件后发布 #5005 `signal.data`；不再直接消费 #5004，不读取历史或重算成交额市值比。五类条件可同时命中，依次是有符号24h涨跌幅≥10%、≤−10%、成交额/市值≥0.2、相对ATH百分比≥−5%、≤−80%。阈值和强度公式保留原口径，强度不是校准概率。
 
 五类提醒使用同一逻辑消费者组 `signalstudio.market_v1.alerts`，每条指标由该消费者统一评估五项条件；五张卡代表五个条件，不是同组五个互抢消息的独立消费者。评分消费者组独立。信号携带 `metric_id`、`metric_version`、`observation_id` 追溯输入；消费者只接受本版指标。
 
