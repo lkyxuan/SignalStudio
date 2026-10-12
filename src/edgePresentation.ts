@@ -96,7 +96,7 @@ export function edgePresentation(graph: RelationGraph, edge: GraphEdge | undefin
 }
 export function focusExplanation(graph: RelationGraph, focus: GraphNode | undefined, language: Language) {
   const zh = language === 'zh-CN';
-  if (!focus) return zh ? '选中连线，查看所属处理的触发、读取和去向。' : 'Select a connection to see its process, triggers, reads and destinations.';
+  if (!focus) return '';
   if (!actions.has(cardKind(focus))) return zh ? '共享存储和通道的入线、出线不自动组成执行顺序；请选择具体连线。' : 'Incoming and outgoing storage/channel connections do not imply an execution sequence. Select a connection.';
   const knownCorrection = focus.reference_number === 3003 && focus.name === '执行获批资产纠错' && focus.card_contract?.config.definition_refs.some(ref => ref.path === 'catalog/identity-flow-case.v1.json');
   if (knownCorrection) return zh ? '#4003 批准后，#3003 读取当前记录，核对通过才写回。①②③ 表示设计阶段。' : 'After #4003 approval, #3003 reads current records and writes only after checks. ①②③ describe design stages.';
