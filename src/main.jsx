@@ -413,7 +413,7 @@ function App() {
     const positions = cards.map(card => movedById.get(card.id) || {
       id: card.id, position_x: card.position.x, position_y: card.position.y,
     });
-    const result = await mutate('/nodes/layout', 'POST', { positions },
+    const result = await mutate('/nodes/layout', 'POST', { layout_version: LAYOUT_VERSION, positions },
       language === 'zh-CN' ? '上下游已拉近，新位置已保存' : 'Neighbors moved closer; positions saved');
     if (result) {
       setSelectedEdgeId(null);
