@@ -42,7 +42,9 @@ try {
   for (const name of Object.keys(resource.field_producers)) assert.ok(graph.fields.some(f => f.node_id === channel.id && f.name === name));
   assert.match(html, /消息/);
   const consumers = graph.nodes.filter(n => n.card_contract?.config.resource?.indicator_dependency);
-  assert.equal(consumers.length, 5);
+  const shelved = new Set((graph.workspace_scope?.shelved_cards || []).map(n => n.name));
+  const spec = JSON.parse(readFileSync('catalog/polars-indicator-module.v1.json', 'utf8'));
+  assert.equal(consumers.length, spec.consumers.filter(c => !shelved.has(c.name)).length);
   for (const node of consumers) {
     const html = render(node);
     assert.match(html, /从5007实际读取哪些字段/);

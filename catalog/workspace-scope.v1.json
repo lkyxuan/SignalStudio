@@ -1,0 +1,10 @@
+{
+  "version": "workspace-scope.v1",
+  "rationale_url": "https://app.notion.com/p/3f7038a63d5a8191a52ed3f283228d3b",
+  "effect": "Temporarily exclude only these cards and their incident relations from the current workspace graph and graph export. Preserve every database row, ID, field and saved position. This is not a Few runtime control.",
+  "shelved_cards": [
+    {"node_id": "3d877534-1cdd-4da5-a00e-617e424df166", "reference_number": 3017, "name": "生成基础升温榜"},
+    {"node_id": "2024f09b-ba2e-4d1f-8762-594b10f460c2", "reference_number": 3018, "name": "生成基础最热榜"},
+    {"node_id": "1b0ad0f2-c820-4c59-84a4-998c40c2b793", "reference_number": 3019, "name": "生成新发现榜"}
+  ]
+}

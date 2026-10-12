@@ -600,8 +600,9 @@ class GraphService:
         requirements = [dict(row) for row in self.db.execute(
             "SELECT * FROM data_requirements ORDER BY created_at")]
         from card_model import CardModel
-        return CardModel(self).decorate({"nodes": nodes, "edges": edges, "fields": fields,
-                "field_usages": usages, "requirements": requirements, "types": list(TYPES)})
+        from workspace_scope import scoped_graph
+        return CardModel(self).decorate(scoped_graph({"nodes": nodes, "edges": edges, "fields": fields,
+                "field_usages": usages, "requirements": requirements, "types": list(TYPES)}))
 
 
     def get_requirements(self, node_id):

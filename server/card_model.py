@@ -434,10 +434,12 @@ class CardModel:
             contract = contracts.get(node['id'])
             node['kind'] = contract['kind'] if contract else infer_kind(node)
             node['card_contract'] = contract
-        graph.update(model_version=VERSION, card_kinds=MODEL['kinds'], bindings=self.bindings(),
-                     ports=[dict(row) for row in self.db.execute('SELECT * FROM node_ports ORDER BY id')],
+        node_ids = {n['id'] for n in graph['nodes']}
+        edge_ids = {e['id'] for e in graph['edges']}
+        graph.update(model_version=VERSION, card_kinds=MODEL['kinds'], bindings=[b for b in self.bindings() if b['edge_id'] in edge_ids],
+                     ports=[dict(row) for row in self.db.execute('SELECT * FROM node_ports ORDER BY id') if row['node_id'] in node_ids],
                      data_schemas=[{**dict(row),'field_ids':[field['id'] for field in graph['fields'] if field['node_id']==row['node_id']]}
-                                   for row in self.db.execute('SELECT * FROM data_schemas ORDER BY id')])
+                                   for row in self.db.execute('SELECT * FROM data_schemas ORDER BY id') if row['node_id'] in node_ids])
         return graph
 
     def readiness(self, node_ids=None):
