@@ -85,24 +85,61 @@ def new_eligible(discovery, observation, at):
         return False
 
 
-def contributions(observation, history, discovery, at):
-    """Proposed events for ONE frozen valid slot, before durable idempotent publish."""
-    if not eligible(observation, at) or slot_start(observation['requested_at']) != slot_start(at):
-        return []
+METRIC_VERSION = 'market_indicators_v1'
+
+
+def calculate_indicators(observation, history, at):
+    """Reference math for the Polars stage, not a second scorer or runtime engine."""
+    if not eligible(observation, at) or not observation.get('observation_id'):
+        return None
     baseline = volume_baseline(observation, history)
-    metrics = {'volume': observation['total_volume'],
-               'turnover': observation['total_volume'] / observation['market_cap'],
-               'price': abs(observation['price_change_percentage_24h']),
-               'volume_growth': observation['total_volume'] / baseline['total_volume'] if baseline else None}
+    return {**observation, 'metric_version': METRIC_VERSION,
+            'metric_id': observation['observation_id'] + '/' + METRIC_VERSION,
+            'slot_start': slot_start(observation['requested_at']), 'calculated_at': timestamp(at),
+            'volume_to_market_cap': observation['total_volume'] / observation['market_cap'],
+            'abs_price_pct': abs(observation['price_change_percentage_24h']),
+            'volume_ratio': observation['total_volume'] / baseline['total_volume'] if baseline else None,
+            'baseline_observation_id': baseline['observation_id'] if baseline else None,
+            'baseline_requested_at': baseline['requested_at'] if baseline else None,
+            'baseline_volume': baseline['total_volume'] if baseline else None}
+
+
+def valid_indicators(metrics, at):
+    """Validate the frozen indicator envelope without recomputing any market metric."""
+    if not metrics or not eligible(metrics, at):
+        return False
+    try:
+        ratio = metrics.get('volume_ratio')
+        return (metrics['metric_version'] == METRIC_VERSION
+                and metrics['metric_id'] == metrics['observation_id'] + '/' + METRIC_VERSION
+                and timestamp(metrics['slot_start']) == slot_start(metrics['requested_at'])
+                and timestamp(metrics['requested_at']) <= timestamp(metrics['calculated_at']) <= timestamp(at)
+                and all(finite(metrics[k]) and metrics[k] >= 0 for k in ('volume_to_market_cap', 'abs_price_pct'))
+                and (ratio is None or (finite(ratio) and ratio >= 0
+                     and bool(metrics.get('baseline_observation_id'))
+                     and metrics.get('baseline_requested_at') is not None
+                     and finite(metrics.get('baseline_volume')) and metrics['baseline_volume'] > 0)))
+    except (KeyError, ValueError, TypeError, OverflowError):
+        return False
+
+
+def contributions(metrics, discovery, at):
+    """Score ONLY frozen Polars indicators; no raw-history argument or ratio calculation."""
+    if not valid_indicators(metrics, at) or timestamp(metrics['slot_start']) != slot_start(at):
+        return []
+    fields = {'volume': 'total_volume', 'turnover': 'volume_to_market_cap',
+              'price': 'abs_price_pct', 'volume_growth': 'volume_ratio'}
     events = []
     for policy, rule in POLICIES.items():
         key = rule['key']
-        points = (rule['points'] if new_eligible(discovery, observation, at) else 0) if key == 'discovery' else tier_points(key, metrics[key])
+        points = (rule['points'] if new_eligible(discovery, metrics, at) else 0) if key == 'discovery' else tier_points(key, metrics.get(fields[key]))
         if points:
-            suffix = 'once' if key == 'discovery' else slot_start(at).isoformat()
-            events.append({'asset_id': observation['asset_id'], 'score_key': 'total_heat', 'score_delta': points,
-                           'decision_ref': f"market_v1/{observation['asset_id']}/{key}/{suffix}",
-                           'decay_policy_ref': policy, 'half_life_minutes': rule['half_life_minutes']})
+            suffix = 'once' if key == 'discovery' else timestamp(metrics['slot_start']).isoformat()
+            events.append({'asset_id': metrics['asset_id'], 'score_key': 'total_heat', 'score_delta': points,
+                           'decision_ref': f"market_v1/{metrics['asset_id']}/{key}/{suffix}",
+                           'decay_policy_ref': policy, 'half_life_minutes': rule['half_life_minutes'],
+                           'evidence_refs_json': {'metric_id': metrics['metric_id'], 'observation_id': metrics['observation_id'],
+                                                  'baseline_observation_id': metrics.get('baseline_observation_id')}})
     return events
 
 
@@ -141,14 +178,14 @@ def rollup(events, at):
     return result
 
 
-def boards(observations, projections, discoveries, observation_history, score_history, at):
+def boards(indicators, projections, discoveries, score_history, at):
     """Reference rankings over supplied records; never fetches or awards on read."""
     at = timestamp(at)
     result = {'hot': [], 'warming': [], 'new': []}
-    for observation in observations:
+    for observation in indicators:
         asset = observation.get('asset_id')
         score = projections.get(asset)
-        if not eligible(observation, at) or not score:
+        if not valid_indicators(observation, at) or not score:
             continue
         try:
             if (score['algorithm_version'] != RULES['version'] or score['coverage_key'] != observation['coverage_key']
@@ -162,8 +199,7 @@ def boards(observations, projections, discoveries, observation_history, score_hi
         result['hot'].append({'asset_id': asset, 'score': score['activity_score']})
         if new_eligible(discoveries.get(asset, {}), observation, at):
             result['new'].append({'asset_id': asset, 'score': score['new_score']})
-        baseline = volume_baseline(observation, observation_history)
-        if not baseline or observation['total_volume'] / baseline['total_volume'] < PARAMS['warming_min_volume_ratio'] or abs(observation['price_change_percentage_24h']) < PARAMS['warming_min_abs_price_pct']:
+        if observation.get('volume_ratio') is None or observation['volume_ratio'] < PARAMS['warming_min_volume_ratio'] or observation['abs_price_pct'] < PARAMS['warming_min_abs_price_pct']:
             continue
         target = at - timedelta(minutes=PARAMS['warming_score_lookback_minutes'])
         previous = []

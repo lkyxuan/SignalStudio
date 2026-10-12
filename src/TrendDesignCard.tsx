@@ -1,4 +1,4 @@
-import catalog from '../catalog/leaderboard-foundation.v1.json';
+import catalog from '../catalog/market-polars.v1.json';
 import scoring from '../catalog/market-scoring.v1.json';
 import { BusinessTableRows } from './BusinessTableRows';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
@@ -31,7 +31,7 @@ export function TrendDesignCard({ node, graph, openNode, language }: Props) {
     <p>{zh ? 'Few Understand负责后续实现；本卡无运行结果，不使用旧规则作为默认值。' : 'Few Understand owns implementation. No observed runtime results or fallback to old formulas.'}</p>
     <a href={catalog.rationale_url} target="_blank" rel="noreferrer">{zh ? '本轮确认的需求' : 'Accepted requirements'}</a>
   </details>;
-  const status = <p className="processing-io-case-caption">{zh ? '量价基础表、market_v1记分与Redis连线已定义 · Few采集/写入待实现' : 'Market tables, market_v1 scoring and Redis connections defined · backend collection/writes pending'}</p>;
+  const status = <p className="processing-io-case-caption">{zh ? 'Polars指标 → 筛选加分 → Redis → 三榜 · 设计已定义，后台适配/运行未核验' : 'Polars indicators → scoring → Redis → three boards · design defined, runtime unverified'}</p>;
   const description = <><p>{spec.description}</p>{board && <p>{zh ? `首页位置 ${board.slot} · ${board.label_zh}榜` : `Homepage slot ${board.slot} · ${board.key}`}</p>}</>;
   if (spec.role !== 'process') return <div className="business-table-card">
     <BusinessTableRows table={schema} rows={[]} language={language}/>{status}{description}
@@ -42,6 +42,12 @@ export function TrendDesignCard({ node, graph, openNode, language }: Props) {
   if (!graph || !openNode) return <>{status}{description}{settings}</>;
   return <ProcessingCardFrame node={node} graph={graph} openNode={openNode} language={language} algorithm={spec.algorithm}>
     {status}{description}
+    {spec.key === 'polars' && <section className="source-case-inspector-section">
+      <h3>{zh ? '假设案例 · 行情输入 → 指标输出' : 'Hypothetical example · market input → indicators'}</h3>
+      <p>{zh ? '当前24h成交额2000万美元、市值1亿美元、24h涨幅12%；约24小时前可比成交额1000万美元。身份与质量假设已核实。' : 'Assume $20m current 24h volume, $100m market cap, +12% 24h price change, and $10m comparable volume one day earlier. Identity and quality are assumed valid.'}</p>
+      <BusinessTableRows table={{primary_key:['volume_ratio'],columns: [{name:'volume_to_market_cap',label_zh:'成交额/市值'}, {name:'abs_price_pct',label_zh:'绝对24h价格变化(%)'}, {name:'volume_ratio',label_zh:'相对前一天放量倍数'}]}} rows={[{volume_to_market_cap:0.2,abs_price_pct:12,volume_ratio:2}]} language={language}/>
+      <p>{zh ? '这里只输出指标；是否加分、加多少，由下一步评分规则决定。' : 'This stage outputs indicators only. The next scoring rule decides whether and how many points to award.'}</p>
+    </section>}
     {spec.key === 'score_contributions' && <section className="source-case-inspector-section">
       <h3>{zh ? '假设案例 · 单次贡献，非真实榜单' : 'Hypothetical examples · contribution per slot'}</h3>
       {scoring.examples.map(example => <p key={example.label}>{example.label} · V=${example.volume.toLocaleString('en-US')} · M=${example.market_cap.toLocaleString('en-US')} · {example.price_pct}% · V/B={(example.volume/example.baseline_volume).toFixed(2)} · {Object.entries(example.expected).map(([key,value]) => `${key} +${value}`).join(' / ')} → +{example.total_per_slot}</p>)}

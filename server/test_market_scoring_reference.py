@@ -2,23 +2,23 @@ import copy
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from market_scoring_reference import RULES, contributions, rollup, boards, tier_points, slot_start, eligible
+from market_scoring_reference import RULES, contributions, rollup, boards, tier_points, slot_start, eligible, calculate_indicators
 
 
 class MarketScoringReferenceTest(unittest.TestCase):
     def setUp(self):
         self.at = datetime(2026, 10, 11, 4, 10, tzinfo=timezone.utc)
-        self.observation = dict(asset_id='asset-a', source_object_id='coin-a', identity_status='resolved',
+        self.observation = dict(observation_id='obs-current', asset_id='asset-a', source_object_id='coin-a', identity_status='resolved',
             source_id='coingecko.coins_markets', quote_currency='usd', coverage_key='coverage-v1', quality_status='healthy',
             requested_at=self.at, collected_at=self.at, observed_at=self.at,
             current_price=1, total_volume=50_000_000, market_cap=100_000_000, price_change_percentage_24h=8)
-        self.baseline = {**self.observation, 'total_volume':25_000_000,
+        self.baseline = {**self.observation, 'observation_id':'obs-baseline', 'total_volume':25_000_000,
                          **{k:self.at-timedelta(days=1) for k in ('requested_at','collected_at','observed_at')}}
         self.discovery = dict(asset_id='asset-a', coverage_key='coverage-v1', identity_status='resolved',
                               discovery_status='new', first_seen_at=self.at)
 
     def events(self, discovery=None):
-        proposed = contributions(self.observation, [self.baseline], discovery or {}, self.at)
+        proposed = contributions(calculate_indicators(self.observation, [self.baseline], self.at), discovery or {}, self.at)
         return [{**event, 'event_key':f'event-{i}', 'created_at':self.at} for i,event in enumerate(proposed)]
 
     def test_declared_examples_and_highest_tier_boundaries(self):
@@ -26,7 +26,7 @@ class MarketScoringReferenceTest(unittest.TestCase):
             observation = {**self.observation, 'total_volume':example['volume'], 'market_cap':example['market_cap'],
                            'price_change_percentage_24h':example['price_pct']}
             base = {**self.baseline, 'total_volume':example['baseline_volume']}
-            events = contributions(observation, [base], {}, self.at)
+            events = contributions(calculate_indicators(observation, [base], self.at), {}, self.at)
             points = {event['decay_policy_ref'].split('/')[1]:event['score_delta'] for event in events}
             self.assertEqual({key:points.get(key,0) for key in example['expected']}, example['expected'])
             self.assertEqual(sum(points.values()), example['total_per_slot'])
@@ -36,7 +36,7 @@ class MarketScoringReferenceTest(unittest.TestCase):
                 self.assertLess(tier_points(rule['key'],threshold-1e-6),points)
 
     def test_source_gaps_quality_identity_currency_and_non_finite(self):
-        self.assertNotIn('market_v1/volume_growth', [e['decay_policy_ref'] for e in contributions(self.observation,[],{},self.at)])
+        self.assertNotIn('market_v1/volume_growth', [e['decay_policy_ref'] for e in contributions(calculate_indicators(self.observation, [], self.at), {}, self.at)])
         for changes in ({'identity_status':'conflict'}, {'asset_id':None}, {'quote_currency':'eur'},
                         {'quality_status':'partial'}, {'source_id':'kaito.entities'}, {'total_volume':True},
                         {'current_price':float('nan')}, {'market_cap':float('inf')}, {'current_price':0},
@@ -50,23 +50,36 @@ class MarketScoringReferenceTest(unittest.TestCase):
                         {'collected_at':self.baseline['collected_at']+timedelta(seconds=1)},
                         {'requested_at':self.baseline['requested_at']+timedelta(seconds=1)},
                         {'requested_at':self.baseline['requested_at']-timedelta(minutes=30,seconds=1)}):
-            events = contributions(self.observation,[{**self.baseline,**changes}],{},self.at)
+            events = contributions(calculate_indicators(self.observation, [{**self.baseline,**changes}], self.at), {}, self.at)
             self.assertNotIn('market_v1/volume_growth',[e['decay_policy_ref'] for e in events])
         newer = {**self.baseline,'total_volume':100_000_000}
         older = {**self.baseline,'requested_at':self.baseline['requested_at']-timedelta(minutes=10)}
-        self.assertNotIn('market_v1/volume_growth',[e['decay_policy_ref'] for e in contributions(self.observation,[older,newer],{},self.at)])
+        self.assertNotIn('market_v1/volume_growth',[e['decay_policy_ref'] for e in contributions(calculate_indicators(self.observation, [older,newer], self.at), {}, self.at)])
 
     def test_slot_retry_and_discovery_identity_do_not_create_new_decisions(self):
-        initial = contributions(self.observation,[self.baseline],self.discovery,self.at)
-        self.assertEqual(initial,contributions(self.observation,[self.baseline],self.discovery,self.at+timedelta(seconds=45)))
-        self.assertEqual([],contributions(self.observation,[self.baseline],self.discovery,self.at+timedelta(minutes=5)))
+        initial = contributions(calculate_indicators(self.observation, [self.baseline], self.at), self.discovery, self.at)
+        self.assertEqual(initial,contributions(calculate_indicators(self.observation, [self.baseline], self.at+timedelta(seconds=45)), self.discovery, self.at+timedelta(seconds=45)))
+        self.assertEqual([],contributions(calculate_indicators(self.observation, [self.baseline], self.at+timedelta(minutes=5)), self.discovery, self.at+timedelta(minutes=5)))
         later = {**self.observation, **{k:self.at+timedelta(minutes=5) for k in ('requested_at','collected_at','observed_at')}}
-        again = contributions(later,[self.baseline],self.discovery,self.at+timedelta(minutes=5))
+        again = contributions(calculate_indicators(later, [self.baseline], self.at+timedelta(minutes=5)), self.discovery, self.at+timedelta(minutes=5))
         self.assertEqual(initial[-1]['decision_ref'],again[-1]['decision_ref'])
         self.assertNotEqual(initial[0]['decision_ref'],again[0]['decision_ref'])
         self.assertEqual(slot_start('2026-10-11T12:14:59+08:00'),self.at)
         for state in ('baseline','existing','pending','coverage_added'):
-            self.assertNotIn('market_v1/discovery',[e['decay_policy_ref'] for e in contributions(self.observation,[],{**self.discovery,'discovery_status':state},self.at)])
+            self.assertNotIn('market_v1/discovery',[e['decay_policy_ref'] for e in contributions(calculate_indicators(self.observation, [], self.at), {**self.discovery,'discovery_status':state}, self.at)])
+
+    def test_scorer_consumes_frozen_indicators_and_rejects_old_or_missing_versions(self):
+        from unittest.mock import patch
+        metrics = calculate_indicators(self.observation, [self.baseline], self.at)
+        # A scorer never queries history or recalculates the Polars ratio.
+        metrics['volume_ratio'] = 5
+        with patch('market_scoring_reference.volume_baseline', side_effect=AssertionError('scorer read history')):
+            events = contributions(metrics, {}, self.at)
+        self.assertEqual(next(e['score_delta'] for e in events if e['decay_policy_ref']=='market_v1/volume_growth'), 40)
+        self.assertEqual(contributions(self.observation, {}, self.at), [])
+        for changes in ({'metric_version':'old_10min'}, {'metric_id':'wrong'}, {'volume_to_market_cap':float('nan')},
+                        {'volume_ratio':2, 'baseline_observation_id':None}):
+            self.assertEqual(contributions({**metrics, **changes}, {}, self.at), [])
 
     def test_decay_deduplication_and_legacy_scores_excluded(self):
         events = self.events(self.discovery)
@@ -88,7 +101,7 @@ class MarketScoringReferenceTest(unittest.TestCase):
         projection = projection or dict(rollup(self.events(self.discovery),self.at)['asset-a'],
             calculated_at=self.at, algorithm_version='market_v1', coverage_key='coverage-v1', quality_status='healthy')
         history = history if history is not None else [dict(projection,asset_id='asset-a',activity_score=10,calculated_at=self.at-timedelta(hours=1))]
-        return boards([observation or self.observation],{'asset-a':projection},{'asset-a':discovery or self.discovery},[self.baseline],history,self.at)
+        return boards([calculate_indicators(row, [self.baseline], self.at) for row in [observation or self.observation]], {'asset-a':projection}, {'asset-a':discovery or self.discovery}, history, self.at)
 
     def test_three_boards_use_redis_score_and_saved_history(self):
         result = self.rankings()
@@ -115,10 +128,10 @@ class MarketScoringReferenceTest(unittest.TestCase):
             self.assertEqual(self.rankings(projection={**projection,**changes})['hot'],[])
         observations = [{**self.observation,'asset_id':f'asset-{i:02d}'} for i in range(25)]
         projections = {o['asset_id']:projection for o in observations}
-        result = boards(list(reversed(observations)),projections,{},[],[],self.at)
+        result = boards([calculate_indicators(row, [], self.at) for row in list(reversed(observations))], projections, {}, [], self.at)
         self.assertEqual([r['asset_id'] for r in result['hot']],[f'asset-{i:02d}' for i in range(20)])
         with self.assertRaisesRegex(ValueError,'Duplicate current observation'):
-            boards([observations[0],observations[0]],projections,{},[],[],self.at)
+            boards([calculate_indicators(row, [], self.at) for row in [observations[0],observations[0]]], projections, {}, [], self.at)
 
 
 if __name__ == '__main__':

@@ -1,63 +1,53 @@
-# 量价三榜与 market_v1 记分契约
+# CoinGecko → Polars 指标 → 筛选加分 → Redis → 三榜
 
-用户于2026-10-11批准先实现Studio基础表/卡片，保留记分制与Redis，并授权AI决定初版分值、衰减和三榜规则，随后按实际榜单表现校准。[需求与决策 SS-55](https://app.notion.com/p/3f5038a63d5a81c0abf5f64c1b14be0e)，[交付及批准范围 SS-56](https://app.notion.com/p/3f6038a63d5a81bcac15edae7a039870)。初版数值是已接受的开发契约，尚未证明榜单质量。
+2026-10-12 用户批准 [SS-72](https://app.notion.com/p/3f7038a63d5a814da925c11ab3667bd2) 重整卡片与契约，并要求删除被替代的旧卡片。当前结构以 `catalog/market-polars.v1.json` 为准，评分参数仍为 `catalog/market-scoring.v1.json` 的 market_v1。旧 foundation/channel/scaffolds 文件只供历史数据库有序迁移，不是第二套现行设计，不随当前三榜实例导出。
 
-当前结构以 `catalog/leaderboard-foundation.v1.json` 为准，规则以 `catalog/market-scoring.v1.json` 为准；历史trends/simple/scaffolds仅用于有序升级。源为CoinGecko `coins_markets` USD价格、24h价格变化、24h成交额和市值；新闻、群聊正文及Kaito社交指标已从三榜输入断开，原始来源卡和数据不删除。来源字段声明及上游样本不证明Few正在持续采集。
+## 当前职责
 
-| 首页位置 | 用户榜名 / 保留结果卡 | score与排序 |
+CoinGecko #2010 → 唯一行情通道 #5004 `market.snapshot` → Polars 计算量价指标 → 既有 `indicator.data` 通道中的 `market_indicators_v1` → #3032 筛选和确定加分 → #3006 提交事件 → #5001 评分事件 → #3007 维护 #6001 Redis 评分窗口 → #3033 汇总 #1021 当前分和 #1022 评分历史 → 三榜生成及 #1008/#1009/#1010 结果。
+
+Polars 负责输入身份/时间/质量检查、成交额/市值、绝对24h价格变化、相对24小时前放量倍数；#3032 只读取指标选择最高满足档位，不读取行情历史重算指标。沿用 `indicator.data`，必须可区分本版消息与现有10分钟指标；现有 `vol_chg_p_10min` 是滚动24h成交额快照在10分钟间隔的变化，不是短窗新增交易量，也不是本版24小时前放量倍数。
+
+#1013 `coingecko_market_history` 合并行情观测与历史，复用 Few Delta/Parquet 归档能力；新增归档卡表示既有 writer 的职责，运行与契约符合程度未核验。完整 HTTP 响应仍通过 `snapshot_ref` 回查。#1014 记录运行覆盖/失败/初始基线，需采集端明确写入，包括全失败运行；不能从成功币种列表推断完整覆盖。#3024/#1016 保存首次有效发现状态，区分初始基线、覆盖扩张与真正新增，不因重试、恢复或再次上榜重置时间。
+
+被替代的 #3022、#3023、#1015、#6002—#6005、#3020、#1011 从当前图实际删除，历史留在 Git/Notion。三榜直接共享指标与当前/历史评分，不要求每榜复制一份 Redis 输入。资产身份、既有提醒/候选、旧演示评分链和下游候选筛选不属于本次删除范围；旧起始+100与社交/搜索热榜贡献不混入 market_v1。
+
+## 指标、事件与时间
+
+指标输出携带 metric_id、固定 metric_version、asset_id、observation_id、run_id、source_object_id、slot_start、来源/请求/接收时间、USD报价、覆盖/质量、原始响应引用与实际历史基线引用。冻结每来源/UTC五分钟槽首个成功有效响应、身份与指标结果；重试沿用原ID、槽、基线与版本，同ID不同冻结内容拒绝。缺失不补零。原始观测历史至少14天；已冻结事件及恢复所需依据不能随意删除。
+
+相对放量 B：同资产、来源、coin ID、USD和覆盖版本，在原始 requested_at 前24小时目标之前最近有效快照，距目标≤30分钟、24h成交额≥100万美元，且其接收时间不晚于目标。缺基线只令 volume_ratio 为空，不阻断其他有效分项。滚动24h成交额不能相加/相减冒充5分钟或1小时新增成交额。
+
+公共过滤：价格>0、市值≥1000万美元、24h成交额≥100万美元；USD有限数值、身份已唯一核实、覆盖健康；请求≤接收≤当前、来源观测≤接收且距当前≤15分钟。指标计算时间不替代来源时间。缺失、失败、冲突、NaN/无穷不补零。
+
+## market_v1 规则
+
+| 指标 | 阈值 → 原始加分 | 半衰期 |
 | --- | --- | --- |
-| 1 | 升温榜 / #1008 `leaderboard_warming` | 当前活动分减60分钟前已保存活动分，必须>0；降序 |
-| 2 | 热榜 / #1009 `leaderboard_hottest` | 当前活动分，降序 |
-| 5 | 新榜 / #1010 `leaderboard_emerging` | 当前活动分+发现分，降序 |
-
-3/4/6留空；允许跨榜。每榜最多20个已唯一核实的asset_id；同分按asset_id升序，完整精度排序，展示两位小数。公共过滤：价格>0、市值≥1000万美元、24h成交额≥100万美元；USD有限数值，来源观测时间不晚于接收时间且距当前≤15分钟，请求≤接收≤当前，身份/覆盖健康。缺失、失败、冲突及NaN/无穷不补零。
-
-## 每个时间槽的贡献
-
-每项仅取最高满足档位，四类活动分每5分钟槽最多原始+120；累计衰减分没有0—100上限，也不是概率。
-
-| 分项 | 阈值 → 原始加分 | 半衰期 |
-| --- | --- | --- |
-| 24h成交额规模 V | ≥100万/1000万/1亿/10亿美元 → +10/+20/+30/+40 | 30分钟 |
-| 成交活跃度 V/市值 | ≥0.1/0.3/1 → +5/+10/+20 | 30分钟 |
+| 24h成交额 | ≥100万/1000万/1亿/10亿美元 → +10/+20/+30/+40 | 30分钟 |
+| 成交额/市值 | ≥0.1/0.3/1 → +5/+10/+20 | 30分钟 |
 | 绝对24h价格变化 | ≥5%/10%/20% → +5/+10/+20 | 30分钟 |
-| 相对放量 V/B | ≥1.5/2/3/5 → +10/+20/+30/+40 | 30分钟 |
-| 真正首次有效发现 | 基线后新资产一次+20 | 1440分钟 |
+| 相对24小时前放量倍数 | ≥1.5/2/3/5 → +10/+20/+30/+40 | 30分钟 |
+| 基线后真正首次发现 | 一次 +20 | 1440分钟 |
 
-B为同资产、来源、coin ID、USD与覆盖版本，在本次原始requested_at前24小时目标之前最近的有效快照，距目标≤30分钟、成交额≥100万美元。基线采集接收不得晚于24小时前目标；缺少基线只跳过放量贡献。滚动24h成交额不能求和/差分冒充5分钟或1小时交易量。上涨和下跌按幅度同样记关注分，保留价格方向，不推断买卖信号。
+每项只取最高满足档位，每资产/分项/五分钟槽一笔正贡献，正常下一槽可再次贡献。闭合槽不追补。`decision_ref=market_v1/{asset_id}/{rule}/{slot_start_utc}`；发现为 `market_v1/{asset_id}/discovery/once`。重试沿用 event_key、首次 created_at 和冻结衰减参数。上涨/下跌按幅度同样计关注分，保留方向，不推断买卖信号。
 
-以原始request_started_at（表内requested_at）向下取整UTC五分钟槽。每来源/槽冻结首个成功有效响应和身份映射，每资产/分项/槽最多一笔正贡献；正常后续槽可再次贡献。闭合槽不追补。重试保持原槽、判定引用、event_key、首次created_at和半衰期，不因再次请求或读取详情重复记分。`decision_ref=market_v1/{asset_id}/{rule}/{slot_start_utc}`；发现使用`market_v1/{asset_id}/discovery/once`。Few须持久化冻结快照、身份和幂等状态；参考函数本身不提供持久保证。
+Redis 按 event_key 去重，同键不同冻结内容或同 decision_ref 不同 event_key 拒绝。每笔有效分=`score_delta * 2 ** (-elapsed_minutes / frozen_half_life_minutes)`。只汇总精确 market_v1 五项及匹配半衰期；四项和为 activity_score，发现为 discovery_score，两者和为 new_score。事件到达触发汇总，另每60秒刷新衰减；超过120秒的评分投影不出榜。按固定计算时刻和事件集合版本防止旧汇总覆盖新结果。累计衰减分不是概率，也没有0—100上限。
 
-## Redis与三榜
+## 三榜
 
-复用 `提交评分事件` #3006 → `评分事件 Topic` #5001 → `维护近期评分窗口` #3007 → `Redis 近期评分窗口` #6001。贡献过程接入原发布器，score_key继续为`total_heat`。只将精确`market_v1/volume`、`market_v1/turnover`、`market_v1/price`、`market_v1/volume_growth`、`market_v1/discovery`和匹配半衰期纳入量价投影。旧起始+100、搜索热榜等规则及#3005/#1006演示保留，不混入三榜分数。
+| 位置 / 结果 | 排序和附加条件 |
+| --- | --- |
+| 1 升温 / #1008 | 当前活动分减60分钟前已保存活动分，差值>0；Polars volume_ratio≥1.5、abs_price_pct≥5 |
+| 2 热 / #1009 | 当前 activity_score 降序 |
+| 5 新 / #1010 | 完整基线后真正首次发现0—7天；activity_score+discovery_score 降序 |
 
-每笔有效分=`score_delta * 2 ** (-elapsed_minutes / frozen_half_life_minutes)`。event_key去重，同键不同冻结内容或同decision_ref不同event_key拒绝。四项和为activity_score，发现项为discovery_score，两者和为new_score。未来事件/非法冻结值拒绝。贡献写入后触发汇总，另每60秒刷新衰减（运行目标，Few待实现）；投影超过120秒不出榜，不能靠清零旧事件维持新鲜。当前表和历史表记录版本、覆盖、时刻、分项和事件引用；固定计算时刻及事件集合版本防止较旧汇总覆盖新结果。
+3/4/6留空，每榜前20、允许跨榜，同分按asset_id升序，完整精度排序、展示两位小数。升温历史取同版/覆盖、不晚于60分钟前目标且距目标≤10分钟的最近已保存分；缺任一基线不出升温榜，不能用当前事件集合倒算历史。首次系统发现不等于新发行。行情历史供Polars，评分历史供升温，两类历史不可合并。
 
-升温额外要求V/B≥1.5且|24h价格变化|≥5%，与同版本/覆盖的60分钟前已保存分比较；取不晚于目标、距目标≤10分钟的最近历史，差值>0才排名。缺任一基线不出升温榜，不能拿当前事件集合倒算过去分替代历史。新榜要求完整基线后真正new、首次有效发现距当前0—7天；baseline、coverage_added、pending均不入新榜。重试、新来源、再次上榜不重置first_seen_at；系统新见不等于新发行。共享趋势状态可由同一分数差标warming/cooling/stable，历史不足为unknown。
+## 实施状态和验证
 
-## 表与实施边界
+本仓库交付 Studio 卡片、详情、连线、导出包和纯函数参考，读取详情不会执行采集、计算或加分。`server/market_scoring_reference.py` 将 calculate_indicators 与 contributions 分开，评分与榜单入口不接受行情历史。Few 的既有 Polars、归档以及新 FEW-74 代码存在，不等于新契约已实现或已部署。历史时间/元数据、冻结、幂等、覆盖和本版指标消息均需后台适配/核验；真实榜单质量未知。
 
-基础表为`leaderboard_observations`、`leaderboard_coverage`、`leaderboard_attention_history`、`leaderboard_discoveries`；新增`market_scores_current`和`market_score_history`读取Redis量价投影，再供三榜。原始观测历史至少保留14天，不意味着可以14天后随意丢弃仍参与计分的事件。新参数版本须独立规则，不重新解释已冻结事件。下游候选筛选只合并三榜已核实asset_id，保留各榜score/版本；不以旧total_heat兜底。
+SS-72 迁移保护其他卡片、保留存续ID与布局，拒绝定义/字段/配置/依赖冲突及退休卡新接的外部工作；事务失败回滚，重入不覆盖后续编辑。当前数据库从历史安装器升级后执行 market_polars；不直接删除 Few 代码、业务表或数据。
 
-本仓库交付Studio卡片、字段、连线、可导出`graph-definition.v1`及纯函数参考计算 `server/market_scoring_reference.py`。获取`GET /api/graph/package`，按definition_refs及selector读取规则。`foundation.<key>`仍标implementation=unknown、draft=true、trigger=unspecified；卡片读取不执行采集或加分。Few负责物理业务表、真实采集/覆盖元数据、原子幂等、事件与Redis持久化、调度和实际写入；未在本次实现。无真实结果时详情只显示结构，评分案例明确为假设。
-
-安装器针对已有共享评分链执行一次；全新空工作区若没有这条用户设计链则明确提示未应用、不创建升级标记，不凭空补造链路；只缺一端仍拒绝。保留复用卡号/布局和无关图；发现定义、字段、配置、依赖或连接含义被另改则拒绝覆盖。先完整SQLite备份再升级，失败事务回滚。相关旧实现核对不能自动继承为新版本已实现。
-
-## 验证与校准
-
-`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_leaderboard_foundation server.test_market_scoring_reference`覆盖结构保留、文本断开、Redis投影、重入/冲突/回滚和数学参考边界：最高档、来源缺失、放量基线、双向价格、时间槽、发现基线、衰减/重复事件、旧+100隔离、历史门槛、稳定排序及过期投影。另运行项目契约、布局、构建及全部卡片双语详情渲染。
-
-这些检查不能证明Few已运行或参数有效。后续以真实上榜原因、规模/低基数偏置、重复出现、覆盖和延迟校准，版本化记录理由、前后结果与回退依据；未建立自动调参服务或监控。Few运行、历史覆盖及榜单质量仍是待验证事项。
-
-## CoinGecko 单一行情通道（SS-60）
-
-用户2026-10-11明确要求爬虫只进入一个行情消息通道，并将#3022接在Redpanda后面。[独立批准与交付卡 SS-60](https://app.notion.com/p/3f6038a63d5a817faa97dde8657a379e)。当前传输补充契约为`catalog/market-channel.v1.json`，覆盖旧foundation中的爬虫直连输入；历史安装器仅用于有序升级。
-
-#2010 `coingecko.coins_markets` → #5004 `market.snapshot` → #3022 `归一结构化榜单观测` → `leaderboard_observations`。#1001/#1002的资产与身份映射仍直接读取。早期#5002规划通道移除，其#3001候选消费者转到#5004；六条既有规则消费者保留，各消费组独立读取，评分事件Topic保持原语义。
-
-目标Value根对象为单币种行情，候选输入路径使用`id/last_updated/total_volume/market_cap`，不再要求`data`包装；现有来源参考会过滤部分字段，完整原始响应仍须持久归档。`meta`为待实现的运行/观测ID、首次请求/接收时间、报价、覆盖和原始响应引用扩展，不能伪装成上游返回字段或已发送消息。设计Message Key为`id`；现有发送键及扩展实际产出未核验。字段/时间/覆盖不足不猜值、不发布评分。
-
-#3022按稳定`observation_id`幂等持久化，成功后确认本消费组offset；重试保留原时间和ID，恢复回放不为闭合历史槽重复计分。保留期限与持久归档设施仍未知，Topic不等于永久历史库。此批交付Studio设计和迁移，不启动业务消费者、不证明真实消息或评分已运行。
-
-`server/market_channel.py`在foundation升级之后一次性迁移；先锁定并核对目标拓扑、消息字段和通道配置，冲突拒绝，事务失败回滚。保留#5004/#3022及消费者身份/位置、原映射ID和无关图。验证：`python3 -m unittest discover -s server -p 'test_market_channel.py'`及`test_signal_contract_store.py`；卡片渲染检查与服务身份核验另按主机交付流程执行。
+验证：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_market_polars server.test_market_scoring_reference`，并运行项目卡片契约、布局、类型、构建与双语详情检查。测试验证结构及参考数学，不证明 Few 运行或评分有效。

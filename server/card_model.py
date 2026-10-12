@@ -350,17 +350,22 @@ class CardModel:
     def action_registry(self):
         source_catalog = json.loads((ROOT/'catalog/source-contracts.v1.json').read_text())
         trends = json.loads((ROOT/'catalog/leaderboard-trends.v1.json').read_text())
-        foundation = json.loads((ROOT/'catalog/leaderboard-foundation.v1.json').read_text())
-        return [{'id':'module.'+ref,'version':1,'definition_paths':['catalog/'+path for path in paths],
+        foundation = json.loads((ROOT/'catalog/market-polars.v1.json').read_text())
+        active = {self.contract(n['id'])['config']['action']['id'] for n in self.service.graph()['nodes']}
+        registry = [{'id':'module.'+ref,'version':1,'definition_paths':['catalog/'+path for path in paths],
                  'implementation':'unknown'} for ref,paths in MODEL['migration']['module_refs'].items()] + [
                 {'id':'source.'+entry['id'],'version':1,'definition_paths':['catalog/source-contracts.v1.json'],
                  'implementation':'unknown'} for key in ('operations','resources') for entry in source_catalog[key]] + [
                 {'id':'threeboards.'+entry['key'],'version':1,
                  'definition_paths':['catalog/leaderboard-trends.v1.json'],'implementation':'unknown'}
                 for entry in trends['nodes'] if entry['role'] == 'process'] + [
-                {'id':'foundation.'+entry['key'],'version':1,
-                 'definition_paths':['catalog/leaderboard-foundation.v1.json'],'implementation':'unknown'}
-                for entry in foundation['nodes'] if entry['role'] == 'process']
+                {'id':'market_polars.'+entry['key'],'version':1,
+                 'definition_paths':['catalog/market-polars.v1.json'],'implementation':'unknown'}
+                for entry in foundation['nodes'] if entry['role'] == 'process'] + [
+                {'id':'foundation.'+entry['key'],'version':1,'definition_paths':['catalog/leaderboard-foundation.v1.json'],'implementation':'unknown'}
+                for entry in json.loads((ROOT/'catalog/leaderboard-foundation.v1.json').read_text())['nodes']
+                if entry['role']=='process' and 'foundation.'+entry['key'] in active]
+        return [entry for entry in registry if entry['id'] in active]
 
     def bindings(self):
         return [{**dict(row), 'config':json.loads(row['config'])} for row in self.db.execute('SELECT * FROM edge_bindings ORDER BY id')]
