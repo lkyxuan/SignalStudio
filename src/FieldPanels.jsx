@@ -1,3 +1,4 @@
+import { processGraph, processFlow } from './processFlows';
 import { edgePresentation, edgeProcess, focusExplanation, traceTriggers, originLabel } from './edgePresentation';
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Check, Plus, Trash2, X } from 'lucide-react';
@@ -159,9 +160,12 @@ export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, m
     ...edgeDraft, transport_kind: isTableAccess ? 'direct' : edgeDraft.transport_kind,
     transport_headers: edgeDraft.transport_headers.filter(item => item.name.trim())
   }, 'Connection saved');
+  const presentation = graph && processGraph(graph);
+  const flowOwner = graph && edgeProcess(graph, edge);
+  const related = presentation && flowOwner && processFlow(presentation, flowOwner.id);
   return <div className="edge-detail-scroll">
     <div className="edge-path"><strong>{sourceNode && <><span className="path-node-ref">{nodeRef(sourceNode)}</span>{displayName(sourceNode.name)}</>}</strong><ArrowRight size={15} /><strong>{targetNode && <><span className="path-node-ref">{nodeRef(targetNode)}</span>{displayName(targetNode.name)}</>}</strong></div>
-    {graph && <section className="edge-semantics-detail"><strong>{edgePresentation(graph, edge, language, edgeProcess(graph, edge)).displayLabel}</strong><p>{focusExplanation(graph, edgeProcess(graph, edge), language)}</p><ul>{traceTriggers(graph, edgeProcess(graph, edge)).origins.map(origin => <li key={`${origin.node.id}:${origin.reason}`}>{originLabel(origin, language)} · {displayName(origin.node.name)}</li>)}</ul><small>{language === 'zh-CN' ? '连线说明定义关系，不代表实际执行记录。' : 'Connections describe defined relations, not an execution log.'}</small></section>}
+    {graph && <section className="edge-semantics-detail"><strong>{edgePresentation(presentation, presentation.edges.find(item => item.id === edge.id), language, flowOwner).displayLabel}</strong><p>{focusExplanation(graph, edgeProcess(graph, edge), language)}</p>{presentation.edges.some(item => item.relationship_id === edge.id && item.presentation_role === 'request') && <p>{language === 'zh-CN' ? `读取往返共用这一份关系定义：请求 ${edgeRef(edge)}-Q，返回 ${edgeRef(edge)}。修改或删除此关系会同时影响两条展示线。` : `The request ${edgeRef(edge)}-Q and return ${edgeRef(edge)} share this read definition. Editing or deleting it affects both arrows.`}</p>}<ul>{traceTriggers(graph, edgeProcess(graph, edge)).origins.map(origin => <li key={`${origin.node.id}:${origin.reason}`}>{originLabel(origin, language)} · {displayName(origin.node.name)}</li>)}</ul>{related && <p>{language === 'zh-CN' ? '同一处理的关联连线：' : 'Connections in this step: '}{presentation.edges.filter(item => related.edgeIds.has(item.id)).map(item => edgePresentation(presentation, item, language, flowOwner).displayLabel).join('；')}</p>}<small>{language === 'zh-CN' ? '连线说明定义关系，不代表实际执行记录。' : 'Connections describe defined relations, not an execution log.'}</small></section>}
     {edge.transport_kind !== 'redpanda' && <section className="edge-plain-summary">
       {edge.branch_label && <strong>{language === 'zh-CN' ? '分支：' : 'Branch: '}{edge.branch_label}</strong>}
       <h3>{language === 'zh-CN' ? isTableAccess ? '这条线表示什么' : '这条线传什么' : isTableAccess ? 'What this connection means' : 'What this connection carries'}</h3>

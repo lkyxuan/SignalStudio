@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, BaseEdge, Background, Controls, MiniMap, Handle, Position, MarkerType, useEdgesState, useNodesState, useUpdateNodeInternals } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, CircleHelp, Database, GitBranch, Layers3, LayoutGrid, List, Maximize2, Network, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { AlarmClock, Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, CircleHelp, Database, GitBranch, Layers3, LayoutGrid, List, Maximize2, Network, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { EdgeMappingPanel, FieldCatalog } from './FieldPanels';
 import { LocalFlowView } from './LocalFlowView';
 import businessTables from '../catalog/business-tables.v1.json';
@@ -28,7 +28,8 @@ import { LAYOUT_VERSION, autoLayout, layoutGroups, traceRoute, layoutStages } fr
 import { neighborLayout } from './neighborLayout';
 import { arcStyles, bezierRoute, bezierControls } from './edgeRouting';
 import { graphEmphasis } from './graphEmphasis';
-import { relationFocus, edgePresentation, focusExplanation, traceTriggers, originLabel } from './edgePresentation';
+import { relationFocus, edgePresentation, focusExplanation, traceTriggers, originLabel, isScheduled } from './edgePresentation';
+import { processGraph, edgeFlows, processFlow, relationshipId } from './processFlows';
 import './edge-semantics.css';
 import { displayNodeName, normalizeNodeReferences, translate } from './i18n';
 import './style.css';
@@ -121,6 +122,7 @@ function LogicNode({ id, data, selected }) {
         <span className="node-glyph">{kind === 'product' ? <LayoutGrid size={15} /> : kind === 'source' || kind === 'state' || kind === 'topic' || kind === 'cache' ? <Database size={15} /> : kind === 'score' ? <Activity size={15} /> : kind === 'identity' || kind === 'relationship' ? <Network size={15} /> : <GitBranch size={15} />}</span>
         <span className="node-kind" title={kindLabel(cardKind(data), data.language)}>{kindLabel(cardKind(data), data.language)}</span>
         {data.catalogSourceId && data.type === 'Source' && <span className="source-origin-tag" data-source={data.catalogSourceId} title={sourceLabel(data.catalogSourceId)}>{sourceLabel(data.catalogSourceId)}</span>}
+        {isScheduled(data) && <span className="schedule-start-badge" title={data.language === 'zh-CN' ? '此卡片有定时启动定义' : 'This card has a scheduled entry'}><AlarmClock size={13} />{data.language === 'zh-CN' ? '定时启动' : 'Scheduled start'}</span>}
         {Boolean(data.is_system_state) && <span className="state-node-badge" title={BUSINESS_TABLE_NAMES.has(data.name) ? data.language === 'zh-CN' ? '业务表定义' : 'Table definition' : t('Planned')}>{BUSINESS_TABLE_NAMES.has(data.name) ? data.language === 'zh-CN' ? '业务表定义' : 'Table definition' : t('Planned')}</span>}
         {data.pendingNeedNames?.length > 0 && <span className="node-need-count" title={data.pendingNeedNames.join('、')}>{data.language === 'zh-CN' ? `${data.pendingNeedNames.length} 项待找` : `${data.pendingNeedNames.length} needed`}</span>}
       </div>
@@ -146,7 +148,7 @@ function DirectArcEdge({ id, sourceX, sourceY, targetX, targetY, data, style, ma
   const link = { ...data, source: [sourceX, sourceY], target: [targetX, targetY] };
   const [a, b, c, d] = bezierControls(link);
   const midpoint = axis => (a[axis] + 3 * b[axis] + 3 * c[axis] + d[axis]) / 8;
-  return <g><title>{data.meaning}</title><BaseEdge id={id} path={bezierRoute(link)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth}
+  return <g onClick={event => { event.stopPropagation(); data.onSelect?.(); }}><title>{data.meaning}</title><BaseEdge id={id} path={bezierRoute(link)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth}
     label={data.meaning} labelX={midpoint(0)} labelY={midpoint(1)} labelStyle={{ fill: style.stroke, fontSize: 11, fontWeight: 600 }}
     labelBgStyle={{ fill: 'var(--ss-surface)', stroke: 'var(--ss-border)' }} labelBgPadding={[7, 5]} labelBgBorderRadius={5} className="edge-meaning-path" /></g>;
 }
@@ -173,6 +175,7 @@ function App() {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [focusedEdgeId, setFocusedEdgeId] = useState(null);
+  const [flowFocusId, setFlowFocusId] = useState(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
   const [filter, setFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('All types');
@@ -198,6 +201,7 @@ function App() {
   }, [language]);
 
   const flash = (message, error = false) => { setNotice({ message, error }); setTimeout(() => setNotice(null), 4200); };
+  const presentation = useMemo(() => processGraph(graph), [graph]);
   const live = useLiveGraph(setGraph);
   const serverVersion = useServerVersion();
   useEffect(() => {
@@ -229,22 +233,22 @@ function App() {
     const pendingNeedNames = new Map();
     for (const requirement of graph.requirements || []) if (!requirement.source_field_id) pendingNeedNames.set(requirement.node_id, [...(pendingNeedNames.get(requirement.node_id) || []), requirement.name]);
     const ports = new Map(graph.nodes.map(node => [node.id, { inputPorts: [], outputPorts: [] }]));
-    const arcs = arcStyles(graph.nodes, graph.edges);
-    for (const edge of graph.edges) {
+    const arcs = arcStyles(graph.nodes, presentation.edges);
+    for (const edge of presentation.edges) {
       ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.sourceSide || 'normal' });
       ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.targetSide || 'normal' });
     }
     for (const [id, nodePorts] of ports) {
-      nodePorts.inputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
-      nodePorts.outputPorts.sort((a, b) => (nodeById.get(graph.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(graph.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
+      nodePorts.inputPorts.sort((a, b) => (nodeById.get(presentation.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(presentation.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
+      nodePorts.outputPorts.sort((a, b) => (nodeById.get(presentation.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(presentation.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}`).join(',')}`;
     }
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
-    setEdges(graph.edges.map(e => { const color = 'var(--ss-edge)';
+    setEdges(presentation.edges.map(e => { const color = 'var(--ss-edge)';
       return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: 'directArc', data: arcs.get(e.id), animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
         style: { stroke: color, strokeWidth: 1.5, strokeDasharray: arcs.get(e.id)?.dashed ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
-  }, [graph, language, catalogEntityInfo, setNodes, setEdges]);
+  }, [graph, presentation, language, catalogEntityInfo, setNodes, setEdges]);
 
   const selected = graph.nodes.find(n => n.id === selectedId);
   const isSignal = selected && SIGNAL_TYPES.has(selected.type) && selected.name !== scoreRollup.node.name;
@@ -306,7 +310,8 @@ function App() {
   const isNodeReferenceQuery = /^#\d{1,4}$/.test(query);
   const cardReferenceQuery = /^#?\d{1,4}$/.test(query) ? `#${query.replace(/^#/, '')}` : null;
   const connectedIds = new Set(graph.edges.flatMap(edge => [edge.upstream_id, edge.downstream_id]));
-  const referenceMatchEdges = query ? graph.edges.filter(edge =>
+  const referenceMatchEdges = query ? presentation.edges.filter(edge =>
+    edgePresentation(presentation, edge, language).displayLabel.split(' · ')[0].toLowerCase() === query ||
     (graph.field_usages || []).some(usage => usage.edge_id === edge.id && usageRef(usage).toLowerCase() === query)) : [];
   const referenceMatchNodes = new Set(referenceMatchEdges.flatMap(edge => [edge.upstream_id, edge.downstream_id]));
   const matchesQuery = n => referenceMatchNodes.has(n.id) || `${nodeRef(n)} ${n.name} ${displayName(n.name)} ${sourcePurpose(n.name, language) || ''} ${n.definition} ${n.decision_question || ''} ${n.trigger_rule || ''} ${t(n.type)} ${(graph.fields || []).filter(field => field.node_id === n.id).map(field => `${field.name} ${field.definition}`).join(' ')} ${(graph.requirements || []).filter(item => item.node_id === n.id).map(item => `${item.name} ${item.purpose}`).join(' ')}`.toLowerCase().includes(query);
@@ -343,23 +348,26 @@ function App() {
     width: 300, height: 36, measured: { width: 300, height: 36 }, draggable: false, selectable: false, connectable: false,
     style: { pointerEvents: 'none' },
   })));
-  const relationOwner = relationFocus(graph, selectedId, selectedEdgeId || focusedEdgeId);
+  const focusConnection = presentation.edges.find(edge => edge.id === (focusedEdgeId || selectedEdgeId));
+  const flowChoices = edgeFlows(presentation, focusConnection);
+  const relationOwner = graph.nodes.find(node => node.id === flowFocusId && flowChoices.some(choice => choice.id === node.id)) || relationFocus(presentation, selectedId, focusedEdgeId || selectedEdgeId);
+  const currentFlow = relationOwner ? processFlow(presentation, relationOwner.id) : null;
   const triggerTrace = traceTriggers(graph, relationOwner);
-  const emphasis = graphEmphasis(graph.nodes, graph.edges, {
+  const emphasis = graphEmphasis(graph.nodes, presentation.edges, {
     routeNodeId: filteredIds.has(focusNodeId) ? focusNodeId : null,
-    detailNodeId: selectedId, selectedEdgeId: selectedEdgeId || focusedEdgeId, hoveredEdgeId,
-  }, graph);
+    detailNodeId: relationOwner?.id || selectedId, selectedEdgeId: selectedEdgeId || focusedEdgeId, hoveredEdgeId,
+  }, presentation);
   const relatedNodeIds = emphasis.nodeIds, relatedEdgeIds = emphasis.edgeIds;
   const hasGraphFocus = emphasis.active;
-  const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: n.id === focusNodeId ? 'graph-search-target graph-route-focus' : searchMatchIds.has(n.id) ? 'graph-search-target' : hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : '' })), ...groupLabels];
-  const semanticEdges = new Map(graph.edges.map(edge => [edge.id, edge]));
+  const displayNodes = [...nodes.map(n => ({ ...n, hidden: !filteredIds.has(n.id), className: n.id === focusNodeId ? 'graph-search-target graph-route-focus' : hasGraphFocus ? relatedNodeIds.has(n.id) ? 'graph-related' : 'graph-dimmed' : searchMatchIds.has(n.id) ? 'graph-search-target' : '' })), ...groupLabels];
+  const semanticEdges = new Map(presentation.edges.map(edge => [edge.id, edge]));
   const displayEdges = edges.map(e => {
-    const meaning = edgePresentation(graph, semanticEdges.get(e.id), language, relationOwner);
+    const meaning = edgePresentation(presentation, semanticEdges.get(e.id), language, relationOwner);
     const color = ({ read: 'var(--ss-blue)', write: 'var(--ss-success)', trigger: 'var(--ss-purple)', error: 'var(--ss-error)', data: 'var(--ss-muted)' })[meaning.tone];
     return { ...e,
       hidden: !filteredIds.has(e.source) || !filteredIds.has(e.target),
-      className: referenceMatchEdges.some(edge => edge.id === e.id) ? 'graph-related' : hasGraphFocus ? relatedEdgeIds.has(e.id) ? 'graph-related' : 'graph-dimmed' : '',
-      data: { ...e.data, meaning: meaning.displayLabel }, ariaLabel: `${e.ariaLabel} · ${meaning.displayLabel}`,
+      className: hasGraphFocus ? relatedEdgeIds.has(e.id) ? 'graph-related' : 'graph-dimmed' : referenceMatchEdges.some(edge => edge.id === e.id) ? 'graph-related' : '',
+      data: { ...e.data, meaning: meaning.displayLabel, onSelect: () => focusEdge(e.id) }, ariaLabel: `${e.ariaLabel} · ${meaning.displayLabel}`,
       style: { ...e.style, stroke: color }, markerEnd: { ...e.markerEnd, color },
     };
   });
@@ -439,8 +447,8 @@ function App() {
   const openCase016 = index => { setCase016Index(index); setShowCase016(true); };
   const closeCase016 = useCallback(() => setShowCase016(false), []);
   const closeOtherSourceCase = useCallback(() => setOtherSourceCase(null), []);
-  const openEdge = id => { if (!graph.edges.some(edge => edge.id === id)) return; cardClicks.current.cancel(); setSelectedId(null); setSelectedEdgeId(id); setFocusedEdgeId(null); setFocusNodeId(null); };
-  const focusEdge = id => { cardClicks.current.cancel(); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(id); setFocusNodeId(null); };
+  const openEdge = visualId => { const id = relationshipId(presentation.edges.find(edge => edge.id === visualId)); if (!graph.edges.some(edge => edge.id === id)) return; setFlowFocusId(null); cardClicks.current.cancel(); setSelectedId(null); setSelectedEdgeId(id); setFocusedEdgeId(null); if (graphDisplayMode === 'full') setFocusNodeId(null); };
+  const focusEdge = id => { setFlowFocusId(null); cardClicks.current.cancel(); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(id); setFocusNodeId(null); };
   const arrangeNodes = async () => {
     if (!graph.nodes.length) return;
     const positions = autoLayout(graph.nodes, graph.edges);
@@ -489,14 +497,14 @@ function App() {
       <section className="work-card">
         <div className="workflow-tabs" role="tablist" aria-label={t('Workflow paths')}>{WORKFLOW_VIEWS.map(item => <button key={item.id} role="tab" aria-selected={laneView === item.id} className={laneView === item.id ? 'active' : ''} onClick={() => { setLaneView(item.id); setTypeFilter('All types'); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{t(item.name)}</button>)}<p>{language === 'zh-CN' ? '总览和两条路径使用同一张设计图' : 'Overview and both paths use the same design graph'}</p></div>
         <div className="view-toolbar">{graphDisplayMode === 'local' && <button className="button-secondary" onClick={() => { setGraphDisplayMode('full'); setFocusNodeId(null); }}>{language === 'zh-CN' ? '返回完整画布' : 'Back to full graph'}</button>}<div className="view-switch"><button className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><GitBranch size={15} /> {t('Graph')}</button><button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}><List size={15} /> {t('Table')}</button></div><div className="toolbar-right"><div className="search-box"><Search size={16} /><input placeholder={language === 'zh-CN' ? '定位编号、名称或R字段关系' : 'Locate number, name, or R field relation'} value={filter} onChange={e => { setFilter(e.target.value); setFocusNodeId(null); }} /><kbd>⌘ K</kbd></div><select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setFocusNodeId(null); }}><option value="All types">{t('All types')}</option>{TYPES.map(type => <option key={type} value={type}>{kindLabel(type, language)}</option>)}</select>{view === 'graph' && graphDisplayMode === 'full' && <button className="layout-button" onClick={arrangeNodes} disabled={busy || !graph.nodes.length || laneView !== 'all'} title={laneView === 'all' ? t('Arrange crawlers above, leaderboards below; content maintenance beside the flow') : t('Arrange all nodes in Overview')}><LayoutGrid size={15} /> {t('Arrange nodes')}</button>}{view === 'graph' && graphDisplayMode === 'full' && <IconButton title={t('Fit graph')} onClick={() => document.querySelector('.react-flow__controls-fitview')?.click()}><Maximize2 size={16} /></IconButton>}</div></div>
-        {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={graph} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap">{focusNodeId && <div className="route-toolbar"><span>{language === 'zh-CN' ? '完整关联路线' : 'Complete route'}</span><button onClick={() => { const route = traceRoute(graph.nodes, graph.edges, focusNodeId); flowInstance?.fitView({ nodes: [...route.nodeIds].map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 350 }); }}>{language === 'zh-CN' ? '适应路线' : 'Fit route'}</button><button onClick={() => openNode(focusNodeId)}>{language === 'zh-CN' ? '查看卡片详情' : 'Card details'}</button><button onClick={() => setFocusNodeId(null)}>{language === 'zh-CN' ? '取消高亮' : 'Clear highlight'}</button></div>}<ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+        {view === 'graph' ? graphDisplayMode === 'local' ? <LocalFlowView graph={presentation} focusNode={localFocus} language={language} label={displayName} onFocus={id => { setFocusNodeId(id); setSelectedId(null); setSelectedEdgeId(null); }} onOpenNode={openNode} onOpenEdge={openEdge} /> : <div className="graph-wrap">{focusNodeId && <div className="route-toolbar"><span>{language === 'zh-CN' ? '完整关联路线' : 'Complete route'}</span><button onClick={() => { const route = traceRoute(graph.nodes, graph.edges, focusNodeId); flowInstance?.fitView({ nodes: [...route.nodeIds].map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 350 }); }}>{language === 'zh-CN' ? '适应路线' : 'Fit route'}</button><button onClick={() => openNode(focusNodeId)}>{language === 'zh-CN' ? '查看卡片详情' : 'Card details'}</button><button onClick={() => setFocusNodeId(null)}>{language === 'zh-CN' ? '取消高亮' : 'Clear highlight'}</button></div>}<ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} ariaLabelConfig={language === 'zh-CN' ? FLOW_LABELS_ZH : undefined} proOptions={{ hideAttribution: true }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onNodeClick={(event, node) => { if (node.type !== 'logic') return; cardClicks.current.single(() => openNode(node.id), event.detail); }} onNodeDoubleClick={(_, node) => { if (node.type === 'logic') cardClicks.current.double(() => showRoute(node.id)); }} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { cardClicks.current.cancel(); setFocusNodeId(null); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}
           onNodeDragStart={() => { cardClicks.current.cancel(); live.beginDrag(); }}
           onNodeDragStop={async (_, node) => { await mutate(`/nodes/${node.id}`, 'PATCH', { position_x: node.position.x, position_y: node.position.y }); live.endDrag(); }}
           onConnect={connect} onEdgeClick={(_, edge) => focusEdge(edge.id)} onEdgeDoubleClick={(_, edge) => openEdge(edge.id)} onInit={setFlowInstance} deleteKeyCode={null}
           zoomOnDoubleClick={false} fitView fitViewOptions={{ padding: 0.16, maxZoom: 0.75 }} minZoom={0.03} maxZoom={1.5} defaultEdgeOptions={{ type: 'default' }}>
           <Background variant="dots" color="var(--ss-grid)" gap={22} size={1} /><Controls showInteractive={false} />{canvasNodes.length > 0 && <MiniMap style={{ width: 140, height: 80 }} pannable zoomable nodeColor={node => ({ source: 'var(--ss-blue)', raw: 'var(--ss-neutral)', evidence: 'var(--ss-blue)', identity: 'var(--ss-blue)', relationship: 'var(--ss-blue)', review: 'var(--ss-purple)', derived: 'var(--ss-purple)', metric: 'var(--ss-success)', score: 'var(--ss-accent)', ranking: 'var(--ss-pink)', rule: 'var(--ss-warning)', event: 'var(--ss-warning)', product: 'var(--ss-error)', state: 'var(--ss-blue)', topic: 'var(--ss-purple)', cache: 'var(--ss-pink)' })[KIND[node.data.type]] || 'var(--ss-neutral)'} />}</ReactFlow>
-          <div className="edge-relation-guide"><details key={focusedEdgeId || relationOwner?.id || 'overview'} open={Boolean(focusedEdgeId)}><summary>{relationOwner ? `${nodeRef(relationOwner)} · ${language === 'zh-CN' ? '触发源头与读写去向' : 'Trigger origins and destinations'}` : language === 'zh-CN' ? '连线说明 · 点击连线追溯触发源头' : 'Connections · select to trace trigger origins'}</summary><div className="edge-relation-legend"><span><i className="trigger" />{language === 'zh-CN' ? '触发 / 分支' : 'Trigger / branch'}</span><span><i className="read" />{language === 'zh-CN' ? '读取' : 'Read'}</span><span><i className="write" />{language === 'zh-CN' ? '写入' : 'Write'}</span><span><i />{language === 'zh-CN' ? '数据 / 引用' : 'Data / reference'}</span></div><p>{focusExplanation(graph, relationOwner, language)}</p>{relationOwner && <div className="edge-trigger-origins"><strong>{language === 'zh-CN' ? '触发源头' : 'Trigger origins'}</strong>{triggerTrace.origins.map(origin => <button key={`${origin.node.id}:${origin.reason}`} onClick={() => openNode(origin.node.id)} title={displayName(origin.node.name)}>{originLabel(origin, language)}</button>)}</div>}</details><div className="edge-relation-actions">{relationOwner && <button onClick={() => flowInstance?.fitView({ nodes: [...relatedNodeIds].map(id => ({ id })), padding: 0.25, maxZoom: 0.85, duration: 300 })}>{language === 'zh-CN' ? '适应触发链' : 'Fit trigger chain'}</button>}{relationOwner && <button onClick={() => { setGraphDisplayMode('local'); setFocusNodeId(relationOwner.id); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '查看单步关系' : 'One-step view'}</button>}{focusedEdgeId && <button onClick={() => openEdge(focusedEdgeId)}>{language === 'zh-CN' ? '连线详情' : 'Connection details'}</button>}{(selectedId || selectedEdgeId || focusedEdgeId) && <button onClick={() => { setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '取消聚焦' : 'Clear focus'}</button>}</div></div>
+          <div className="edge-relation-guide"><details key={focusedEdgeId || relationOwner?.id || 'overview'} open={Boolean(focusedEdgeId)}><summary>{relationOwner ? `${nodeRef(relationOwner)} · ${language === 'zh-CN' ? '关联流程' : 'Related flow'}` : language === 'zh-CN' ? '连线说明 · 点击连线追溯触发源头' : 'Connections · select to trace trigger origins'}</summary><div className="edge-relation-legend"><span><i className="trigger" />{language === 'zh-CN' ? '触发 / 分支' : 'Trigger / branch'}</span><span><i className="read" />{language === 'zh-CN' ? '读取' : 'Read'}</span><span><i className="write" />{language === 'zh-CN' ? '写入' : 'Write'}</span><span><i />{language === 'zh-CN' ? '数据 / 引用' : 'Data / reference'}</span></div>{flowChoices.length > 1 && <div className="flow-memberships"><strong>{language === 'zh-CN' ? '这条线连接两个流程，可切换查看：' : 'This connection belongs to adjacent flows:'}</strong>{flowChoices.map(node => <button key={node.id} aria-pressed={relationOwner?.id === node.id} onClick={() => setFlowFocusId(node.id)}>{nodeRef(node)} · {displayName(node.name)}</button>)}</div>}<p>{focusConnection && !flowChoices.length ? language === 'zh-CN' ? '这条线尚未定义执行者，不能确认流程归属。保留原关系，待核对。' : 'No executing step is defined for this connection; flow membership remains unconfirmed.' : focusExplanation(graph, relationOwner, language)}</p>{currentFlow && <p className="flow-line-list">{language === 'zh-CN' ? '本组连线：' : 'Flow connections: '}{presentation.edges.filter(edge => currentFlow.edgeIds.has(edge.id)).map(edge => edgePresentation(presentation, edge, language, relationOwner).displayLabel).join('；')}</p>}{relationOwner && <div className="edge-trigger-origins"><strong>{language === 'zh-CN' ? '触发源头' : 'Trigger origins'}</strong>{triggerTrace.origins.map(origin => <button key={`${origin.node.id}:${origin.reason}`} onClick={() => openNode(origin.node.id)} title={displayName(origin.node.name)}>{origin.reason === 'schedule' && <AlarmClock size={13} />}{originLabel(origin, language)}</button>)}</div>}</details><div className="edge-relation-actions">{relationOwner && <button onClick={() => flowInstance?.fitView({ nodes: [...relatedNodeIds].map(id => ({ id })), padding: 0.25, maxZoom: 0.85, duration: 300 })}>{language === 'zh-CN' ? '适应关联流程' : 'Fit related flow'}</button>}{relationOwner && <button onClick={() => { setGraphDisplayMode('local'); setFocusNodeId(relationOwner.id); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '查看单步关系' : 'One-step view'}</button>}{focusedEdgeId && <button onClick={() => openEdge(focusedEdgeId)}>{language === 'zh-CN' ? '连线详情' : 'Connection details'}</button>}{(selectedId || selectedEdgeId || focusedEdgeId) && <button onClick={() => { setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(null); }}>{language === 'zh-CN' ? '取消聚焦' : 'Clear focus'}</button>}</div></div>
 
           {locatingCard && <div className="graph-search-status" role="status">{searchTarget ? (language === 'zh-CN' ? `已定位 ${nodeRef(searchTarget)} · 保留完整图谱` : `Located ${nodeRef(searchTarget)} · Full graph preserved`) : (language === 'zh-CN' ? searchMatches.length ? `已定位 ${searchMatches.length} 张卡片 · 保留完整图谱` : `未找到匹配项 ${query} · 保留完整图谱` : searchMatches.length ? `Located ${searchMatches.length} cards · Full graph preserved` : `No matches for ${query} · Full graph preserved`)}</div>}
           </div>

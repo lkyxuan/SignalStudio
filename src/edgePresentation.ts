@@ -3,6 +3,8 @@ import { cardKind } from './cardModel';
 import { edgeRef } from './graphRefs';
 import copy from '../catalog/card-detail-copy.v1.json';
 import rollup from '../catalog/score-rollup.v1.json';
+import collectionPlans from '../catalog/source-collection-plans.v1.json';
+import foundation from '../catalog/leaderboard-foundation.v1.json';
 
 type RelationGraph = Pick<Graph, 'nodes' | 'edges' | 'bindings'>;
 type Binding = NonNullable<Graph['bindings']>[number];
@@ -21,7 +23,8 @@ export function edgeProcess(graph: RelationGraph, edge?: GraphEdge): GraphNode |
   if (!edge) return undefined;
   const bindings = edgeBindings(graph, edge);
   const ownerIds = new Set(bindings.map(binding =>
-    ['write', 'publish'].includes(binding.kind) ? edge.upstream_id :
+    edge.presentation_role === 'request' || ['write', 'publish'].includes(binding.kind) ||
+      (binding.kind === 'data' && graph.nodes.some(node => node.id === edge.upstream_id && actions.has(cardKind(node)))) ? edge.upstream_id :
       ['read', 'consume', 'control', 'data', 'error'].includes(binding.kind) ? edge.downstream_id : null));
   ownerIds.delete(null);
   if (ownerIds.size !== 1) return undefined;
@@ -49,6 +52,12 @@ function bindingText(graph: RelationGraph, edge: GraphEdge, binding: Binding, zh
   let label = binding.kind === 'control' && branch
     ? trigger === 'event' ? (zh ? `${branch}后触发` : `${branch} → trigger`) : (zh ? `分支：${branch}` : `Branch: ${branch}`)
     : relation;
+  const source = graph.nodes.find(node => node.id === edge.upstream_id);
+  if (binding.kind === 'data' && source?.reference_number === 4002 && source.name === '定期 AI 检查资产地图' &&
+      source.card_contract?.config.definition_refs.some(ref => ref.path === 'catalog/identity-flow-case.v1.json') &&
+      graph.nodes.some(node => node.id === edge.downstream_id && node.reference_number === 4003 && node.name === '人工审核资产纠错建议')) {
+    label = zh ? '提交检查建议' : 'Submit review proposal';
+  }
   if (binding.kind !== 'control' && branch) label += zh ? `（${branch}）` : ` (${branch})`;
   if (trigger === 'change') label += zh ? ' · 变化后触发' : ' · Trigger on change';
   if (trigger === 'event' && binding.kind !== 'control') label += zh ? ' · 事件触发' : ' · Event trigger';
@@ -72,13 +81,15 @@ export function edgePresentation(graph: RelationGraph, edge: GraphEdge | undefin
   const bindings = edge ? edgeBindings(graph, edge) : [];
   const labels = bindings.map(binding => {
     const stage = correctionStage(graph, edge!, binding, focus);
+    if (edge?.presentation_role === 'request') return zh ? '读取请求' : 'Read request';
+    if (edge?.presentation_role === 'response') return `${stage ? '② ' : ''}${zh ? '返回数据' : 'Return data'}`;
     return stage ? (zh ? ['', '① 批准后触发', '② 读取当前记录', '③ 核对通过后写入'] : ['', '① Trigger on approval', '② Read current record', '③ Write after checks'])[stage]!
       : bindingText(graph, edge!, binding, zh);
   });
   const tones = new Set(bindings.map(binding => binding.config.trigger === 'event' || binding.config.trigger === 'change' || binding.kind === 'control' ? 'trigger' :
     binding.kind === 'read' ? 'read' : binding.kind === 'write' ? 'write' : binding.kind === 'error' ? 'error' : 'data'));
   const label = [...new Set(labels)].join(' / ') || (zh ? '关系待定义' : 'Relation undefined');
-  const reference = edgeRef(edge);
+  const reference = `${edgeRef(edge)}${edge?.presentation_role === 'request' ? '-Q' : ''}`;
   return { label, displayLabel: reference ? `${reference} · ${label}` : label,
     tone: tones.size === 1 ? [...tones][0]! : 'data' };
 }
@@ -88,6 +99,7 @@ export function focusExplanation(graph: RelationGraph, focus: GraphNode | undefi
   if (!actions.has(cardKind(focus))) return zh ? '共享存储和通道的入线、出线不自动组成执行顺序；请选择具体连线。' : 'Incoming and outgoing storage/channel connections do not imply an execution sequence. Select a connection.';
   const knownCorrection = focus.reference_number === 3003 && focus.name === '执行获批资产纠错' && focus.card_contract?.config.definition_refs.some(ref => ref.path === 'catalog/identity-flow-case.v1.json');
   if (knownCorrection) return zh ? '#4003 批准后，#3003 读取当前记录，核对通过才写回。①②③ 表示设计阶段。' : 'After #4003 approval, #3003 reads current records and writes only after checks. ①②③ describe design stages.';
+  if (isScheduled(focus)) return zh ? '从当前卡片定时启动；读取请求由它发起，数据返回给它，再处理并输出。关联线包含可能的分支，不表示全部同时执行。' : 'This card starts on a schedule, requests data, receives the response, then processes and emits results. Alternative branches need not run together.';
   const triggers = graph.edges.filter(edge => edge.downstream_id === focus.id && edgeBindings(graph, edge).some(binding => ['event', 'change'].includes(binding.config.trigger || '')))
     .map(edge => graph.nodes.find(node => node.id === edge.upstream_id)).filter((node): node is GraphNode => !!node);
   const from = [...new Set(triggers.map(node => `#${node.reference_number ?? node.name}`))].join('、');
@@ -95,11 +107,17 @@ export function focusExplanation(graph: RelationGraph, focus: GraphNode | undefi
     : (zh ? '已突出当前步骤的直接关系；运行时机按卡片定义，不能由读表连线推断。' : 'Direct relations of this step are highlighted. Its trigger follows the card definition, not the read arrows.');
 }
 
-function moduleSchedule(node: GraphNode) {
+export function moduleSchedule(node: GraphNode) {
   const refs = node.card_contract?.config.definition_refs || [];
+  const plan = (collectionPlans.plans as Record<string, { mode: string; interval_minutes: number }>)[node.name];
+  if (plan?.mode === 'scheduled' && refs.some(ref => ref.path === 'catalog/source-contracts.v1.json')) return { interval: plan.interval_minutes * 60 };
   if (node.name === '定期 AI 检查资产地图' && refs.some(ref => ref.path === 'catalog/identity-flow-case.v1.json')) return { interval: undefined };
   if (node.name === rollup.node.name && refs.some(ref => ref.path === 'catalog/score-rollup.v1.json')) return { interval: rollup.configuration.schedule.interval_seconds };
+  if (node.name === '量价评分 · 汇总Redis记分' && refs.some(ref => ref.path === 'catalog/leaderboard-foundation.v1.json')) return { interval: foundation.execution.parameters.score_refresh_seconds };
   return undefined;
+}
+export function isScheduled(node: GraphNode) {
+  return node.card_contract?.config.trigger.kind === 'schedule' || !!moduleSchedule(node);
 }
 export type TriggerOrigin = { node: GraphNode; reason: 'schedule' | 'manual' | 'source' | 'change' | 'event' | 'undefined' | 'cycle' };
 export function traceTriggers(graph: RelationGraph, focus?: GraphNode) {

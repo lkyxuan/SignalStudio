@@ -1,6 +1,6 @@
 import type { Language, GraphNode, Graph, GraphEdge } from './contracts';
 import React from 'react';
-import { ArrowRight, Database, GitBranch } from 'lucide-react';
+import { AlarmClock, ArrowRight, Database, GitBranch } from 'lucide-react';
 import { nodeRef } from './graphRefs';
 import './local-flow-view.css';
 import { edgePresentation, focusExplanation, traceTriggers, originLabel, edgeBindings } from './edgePresentation';
@@ -32,7 +32,7 @@ export function LocalFlowView({ graph, focusNode, language, label, onFocus, onOp
   const zh = language === 'zh-CN';
   return <div className="local-flow-view">
     <div className="local-flow-intro"><strong>{zh ? '单步关系 · 输入 → 当前卡片 → 输出' : 'One-step view · Input → Current card → Output'}</strong><span>{focusExplanation(graph, focusNode, language)}</span></div>
-    <div className="local-trigger-origins"><strong>{zh ? '触发源头' : 'Trigger origins'}</strong>{traceTriggers(graph, focusNode).origins.map(origin => <button key={`${origin.node.id}:${origin.reason}`} onClick={() => onFocus(origin.node.id)} title={label(origin.node.name)}>{originLabel(origin, language)}</button>)}</div>
+    <div className="local-trigger-origins"><strong>{zh ? '触发源头' : 'Trigger origins'}</strong>{traceTriggers(graph, focusNode).origins.map(origin => <button key={`${origin.node.id}:${origin.reason}`} onClick={() => onFocus(origin.node.id)} title={label(origin.node.name)}>{origin.reason === 'schedule' && <AlarmClock size={13} />}{originLabel(origin, language)}</button>)}</div>
     <div className="local-flow-columns">
       <section className="local-flow-column local-flow-inputs"><h3>{zh ? '输入' : 'Input'} <span>{inputs.length}</span></h3><div className="local-flow-list">{inputs.length ? inputs.map(({ edge, node }) => <Neighbor key={edge.id} node={node} language={language} onFocus={onFocus} direction="input" label={label} graph={graph} edge={edge} focusNode={focusNode} onOpenEdge={onOpenEdge} />) : <p>{zh ? '没有已连接的输入' : 'No connected input'}</p>}</div></section>
       <section className="local-flow-center"><h3>{zh ? '当前卡片' : 'Current card'}</h3><button onClick={() => onOpenNode(focusNode.id)} className="local-focus-node"><span className="local-node-type">{focusNode.is_system_state ? <Database size={15} /> : <GitBranch size={15} />}{focusNode.is_system_state ? zh ? '表卡片' : 'Table card' : zh ? '节点卡片' : 'Node card'}</span><strong><span>{nodeRef(focusNode)}</span>{label(focusNode.name)}</strong><CardProgressBadge progress={graph.card_progress?.[focusNode.id]} language={language}/><small>{zh ? '点击查看输入、输出和案例' : 'Click to inspect inputs, outputs and cases'}</small></button></section>

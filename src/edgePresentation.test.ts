@@ -80,7 +80,8 @@ test('trigger ancestry follows messages and multiple entry points without crossi
   assert.equal(trace.nodeIds.has('table'), false);
   assert.equal(traceTriggers(chain, nodes[0]).origins.length, 0);
   const emphasized = graphEmphasis(chain.nodes, chain.edges, { selectedEdgeId: 'read' }, chain);
-  assert.equal(emphasized.edgeIds.has('publish'), true);
+  assert.equal(emphasized.edgeIds.has('publish'), false, 'trigger ancestry is explained separately from the local flow group');
+  assert.equal(emphasized.edgeIds.has('consume'), false);
   assert.equal(emphasized.edgeIds.has('previous-write'), false);
   chain.bindings!.find(binding => binding.edge_id === 'read')!.config.trigger = 'change';
   assert.ok(traceTriggers(chain, correction).origins.some(origin => origin.node.id === 'table' && origin.reason === 'change'));

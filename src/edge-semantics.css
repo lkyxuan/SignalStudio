@@ -19,3 +19,13 @@
 .edge-relation-guide summary{cursor:pointer;line-height:1.5;font-weight:600}.edge-relation-guide details[open] summary{margin-bottom:8px}.edge-relation-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.edge-relation-actions:empty{display:none}.edge-relation-actions button{margin:0;font-size:11px}.edge-semantics-detail ul{padding-left:18px}
 
 .local-trigger-origins{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:18px;font-size:11px;color:var(--ss-muted)}.local-trigger-origins:has(>strong:only-child){display:none}.local-trigger-origins button{border:1px solid var(--ss-border);border-radius:5px;background:var(--ss-raised);color:var(--ss-text);padding:5px 8px;font-size:11px}
+
+/* Labels are directly selectable even when the arc bows away from its bounding-box center. */
+.react-flow__edge-textwrapper{pointer-events:all!important}
+.react-flow__edge.graph-related .react-flow__edge-text{font-weight:800!important;fill:var(--ss-text)!important}
+.react-flow__edge.graph-related .react-flow__edge-textbg{stroke:var(--ss-accent)!important;stroke-width:2px}
+.react-flow__node.graph-related .logic-node{border-color:var(--ss-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--ss-accent) 30%,transparent)}
+.schedule-start-badge{display:inline-flex;align-items:center;gap:4px;color:var(--ss-warning);font-size:10px;white-space:nowrap}
+.flow-memberships{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px}.flow-memberships strong{width:100%;color:var(--ss-muted);font-size:11px}.flow-memberships button{margin:0}.flow-memberships button[aria-pressed=true]{border-color:var(--ss-accent);color:var(--ss-accent)}
+.flow-line-list{max-height:80px;overflow:auto;margin-top:6px!important;color:var(--ss-muted)}
+.edge-trigger-origins button,.local-trigger-origins button{display:inline-flex;align-items:center;gap:4px}
