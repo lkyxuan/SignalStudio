@@ -1,0 +1,539 @@
+{
+  "version": "polars-indicator-module.v1",
+  "rationale_url": "https://app.notion.com/p/3f7038a63d5a81d6a966cc2f4db8b162",
+  "parent": {
+    "name": "Polars · 计算 CoinGecko 量价指标",
+    "key": "polars",
+    "description": "Polars指标模块：五项独立编号子卡，共享输入、身份/质量/时间检查、历史与统一组装发布；卡片编号不代表独立程序。",
+    "algorithm": "共享校验后，按五张子卡定义整理来源24h涨跌幅与ATH百分比，计算成交额/市值、绝对24h涨跌幅、相对昨日放量倍数。以同一observation_id组装完整market_indicators_v1，按原冻结规则直接发布#5007；子卡不独立消费或发布消息。",
+    "previous": {
+      "description": "统一计算和整理 CoinGecko 行情指标，按需查询历史；产出后直接发布 Redpanda indicator.data，不判断提醒阈值或生成加分。",
+      "algorithm": "当前行情核对CoinGecko稳定ID、USD、时间与覆盖；Polars计算成交额/市值、绝对24h涨跌幅、相对24小时前放量倍数。基线须同资产/来源/coin ID/报价/覆盖，取目标前最近且≤30分钟的有效观测，接收时间不晚于目标；缺基线只令volume_ratio为空。每条观测按observation_id冻结输入与指标结果，重试沿用身份、版本、槽和基线引用；五分钟槽首个有效指标的评分冻结由评分层保留，不抑制同槽其他观测的指标发布。 保留来源有符号24h涨跌幅与相对全历史最高价百分比ath_change_percentage，缺失或非有限值为null；不以本地14天最高价替代ATH。所有指标发布到indicator.data，提醒条件及加分由下游分别判断。 指标产出不套用三榜市值/成交额准入或贡献去重门槛；缺失数值仅影响对应指标，其他可用指标仍输出。"
+    }
+  },
+  "channel": "Few Understand · indicator.data",
+  "input": "Few Understand · market.snapshot",
+  "metric_version": "market_indicators_v1",
+  "cards": [
+    {
+      "key": "signed_price",
+      "name": "Polars · 整理24h涨跌幅",
+      "output": "price_change_percentage_24h",
+      "input_fields": [
+        "price_change_percentage_24h"
+      ],
+      "formula": "保留CoinGecko来源有符号24h涨跌幅，不用本地价格重算。",
+      "missing": "缺失、非数值或NaN/无穷为null；保留正负方向。",
+      "polars_expression": "pl.when(pl.col(\"price_change_percentage_24h\").is_finite()).then(pl.col(\"price_change_percentage_24h\")).otherwise(None).alias(\"price_change_percentage_24h\")",
+      "unit": "%",
+      "example": {
+        "input": {
+          "price_change_percentage_24h": -12
+        },
+        "output": -12
+      },
+      "history": null,
+      "columns": [
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        }
+      ],
+      "input_origins": {
+        "price_change_percentage_24h": "market.snapshot.price_change_percentage_24h → 3035共享有限数值归一"
+      },
+      "shared_context_fields": [
+        "observation_id",
+        "asset_id"
+      ],
+      "context_note": "沿用3035共享输入中已冻结的observation_id和已核实asset_id；每项结果携带同一观测/资产键供组装，不独立生成身份或观测ID。"
+    },
+    {
+      "key": "ath_price",
+      "name": "Polars · 整理ATH百分比",
+      "output": "ath_change_percentage",
+      "input_fields": [
+        "ath_change_percentage"
+      ],
+      "formula": "保留CoinGecko来源相对全历史最高价百分比，不用本地14天最高价替代。",
+      "missing": "缺失、非数值或NaN/无穷为null；不推断历史最高价。",
+      "polars_expression": "pl.when(pl.col(\"ath_change_percentage\").is_finite()).then(pl.col(\"ath_change_percentage\")).otherwise(None).alias(\"ath_change_percentage\")",
+      "unit": "%",
+      "example": {
+        "input": {
+          "ath_change_percentage": -2
+        },
+        "output": -2
+      },
+      "history": null,
+      "columns": [
+        {
+          "name": "ath_change_percentage",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko提供的相对全历史最高价百分比；缺失不使用14天历史代替"
+        }
+      ],
+      "input_origins": {
+        "ath_change_percentage": "market.snapshot.ath_change_percentage → 3035共享有限数值归一"
+      },
+      "shared_context_fields": [
+        "observation_id",
+        "asset_id"
+      ],
+      "context_note": "沿用3035共享输入中已冻结的observation_id和已核实asset_id；每项结果携带同一观测/资产键供组装，不独立生成身份或观测ID。"
+    },
+    {
+      "key": "turnover",
+      "name": "Polars · 计算成交额市值比",
+      "output": "volume_to_market_cap",
+      "input_fields": [
+        "total_volume",
+        "market_cap"
+      ],
+      "formula": "volume_to_market_cap = total_volume / market_cap；24h成交额相对于当前市值，不是相对昨日放量。",
+      "missing": "成交额须有限且≥0，市值须有限且>0；任一无效为null，不补零，不套用榜单准入门槛。",
+      "polars_expression": "pl.when((pl.col(\"total_volume\") >= 0) & (pl.col(\"market_cap\") > 0)).then(pl.col(\"total_volume\") / pl.col(\"market_cap\")).otherwise(None).alias(\"volume_to_market_cap\")",
+      "unit": "ratio",
+      "example": {
+        "input": {
+          "total_volume": 20000000,
+          "market_cap": 100000000
+        },
+        "output": 0.2
+      },
+      "history": null,
+      "columns": [
+        {
+          "name": "volume_to_market_cap",
+          "data_type": "number | null",
+          "label_zh": "24h成交额/市值，由Polars计算"
+        }
+      ],
+      "input_origins": {
+        "total_volume": "market.snapshot.total_volume → 3035共享有限数值归一",
+        "market_cap": "market.snapshot.market_cap → 3035共享有限数值归一"
+      },
+      "shared_context_fields": [
+        "observation_id",
+        "asset_id"
+      ],
+      "context_note": "沿用3035共享输入中已冻结的observation_id和已核实asset_id；每项结果携带同一观测/资产键供组装，不独立生成身份或观测ID。"
+    },
+    {
+      "key": "absolute_price",
+      "name": "Polars · 计算绝对24h涨跌幅",
+      "output": "abs_price_pct",
+      "input_fields": [
+        "price_change_percentage_24h"
+      ],
+      "formula": "abs_price_pct = abs(price_change_percentage_24h)；上涨/下跌幅度同等，原方向在来源字段保留。",
+      "missing": "来源涨跌幅缺失、非数值或NaN/无穷为null，不影响其他可用指标。",
+      "polars_expression": "pl.col(\"price_change_percentage_24h\").abs().alias(\"abs_price_pct\")",
+      "unit": "%",
+      "example": {
+        "input": {
+          "price_change_percentage_24h": -12
+        },
+        "output": 12
+      },
+      "history": null,
+      "columns": [
+        {
+          "name": "abs_price_pct",
+          "data_type": "number | null",
+          "label_zh": "绝对24h价格变化百分比，由Polars计算，方向另保留"
+        }
+      ],
+      "input_origins": {
+        "price_change_percentage_24h": "market.snapshot.price_change_percentage_24h → 3035共享有限数值归一"
+      },
+      "shared_context_fields": [
+        "observation_id",
+        "asset_id"
+      ],
+      "context_note": "沿用3035共享输入中已冻结的observation_id和已核实asset_id；每项结果携带同一观测/资产键供组装，不独立生成身份或观测ID。"
+    },
+    {
+      "key": "relative_volume",
+      "name": "Polars · 计算相对昨日放量倍数",
+      "output": "volume_ratio",
+      "input_fields": [
+        "total_volume",
+        "requested_at",
+        "asset_id",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key"
+      ],
+      "formula": "volume_ratio = total_volume / baseline_volume；两者都是滚动24h成交额，不是5分钟或1小时新增成交量。",
+      "missing": "当前成交额须有限且≥0；缺少合格历史基线时为null，其他指标继续输出。",
+      "polars_expression": "pl.when((pl.col(\"total_volume\") >= 0) & (pl.col(\"baseline_volume\") > 0)).then(pl.col(\"total_volume\") / pl.col(\"baseline_volume\")).otherwise(None).alias(\"volume_ratio\")",
+      "unit": "multiple",
+      "example": {
+        "input": {
+          "total_volume": 20000000,
+          "baseline_volume": 10000000
+        },
+        "output": 2
+      },
+      "history": {
+        "source": "coingecko_market_history",
+        "target": "原始requested_at前24小时",
+        "selection": "同asset_id/source_id/source_object_id/USD/coverage_key，取目标之前最近且距目标≤30分钟的有效观测；接收时间≤目标。基线沿用现行volume_baseline有效性检查及24h成交额≥100万美元，不改变原规则。",
+        "input_fields": [
+          "observation_id",
+          "asset_id",
+          "source_id",
+          "source_object_id",
+          "quote_currency",
+          "coverage_key",
+          "requested_at",
+          "collected_at",
+          "observed_at",
+          "quality_status",
+          "identity_status",
+          "current_price",
+          "market_cap",
+          "total_volume",
+          "price_change_percentage_24h"
+        ],
+        "output_fields": [
+          "baseline_observation_id",
+          "baseline_requested_at",
+          "baseline_volume"
+        ]
+      },
+      "columns": [
+        {
+          "name": "volume_ratio",
+          "data_type": "number | null",
+          "label_zh": "当前滚动24h成交额/约24小时前可比成交额，不是短窗新增交易量"
+        }
+      ],
+      "input_origins": {
+        "total_volume": "market.snapshot.total_volume → 3035共享有限数值归一",
+        "requested_at": "market.snapshot.meta.requested_at → 3035归一",
+        "asset_id": "3035共享内存身份映射，权威来源assets/asset_identifiers；不是原始行情已提供内部ID",
+        "source_id": "market.snapshot.meta.operation_id → 3035核对来源操作",
+        "source_object_id": "market.snapshot.id → CoinGecko稳定coin ID",
+        "quote_currency": "market.snapshot.meta.quote_currency → 3035核对USD",
+        "coverage_key": "market.snapshot.meta.coverage_key → 3035核对覆盖"
+      },
+      "shared_context_fields": [
+        "observation_id",
+        "asset_id"
+      ],
+      "context_note": "沿用3035共享输入中已冻结的observation_id和已核实asset_id；每项结果携带同一观测/资产键供组装，不独立生成身份或观测ID。"
+    }
+  ],
+  "consumers": [
+    {
+      "key": "warming_calc",
+      "name": "生成基础升温榜",
+      "metric_fields": [
+        "volume_ratio",
+        "abs_price_pct"
+      ],
+      "validation_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "total_volume",
+        "price_change_percentage_24h",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "required_fields": [
+        "volume_ratio",
+        "abs_price_pct",
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "total_volume",
+        "price_change_percentage_24h",
+        "volume_to_market_cap",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "purpose": "放量倍数≥1.5、绝对24h涨跌幅≥5%；另读#1021/#1022计算当前活动分减约60分钟前活动分，按正增量排序；读取指标不触发榜单。"
+    },
+    {
+      "key": "hottest_calc",
+      "name": "生成基础最热榜",
+      "metric_fields": [],
+      "validation_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "total_volume",
+        "price_change_percentage_24h",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "required_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "total_volume",
+        "price_change_percentage_24h",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "purpose": "指标用于现行有效性/准入检查；另读#1021按活动分排序，不以任一行情指标直接排名。"
+    },
+    {
+      "key": "discoveries_calc",
+      "name": "生成新发现榜",
+      "metric_fields": [],
+      "validation_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "total_volume",
+        "price_change_percentage_24h",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "required_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "total_volume",
+        "price_change_percentage_24h",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "purpose": "指标用于现行有效性/准入检查；另读#1016首次发现状态及#1021当前分，按新分排序。"
+    },
+    {
+      "key": "first_seen",
+      "name": "记录首次有效发现",
+      "metric_fields": [],
+      "validation_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "object_key",
+        "object_kind",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "run_id",
+        "observed_at",
+        "requested_at",
+        "collected_at",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "snapshot_ref"
+      ],
+      "required_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "object_key",
+        "object_kind",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "run_id",
+        "observed_at",
+        "requested_at",
+        "collected_at",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "snapshot_ref"
+      ],
+      "purpose": "读取资产身份、观测时间和来源覆盖，另读#1014判断首次基线/真正新增；不从放量或涨跌幅推断新发现。"
+    },
+    {
+      "key": "score_contributions",
+      "name": "量价评分 · 生成贡献",
+      "metric_fields": [
+        "total_volume",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio"
+      ],
+      "validation_fields": [
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "total_volume",
+        "price_change_percentage_24h",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "required_fields": [
+        "total_volume",
+        "volume_to_market_cap",
+        "abs_price_pct",
+        "volume_ratio",
+        "metric_id",
+        "metric_version",
+        "observation_id",
+        "asset_id",
+        "identity_status",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "quality_status",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "calculated_at",
+        "slot_start",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "baseline_observation_id",
+        "baseline_requested_at",
+        "baseline_volume"
+      ],
+      "purpose": "四项分别按现行market_v1最高档加分；首次发现奖励另读#1016。"
+    }
+  ],
+  "rules": [
+    "子卡全局独立编号；parent_module.node_id为稳定归属，编号只用于展示，不要求连续。父卡列出全部子卡；单项卡片不是独立进程、消费者组或Topic。",
+    "由#3035消费者取得共享行情、内存身份映射和所需历史；模块内只做逻辑分解。子卡输出交给#3035统一组装；仅#3035发布完整指标消息到#5007。",
+    "每项声明自身公式与输入输出；共享身份/时间/质量校验、来源数值有限性归一、冻结和幂等沿用market-polars契约；所有表达式假设已将非数值/布尔/非有限来源值转成Float64 null，不用Python逐币循环作为此处的Polars实现说明。",
+    "Polars表达式为代码侧实现参考，当前工作台不执行Polars。历史选择必须先按既有基线规则完成，不能仅按时间join就声称满足可比性；when各分支须能独立执行，不依赖短路保护异常。",
+    "下游区分业务使用字段与校验/追溯字段；最热/新发现榜的业务排序来自评分，非行情指标。现行valid_indicators的额外数值/基线校验仍保留，不因本轮拆卡放宽。",
+    "本轮不改公式/阈值/时间窗口/评分/发现/排序/发布协议，不声称后台实现、运行或性能已验证。"
+  ],
+  "polars_references": [
+    "https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.is_finite.html",
+    "https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.when.html"
+  ]
+}

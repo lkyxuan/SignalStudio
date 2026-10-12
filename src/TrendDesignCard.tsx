@@ -2,6 +2,7 @@ import catalog from '../catalog/market-polars.v1.json';
 import scoring from '../catalog/market-scoring.v1.json';
 import { BusinessTableRows } from './BusinessTableRows';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
+import { PolarsIndicatorDependency } from './PolarsModuleCard';
 import type { Graph, GraphNode, Language } from './contracts';
 
 export const trendDesign = (name: string) => catalog.nodes.find(item => item.name === name);
@@ -32,7 +33,7 @@ export function TrendDesignCard({ node, graph, openNode, language }: Props) {
     <a href={catalog.rationale_url} target="_blank" rel="noreferrer">{zh ? '本轮确认的需求' : 'Accepted requirements'}</a>
   </details>;
   const status = <p className="processing-io-case-caption">{zh ? 'Polars指标 → 筛选加分 → Redis → 三榜 · 设计已定义，后台适配/运行未核验' : 'Polars indicators → scoring → Redis → three boards · design defined, runtime unverified'}</p>;
-  const description = <><p>{spec.description}</p>{board && <p>{zh ? `首页位置 ${board.slot} · ${board.label_zh}榜` : `Homepage slot ${board.slot} · ${board.key}`}</p>}</>;
+  const description = <><PolarsIndicatorDependency node={node} language={language}/><p>{spec.description}</p>{board && <p>{zh ? `首页位置 ${board.slot} · ${board.label_zh}榜` : `Homepage slot ${board.slot} · ${board.key}`}</p>}</>;
   if (spec.role !== 'process') return <div className="business-table-card">
     <BusinessTableRows table={schema} rows={[]} language={language}/>{status}{description}
     <p>{zh ? '以下字段说明格式；未回填真实记录，不放虚构分数。' : 'Declared schema; no imported records or invented scores.'}</p>

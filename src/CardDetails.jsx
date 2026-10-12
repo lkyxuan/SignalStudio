@@ -23,6 +23,12 @@ import { ApplicationInterfaceCard } from './ApplicationInterfaceCard';
 
 const words = (language, zh, en) => language === 'zh-CN' ? zh : en;
 const relationLabels = {data:['传递数据','Data'],control:['执行顺序','Sequence'],read:['读取','Read'],write:['写入','Write'],publish:['发布消息','Publish'],consume:['消费消息','Consume'],error:['失败路径','Error'],reference:['设计引用 · 未建立自动同步','Design reference · no automatic sync']};
+const relationRoleLabels = {
+  human_review_surface: ['人工审核界面 · 不自动触发', 'Human review surface · no automatic trigger'],
+  module_shared_input: ['模块共享输入 · 无独立消费者', 'Shared module input · no independent consumer'],
+  module_result: ['模块内部结果 · 统一组装', 'Internal module result · assembled together'],
+  module_history_input: ['模块共享历史读取', 'Shared module history read'],
+};
 function CardLink({ node, openNode, language }) {
   return <button type="button" onClick={() => openNode(node.id)}>{nodeRef(node)} {displayNodeName(language, node.name)}</button>;
 }
@@ -35,7 +41,7 @@ export function CardConnections({ node, graph, openNode, language }) {
     {[true,false].map((incoming,index) => <div key={String(incoming)}><h3>{labels[index + (language === 'zh-CN' ? 0 : 2)]}</h3>
       {relations.filter(item => item.incoming === incoming).map(({ edge, other, bindings }) => <div className="card-detail-relation" key={edge.id}>
         {other && <CardLink node={other} openNode={openNode} language={language} />}
-        <small>{bindings.length ? [...new Set(bindings.map(binding => binding.config?.role === 'human_review_surface' ? words(language,'人工审核界面 · 不自动触发','Human review surface · no automatic trigger') : relationLabels[binding.kind]?.[language === 'zh-CN' ? 0 : 1] || binding.kind))].join(' · ') : words(language,'设计连接 · 关系待定义','Design connection · relation undefined')}</small>
+        <small>{bindings.length ? [...new Set(bindings.map(binding => (relationRoleLabels[binding.config?.role] || relationLabels[binding.kind])?.[language === 'zh-CN' ? 0 : 1] || binding.kind))].join(' · ') : words(language,'设计连接 · 关系待定义','Design connection · relation undefined')}</small>
       </div>)}
       {!relations.some(item => item.incoming === incoming) && <p>{words(language,'尚未连接','No connection defined')}</p>}
     </div>)}

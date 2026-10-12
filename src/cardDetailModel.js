@@ -51,6 +51,7 @@ export function executionSummary(node, language) {
   if (stage) return stage.trigger_zh;
   if (node.name === rollup.node.name) return zh ? '新贡献成功写入 #6001 后立即计算受影响资产；另每 60 秒刷新全部事件资产的衰减（已确认定义，运行另行核对）。' : 'Recompute affected assets after a new #6001 contribution; refresh all event assets every 60 seconds (approved definition; runtime separately verified).';
   const trigger = node.card_contract?.config.trigger || {};
+  if (resourceSettings(node).parent_module) return zh ? '由所属3035模块在共享输入校验后执行；不是独立订阅、调度或发布程序。' : 'Run inside owning module 3035 after shared input validation; not an independent subscriber, scheduled job or publisher.';
   if (trigger.kind === 'schedule' && trigger.interval_seconds > 0) return zh ? `每 ${trigger.interval_seconds} 秒运行（定义）。` : `Every ${trigger.interval_seconds} seconds (definition).`;
   const labels = zh ? { manual:'人工开始。',event:'收到约定事件后开始。',change:'约定数据变化后开始。' } : {manual:'Start manually.',event:'Start on the specified event.',change:'Start on the specified data change.'};
   return labels[trigger.kind] || (zh ? '运行时机沿用所属模块；未明确的触发条件保持待定义。' : 'Use the owning module’s trigger; unspecified conditions remain undefined.');

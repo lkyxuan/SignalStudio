@@ -131,6 +131,8 @@ function LogicNode({ id, data, selected }) {
       {!data.isContractSource && data.fieldCount > 0 && <span className="node-field-count">{data.language === 'zh-CN' ? `${data.fieldCount} ${t('fields')}` : `${data.fieldCount} ${data.fieldCount === 1 ? 'field' : 'fields'}`}</span>}
     </div>
     <div className="node-body">
+    {data.card_contract?.config.resource?.parent_module && <span className="shared-card-badge">{data.language === 'zh-CN' ? '所属Polars模块' : 'Polars module'} #{data.card_contract.config.resource.parent_module.reference_number}</span>}
+    {data.card_contract?.config.resource?.module_children && <span className="shared-card-badge">{data.card_contract.config.resource.module_children.length} {data.language === 'zh-CN' ? '项指标职责' : 'indicator responsibilities'}</span>}
     <CardProgressBadge progress={data.progress} language={data.language} />
     <div className="node-name" title={`${nodeRef(data)} ${data.isContractSource && data.language === 'zh-CN' ? data.catalogRecordLabel || data.name : displayNodeName(data.language, data.name)} · ${data.name}`}><span className="node-name-text">{data.isContractSource && data.language === 'zh-CN' ? data.catalogRecordLabel || data.name : displayNodeName(data.language, data.name)}</span></div>
     <div className="node-definition" title={BUSINESS_TABLE_NAMES.has(data.name) ? businessTables.tables[data.name].purpose_zh : cardSummary || data.definition || ''}>{BUSINESS_TABLE_NAMES.has(data.name)

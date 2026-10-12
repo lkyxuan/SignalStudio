@@ -24,6 +24,30 @@ Polars 负责统一输入身份/时间/质量检查，计算成交额/市值、�
 
 验收需覆盖加载/重启、命中时无数据库访问、未命中回查、新增与纠错刷新、多个进程更新，以及代表性负载下的吞吐与端到端延迟。当前未给出数值性能目标，不将内存缓存称为已证实的最快方案。
 
+## #3035 指标模块与独立编号子卡（SS-77）
+
+2026-10-12 用户批准[拆分方案](https://app.notion.com/p/3f7038a63d5a81d6a966cc2f4db8b162)。`catalog/polars-indicator-module.v1.json`定义模块组成与字段责任；原`market-polars.v1.json`继续定义共同输入、基线、冻结、评分与三榜行为。拆卡不改变公式或阈值。
+
+| 子卡键 | 输入 | 输出与口径 |
+| --- | --- | --- |
+| signed_price | 来源24h涨跌幅 | `price_change_percentage_24h`，保留来源正负方向 |
+| ath_price | 来源ATH百分比 | `ath_change_percentage`，保留全历史来源值，不以本地14天历史替代 |
+| turnover | 24h成交额、市值 | `volume_to_market_cap = total_volume / market_cap` |
+| absolute_price | 来源24h涨跌幅 | `abs_price_pct = abs(price_change_percentage_24h)` |
+| relative_volume | 当前24h成交额、共享身份/来源/时间/覆盖、可比历史 | `volume_ratio = total_volume / baseline_volume`，并输出实际基线引用 |
+
+每张子卡有全局独立编号，`resource.parent_module.node_id`关联#3035稳定ID，`reference_number`仅用于展示，不要求连续。父模块`module_children`列全部子卡，`field_producers`将输出字段关联到生产卡；这些配置及其定义文件进入AI可读导出。子卡不是独立进程、调度器、消费者组或Topic。#3035保留统一身份缓存、USD/时间/质量检查、共享数据准备和消息组装职责，仍是#5007唯一发布方。
+
+原始字段与共享输入须区分：`requested_at`来自`meta.requested_at`，`source_id`来自`meta.operation_id`，`source_object_id`来自来源`id`，报价和覆盖来自对应`meta.*`；内部`asset_id`由#3035共享身份关联取得，不宣称CoinGecko原始记录已带内部ID。子卡的`input_origins`声明这些来源。原始通道到子卡的引用线只表达共享输入，不创建独立订阅；子卡到父模块为程序内部结果依赖，历史读取沿用原基线选择。
+
+当前价格、市值、24h成交额以及身份、时间、质量、追溯字段由模块共享处理保留或生成。每项结果携带共享的`observation_id`和`asset_id`，不独立生成身份；所有子卡结果按同一`observation_id`统一组装为完整`market_indicators_v1`后发布，不把每个子卡结果作为不完整消息发往#5007。每项缺失/非有限值按原口径为空，不影响其他可用分项；成交额须非负、市值分母须正；放量基线规则沿用上文，不用滚动24h成交额推断短窗新增量。
+
+`indicator_dependency.metric_fields`声明各下游的业务指标，`validation_fields`声明原有校验/准入/追溯要求，`required_fields`为二者去重并集并与实际字段使用映射一致。#3017业务指标为放量倍数与绝对涨跌幅；评分增量仍来自#1021/#1022。#3018/#3019排序来自评分，#3024发现判断来自身份/覆盖与保存的发现状态；#3032用四项量价指标分档加分。既有`valid_indicators`的额外数值和基线检查保留，不将下游改成纯阈值判断。
+
+子卡包含业务公式、窗口/历史依赖、缺失处理、假设案例及Polars表达式参考。表达式假定已做共享Float64/null归一与基线选择，不是后台执行代码或性能证据；优化须保持相同业务口径并验证结果和负载。Polars条件分支不能作为短路保护，参考[官方条件表达式说明](https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.when.html)。实际Few适配、运行与性能仍未核验。
+
+工作台验证：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_polars_indicator_module server.test_market_polars server.test_coingecko_indicator_signals server.test_market_scoring_reference`；对迁移后的完整图执行`node scripts/check_polars_module.mjs <graph.json>`与既有双语详情检查，并运行类型、构建、契约及布局检查。迁移在SS-74后执行，冲突/中断须事务回滚，重入不覆盖后续用户修改。
+
 ## 指标、事件与时间
 
 指标输出携带 metric_id、固定 metric_version、asset_id、observation_id、run_id、source_object_id、slot_start、来源/请求/接收时间、USD报价、覆盖/质量、原始响应引用与实际历史基线引用。每条观测按observation_id冻结成功有效响应、身份与指标结果；评分层保留每来源/UTC五分钟槽首个有效指标，不抑制同槽后续观测的指标发布。重试沿用原ID、槽、基线与版本，同ID不同冻结内容拒绝。缺失不补零。原始观测历史至少14天；已冻结事件及恢复所需依据不能随意删除。
