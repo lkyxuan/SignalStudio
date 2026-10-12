@@ -4,7 +4,7 @@ import { edgeRef } from './graphRefs';
 import copy from '../catalog/card-detail-copy.v1.json';
 import rollup from '../catalog/score-rollup.v1.json';
 import collectionPlans from '../catalog/source-collection-plans.v1.json';
-import foundation from '../catalog/market-polars.v1.json';
+import foundation from '../catalog/market-current.v1.json';
 
 type RelationGraph = Pick<Graph, 'nodes' | 'edges' | 'bindings'>;
 type Binding = NonNullable<Graph['bindings']>[number];
@@ -114,7 +114,7 @@ export function moduleSchedule(node: GraphNode) {
   if (plan?.mode === 'scheduled' && refs.some(ref => ref.path === 'catalog/source-contracts.v1.json')) return { interval: plan.interval_minutes * 60 };
   if (node.name === '定期 AI 检查资产地图' && refs.some(ref => ref.path === 'catalog/identity-flow-case.v1.json')) return { interval: undefined };
   if (node.name === rollup.node.name && refs.some(ref => ref.path === 'catalog/score-rollup.v1.json')) return { interval: rollup.configuration.schedule.interval_seconds };
-  if (node.name === '量价评分 · 汇总Redis记分' && refs.some(ref => ref.path === 'catalog/market-polars.v1.json')) return { interval: foundation.execution.parameters.score_refresh_seconds };
+  if (node.name === '量价评分 · 汇总Redis记分' && refs.some(ref => ref.path === 'catalog/market-current.v1.json')) return { interval: foundation.execution.parameters.score_refresh_seconds };
   return undefined;
 }
 export function isScheduled(node: GraphNode) {

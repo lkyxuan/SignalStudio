@@ -1,6 +1,6 @@
 {
   "version": "market_v1",
-  "status": "user_delegated_initial_design",
+  "status": "approved_four_market_factors_only",
   "approved_on": "2026-10-11",
   "rationale_url": "https://app.notion.com/p/3f5038a63d5a81c0abf5f64c1b14be0e",
   "delivery_url": "https://app.notion.com/p/3f6038a63d5a81bcac15edae7a039870",
@@ -21,7 +21,6 @@
     "warming_min_abs_price_pct": 5,
     "warming_score_lookback_minutes": 60,
     "score_history_tolerance_minutes": 10,
-    "new_max_age_days": 7,
     "score_refresh_seconds": 60,
     "max_score_age_seconds": 120
   },
@@ -113,12 +112,6 @@
         ]
       ],
       "half_life_minutes": 30
-    },
-    {
-      "key": "discovery",
-      "label_zh": "首次有效发现（基线后，一次性）",
-      "points": 20,
-      "half_life_minutes": 1440
     }
   ],
   "scoring": {
@@ -128,7 +121,6 @@
     "max_activity_points_per_slot": 120,
     "decay_formula": "score_delta * 2 ** (-elapsed_minutes / half_life_minutes)",
     "hot_score": "sum(decayed volume, turnover, price, volume_growth contributions)",
-    "new_score": "activity_score + discovery_score",
     "warming_score": "activity_score(now) - saved_activity_score(60m earlier)",
     "tie_break": "asset_id ascending; full precision; display 2 decimals",
     "scope": "Exact market_v1 policy IDs only. Existing initial +100, search-trending and other rules stay on their existing chain, excluded from pure-market board projection."
@@ -137,9 +129,8 @@
     "slot": "UTC floor(request_started_at/300)*300, frozen on retry",
     "snapshot": "Freeze first valid successful response and mapping per source/slot; no late-slot awards or catch-up.",
     "contribution": "One positive contribution per asset/rule/slot; repeated valid later slots may contribute again. Highest tier only.",
-    "decision_ref": "market_v1/{asset_id}/{rule_key}/{slot_start_utc}; discovery uses market_v1/{asset_id}/discovery/once",
-    "publisher": "#3006 assigns event_key and first created_at; persist and retry original values and decay parameters. No per-query awards.",
-    "discovery": "One award per verified asset/rule version after baseline; preserve first_seen_at. baseline/coverage_added/pending never award."
+    "decision_ref": "market_v1/{asset_id}/{rule_key}/{slot_start_utc}",
+    "publisher": "#3006 assigns event_key and first created_at; persist and retry original values and decay parameters. No per-query awards."
   },
   "quality": [
     "Only finite valid USD market values; require unique verified asset_id before publishing scores.",
@@ -148,7 +139,8 @@
     "History gaps skip only volume_growth contribution; warming requires a valid volume baseline and saved score baseline.",
     "Price magnitude generates attention points for both directions; preserve up/down and do not infer buy/sell.",
     "Queries never execute graph actions. Changes to tiers require a new rule version, no reinterpretation of frozen events.",
-    "Redis current projections older than 120 seconds are excluded; no refresh success is inferred from card definitions."
+    "Redis current projections older than 120 seconds are excluded; no refresh success is inferred from card definitions.",
+    "Retired market_v1/discovery events are excluded; never rewrite frozen historical events. Asset creation and initial scoring use the separate identity handoff and #3009 source configuration."
   ],
   "examples": [
     {
@@ -203,5 +195,7 @@
       "Sensitivity to tiers and half-lives"
     ],
     "execution": "Versioned review against real observations; no autonomous production parameter mutation or scheduled monitor installed."
-  }
+  },
+  "updated_on": "2026-10-13",
+  "cleanup_rationale_url": "https://app.notion.com/p/3f7038a63d5a810a9614cbbe6242fa76"
 }

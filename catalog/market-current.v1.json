@@ -1,0 +1,2154 @@
+{
+  "boards": [
+    {
+      "key": "warming",
+      "label_zh": "升温",
+      "slot": 1,
+      "table_name": "leaderboard_warming",
+      "calculator_name": "生成基础升温榜",
+      "score_rule": "positive 60m activity-score delta + market gates"
+    },
+    {
+      "key": "hottest",
+      "label_zh": "热",
+      "slot": 2,
+      "table_name": "leaderboard_hottest",
+      "calculator_name": "生成基础最热榜",
+      "score_rule": "activity_score"
+    }
+  ],
+  "frontend": {
+    "slots": {
+      "1": "warming",
+      "2": "hottest"
+    },
+    "empty_slots": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "cooling": "trend_tag_only",
+    "overlap_allowed": true
+  },
+  "execution": {
+    "owner": "few_understand",
+    "status": "not_implemented_by_this_change",
+    "parameters": {
+      "source": "coingecko.coins_markets",
+      "quote_currency": "usd",
+      "evaluation_slot_minutes": 5,
+      "max_source_age_minutes": 15,
+      "min_market_cap_usd": 10000000,
+      "min_volume_24h_usd": 1000000,
+      "top_n": 20,
+      "market_history_days": 14,
+      "volume_baseline_hours": 24,
+      "volume_baseline_tolerance_minutes": 30,
+      "min_baseline_volume_usd": 1000000,
+      "warming_min_volume_ratio": 1.5,
+      "warming_min_abs_price_pct": 5,
+      "warming_score_lookback_minutes": 60,
+      "score_history_tolerance_minutes": 10,
+      "score_refresh_seconds": 60,
+      "max_score_age_seconds": 120
+    },
+    "no_numeric_fallback": true,
+    "trigger_requirement": "行情消息触发Polars指标；本版指标触发评分，评分事件触发Redis汇总；每60秒刷新衰减。历史读取不触发加分。"
+  },
+  "rules_ref": "catalog/market-scoring.v1.json",
+  "version": "market-current.v1",
+  "revision": "ss80-four-market-factors",
+  "status": "approved_design_backend_adaptation_pending",
+  "rationale_url": "https://app.notion.com/p/3f7038a63d5a810a9614cbbe6242fa76",
+  "purpose": "CoinGecko → Polars指标 → 四项量价加分 → Redis；资产建档与起始评分独立走统一流程。",
+  "nodes": [
+    {
+      "board": null,
+      "primary_key": [
+        "observation_id"
+      ],
+      "is_system_state": false,
+      "key": "archive",
+      "name": "归档 CoinGecko 行情",
+      "old_name": "",
+      "role": "process",
+      "description": "复用 Few Delta Lake Writer 保存行情历史；消费行情消息后持久化，不计算指标或加分。",
+      "algorithm": "从 market.snapshot 读取行情及采集元数据，按稳定 observation_id 幂等归档到既有历史存储；成功后确认本组offset。原始HTTP响应由 snapshot_ref 另行回查。已有归档需要补足时间/质量/身份及幂等契约，运行未核验。",
+      "sources": [
+        "Few Understand · market.snapshot"
+      ],
+      "columns": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "来源+运行+记录类型+稳定对象构成的幂等观测ID"
+        },
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原始请求开始时间，评分5分钟槽据此冻结；重试保留"
+        },
+        {
+          "name": "symbol",
+          "data_type": "string | null",
+          "label_zh": "来源原始symbol，仅展示，不作身份匹配"
+        }
+      ]
+    },
+    {
+      "board": null,
+      "primary_key": [
+        "observation_id"
+      ],
+      "is_system_state": false,
+      "key": "polars",
+      "name": "Polars · 计算 CoinGecko 量价指标",
+      "old_name": "",
+      "role": "process",
+      "description": "统一计算和整理 CoinGecko 行情指标，按需查询历史；产出后直接发布 Redpanda indicator.data，不判断提醒阈值或生成加分。",
+      "algorithm": "当前行情核对CoinGecko稳定ID、USD、时间与覆盖；Polars计算成交额/市值、绝对24h涨跌幅、相对24小时前放量倍数。基线须同资产/来源/coin ID/报价/覆盖，取目标前最近且≤30分钟的有效观测，接收时间不晚于目标；缺基线只令volume_ratio为空。每条观测按observation_id冻结输入与指标结果，重试沿用身份、版本、槽和基线引用；五分钟槽首个有效指标的评分冻结由评分层保留，不抑制同槽其他观测的指标发布。 保留来源有符号24h涨跌幅与相对全历史最高价百分比ath_change_percentage，缺失或非有限值为null；不以本地14天最高价替代ATH。所有指标发布到indicator.data，提醒条件及加分由下游分别判断。 指标产出不套用三榜市值/成交额准入或贡献去重门槛；缺失数值仅影响对应指标，其他可用指标仍输出。",
+      "sources": [
+        "Few Understand · market.snapshot",
+        "coingecko_market_history",
+        "assets",
+        "asset_identifiers",
+        "leaderboard_coverage"
+      ],
+      "columns": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "来源+运行+记录类型+稳定对象构成的幂等观测ID"
+        },
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原始请求开始时间，评分5分钟槽据此冻结；重试保留"
+        },
+        {
+          "name": "symbol",
+          "data_type": "string | null",
+          "label_zh": "来源原始symbol，仅展示，不作身份匹配"
+        },
+        {
+          "name": "metric_version",
+          "data_type": "string",
+          "label_zh": "固定为 market_indicators_v1；不是旧10分钟指标"
+        },
+        {
+          "name": "slot_start",
+          "data_type": "UTC timestamp",
+          "label_zh": "首次请求所属UTC五分钟槽；重试不改变"
+        },
+        {
+          "name": "volume_to_market_cap",
+          "data_type": "number | null",
+          "label_zh": "24h成交额/市值，由Polars计算"
+        },
+        {
+          "name": "abs_price_pct",
+          "data_type": "number | null",
+          "label_zh": "绝对24h价格变化百分比，由Polars计算，方向另保留"
+        },
+        {
+          "name": "volume_ratio",
+          "data_type": "number | null",
+          "label_zh": "当前滚动24h成交额/约24小时前可比成交额，不是短窗新增交易量"
+        },
+        {
+          "name": "baseline_observation_id",
+          "data_type": "string | null",
+          "label_zh": "实际选择的24小时前基线；缺失时放量指标为空"
+        },
+        {
+          "name": "baseline_requested_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "基线的首次请求时间"
+        },
+        {
+          "name": "baseline_volume",
+          "data_type": "number | null",
+          "label_zh": "基线24h成交额"
+        },
+        {
+          "name": "metric_id",
+          "data_type": "string",
+          "label_zh": "冻结 observation_id + metric_version 的稳定结果ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "指标计算时间，不替代来源或请求时间"
+        },
+        {
+          "name": "ath_change_percentage",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko提供的相对全历史最高价百分比；缺失不使用14天历史代替"
+        }
+      ]
+    },
+    {
+      "board": null,
+      "primary_key": [
+        "metric_id"
+      ],
+      "is_system_state": false,
+      "key": "indicators",
+      "name": "Few Understand · indicator.data",
+      "old_name": "",
+      "role": "channel",
+      "description": "复用既有 indicator.data 传递 market_indicators_v1 量价指标；每条结果携带稳定资产、输入/基线引用、槽、版本、时间与质量。",
+      "algorithm": "现有指标通道新增可区分的本版指标契约；旧10分钟指标不作为本版输入。消息结果冻结，重复同metric_id不能改变内容；缺指标显式为空。运行未核验。",
+      "sources": [
+        "Polars · 计算 CoinGecko 量价指标"
+      ],
+      "columns": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "来源+运行+记录类型+稳定对象构成的幂等观测ID"
+        },
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原始请求开始时间，评分5分钟槽据此冻结；重试保留"
+        },
+        {
+          "name": "symbol",
+          "data_type": "string | null",
+          "label_zh": "来源原始symbol，仅展示，不作身份匹配"
+        },
+        {
+          "name": "metric_version",
+          "data_type": "string",
+          "label_zh": "固定为 market_indicators_v1；不是旧10分钟指标"
+        },
+        {
+          "name": "slot_start",
+          "data_type": "UTC timestamp",
+          "label_zh": "首次请求所属UTC五分钟槽；重试不改变"
+        },
+        {
+          "name": "volume_to_market_cap",
+          "data_type": "number | null",
+          "label_zh": "24h成交额/市值，由Polars计算"
+        },
+        {
+          "name": "abs_price_pct",
+          "data_type": "number | null",
+          "label_zh": "绝对24h价格变化百分比，由Polars计算，方向另保留"
+        },
+        {
+          "name": "volume_ratio",
+          "data_type": "number | null",
+          "label_zh": "当前滚动24h成交额/约24小时前可比成交额，不是短窗新增交易量"
+        },
+        {
+          "name": "baseline_observation_id",
+          "data_type": "string | null",
+          "label_zh": "实际选择的24小时前基线；缺失时放量指标为空"
+        },
+        {
+          "name": "baseline_requested_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "基线的首次请求时间"
+        },
+        {
+          "name": "baseline_volume",
+          "data_type": "number | null",
+          "label_zh": "基线24h成交额"
+        },
+        {
+          "name": "metric_id",
+          "data_type": "string",
+          "label_zh": "冻结 observation_id + metric_version 的稳定结果ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "指标计算时间，不替代来源或请求时间"
+        },
+        {
+          "name": "ath_change_percentage",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko提供的相对全历史最高价百分比；缺失不使用14天历史代替"
+        }
+      ]
+    },
+    {
+      "key": "evidence",
+      "name": "coingecko_market_history",
+      "old_name": "leaderboard_observations",
+      "description": "CoinGecko 行情观测与历史：复用既有 Delta/Parquet 归档，供 Polars 查询可比历史；不是另一份 PostgreSQL 榜单观测表。",
+      "columns": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "来源+运行+记录类型+稳定对象构成的幂等观测ID"
+        },
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "原始请求开始时间，评分5分钟槽据此冻结；重试保留"
+        },
+        {
+          "name": "symbol",
+          "data_type": "string | null",
+          "label_zh": "来源原始symbol，仅展示，不作身份匹配"
+        }
+      ],
+      "sources": [
+        "归档 CoinGecko 行情"
+      ],
+      "role": "table",
+      "board": null,
+      "algorithm": "按 observation_id 幂等保存同一观测及来源、请求/接收时间、身份、报价、覆盖和原始响应引用；至少14天。未知不补零，不能重复存一套榜单行情。",
+      "primary_key": [
+        "observation_id"
+      ]
+    },
+    {
+      "key": "coverage",
+      "name": "leaderboard_coverage",
+      "old_name": "leaderboard_coverage",
+      "description": "共享采集覆盖与首次基线状态表；需Few采集运行元数据写入器，尚未接入，不能由成功记录推测失败或完整覆盖。",
+      "columns": [
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源集合及版本"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string | null",
+          "label_zh": "响应引用，失败可为空"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "请求开始时间"
+        },
+        {
+          "name": "completed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "采集完成时间"
+        },
+        {
+          "name": "status",
+          "data_type": "healthy | missing | partial | unknown",
+          "label_zh": "采集状态；成功空数组与失败必须区分"
+        },
+        {
+          "name": "baseline_status",
+          "data_type": "baseline | tracking | unknown",
+          "label_zh": "来源范围首次完整导入为baseline，完成后才tracking"
+        },
+        {
+          "name": "record_count",
+          "data_type": "integer | null",
+          "label_zh": "本次实际记录数，失败不是0"
+        },
+        {
+          "name": "reason",
+          "data_type": "string | null",
+          "label_zh": "质量/失败说明"
+        }
+      ],
+      "sources": [
+        "coingecko.coins_markets"
+      ],
+      "role": "table",
+      "board": null,
+      "algorithm": "",
+      "primary_key": [
+        "source_id",
+        "run_id"
+      ]
+    },
+    {
+      "key": "warming_calc",
+      "name": "生成基础升温榜",
+      "old_name": "生成基础升温榜",
+      "description": "升温榜：量价门槛通过后按60分钟评分正增量排序。 保留评分明细、事件及原始依据；无真实写入时不伪造行。",
+      "columns": [
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "rank",
+          "data_type": "integer | null",
+          "label_zh": "基础结果展示序号；来源名次和综合分数分开"
+        },
+        {
+          "name": "score",
+          "data_type": "number | null",
+          "label_zh": "本榜最终记分排序值，来自Redis量价投影；没有运行结果时为空"
+        },
+        {
+          "name": "calculation_status",
+          "data_type": "pending | calculated",
+          "label_zh": "真实计算状态；设计交付不伪造calculated"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string | null",
+          "label_zh": "实际使用的量价规则版本market_v1；无运行结果为空"
+        },
+        {
+          "name": "reason",
+          "data_type": "string | null",
+          "label_zh": "只能描述来源数值/首次发现事实，不能虚构重要事件或原因"
+        },
+        {
+          "name": "trend_status",
+          "data_type": "warming | stable | cooling | unknown",
+          "label_zh": "共享状态规则未定时unknown"
+        },
+        {
+          "name": "observation_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "本条关联的观测引用，包括补充行情"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "实际结果生成时间，不能冒充来源统计截止"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "activity_score",
+          "data_type": "number",
+          "label_zh": "Redis中四类market_v1量价事件各自衰减后的合计"
+        },
+        {
+          "name": "score_components_json",
+          "data_type": "JSON object",
+          "label_zh": "每项当前有效分及原始贡献依据"
+        },
+        {
+          "name": "score_event_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "参与计算的评分事件键和decision_ref"
+        },
+        {
+          "name": "baseline_activity_score",
+          "data_type": "number | null",
+          "label_zh": "60分钟前有效已保存评分"
+        },
+        {
+          "name": "baseline_score_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "实际评分比较时刻"
+        },
+        {
+          "name": "volume_ratio",
+          "data_type": "number | null",
+          "label_zh": "当前/前一天滚动24h成交额"
+        },
+        {
+          "name": "baseline_volume_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "行情基线时刻"
+        },
+        {
+          "name": "price_direction",
+          "data_type": "up | down | flat",
+          "label_zh": "价格方向与评分正负分开"
+        }
+      ],
+      "sources": [
+        "market_scores_current",
+        "market_score_history",
+        "Few Understand · indicator.data",
+        "leaderboard_coverage"
+      ],
+      "role": "process",
+      "board": "warming",
+      "algorithm": "验证同版/覆盖的有效Polars指标与当前评分，volume_ratio≥1.5、abs_price_pct≥5；读取60分钟前已保存活动分，正增量降序。缺基线不出榜，不读取行情历史计算放量。",
+      "primary_key": [
+        "object_key"
+      ]
+    },
+    {
+      "key": "warming_table",
+      "name": "leaderboard_warming",
+      "old_name": "leaderboard_warming",
+      "description": "升温榜：量价门槛通过后按60分钟评分正增量排序。 保留评分明细、事件及原始依据；无真实写入时不伪造行。",
+      "columns": [
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "rank",
+          "data_type": "integer | null",
+          "label_zh": "基础结果展示序号；来源名次和综合分数分开"
+        },
+        {
+          "name": "score",
+          "data_type": "number | null",
+          "label_zh": "本榜最终记分排序值，来自Redis量价投影；没有运行结果时为空"
+        },
+        {
+          "name": "calculation_status",
+          "data_type": "pending | calculated",
+          "label_zh": "真实计算状态；设计交付不伪造calculated"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string | null",
+          "label_zh": "实际使用的量价规则版本market_v1；无运行结果为空"
+        },
+        {
+          "name": "reason",
+          "data_type": "string | null",
+          "label_zh": "只能描述来源数值/首次发现事实，不能虚构重要事件或原因"
+        },
+        {
+          "name": "trend_status",
+          "data_type": "warming | stable | cooling | unknown",
+          "label_zh": "共享状态规则未定时unknown"
+        },
+        {
+          "name": "observation_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "本条关联的观测引用，包括补充行情"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "实际结果生成时间，不能冒充来源统计截止"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "activity_score",
+          "data_type": "number",
+          "label_zh": "Redis中四类market_v1量价事件各自衰减后的合计"
+        },
+        {
+          "name": "score_components_json",
+          "data_type": "JSON object",
+          "label_zh": "每项当前有效分及原始贡献依据"
+        },
+        {
+          "name": "score_event_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "参与计算的评分事件键和decision_ref"
+        },
+        {
+          "name": "baseline_activity_score",
+          "data_type": "number | null",
+          "label_zh": "60分钟前有效已保存评分"
+        },
+        {
+          "name": "baseline_score_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "实际评分比较时刻"
+        },
+        {
+          "name": "volume_ratio",
+          "data_type": "number | null",
+          "label_zh": "当前/前一天滚动24h成交额"
+        },
+        {
+          "name": "baseline_volume_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "行情基线时刻"
+        },
+        {
+          "name": "price_direction",
+          "data_type": "up | down | flat",
+          "label_zh": "价格方向与评分正负分开"
+        }
+      ],
+      "sources": [
+        "生成基础升温榜"
+      ],
+      "role": "table",
+      "board": "warming",
+      "algorithm": "",
+      "primary_key": [
+        "object_key"
+      ]
+    },
+    {
+      "key": "hottest_calc",
+      "name": "生成基础最热榜",
+      "old_name": "生成基础最热榜",
+      "description": "按Redis四项量价活动分排序；统一建档起始分不混入本投影。无真实写入时不伪造行。",
+      "columns": [
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "rank",
+          "data_type": "integer | null",
+          "label_zh": "基础结果展示序号；来源名次和综合分数分开"
+        },
+        {
+          "name": "score",
+          "data_type": "number | null",
+          "label_zh": "本榜最终记分排序值，来自Redis量价投影；没有运行结果时为空"
+        },
+        {
+          "name": "calculation_status",
+          "data_type": "pending | calculated",
+          "label_zh": "真实计算状态；设计交付不伪造calculated"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string | null",
+          "label_zh": "实际使用的量价规则版本market_v1；无运行结果为空"
+        },
+        {
+          "name": "reason",
+          "data_type": "string | null",
+          "label_zh": "只能描述来源数值/首次发现事实，不能虚构重要事件或原因"
+        },
+        {
+          "name": "trend_status",
+          "data_type": "warming | stable | cooling | unknown",
+          "label_zh": "共享状态规则未定时unknown"
+        },
+        {
+          "name": "observation_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "本条关联的观测引用，包括补充行情"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "实际结果生成时间，不能冒充来源统计截止"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "activity_score",
+          "data_type": "number",
+          "label_zh": "Redis中四类market_v1量价事件各自衰减后的合计"
+        },
+        {
+          "name": "score_components_json",
+          "data_type": "JSON object",
+          "label_zh": "每项当前有效分及原始贡献依据"
+        },
+        {
+          "name": "score_event_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "参与计算的评分事件键和decision_ref"
+        }
+      ],
+      "sources": [
+        "market_scores_current",
+        "Few Understand · indicator.data",
+        "leaderboard_coverage"
+      ],
+      "role": "process",
+      "board": "hottest",
+      "algorithm": "验证有效Polars指标、覆盖和当前Redis评分投影，按 activity_score 降序、asset_id 升序取前20；不重新计算指标或奖励。",
+      "primary_key": [
+        "object_key"
+      ]
+    },
+    {
+      "key": "hottest_table",
+      "name": "leaderboard_hottest",
+      "old_name": "leaderboard_hottest",
+      "description": "按Redis四项量价活动分排序；统一建档起始分不混入本投影。无真实写入时不伪造行。",
+      "columns": [
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "string | null",
+          "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "asset | unknown",
+          "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "resolved | source_only | conflict",
+          "label_zh": "身份映射状态，冲突不自动合并"
+        },
+        {
+          "name": "rank",
+          "data_type": "integer | null",
+          "label_zh": "基础结果展示序号；来源名次和综合分数分开"
+        },
+        {
+          "name": "score",
+          "data_type": "number | null",
+          "label_zh": "本榜最终记分排序值，来自Redis量价投影；没有运行结果时为空"
+        },
+        {
+          "name": "calculation_status",
+          "data_type": "pending | calculated",
+          "label_zh": "真实计算状态；设计交付不伪造calculated"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string | null",
+          "label_zh": "实际使用的量价规则版本market_v1；无运行结果为空"
+        },
+        {
+          "name": "reason",
+          "data_type": "string | null",
+          "label_zh": "只能描述来源数值/首次发现事实，不能虚构重要事件或原因"
+        },
+        {
+          "name": "trend_status",
+          "data_type": "warming | stable | cooling | unknown",
+          "label_zh": "共享状态规则未定时unknown"
+        },
+        {
+          "name": "observation_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "本条关联的观测引用，包括补充行情"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "实际结果生成时间，不能冒充来源统计截止"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源操作ID；不同接口不可混成一个口径"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "可持久回查的完整原始响应及请求参数"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string | null",
+          "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计起点；未知不倒推"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源明确给出的统计止点；未知不倒推"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源观测时间；未知不能用采集时间冒充"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "采集接收时间，由采集器提供"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "质量及覆盖状态；无数据不补零"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "来源监测集合及版本"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko报价币种下的当前价格"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number | null",
+          "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string | null",
+          "label_zh": "实际请求报价币种；缺失不猜USD"
+        },
+        {
+          "name": "activity_score",
+          "data_type": "number",
+          "label_zh": "Redis中四类market_v1量价事件各自衰减后的合计"
+        },
+        {
+          "name": "score_components_json",
+          "data_type": "JSON object",
+          "label_zh": "每项当前有效分及原始贡献依据"
+        },
+        {
+          "name": "score_event_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "参与计算的评分事件键和decision_ref"
+        }
+      ],
+      "sources": [
+        "生成基础最热榜"
+      ],
+      "role": "table",
+      "board": "hottest",
+      "algorithm": "",
+      "primary_key": [
+        "object_key"
+      ]
+    },
+    {
+      "key": "discoveries_calc",
+      "name": "生成新发现榜",
+      "old_name": "生成新发现榜",
+      "description": "旧新发现榜已停用；保留编号与位置，不生成或提供榜单数据。",
+      "columns": [],
+      "sources": [],
+      "role": "process",
+      "board": null,
+      "algorithm": "",
+      "primary_key": [],
+      "status": "retired_placeholder"
+    },
+    {
+      "key": "discoveries_table",
+      "name": "leaderboard_emerging",
+      "old_name": "leaderboard_emerging",
+      "description": "旧新发现榜已停用；保留编号与位置，不生成或提供榜单数据。",
+      "columns": [],
+      "sources": [],
+      "role": "table",
+      "board": null,
+      "algorithm": "",
+      "primary_key": [],
+      "status": "retired_placeholder"
+    },
+    {
+      "key": "candidates",
+      "name": "候选代币筛选",
+      "old_name": "候选代币筛选",
+      "description": "保留的升温/最热结果供下游候选筛选；旧新发现榜不再作为输入。",
+      "columns": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "仅接收唯一核实且有效的资产ID；账号线索不送代币内容链"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "结果生成时间"
+        },
+        {
+          "name": "score",
+          "data_type": "number | null",
+          "label_zh": "本榜最终记分排序值，来自Redis量价投影；没有运行结果时为空"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string | null",
+          "label_zh": "实际使用的量价规则版本market_v1；无运行结果为空"
+        },
+        {
+          "name": "board_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "对象来自哪些基础榜及记录"
+        }
+      ],
+      "sources": [
+        "leaderboard_warming",
+        "leaderboard_hottest"
+      ],
+      "role": "process",
+      "board": null,
+      "algorithm": "按asset_id合并已生成的升温/最热结果，保留score/版本和引用；未生成榜单不兜底用旧total_heat。只传已核实资产。",
+      "primary_key": [
+        "asset_id"
+      ]
+    },
+    {
+      "key": "score_contributions",
+      "name": "量价评分 · 生成贡献",
+      "old_name": "量价评分 · 生成贡献",
+      "role": "process",
+      "board": "",
+      "columns": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "唯一核实的内部资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "score_key",
+          "data_type": "string",
+          "label_zh": "固定total_heat，沿用原评分事件链"
+        },
+        {
+          "name": "score_delta",
+          "data_type": "number",
+          "label_zh": "本项原始正贡献，不含其他档位/旧规则"
+        },
+        {
+          "name": "decision_ref",
+          "data_type": "string",
+          "label_zh": "持久判定引用及幂等键，定位原始输入与规则"
+        },
+        {
+          "name": "decay_policy_ref",
+          "data_type": "string",
+          "label_zh": "market_v1/<分项>，精确规则与衰减版本"
+        },
+        {
+          "name": "half_life_minutes",
+          "data_type": "number",
+          "label_zh": "冻结的每笔半衰期"
+        },
+        {
+          "name": "evidence_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "原始行情/历史/发现与判定引用"
+        }
+      ],
+      "sources": [
+        "Few Understand · indicator.data",
+        "leaderboard_coverage"
+      ],
+      "description": "只筛选 Polars 指标并确定加分：取最高满足档位，生成独立贡献；本步骤不计算量价指标。",
+      "algorithm": "验证 market_indicators_v1 的身份、质量、时间、槽与冻结引用；只读取 total_volume、volume_to_market_cap、abs_price_pct、volume_ratio，按 market_v1 门槛选择最高满足档位。仅四项量价贡献；建档起始分由#3009独立判断。不读行情历史、不重算比值。每资产/分项/槽一次，沿用原decision_ref与半衰期，交给#3006发布。",
+      "primary_key": [
+        "asset_id"
+      ]
+    },
+    {
+      "key": "redis_rollup",
+      "name": "量价评分 · 汇总Redis记分",
+      "old_name": "量价评分 · 汇总Redis记分",
+      "role": "process",
+      "board": "",
+      "columns": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "唯一核实的内部资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "activity_score",
+          "data_type": "number",
+          "label_zh": "Redis中四类market_v1量价事件各自衰减后的合计"
+        },
+        {
+          "name": "score_components_json",
+          "data_type": "JSON object",
+          "label_zh": "每项当前有效分及原始贡献依据"
+        },
+        {
+          "name": "score_event_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "参与计算的评分事件键和decision_ref"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "固定UTC计算时刻/历史已知截止，不回填重算过去"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "固定market_v1"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "当前有效来源集合版本"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "投影及输入完整性状态"
+        },
+        {
+          "name": "input_records_json",
+          "data_type": "JSON array",
+          "label_zh": "Redis原评分事件及冻结衰减参数"
+        }
+      ],
+      "sources": [
+        "Redis 近期评分窗口",
+        "leaderboard_coverage"
+      ],
+      "description": "从原Redis评分窗口读取本版量价贡献，逐事件衰减汇总；不绕过Redis用原始成交额直接排榜。",
+      "algorithm": "只接受market_v1的四个精确量价decay_policy_ref、total_heat和相符半衰期；event_key去重，同键冲突拒绝。新贡献写入后触发，另每60秒刷新；四项和为activity_score。忽略旧market_v1/discovery，统一建档起始分、搜索热榜及其他分仍走各自链；不改写历史事件。以固定时刻和事件集合版本防止旧任务覆盖；同时写当前分与历史。",
+      "primary_key": [
+        "asset_id"
+      ]
+    },
+    {
+      "key": "scores_current",
+      "name": "market_scores_current",
+      "old_name": "market_scores_current",
+      "role": "table",
+      "board": "",
+      "columns": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "唯一核实的内部资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "activity_score",
+          "data_type": "number",
+          "label_zh": "Redis中四类market_v1量价事件各自衰减后的合计"
+        },
+        {
+          "name": "score_components_json",
+          "data_type": "JSON object",
+          "label_zh": "每项当前有效分及原始贡献依据"
+        },
+        {
+          "name": "score_event_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "参与计算的评分事件键和decision_ref"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "固定UTC计算时刻/历史已知截止，不回填重算过去"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "固定market_v1"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "当前有效来源集合版本"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "投影及输入完整性状态"
+        }
+      ],
+      "sources": [
+        "量价评分 · 汇总Redis记分"
+      ],
+      "description": "共享Redis量价当前分表：分项、合计、事件引用与计算时刻；Few实际写入待实施。",
+      "algorithm": "",
+      "primary_key": [
+        "asset_id"
+      ]
+    },
+    {
+      "key": "scores_history",
+      "name": "market_score_history",
+      "old_name": "market_score_history",
+      "role": "table",
+      "board": "",
+      "columns": [
+        {
+          "name": "asset_id",
+          "data_type": "string",
+          "label_zh": "唯一核实的内部资产ID"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "资产展示名，不作为身份匹配依据"
+        },
+        {
+          "name": "activity_score",
+          "data_type": "number",
+          "label_zh": "Redis中四类market_v1量价事件各自衰减后的合计"
+        },
+        {
+          "name": "score_components_json",
+          "data_type": "JSON object",
+          "label_zh": "每项当前有效分及原始贡献依据"
+        },
+        {
+          "name": "score_event_refs_json",
+          "data_type": "JSON array",
+          "label_zh": "参与计算的评分事件键和decision_ref"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "固定UTC计算时刻/历史已知截止，不回填重算过去"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "固定market_v1"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "当前有效来源集合版本"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "healthy | partial | missing | unknown",
+          "label_zh": "投影及输入完整性状态"
+        }
+      ],
+      "sources": [
+        "量价评分 · 汇总Redis记分"
+      ],
+      "description": "已知截止的量价评分历史，支持60分钟评分增量；不可用补采改写过去；行情历史与评分历史分别保存。",
+      "algorithm": "",
+      "primary_key": [
+        "asset_id",
+        "calculated_at",
+        "algorithm_version"
+      ]
+    }
+  ],
+  "retired": [],
+  "rules": [
+    "Polars计算指标，评分只选择门槛和分档；不在评分/榜单里重复算行情比值。",
+    "行情历史复用Delta/Parquet；完整原始响应仍另由snapshot_ref引用。",
+    "保留四项量价分值、半衰期、五分钟幂等槽和覆盖校验；移除旧首次发现奖励及新发现榜规则。",
+    "现有10分钟指标不能冒充本版24小时前放量倍数。",
+    "没有真实回填时仅显示结构及明确假设案例。",
+    "CoinGecko五类行情提醒只消费market_indicators_v1；指标计算与历史查询统一归Polars。来源24h和ATH口径保留，缺失指标跳过对应条件；五类提醒独立于榜单准入和加分。"
+  ],
+  "pending": [
+    "Few Polars需要适配本版基线/指标契约；现有组件不等于已符合。",
+    "历史存储元数据/覆盖/冻结/幂等与实际运行仍须验证。"
+  ],
+  "indicator_contract": {
+    "topic": "indicator.data",
+    "metric_version": "market_indicators_v1",
+    "fields": [
+      {
+        "name": "observation_id",
+        "data_type": "string",
+        "label_zh": "来源+运行+记录类型+稳定对象构成的幂等观测ID"
+      },
+      {
+        "name": "object_key",
+        "data_type": "string",
+        "label_zh": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+      },
+      {
+        "name": "asset_id",
+        "data_type": "string | null",
+        "label_zh": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+      },
+      {
+        "name": "asset_name",
+        "data_type": "string | null",
+        "label_zh": "资产展示名，不作为身份匹配依据"
+      },
+      {
+        "name": "object_kind",
+        "data_type": "asset | unknown",
+        "label_zh": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+      },
+      {
+        "name": "identity_status",
+        "data_type": "resolved | source_only | conflict",
+        "label_zh": "身份映射状态，冲突不自动合并"
+      },
+      {
+        "name": "source_id",
+        "data_type": "string",
+        "label_zh": "来源操作ID；不同接口不可混成一个口径"
+      },
+      {
+        "name": "source_object_id",
+        "data_type": "string",
+        "label_zh": "CoinGecko稳定coin ID，不能按symbol猜映射"
+      },
+      {
+        "name": "snapshot_ref",
+        "data_type": "string",
+        "label_zh": "可持久回查的完整原始响应及请求参数"
+      },
+      {
+        "name": "run_id",
+        "data_type": "string",
+        "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+      },
+      {
+        "name": "window_label",
+        "data_type": "string | null",
+        "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+      },
+      {
+        "name": "window_start",
+        "data_type": "UTC timestamp | null",
+        "label_zh": "来源明确给出的统计起点；未知不倒推"
+      },
+      {
+        "name": "window_end",
+        "data_type": "UTC timestamp | null",
+        "label_zh": "来源明确给出的统计止点；未知不倒推"
+      },
+      {
+        "name": "observed_at",
+        "data_type": "UTC timestamp | null",
+        "label_zh": "来源观测时间；未知不能用采集时间冒充"
+      },
+      {
+        "name": "collected_at",
+        "data_type": "UTC timestamp",
+        "label_zh": "采集接收时间，由采集器提供"
+      },
+      {
+        "name": "quality_status",
+        "data_type": "healthy | partial | missing | unknown",
+        "label_zh": "质量及覆盖状态；无数据不补零"
+      },
+      {
+        "name": "coverage_key",
+        "data_type": "string",
+        "label_zh": "来源监测集合及版本"
+      },
+      {
+        "name": "current_price",
+        "data_type": "number | null",
+        "label_zh": "CoinGecko报价币种下的当前价格"
+      },
+      {
+        "name": "price_change_percentage_24h",
+        "data_type": "number | null",
+        "label_zh": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+      },
+      {
+        "name": "total_volume",
+        "data_type": "number | null",
+        "label_zh": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+      },
+      {
+        "name": "market_cap",
+        "data_type": "number | null",
+        "label_zh": "CoinGecko市值，用于准入和成交额/市值活跃度"
+      },
+      {
+        "name": "quote_currency",
+        "data_type": "string | null",
+        "label_zh": "实际请求报价币种；缺失不猜USD"
+      },
+      {
+        "name": "requested_at",
+        "data_type": "UTC timestamp",
+        "label_zh": "原始请求开始时间，评分5分钟槽据此冻结；重试保留"
+      },
+      {
+        "name": "symbol",
+        "data_type": "string | null",
+        "label_zh": "来源原始symbol，仅展示，不作身份匹配"
+      },
+      {
+        "name": "metric_version",
+        "data_type": "string",
+        "label_zh": "固定为 market_indicators_v1；不是旧10分钟指标"
+      },
+      {
+        "name": "slot_start",
+        "data_type": "UTC timestamp",
+        "label_zh": "首次请求所属UTC五分钟槽；重试不改变"
+      },
+      {
+        "name": "volume_to_market_cap",
+        "data_type": "number | null",
+        "label_zh": "24h成交额/市值，由Polars计算"
+      },
+      {
+        "name": "abs_price_pct",
+        "data_type": "number | null",
+        "label_zh": "绝对24h价格变化百分比，由Polars计算，方向另保留"
+      },
+      {
+        "name": "volume_ratio",
+        "data_type": "number | null",
+        "label_zh": "当前滚动24h成交额/约24小时前可比成交额，不是短窗新增交易量"
+      },
+      {
+        "name": "baseline_observation_id",
+        "data_type": "string | null",
+        "label_zh": "实际选择的24小时前基线；缺失时放量指标为空"
+      },
+      {
+        "name": "baseline_requested_at",
+        "data_type": "UTC timestamp | null",
+        "label_zh": "基线的首次请求时间"
+      },
+      {
+        "name": "baseline_volume",
+        "data_type": "number | null",
+        "label_zh": "基线24h成交额"
+      },
+      {
+        "name": "metric_id",
+        "data_type": "string",
+        "label_zh": "冻结 observation_id + metric_version 的稳定结果ID"
+      },
+      {
+        "name": "calculated_at",
+        "data_type": "UTC timestamp",
+        "label_zh": "指标计算时间，不替代来源或请求时间"
+      },
+      {
+        "name": "ath_change_percentage",
+        "data_type": "number | null",
+        "label_zh": "CoinGecko提供的相对全历史最高价百分比；缺失不使用14天历史代替"
+      }
+    ],
+    "identity": [
+      "metric_id",
+      "observation_id",
+      "asset_id",
+      "source_object_id",
+      "run_id",
+      "slot_start",
+      "coverage_key"
+    ],
+    "missing_baseline": "volume_ratio=null; other valid indicators and alert conditions may proceed",
+    "retry": "freeze each observation input, identity, baseline and result; same metric_id retry is idempotent, conflicting contents rejected; scoring freezes the first valid indicator per slot without suppressing later indicator messages",
+    "mapping": {
+      "volume": "total_volume",
+      "turnover": "volume_to_market_cap",
+      "price": "abs_price_pct",
+      "volume_growth": "volume_ratio"
+    },
+    "implementation": "required_not_runtime_verified",
+    "alert_mapping": {
+      "price_move_up": "price_change_percentage_24h",
+      "price_move_down": "price_change_percentage_24h",
+      "volume_spike": "volume_to_market_cap",
+      "near_ath": "ath_change_percentage",
+      "deep_from_ath": "ath_change_percentage"
+    }
+  },
+  "additional_edges": [
+    {
+      "source": "量价评分 · 生成贡献",
+      "target": "提交评分事件",
+      "fields": [
+        "asset_id",
+        "score_key",
+        "score_delta",
+        "decision_ref",
+        "decay_policy_ref",
+        "half_life_minutes"
+      ],
+      "trigger": "event"
+    },
+    {
+      "source": "维护近期评分窗口",
+      "target": "量价评分 · 汇总Redis记分",
+      "fields": [],
+      "trigger": "event"
+    },
+    {
+      "source": "量价评分 · 汇总Redis记分",
+      "target": "生成基础升温榜",
+      "fields": [],
+      "trigger": "event"
+    },
+    {
+      "source": "量价评分 · 汇总Redis记分",
+      "target": "生成基础最热榜",
+      "fields": [],
+      "trigger": "event"
+    }
+  ],
+  "example": {
+    "kind": "hypothetical_not_runtime",
+    "asset_id": "example-asset",
+    "total_volume": 20000000,
+    "market_cap": 100000000,
+    "price_change_percentage_24h": 12,
+    "baseline_volume": 10000000,
+    "volume_to_market_cap": 0.2,
+    "abs_price_pct": 12,
+    "volume_ratio": 2,
+    "expected_points": {
+      "volume": 20,
+      "turnover": 5,
+      "price": 10,
+      "volume_growth": 20
+    },
+    "total": 55
+  }
+}

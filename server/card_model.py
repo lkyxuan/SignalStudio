@@ -373,7 +373,8 @@ class CardModel:
     def action_registry(self):
         source_catalog = json.loads((ROOT/'catalog/source-contracts.v1.json').read_text())
         trends = json.loads((ROOT/'catalog/leaderboard-trends.v1.json').read_text())
-        foundation = json.loads((ROOT/'catalog/market-polars.v1.json').read_text())
+        market_path = 'catalog/market-current.v1.json' if self.db.execute("SELECT 1 FROM schema_meta WHERE key='retire_market_discovery_v1'").fetchone() else 'catalog/market-polars.v1.json'
+        foundation = json.loads((ROOT/market_path).read_text())
         active = {self.contract(n['id'])['config']['action']['id'] for n in self.service.graph()['nodes']}
         registry = [{'id':'module.'+ref,'version':1,'definition_paths':['catalog/'+path for path in paths],
                  'implementation':'unknown'} for ref,paths in MODEL['migration']['module_refs'].items()] + [
@@ -383,13 +384,13 @@ class CardModel:
                  'definition_paths':['catalog/leaderboard-trends.v1.json'],'implementation':'unknown'}
                 for entry in trends['nodes'] if entry['role'] == 'process'] + [
                 {'id':'market_polars.'+entry['key'],'version':1,
-                 'definition_paths':['catalog/market-polars.v1.json'],'implementation':'unknown'}
+                 'definition_paths':[market_path],'implementation':'unknown'}
                 for entry in foundation['nodes'] if entry['role'] == 'process'] + [
                 {'id':'coingecko_alerts.'+entry['key'],'version':1,
                  'definition_paths':['catalog/coingecko-indicator-signals.v1.json'],'implementation':'planned'}
                 for entry in json.loads((ROOT/'catalog/coingecko-indicator-signals.v1.json').read_text())['cards']] + [
                 {'id':'polars_indicator.'+entry['key'],'version':1,
-                 'definition_paths':['catalog/polars-indicator-module.v1.json'],'implementation':'planned'}
+                 'definition_paths':['catalog/polars-indicator-current.v1.json' if market_path.endswith('market-current.v1.json') else 'catalog/polars-indicator-module.v1.json'],'implementation':'planned'}
                 for entry in json.loads((ROOT/'catalog/polars-indicator-module.v1.json').read_text())['cards']] + [
                 {'id':'polars_indicator.assemble','version':1,
                  'definition_paths':['catalog/polars-indicator-flow.v1.json'],'implementation':'planned'}] + [

@@ -1,8 +1,8 @@
 import React from 'react';
-import spec from '../catalog/polars-indicator-module.v1.json';
+import spec from '../catalog/polars-indicator-current.v1.json';
 
 const resource = node => node.card_contract?.config.resource || {};
-export const isPolarsModuleCard = node => node.card_contract?.config.definition_refs?.some(ref => ref.path === 'catalog/polars-indicator-module.v1.json') && Boolean(resource(node).parent_module || resource(node).module_children || resource(node).publisher_module_id);
+export const isPolarsModuleCard = node => node.card_contract?.config.definition_refs?.some(ref => ref.path === 'catalog/polars-indicator-current.v1.json') && Boolean(resource(node).parent_module || resource(node).module_children || resource(node).publisher_module_id);
 
 export function PolarsIndicatorDependency({ node, language }) {
   const dependency = resource(node).indicator_dependency;

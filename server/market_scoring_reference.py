@@ -11,7 +11,7 @@ from pathlib import Path
 RULES = json.loads((Path(__file__).resolve().parent.parent / 'catalog/market-scoring.v1.json').read_text())
 PARAMS = RULES['parameters']
 POLICIES = {RULES['scoring']['policy_prefix'] + rule['key']: rule for rule in RULES['rules']}
-ACTIVITY = [r['key'] for r in RULES['rules'] if r['key'] != 'discovery']
+ACTIVITY = [r['key'] for r in RULES['rules']]
 
 
 def timestamp(value):
@@ -72,17 +72,6 @@ def volume_baseline(observation, history):
         except (KeyError, ValueError, TypeError, OverflowError):
             continue
     return max(matches, key=lambda r: timestamp(r['requested_at']), default=None)
-
-
-def new_eligible(discovery, observation, at):
-    try:
-        age = (timestamp(at) - timestamp(discovery['first_seen_at'])).total_seconds()
-        return (discovery['discovery_status'] == 'new' and discovery['asset_id'] == observation['asset_id']
-                and discovery['coverage_key'] == observation['coverage_key']
-                and discovery['identity_status'] == 'resolved'
-                and 0 <= age <= PARAMS['new_max_age_days'] * 86400)
-    except (KeyError, ValueError, TypeError):
-        return False
 
 
 METRIC_VERSION = 'market_indicators_v1'
@@ -182,7 +171,7 @@ def valid_indicators(metrics, at):
         return False
 
 
-def contributions(metrics, discovery, at):
+def contributions(metrics, at):
     """Score ONLY frozen Polars indicators; no raw-history argument or ratio calculation."""
     if not valid_indicators(metrics, at) or timestamp(metrics['slot_start']) != slot_start(at):
         return []
@@ -191,9 +180,9 @@ def contributions(metrics, discovery, at):
     events = []
     for policy, rule in POLICIES.items():
         key = rule['key']
-        points = (rule['points'] if new_eligible(discovery, metrics, at) else 0) if key == 'discovery' else tier_points(key, metrics.get(fields[key]))
+        points = tier_points(key, metrics.get(fields[key]))
         if points:
-            suffix = 'once' if key == 'discovery' else timestamp(metrics['slot_start']).isoformat()
+            suffix = timestamp(metrics['slot_start']).isoformat()
             events.append({'asset_id': metrics['asset_id'], 'score_key': 'total_heat', 'score_delta': points,
                            'decision_ref': f"market_v1/{metrics['asset_id']}/{key}/{suffix}",
                            'decay_policy_ref': policy, 'half_life_minutes': rule['half_life_minutes'],
@@ -232,15 +221,13 @@ def rollup(events, at):
         values[rule['key']] += points * 2 ** (-(at - created).total_seconds() / 60 / half_life)
     for values in result.values():
         values['activity_score'] = math.fsum(values[key] for key in ACTIVITY)
-        values['discovery_score'] = values['discovery']
-        values['new_score'] = values['activity_score'] + values['discovery_score']
     return result
 
 
-def boards(indicators, projections, discoveries, score_history, at):
+def boards(indicators, projections, score_history, at):
     """Reference rankings over supplied records; never fetches or awards on read."""
     at = timestamp(at)
-    result = {'hot': [], 'warming': [], 'new': []}
+    result = {'hot': [], 'warming': []}
     for observation in indicators:
         asset = observation.get('asset_id')
         score = projections.get(asset)
@@ -250,14 +237,11 @@ def boards(indicators, projections, discoveries, score_history, at):
             if (score['algorithm_version'] != RULES['version'] or score['coverage_key'] != observation['coverage_key']
                     or score['quality_status'] != 'healthy'
                     or not 0 <= (at - timestamp(score['calculated_at'])).total_seconds() <= PARAMS['max_score_age_seconds']
-                    or not all(finite(score[k]) and score[k] >= 0 for k in ('activity_score','discovery_score','new_score'))
-                    or not math.isclose(score['new_score'], score['activity_score'] + score['discovery_score'])):
+                    or not finite(score['activity_score']) or score['activity_score'] < 0):
                 continue
         except (KeyError, ValueError, TypeError):
             continue
         result['hot'].append({'asset_id': asset, 'score': score['activity_score']})
-        if new_eligible(discoveries.get(asset, {}), observation, at):
-            result['new'].append({'asset_id': asset, 'score': score['new_score']})
         if observation.get('volume_ratio') is None or observation['volume_ratio'] < PARAMS['warming_min_volume_ratio'] or observation['abs_price_pct'] < PARAMS['warming_min_abs_price_pct']:
             continue
         target = at - timedelta(minutes=PARAMS['warming_score_lookback_minutes'])

@@ -1,4 +1,4 @@
-import catalog from '../catalog/market-polars.v1.json';
+import catalog from '../catalog/market-current.v1.json';
 import scoring from '../catalog/market-scoring.v1.json';
 import { BusinessTableRows } from './BusinessTableRows';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
@@ -12,6 +12,7 @@ export function TrendDesignCard({ node, graph, openNode, language }: Props) {
   const spec = trendDesign(node.name);
   if (!spec) return null;
   const zh = language === 'zh-CN';
+  if (spec.status === 'retired_placeholder') return <p>{zh ? spec.description : 'Retired new-discovery board placeholder. No execution, input or output; ID and position retained.'}</p>;
   const board = catalog.boards.find(item => item.key === spec.board);
   const fields = graph?.fields.filter(field => field.node_id === node.id) || [];
   const schema = { columns: fields.length ? fields.map(field => ({ name: field.name, label_zh: field.definition })) : spec.columns,
@@ -23,16 +24,16 @@ export function TrendDesignCard({ node, graph, openNode, language }: Props) {
     <p>{zh ? '每5分钟最多贡献一次，每项只取最高档；分数由Redis事件随时间衰减后汇总。' : 'At most one contribution per factor per 5-minute slot, highest tier only; Redis events decay before aggregation.'}</p>
     <dl className="source-case-inspector-fields">{scoring.rules.map(rule => <div key={rule.key}>
       <dt>{zh ? rule.label_zh : rule.key}</dt>
-      <dd>{'tiers' in rule ? rule.tiers?.map(([threshold, points]) => `≥${threshold!.toLocaleString('en-US')} → +${points}`).join(' / ') : `+${rule.points}`}
+      <dd>{rule.tiers.map(([threshold, points]) => `≥${threshold!.toLocaleString('en-US')} → +${points}`).join(' / ')}
         {zh ? `；半衰期 ${rule.half_life_minutes} 分钟` : `; half-life ${rule.half_life_minutes} min`}</dd>
     </div>)}</dl>
-    <p>{zh ? 'USD；市值≥1000万美元、24h成交额≥100万美元、价格>0；行情≤15分钟，Redis投影≤120秒，每榜最多20项。升温需放量≥1.5倍、|24h涨跌|≥5%及60分钟分数正增长；新榜限基线后7天内真正首次发现。' : 'USD; market cap ≥$10m, 24h volume ≥$1m, positive price. Source age ≤15min, projection age ≤120s, top 20. Warming needs ≥1.5× volume, ≥5% absolute price move and positive 60min score growth. New: genuine discoveries within 7 days after baseline.'}</p>
+    <p>{zh ? 'USD；市值≥1000万美元、24h成交额≥100万美元、价格>0；行情≤15分钟，Redis投影≤120秒，每榜最多20项。升温需放量≥1.5倍、|24h涨跌|≥5%及60分钟分数正增长。' : 'USD; market cap ≥$10m, 24h volume ≥$1m, positive price. Source age ≤15min, projection age ≤120s, top 20. Warming needs ≥1.5× volume, ≥5% absolute price move and positive 60min score growth.'}</p>
     <strong>{zh ? '后续验证' : 'Further validation'}</strong>
     {catalog.pending.map(item => <p key={item}>{item}</p>)}
     <p>{zh ? 'Few Understand负责后续实现；本卡无运行结果，不使用旧规则作为默认值。' : 'Few Understand owns implementation. No observed runtime results or fallback to old formulas.'}</p>
     <a href={catalog.rationale_url} target="_blank" rel="noreferrer">{zh ? '本轮确认的需求' : 'Accepted requirements'}</a>
   </details>;
-  const status = <p className="processing-io-case-caption">{zh ? 'Polars指标 → 筛选加分 → Redis → 三榜 · 设计已定义，后台适配/运行未核验' : 'Polars indicators → scoring → Redis → three boards · design defined, runtime unverified'}</p>;
+  const status = <p className="processing-io-case-caption">{zh ? 'Polars指标 → 筛选加分 → Redis → 量价评分 · 设计已定义，后台适配/运行未核验' : 'Polars indicators → scoring → Redis → market scores · design defined, runtime unverified'}</p>;
   const description = <><PolarsIndicatorDependency node={node} language={language}/><p>{spec.description}</p>{board && <p>{zh ? `首页位置 ${board.slot} · ${board.label_zh}榜` : `Homepage slot ${board.slot} · ${board.key}`}</p>}</>;
   if (spec.role !== 'process') return <div className="business-table-card">
     <BusinessTableRows table={schema} rows={[]} language={language}/>{status}{description}
