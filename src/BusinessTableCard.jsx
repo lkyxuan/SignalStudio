@@ -15,9 +15,9 @@ const number = index => String(index + 1).padStart(2, '0');
 
 const notes = {
   supabase_asset_scores: '演算案例，非 Supabase 实际记录。仅在资产自身得分变化且当前位于前 100 时写入，不补位；已有则更新，没有则新增，不存排名。旧资产出榜后不删、不更新，总行数可超过 100。本例新增 KASUN 的 55，保留 Stake | Bonus 的旧分 50。来源版本和同步时间属于待实现的同步协议。',
-  assets: '前 2 行按真实 #2030 账号定义：暂用 X 名称、类别为社交账号、身份待确认；后 3 行说明已确认资产的表格式。这里展示产品定义，尚无后台写入结果。',
-  asset_identifiers: '一条资产可有多行标识：Bitcoin 在 #1001 只有一行；CoinGecko ID bitcoin、中文名“比特币”和简称 BTC 在这里指向同一个 asset_id。前 2 个 X 用户 ID 来自真实 #2030 返回；表内映射均为目标案例，尚无后台写入结果。',
-  asset_relationships: '这 3 行用于说明资产关系的目标表格式；关系、证据和审核记录尚未核实。',
+  assets: '前 2 行来自真实 #2030 账号输入的目标建档案例；Bitcoin 等为原有资产格式案例。名称含“示例”的人物、项目、主题币和账号均为假设，confirmed 也只是示例状态，不代表实际审核。不同对象各有 asset_id，用 asset_kind 分类；人物无需另建主表。尚无后台写入结果。',
+  asset_identifiers: '一条对象可有多行标识。前 2 个 X 用户 ID 来自真实 #2030 返回；Bitcoin 的来源 ID、中文名和简称指向同一对象。case: 开头的范围均为假设：人物别名指向人物，账号 ID 指向账号，链及合约地址指向代币。核心为三项字段，后台可保留必要辅助字段；歧义别名不能强行唯一绑定。尚无后台写入结果。',
+  asset_relationships: '这 6 行全部是假设案例：人物投资项目、账号属于人物、代币以人物为主题，并各列反向关系。每行有独立 row_id，不共用关系 ID；主题关系不等于官方发行或背书。证据及审核引用均为示例。created_at 只表示系统记录时间；关系不自动传分。历史修订与撤销尚未实现。',
   asset_monitoring_rules: '这 3 行用于说明监控规则的目标表格式；阈值、状态和审核记录尚未执行。',
   asset_score_events: '规划为各程序先保存详细判定，再将加分事件送入 Redpanda；Redis 保留近期窗口，Delta/Parquet 归档完整流水，二者独立消费。decision_ref 用于回查判定过程。尚无真实写入。',
   asset_scores_current: '以下 5 行为模拟计算案例，时间均为假设，并非后台写入结果。当前分由 #3005 在新贡献进入缓存后立即更新受影响资产，并每 60 秒刷新事件资产衰减；本次 Demo 只使用 total_heat 全量热度。#3005 将新资产的起始 +100 按 7 天半衰期衰减，后续贡献可各按自己的规则汇总。默认排名读取最近一轮保存的分数。实际回填见下方独立模块。',
@@ -25,9 +25,9 @@ const notes = {
 
 const notesEn = {
   supabase_asset_scores: 'Illustrative, not observed Supabase records. Upsert only an asset whose own score changed and is currently top 100; no backfill, without a stored rank. Retain old rows after exit, so the target can exceed 100 rows. This case writes KASUN at 55 and keeps Stake | Bonus at its old 50. Version and sync time belong to the proposed protocol.',
-  assets: 'The first two target rows use observed #2030 account names provisionally and remain pending. The other rows show confirmed assets. No backend write is claimed.',
-  asset_identifiers: 'One #1001 asset may have multiple identifier rows: CoinGecko ID bitcoin, Chinese name 比特币, and ticker BTC all point to the same Bitcoin asset_id. The first two X IDs were observed in #2030; all mappings are specified case results, not backend writes.',
-  asset_relationships: 'These rows specify the target relationship format; the relationships and reviews have not been verified.',
+  assets: 'The first two target rows use observed #2030 accounts and remain pending. Bitcoin and peers are existing format cases. All objects named 示例, their identities and confirmed statuses are fictional, not real approvals. People, projects, tokens and accounts have distinct asset_ids in one registry, classified by asset_kind. No backend write is claimed.',
+  asset_identifiers: 'An object may have multiple identifiers. The first two X IDs were observed in #2030; Bitcoin IDs and aliases map to one object. All case: namespaces are fictional: a person alias maps to the person, an account ID to the account, and a chain-scoped contract to the token. These are three core fields, not a limit on physical auxiliary fields. Ambiguous aliases cannot force a unique identity. No backend writes are claimed.',
+  asset_relationships: 'All six rows are fictional: a person invests in a project, an account belongs to a person, and a token is themed after a person, each with a reverse row. Every row has its own row_id, without a shared relationship ID. A theme does not establish issuance or endorsement. Evidence and reviews are placeholders. created_at is system entry time only; relationships do not propagate scores. Historical revisions and revocations are not implemented.',
   asset_monitoring_rules: 'These rows specify the target rule format; thresholds and reviews have not been executed.',
   asset_score_events: 'Programs save detailed decisions, then send score events to Redpanda. Independent consumers maintain a recent Redis window and the full Delta/Parquet archive. decision_ref locates the decision. No running write has been observed.',
   asset_scores_current: 'These five rows are illustrative calculations with assumed timestamps, not backend writes. Current scores are updated by #3005 immediately for affected assets after new contributions and every 60 seconds for event-asset decay. This demo uses only total_heat. #3005 decays the initial +100 contribution with a seven-day half-life; future contributions may have their own rules. Default rankings read the latest stored cycle. Actual backfills appear in the separate module below.',
@@ -57,6 +57,7 @@ export function BusinessTableCard({ node, language }) {
   return <div className="business-table-card">
     <BusinessTableRows table={table} rows={rows} language={language} />
     <div className="business-table-afterword">
+      {['assets', 'asset_identifiers', 'asset_relationships'].includes(node.name) && <p>{zh ? table.purpose_zh : table.purpose_en}</p>}
       {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '模拟案例 · 假设每个资产仅收到一次 +100，半衰期 7 天，统一在 2026-10-15 00:00 UTC 计算；不是实际评分。' : 'Illustrative cases · assume one +100 event per asset, a seven-day half-life, and a common calculation time of 2026-10-15 00:00 UTC. These are not actual scores.'}</p>}
       <p><strong>{rows.length} {sourceConfig ? zh ? '行规则配置' : 'configuration rows' : zh ? scoreAssumptions ? '行设计案例' : '行产品案例' : scoreAssumptions ? 'design case rows' : 'product case rows'}</strong> · {sourceConfig ? zh ? initialSources.provenance_zh : initialSources.provenance_en : zh ? notes[node.name] : notesEn[node.name]}</p>
         {scoreAssumptions && <p className="processing-io-case-caption">{zh ? '假设的事件入账时间：' : 'Assumed event entry times: '}{scoreAssumptions.events.map(event => `${event.asset_name}: ${event.assumed_created_at}`).join('；')}</p>}

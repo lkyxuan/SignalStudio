@@ -1,7 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "dataset_kind": "product_case_rows",
-  "note": "Case rows specify table formats in the SignalStudio product. Bitcoin, Ethereum, Solana, and CoinGecko IDs appear in saved live Kaito entity responses; 比特币 and BTC are proposed aliases of Bitcoin in #1002. All internal IDs, review IDs, relationships, bindings, and rules here are specified case values, not deployed records or approved decisions. #1006 contains illustrative calculations from explicitly assumed event timestamps, not backend results. #1005 still has no event rows.",
+  "note": "Case rows specify table formats in the SignalStudio product. Bitcoin, Ethereum, Solana, and CoinGecko IDs appear in saved live Kaito entity responses; 比特币 and BTC are proposed aliases of Bitcoin in #1002. All internal IDs, review IDs, relationships, bindings, and rules here are specified case values, not deployed records or approved decisions. #1006 contains illustrative calculations from explicitly assumed event timestamps, not backend results. #1005 still has no event rows. SS-66 adds four explicitly fictional objects and six directed relationship rows. Fictional names, IDs, evidence and review references do not establish real people, accounts, tokens, investments or approvals.",
   "source_refs": [
     "catalog/kaito-mcp-call-examples.json",
     "catalog/identity-source-case-034.v1.json"
@@ -28,6 +28,34 @@
         "created_at": "2026-09-29T00:00:00Z",
         "identity_status": "confirmed",
         "name": "Solana"
+      },
+      {
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41",
+        "name": "示例人物 A",
+        "asset_kind": "person",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+        "name": "示例项目 P",
+        "asset_kind": "project",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b43",
+        "name": "示例人物主题币",
+        "asset_kind": "coin",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b44",
+        "name": "示例人物 A 的 X 账号",
+        "asset_kind": "social_account",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-12T01:00:00Z"
       }
     ],
     "asset_identifiers": [
@@ -55,35 +83,82 @@
         "source_namespace": "coingecko_coin_id",
         "external_identifier": "solana",
         "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c"
+      },
+      {
+        "source_namespace": "case:alias_name",
+        "external_identifier": "示例人物 A",
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41"
+      },
+      {
+        "source_namespace": "case:project_id",
+        "external_identifier": "project-p",
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42"
+      },
+      {
+        "source_namespace": "case:eip155:1:erc20",
+        "external_identifier": "0x1111111111111111111111111111111111111111",
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b43"
+      },
+      {
+        "source_namespace": "case:x_user_id",
+        "external_identifier": "900000000000000001",
+        "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b44"
       }
     ],
     "asset_relationships": [
       {
-        "relationship_id": "case_rel_btc_eth",
-        "from_asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
-        "to_asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
-        "relationship_type": "comparison_peer",
-        "evidence_ref": "case:comparison_set",
-        "review_id": "case_review_rel_1",
-        "created_at": "2026-09-29T00:00:00Z"
+        "row_id": "case_row_1_forward",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+        "relationship_type": "invests_in",
+        "evidence_ref": "case:ss66:relationship:1",
+        "review_id": "case_review_ss66_1",
+        "created_at": "2026-10-12T01:00:00Z"
       },
       {
-        "relationship_id": "case_rel_btc_sol",
-        "from_asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
-        "to_asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
-        "relationship_type": "comparison_peer",
-        "evidence_ref": "case:comparison_set",
-        "review_id": "case_review_rel_2",
-        "created_at": "2026-09-29T00:00:00Z"
+        "row_id": "case_row_1_reverse",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41",
+        "relationship_type": "invested_by",
+        "evidence_ref": "case:ss66:relationship:1",
+        "review_id": "case_review_ss66_1",
+        "created_at": "2026-10-12T01:00:00Z"
       },
       {
-        "relationship_id": "case_rel_eth_sol",
-        "from_asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
-        "to_asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
-        "relationship_type": "comparison_peer",
-        "evidence_ref": "case:comparison_set",
-        "review_id": "case_review_rel_3",
-        "created_at": "2026-09-29T00:00:00Z"
+        "row_id": "case_row_2_forward",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b44",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41",
+        "relationship_type": "account_of",
+        "evidence_ref": "case:ss66:relationship:2",
+        "review_id": "case_review_ss66_2",
+        "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "row_id": "case_row_2_reverse",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b44",
+        "relationship_type": "has_account",
+        "evidence_ref": "case:ss66:relationship:2",
+        "review_id": "case_review_ss66_2",
+        "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "row_id": "case_row_3_forward",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b43",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41",
+        "relationship_type": "themed_after",
+        "evidence_ref": "case:ss66:relationship:3",
+        "review_id": "case_review_ss66_3",
+        "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "row_id": "case_row_3_reverse",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b41",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b43",
+        "relationship_type": "theme_of",
+        "evidence_ref": "case:ss66:relationship:3",
+        "review_id": "case_review_ss66_3",
+        "created_at": "2026-10-12T01:00:00Z"
       }
     ],
     "asset_monitoring_rules": [

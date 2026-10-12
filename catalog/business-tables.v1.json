@@ -1,10 +1,10 @@
 {
-  "version": 3,
+  "version": 4,
   "storage_note": "SignalStudio defines the table fields, keys, and case rows for a separate backend AI to implement. #1001 generates asset_id once as UUIDv7; #1002 and other tables reuse that exact ID. PostgreSQL, ClickHouse, or Parquet may be chosen there if the same semantics are preserved; no table write is performed by these case rows.",
   "tables": {
     "assets": {
-      "label_zh": "内部资产",
-      "purpose_zh": "一个 asset_id 对应一个内部资产对象；只有 X 账号时可暂用账号名称，身份仍待确认。",
+      "label_zh": "统一对象",
+      "purpose_zh": "统一登记人物、项目、代币和社交账号等对象；每个独立对象有自己的 asset_id，身份未确认时保留待确认状态。",
       "columns": [
         {
           "name": "asset_id",
@@ -28,7 +28,7 @@
         {
           "name": "asset_kind",
           "type": "TEXT",
-          "label_zh": "对象类别，如社交账号、项目、加密资产、股票；尚不确定时可空",
+          "label_zh": "对象类别，如人物 person、项目 project、代币 coin、社交账号 social_account；未知可空",
           "required": false
         },
         {
@@ -42,7 +42,7 @@
         "asset_id"
       ],
       "create_sql": "CREATE TABLE assets (asset_id TEXT PRIMARY KEY, name TEXT, identity_status TEXT NOT NULL CHECK (identity_status IN ('pending_identity', 'confirmed')), asset_kind TEXT, created_at TEXT NOT NULL)",
-      "purpose_en": "Store stable internal asset objects with a current display name that may be provisional while identity is pending."
+      "purpose_en": "Register people, projects, tokens and social accounts in one identity system; each distinct object has its own asset_id and may remain pending."
     },
     "asset_identifiers": {
       "label_zh": "资产外部标识",
@@ -76,25 +76,25 @@
       "purpose_en": "Map each source-scoped identifier or curated alias to an existing internal asset ID; multiple rows may point to one asset."
     },
     "asset_relationships": {
-      "label_zh": "已审核资产关系",
-      "purpose_zh": "保存两项已确认资产之间经过审核的关系。",
+      "label_zh": "已审核对象关系",
+      "purpose_zh": "保存对象之间经过审核的有向关系。正反各有独立行 ID，仅记录系统录入时间。",
       "columns": [
         {
-          "name": "relationship_id",
+          "name": "row_id",
           "type": "TEXT",
-          "label_zh": "关系 ID",
+          "label_zh": "每一行关系记录的唯一 ID",
           "required": true
         },
         {
           "name": "from_asset_id",
           "type": "TEXT",
-          "label_zh": "起点资产 ID",
+          "label_zh": "起点对象 ID",
           "required": true
         },
         {
           "name": "to_asset_id",
           "type": "TEXT",
-          "label_zh": "终点资产 ID",
+          "label_zh": "终点对象 ID",
           "required": true
         },
         {
@@ -118,15 +118,15 @@
         {
           "name": "created_at",
           "type": "TEXT",
-          "label_zh": "创建时间",
+          "label_zh": "系统记录这条关系的时间；不表示关系实际开始或结束",
           "required": true
         }
       ],
       "primary_key": [
-        "relationship_id"
+        "row_id"
       ],
-      "create_sql": "CREATE TABLE asset_relationships (relationship_id TEXT PRIMARY KEY, from_asset_id TEXT NOT NULL REFERENCES assets(asset_id), to_asset_id TEXT NOT NULL REFERENCES assets(asset_id), relationship_type TEXT NOT NULL, evidence_ref TEXT NOT NULL, review_id TEXT NOT NULL, created_at TEXT NOT NULL, CHECK (from_asset_id <> to_asset_id))",
-      "purpose_en": "Store reviewed relationships between approved assets."
+      "create_sql": "CREATE TABLE asset_relationships (row_id TEXT PRIMARY KEY, from_asset_id TEXT NOT NULL REFERENCES assets(asset_id), to_asset_id TEXT NOT NULL REFERENCES assets(asset_id), relationship_type TEXT NOT NULL, evidence_ref TEXT NOT NULL, review_id TEXT NOT NULL, created_at TEXT NOT NULL, CHECK (from_asset_id <> to_asset_id))",
+      "purpose_en": "Store reviewed directed relationships between objects. Each direction has its own row ID and records only its system entry time."
     },
     "asset_monitoring_rules": {
       "label_zh": "资产监控规则",
@@ -325,5 +325,6 @@
       ],
       "create_sql": "CREATE TABLE asset_initial_score_sources (source_id TEXT PRIMARY KEY, source_name TEXT NOT NULL, initial_score REAL NOT NULL CHECK(initial_score > 0), rule_version TEXT NOT NULL, half_life_minutes REAL NOT NULL CHECK(half_life_minutes > 0))"
     }
-  }
+  },
+  "decision_ref": "https://app.notion.com/p/3f7038a63d5a811d8f3eec4d5b92cf7d"
 }

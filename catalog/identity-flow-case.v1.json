@@ -93,7 +93,7 @@
     "asset_relationships": {
       "scope": "specified_target_rows",
       "columns": [
-        "relationship_id",
+        "row_id",
         "from_asset_id",
         "to_asset_id",
         "relationship_type",
@@ -102,7 +102,7 @@
         "created_at"
       ],
       "primary_key": [
-        "relationship_id"
+        "row_id"
       ],
       "row_count": 0,
       "rows": []

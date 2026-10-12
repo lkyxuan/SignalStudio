@@ -2,18 +2,18 @@
 
 These are SignalStudio product table contracts. The saved #2030 call returned 100 accounts; two actual account records supply the X IDs below. The #1001/#1002 rows specify what the backend should produce for those inputs when #1002 has no prior mapping. The repeated-input case specifies ID reuse. The table lookup, write, AI decision, and approval have not been executed here.
 
-## assets · 内部资产
+## assets · 统一对象
 
-一个 `asset_id` 对应一个内部资产对象。#1001 新建对象时由系统生成 UUIDv7，后续名称、类别或身份状态改变时也不改这个 ID；只有 X 账号时可暂用账号名称，并保持身份待确认。#1001 第一稿只保留五个字段；审核记录和更多追踪信息留待审核流程定义。
+一个 `asset_id` 对应一个独立跟踪对象。人物、项目、代币和社交账号统一登记在此，不另建人物主表；人物与人名币即使同名，也分别建档。#1001 新建对象时由系统生成 UUIDv7，后续名称、类别或身份状态改变时也不改这个 ID；只有 X 账号时可暂用账号名称，并保持身份待确认。#1001 第一稿只保留五个字段；审核记录和更多追踪信息留待审核流程定义。
 
-主键：`asset_id`。按真实输入规定的目标行数：**2**。
+主键：`asset_id`。按真实输入规定的目标行数：**2**；面板另有三个原有代币格式案例，以及四个明确虚构的人物、项目、主题币和账号案例，共 **9** 行。虚构行的 `confirmed` 是格式示例，不是实际审核。
 
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
 | 01 | `asset_id` | TEXT | 是 | 系统创建的内部资产 ID（UUIDv7） |
 | 02 | `name` | TEXT | 否 | 当前展示名称；待确认时可暂用来源名称，来源未提供时留空 |
 | 03 | `identity_status` | TEXT | 是 | 身份状态：pending_identity 或 confirmed |
-| 04 | `asset_kind` | TEXT | 否 | 对象类别；可用于区分社交账号、项目、加密资产、股票等 |
+| 04 | `asset_kind` | TEXT | 否 | 对象类别；如人物 `person`、项目 `project`、代币 `coin`、社交账号 `social_account`，未知可空；示例值不是穷尽枚举 |
 | 05 | `created_at` | TEXT | 是 | 系统首次建档时间 |
 
 目标表行（X ID 来自真实 #2030 返回，其余字段为产品定义）：
@@ -25,9 +25,9 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 ## asset_identifiers · 资产外部标识
 
-用来源范围和外部稳定 ID 找到 #1001 的内部资产 ID。每行只保存一条对应关系；#1002 的 `asset_id` 引用 #1001 已创建的 ID，不另生成编号。
+用来源范围和外部稳定 ID 找到 #1001 的内部资产 ID。三项是核心含义，不限制后台保留必要辅助字段；同范围歧义别名的承载仍待细化，不能直接唯一绑定。每行只保存一条对应关系；#1002 的 `asset_id` 引用 #1001 已创建的 ID，不另生成编号。
 
-主键：`source_namespace + external_identifier`。真实 #2030 输入对应 **2** 行目标结果；连同别名和其他资产，面板展示 **7** 行案例。
+主键：`source_namespace + external_identifier`。真实 #2030 输入对应 **2** 行目标结果；连同别名和其他资产，面板展示 **11** 行案例，包括四个 `case:` 命名空间下的假设标识。
 
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
@@ -47,23 +47,27 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 | `coingecko_coin_id` | `ethereum` | `01a0ea76-0c00-762e-acca-7efff04125a7` |
 | `coingecko_coin_id` | `solana` | `01a0ea76-0c00-78e6-aace-197b6a78bf7c` |
 
-上面三行都指向 #1001 的同一行 `Bitcoin`。中文名和简称是本产品定义的别名案例，不代表已经通过后台匹配或审核。简称可能重复，不能只凭任意来源出现的 `BTC` 就自动绑定；需要确定其来源范围和归属。
+其中 CoinGecko ID bitcoin、比特币和 BTC 三行指向 #1001 的同一行 `Bitcoin`。中文名和简称是本产品定义的别名案例，不代表已经通过后台匹配或审核。简称可能重复，不能只凭任意来源出现的 `BTC` 就自动绑定；需要确定其来源范围和归属。
 
-## asset_relationships · 已审核资产关系
+## asset_relationships · 已审核对象关系
 
-保存两项已确认资产之间经过审核的关系。
+保存对象之间经过审核的有向关系。依据：[SS-66 已批准的三卡设计](https://app.notion.com/p/3f7038a63d5a811d8f3eec4d5b92cf7d)。
 
-主键：`relationship_id`。当前真实案例尚无已审核关系行。
+主键：`row_id`。正反两行各有独立行 ID，不增加共享 `relationship_id`；关系类型按当前方向表达。读某对象的关系时按 `from_asset_id` 查，再用 `to_asset_id` 读取对方身份。两方向的证据和记录时间可分别记录；互为同一事实的反向读法仍须语义一致，不自动传播或重复计算分数。
 
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
-| 01 | `relationship_id` | TEXT | 是 | 关系 ID |
-| 02 | `from_asset_id` | TEXT | 是 | 起点资产 ID |
-| 03 | `to_asset_id` | TEXT | 是 | 终点资产 ID |
-| 04 | `relationship_type` | TEXT | 是 | 关系类型 |
-| 05 | `evidence_ref` | TEXT | 是 | 关系证据 |
-| 06 | `review_id` | TEXT | 是 | 批准记录 ID |
-| 07 | `created_at` | TEXT | 是 | 创建时间 |
+| 01 | `row_id` | TEXT | 是 | 每一行关系记录的唯一 ID |
+| 02 | `from_asset_id` | TEXT | 是 | 起点对象 ID，引用 assets |
+| 03 | `to_asset_id` | TEXT | 是 | 终点对象 ID，引用 assets |
+| 04 | `relationship_type` | TEXT | 是 | 当前方向的关系类型 |
+| 05 | `evidence_ref` | TEXT | 是 | 支持这条关系的证据引用 |
+| 06 | `review_id` | TEXT | 是 | 审核确认记录 ID |
+| 07 | `created_at` | TEXT | 是 | 系统记录这条关系的时间 |
+
+只保留一个系统记录时间，不设关系开始、结束时间。新增关系可按记录时间回看；纠错、撤销和追加证据的历史修订机制尚未定义或实现，七字段不等于完整历史引擎。证据和审核引用在未来运行时须可追溯解析，不能只留下无法查询的文本。
+
+当前展示 **6** 行完全虚构的格式案例：人物投资项目、账号属于人物、主题币以人物为主题，以及各自反向记录。名称含“示例”，标识范围为 `case:`；人物、账号、投资、代币、证据、审核和时间都不是真实观测。主题关系不意味着官方发行或授权。关系类型字典、自动生成反向行和去重实现仍待后续定义，不因这六行就声称已有后台关系或审批。
 
 ## asset_monitoring_rules · 资产监控规则
 
