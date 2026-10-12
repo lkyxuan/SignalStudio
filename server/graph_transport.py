@@ -67,7 +67,7 @@ class GraphTransport:
         if not base:
             return current
         delta = {key: value for key, value in current.items() if key not in COLLECTIONS and base.get(key) != value}
-        delta.update(transport='delta.v1', base_revision=since, changes={}, order={})
+        delta.update(transport='delta.v1', revision=revision, base_revision=since, changes={}, order={})
         for key in COLLECTIONS:
             old = {entity['id']: entity for entity in base.get(key, [])}
             new = {entity['id']: entity for entity in current.get(key, [])}

@@ -32,6 +32,17 @@ class GraphTransportTest(unittest.TestCase):
         self.assertEqual(detail['nodes'][0]['detail_revision'],summary['nodes'][0]['detail_revision'])
         self.assertTrue(detail['nodes'][0]['detail_loaded'])
 
+    def test_unchanged_delta_retains_revision_for_conditional_reads(self):
+        transport = GraphTransport()
+        graph = self.graph()
+        transport.response(graph)
+        delta = transport.response(graph, 'a')
+        self.assertEqual(delta['transport'], 'delta.v1')
+        self.assertEqual(delta['revision'], 'a')
+        self.assertEqual(delta['base_revision'], 'a')
+        self.assertTrue(all(not change['upsert'] and not change['delete']
+                            for change in delta['changes'].values()))
+
     def test_memory_budget_evicts_old_snapshots(self):
         transport=GraphTransport(byte_limit=1)
         transport.response(self.graph()); transport.response(self.graph('b'))
