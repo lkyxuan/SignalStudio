@@ -266,9 +266,9 @@ export function traceRoute(nodes: LayoutNode[], edges: (LayoutEdge & { id: strin
   return { nodeIds, edgeIds };
 }
 
-export function layoutStages(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: LayoutEdge[], visibleIds?: ReadonlySet<string>) {
+export function layoutStages(nodes: (LayoutNode & { position_x: number; position_y: number })[], edges: LayoutEdge[]) {
   const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
   const byId = new Map(nodes.map(n => [n.id, n]));
-  const sideGroups = sideLayoutGroups(active, edges).map(group => ({ ...group, nodes: group.nodes.filter(node => !visibleIds || visibleIds.has(node.id)) })).filter(group => group.nodes.length);
+  const sideGroups = sideLayoutGroups(active, edges);
   return sideGroups.map(g => ({ id: `stage:${g.key}`, x: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_x)), y: Math.min(...g.nodes.map(n => byId.get(n.id)!.position_y)) - 48, title: g.title, titleEn: g.titleEn, count: g.nodes.length }));
 }
