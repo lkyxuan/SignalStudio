@@ -110,8 +110,8 @@ function LogicNode({ id, data, selected }) {
     const sidePorts = ports.filter(item => item.side === port.side);
     const place = sidePorts.findIndex(item => item.id === port.id) + 1;
     const percent = `${(place / (sidePorts.length + 1)) * 100}%`;
-    return <Handle key={`${type}:${port.id}`} id={`${type}:${port.id}`} type={type} position={port.side === 'right' ? Position.Right : port.side === 'left' ? Position.Left : type === 'source' ? Position.Bottom : Position.Top}
-      className="flow-handle edge-port" style={port.side !== 'normal' ? { top: type === 'source' ? `${15 + place / (sidePorts.length + 1) * 40}%` : `${65 + place / (sidePorts.length + 1) * 25}%` } : { left: percent }} isConnectable={false} />;
+    return <Handle key={`${type}:${port.id}`} id={`${type}:${port.id}`} type={type} position={port.paired?.position || (port.side === 'right' ? Position.Right : port.side === 'left' ? Position.Left : type === 'source' ? Position.Bottom : Position.Top)}
+      className="flow-handle edge-port" style={port.paired ? { [port.side === 'normal' ? 'left' : 'top']: `calc(${port.paired.percent}% + ${port.paired.offset}px)` } : port.side !== 'normal' ? { top: type === 'source' ? `${15 + place / (sidePorts.length + 1) * 40}%` : `${65 + place / (sidePorts.length + 1) * 25}%` } : { left: percent }} isConnectable={false} />;
   });
   return <div className={`logic-node ${kind} ${OUTPUT_TYPES.has(data.type) ? 'output-node' : ''} ${data.is_system_state ? 'state-node' : ''} ${isDecision ? 'decision-node' : ''} ${selected ? 'is-selected' : ''}`}>
     <Handle type="target" position={Position.Top} className="flow-handle" />
@@ -235,13 +235,13 @@ function App() {
     const ports = new Map(graph.nodes.map(node => [node.id, { inputPorts: [], outputPorts: [] }]));
     const arcs = arcStyles(graph.nodes, presentation.edges);
     for (const edge of presentation.edges) {
-      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.sourceSide || 'normal' });
-      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.targetSide || 'normal' });
+      ports.get(edge.upstream_id)?.outputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.sourceSide || 'normal', paired: arcs.get(edge.id)?.sourcePort });
+      ports.get(edge.downstream_id)?.inputPorts.push({ id: edge.id, side: arcs.get(edge.id)?.targetSide || 'normal', paired: arcs.get(edge.id)?.targetPort });
     }
     for (const [id, nodePorts] of ports) {
       nodePorts.inputPorts.sort((a, b) => (nodeById.get(presentation.edges.find(edge => edge.id === a.id)?.upstream_id)?.position_x ?? 0) - (nodeById.get(presentation.edges.find(edge => edge.id === b.id)?.upstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.outputPorts.sort((a, b) => (nodeById.get(presentation.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(presentation.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
-      nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}`).join(',')}`;
+      nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}`;
     }
     setNodes(graph.nodes.map(n => ({ id: n.id, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, progress: graph.card_progress?.[n.id], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.id) || 0, pendingNeedNames: pendingNeedNames.get(n.id) || [] } })));
     setEdges(presentation.edges.map(e => { const color = 'var(--ss-edge)';
