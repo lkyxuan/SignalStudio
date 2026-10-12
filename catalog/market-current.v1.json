@@ -18,16 +18,7 @@
     }
   ],
   "frontend": {
-    "slots": {
-      "1": "warming",
-      "2": "hottest"
-    },
-    "empty_slots": [
-      3,
-      4,
-      5,
-      6
-    ],
+    "layout_ref": "catalog/homepage-layout.v1.json",
     "cooling": "trend_tag_only",
     "overlap_allowed": true
   },

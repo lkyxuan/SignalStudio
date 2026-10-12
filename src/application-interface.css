@@ -7,3 +7,9 @@
 .interface-field-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .interface-field-list code { padding: 3px 6px; border: 1px solid var(--border); border-radius: 5px; }
 .interface-read-contract { padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+
+.homepage-layout-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.homepage-layout-preview article { padding: 12px; border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+.homepage-layout-preview h4 { margin: 8px 0; font-size: 14px; }
+.homepage-layout-preview small { opacity: .75; }
+@media (max-width: 700px) { .homepage-layout-preview { grid-template-columns: 1fr; } }

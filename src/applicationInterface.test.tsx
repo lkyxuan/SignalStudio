@@ -40,3 +40,18 @@ test('review surface reference describes association without an execution trigge
  const result=edgePresentation(g,edge,'zh-CN');
  assert.ok(JSON.stringify(result).includes('人工审核界面 · 不自动触发'));
 });
+
+test('homepage preview has three board positions and three signal positions without invented content',async()=>{
+ const {default:homepage}=await import('../catalog/homepage-layout.v1.json');
+ const n={...node(0),name:homepage.interface.name,card_contract:{config:{interface:homepage.interface}}};
+ for(const language of ['zh-CN','en']){
+  const html=renderToStaticMarkup(<ApplicationInterfaceCard node={n} graph={graph} language={language}/>);
+  assert.equal((html.match(/data-homepage-slot=/g)||[]).length,6);
+  assert.ok(html.includes('leaderboard_warming'));assert.ok(html.includes('leaderboard_hottest'));
+  assert.ok(html.includes('signal.data'));assert.ok(!html.includes('<button'));assert.ok(!html.includes('<form'));
+  assert.ok(!html.includes('leaderboard_emerging'));
+ }
+ assert.equal(displayNodeName('en',n.name),'Boards and signals home');
+ assert.equal(homepage.slots[2]!.source_name,null);
+ assert.equal(new Set(homepage.slots.slice(3).map(s=>s.source_name)).size,1);
+});

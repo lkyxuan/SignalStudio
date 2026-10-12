@@ -1,5 +1,6 @@
 import React from 'react';
 import sync from '../catalog/supabase-score-sync.v1.json';
+import homepage from '../catalog/homepage-layout.v1.json';
 
 export function ApplicationInterfaceCard(props) {
   const {node, language} = props, zh = language === 'zh-CN';
@@ -15,6 +16,17 @@ export function ApplicationInterfaceCard(props) {
     <p className="card-detail-provenance">{zh ? '应用界面交付定义 · 页面与 API 尚未核验' : 'Application interface definition · page and API unverified'}</p>
     <section><h3>{zh ? '谁使用、用来做什么' : 'Users and purpose'}</h3><p>{ui[zh ? 'purpose_zh' : 'purpose_en'] || node.definition}</p></section>
     {props.connections}
+    {ui.homepage_layout_ref === 'catalog/homepage-layout.v1.json' && <section>
+      <h3>{zh ? '六框结构预览' : 'Six-position structure preview'}</h3>
+      <p>{zh ? '前三框：榜单 · 后三框：信号。仅示意位置，没有真实记录。' : 'First three: boards. Last three: signals. Structure only, no real records.'}</p>
+      <div className="homepage-layout-preview">{homepage.slots.map(slot => <article key={slot.key} data-homepage-slot={slot.position}>
+        <small>{zh ? `位置 ${slot.position} · ${slot.kind === 'board' ? '榜单' : '信号'}` : `Position ${slot.position} · ${slot.kind}`}</small>
+        <h4>{slot[zh ? 'label_zh' : 'label_en']}</h4>
+        <p>{slot.source_name ? <code>{slot.source_name}</code> : (zh ? '来源待定义' : 'Source undefined')}</p>
+        <p>{slot.status === 'defined_generator_shelved' ? (zh ? '规则已定义 · 生成卡已收起' : 'Rules defined · generator shelved') : (zh ? '内容待定义' : 'Content undefined')}</p>
+        <small>{zh ? '读取 API：待绑定' : 'Read API: unbound'}</small>
+      </article>)}</div>
+    </section>}
     <section><h3>{zh ? '需要展示的内容' : 'Required content'}</h3>{list('display_fields').length
       ? <p className="interface-field-list">{list('display_fields').map(field => <code key={field}>{field}</code>)}</p>
       : <p>{zh ? '展示字段尚未定义。' : 'Display fields are undefined.'}</p>}

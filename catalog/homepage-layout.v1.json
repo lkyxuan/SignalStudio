@@ -1,0 +1,114 @@
+{
+  "version": "homepage-layout.v1",
+  "rationale_url": "https://app.notion.com/p/3f7038a63d5a81e59299fbe2553ee9ae",
+  "status": "approved_definition_runtime_unverified",
+  "slots": [
+    {
+      "position": 1,
+      "key": "warming",
+      "kind": "board",
+      "label_zh": "升温榜",
+      "label_en": "Warming",
+      "source_name": "leaderboard_warming",
+      "status": "defined_generator_shelved",
+      "api_endpoint": null
+    },
+    {
+      "position": 2,
+      "key": "hottest",
+      "kind": "board",
+      "label_zh": "最热榜",
+      "label_en": "Hottest",
+      "source_name": "leaderboard_hottest",
+      "status": "defined_generator_shelved",
+      "api_endpoint": null
+    },
+    {
+      "position": 3,
+      "key": "reserved_board",
+      "kind": "board",
+      "label_zh": "第三榜 · 待定义",
+      "label_en": "Third board · undefined",
+      "source_name": null,
+      "status": "undefined",
+      "api_endpoint": null
+    },
+    {
+      "position": 4,
+      "key": "signal_1",
+      "kind": "signal",
+      "label_zh": "信号区域 1 · 分组待定义",
+      "label_en": "Signal area 1 · grouping undefined",
+      "source_name": "Few Understand · signal.data",
+      "status": "grouping_undefined",
+      "api_endpoint": null
+    },
+    {
+      "position": 5,
+      "key": "signal_2",
+      "kind": "signal",
+      "label_zh": "信号区域 2 · 分组待定义",
+      "label_en": "Signal area 2 · grouping undefined",
+      "source_name": "Few Understand · signal.data",
+      "status": "grouping_undefined",
+      "api_endpoint": null
+    },
+    {
+      "position": 6,
+      "key": "signal_3",
+      "kind": "signal",
+      "label_zh": "信号区域 3 · 分组待定义",
+      "label_en": "Signal area 3 · grouping undefined",
+      "source_name": "Few Understand · signal.data",
+      "status": "grouping_undefined",
+      "api_endpoint": null
+    }
+  ],
+  "interface": {
+    "key": "boards_and_signals_home",
+    "name": "榜单与信号首页",
+    "purpose_zh": "首页前三个位置展示榜单，后三个位置展示信号事件；榜单按关注分排序，信号显示发生了什么。",
+    "purpose_en": "Three board positions rank attention; three signal positions show what happened.",
+    "display_fields": [],
+    "display_zh": [
+      "1：升温榜；2：最热榜；3：第三榜待定义。",
+      "4—6：三个信号区域，具体分组和时间排序规则待定义。",
+      "榜单引用结果表1008/1009；信号引用5005通道定义，读取API与持久存储未绑定。",
+      "评分：5007 → 3032 → 评分事件；提醒：5007 → 3011—3015 → 5005。两者独立，不将提醒重复计分。"
+    ],
+    "display_en": [
+      "1: Warming; 2: Hottest; 3: third board undefined.",
+      "4–6: signal areas; grouping and time ordering remain undefined.",
+      "Boards reference results 1008/1009. Signals reference channel 5005; APIs and persisted storage are unbound.",
+      "Scoring: 5007 → 3032 → score events. Alerts: 5007 → 3011–3015 → 5005. Alerts do not automatically add scores."
+    ],
+    "actions_zh": [
+      "当前只查看六框结构与来源定义；真实资产详情导航待实现。"
+    ],
+    "actions_en": [
+      "Inspect the six positions and their source definitions; real asset navigation is pending."
+    ],
+    "limitations_zh": [
+      "六框是结构预览，没有真实币、分数或信号记录。",
+      "榜单生成卡3017/3018/3019继续收起；结果表存在不证明已有榜单输出。",
+      "第三榜不沿用已退休的新发现榜；三类信号分组未定。",
+      "业务首页、读取API、信号持久化与回测尚未实现或核验。"
+    ],
+    "limitations_en": [
+      "Structure preview without real assets, scores or signal records.",
+      "Generators 3017/3018/3019 remain shelved; result definitions do not prove board output.",
+      "The third board does not reuse retired discovery logic; signal grouping is undefined.",
+      "Business page, read APIs, signal persistence and backtesting are unimplemented or unverified."
+    ],
+    "acceptance": [
+      "six_positions_three_boards_three_signals",
+      "no_fake_records_or_execution",
+      "undefined_groups_explicit",
+      "sources_reference_only"
+    ],
+    "homepage_layout_ref": "catalog/homepage-layout.v1.json",
+    "endpoint": null,
+    "api_endpoint": null,
+    "implementation": "unverified"
+  }
+}
