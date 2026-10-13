@@ -4,11 +4,12 @@ import { BusinessTableRows } from './BusinessTableRows';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
 import { buildDesignPipeline, type DesignScenario } from './contentRefreshDesign';
 import type { Graph, GraphNode, Language } from './contracts';
+import {SearchPreparationCard, searchPreparationCard} from './SearchPreparationCard';
 import {NewUuidBoardCard, newUuidBoardCard} from './NewUuidBoardCard';
 
 type Props = { node: GraphNode; graph?: Graph; openNode?: (id: string) => void; language: Language };
 export const contentRefreshCard = (name: string) =>
-  newUuidBoardCard(name) || name === catalog.result.name || catalog.stages.some(stage => stage.name === name);
+  searchPreparationCard(name) || newUuidBoardCard(name) || name === catalog.result.name || catalog.stages.some(stage => stage.name === name);
 const resultColumns = (names: string[]) => catalog.result.columns.filter(column => names.includes(column.name));
 
 function FieldRows({ rows }: { rows: [string, string][] }) {
@@ -20,6 +21,7 @@ function FieldRows({ rows }: { rows: [string, string][] }) {
 export function ContentRefreshCard({ node, graph, openNode, language }: Props) {
   const zh = language === 'zh-CN';
   const [scenario, setScenario] = useState<DesignScenario>('check');
+  if (searchPreparationCard(node.name)) return <SearchPreparationCard node={node} graph={graph} openNode={openNode} language={language}/>;
   if (newUuidBoardCard(node.name)) return <NewUuidBoardCard node={node} graph={graph} openNode={openNode} language={language}/>;
   const pipeline = buildDesignPipeline(scenario);
   const stage = catalog.stages.find(item => item.name === node.name);
@@ -62,7 +64,8 @@ export function ContentRefreshCard({ node, graph, openNode, language }: Props) {
     if (source === 'candidates') return pipeline.candidates;
     if (source === 'decision') return pipeline.eligible;
     if (source === 'generate') return pipeline.attempts;
-    if (source === catalog.result.name) return stage.key === 'save' ? pipeline.claimed : pipeline.before;
+    if (source === '组装生成资料') return pipeline.preparations.map(p => p.assembled);
+    if (source === catalog.result.name) return ['save','generate'].includes(stage.key) ? pipeline.claimed : pipeline.before;
     if (source === 'asset_identifiers') return pipeline.eligible.map(row => ({ asset_id: row.asset_id,
       source_namespace: 'synthetic', external_identifier: `synthetic/${row.asset_id}` }));
     const board = catalog.boards.find(item => item.table_name === source);
@@ -93,8 +96,8 @@ export function ContentRefreshCard({ node, graph, openNode, language }: Props) {
             <p>{edge.note_zh}</p>
           </div>;
         })}
-        {stage.key === 'decision' && <p>{zh ? '这里只交付首次生成或到期刷新项；skip / wait / blocked 分支不进入生成卡。默认阈值30分钟，按信息类型独立判断。' : 'Only first-generation or expired items proceed. Skip, wait and blocked decisions do not generate. Default interval: 30 minutes per information type.'}</p>}
-        {stage.key === 'generate' && <p>{zh ? '这里的生成内容、身份映射及5分钟租约均为虚构案例假设。实际采集、生成器和任务设施未接通；真正租约时长尚未绑定。输出还未保存。' : 'Content, identities and the five-minute lease are fictional assumptions. Fetchers, generators and task facilities are unconnected. Output is not saved yet.'}</p>}
+        {stage.key === 'decision' && <p>{zh ? '这里只交付首次生成或到期刷新项；skip / wait / blocked 分支不进入资料准备。默认阈值30分钟，按信息类型独立判断。' : 'Only first-generation or expired items proceed. Skip, wait and blocked decisions do not generate. Default interval: 30 minutes per information type.'}</p>}
+        {stage.key === 'generate' && <p>{zh ? '这里的生成内容、身份映射及5分钟租约均为虚构案例假设。本卡不采集或搜索；资料准备、生成器和任务设施未接通；真正租约时长尚未绑定。输出还未保存。' : 'Content, identities and the five-minute lease are fictional assumptions. Fetchers, generators and task facilities are unconnected. Output is not saved yet.'}</p>}
         {stage.key === 'save' && <p>{zh ? '案例假设类型输出验证通过；本地演算只展示状态替换与失败保留，不证明真实验证器、事务或原子认领已实现。' : 'The case assumes valid type output; the evaluator illustrates replacement and failure preservation, not deployed validation or transactions.'}</p>}
       </section>
     </div>
@@ -103,6 +106,9 @@ export function ContentRefreshCard({ node, graph, openNode, language }: Props) {
       <label className="source-case-inspector-picker">{zh ? '选择分支' : 'Scenario'}<select value={scenario} onChange={event => setScenario(event.target.value as DesignScenario)}>
         <option value="check">{zh ? '10:00 · 首次、到期与跳过' : '10:00 · first, due and fresh'}</option>
         <option value="failure">{zh ? '10:00 · B失败保留与退避' : '10:00 · B failure and backoff'}</option>
+        <option value="enough">{zh ? '未来 · 资料够用免搜索' : 'Future · sufficient stored data'}</option>
+        <option value="empty">{zh ? '搜索空结果 · 阻塞生成' : 'Empty search · generation blocked'}</option>
+        <option value="unconnected">{zh ? '工具未接通 · 阻塞生成' : 'Tools unconnected · blocked'}</option>
         <option value="boundary">{zh ? '10:10 · A到期边界补查' : '10:10 · A expiry boundary'}</option>
       </select></label>
       <p>{catalog.case.caption_zh}</p><p>UTC <code>{pipeline.now}</code> · <code>{catalog.case.information_key}</code></p>

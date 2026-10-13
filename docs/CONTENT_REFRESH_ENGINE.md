@@ -6,37 +6,73 @@ The authoritative portable contract is [`catalog/content-refresh.v1.json`](../ca
 
 ## Delivered scope
 
-The approved 2026-10-10 refinement splits the engine into four processing cards:
+SS-87 approved 2026-10-13: [card split and default realtime search](https://app.notion.com/p/3f8038a63d5a810fa05bdfc1a2b29003). The current #3030 generates content from prepared data; collection is expressed by five separate cards. `catalog/search-preparation.v1.json` owns these cards, branch conditions and unconnected data/search/store bindings.
+
+The original four-stage design, expanded by SS-87, now has these responsibilities:
 
 | Stage | Responsibility | Inputs | Output |
 | --- | --- | --- | --- |
 | Candidate selection | Per-board valid token top N, then stable-ID union | Warming, hottest and new-UUID results | Candidate `asset_id` values |
 | Refresh decision | Per-type first/due/fresh/backoff/active checks | Candidates and content/state table | Decisions; only first/due proceed |
-| Fetch and generate | Recheck eligibility and atomically claim before calling existing capabilities | Eligible decisions, identities and current task state | Unvalidated content or error, provenance, task version and lease |
+| Read collected data | Recheck eligibility and claim before reading bound data and saved searches | Eligible decisions, identities and current task state | Usable collected materials and gaps |
+| Assess gaps | Choose current search or future sufficient-data path | Existing material coverage and freshness requirements | need_search / enough / blocked |
+| Search supplement | Call bound tools/workflows for missing or current information | Selected search requirement | Success, empty, failed or unconnected search outcome |
+| Search material store | Preserve last successful search materials and attempt state | Search outcomes | Logical stored materials; physical store unbound |
+| Assemble generation inputs | Join existing data with the selected route; check task identity and evidence | Collected data and current search, or explicit enough decision | Prepared material bundle or preparation error |
+| Generate from data | Recheck current task and consume prepared materials; no fetching/searching | Prepared materials or error, current task state | Unvalidated content or error, provenance, task version and lease |
 | Validate and save | Reject stale completions, validate output, atomically persist or record failure | Generation result and current successful/task state | Updated logical content/state row |
 
 The existing #3027 is renamed to `候选代币筛选`, retaining its ID, reference and position.
-Three new processing cards use the normal allocator; references depend on the workspace.
+The original three added processing cards retain their identity. SS-87 adds five cards using the normal allocator (three processes, one decision and one table); references depend on the workspace. #3030 keeps its ID, reference and saved position under the name `根据资料生成内容`.
 The existing #1019 `asset_information_content` retains its ID, reference, fields and position.
-The current refresh contract contains 11 design dependencies: three board inputs, three sequential handoffs,
-identity input, three content/state reads (decision, execution recheck/claim, saving), and
-one final write. No decision skip/wait/blocked branch is handed to generation. The result
-is a logical view; neither intermediate candidate nor pending lists require new tables or queues.
+The current route is #3029 → collected-data reader → gap decision. Existing materials also
+flow directly to assembly. The decision selects search supplementation (current default) or
+an explicit sufficient-data route (future policy). Search writes the logical material store
+and hands the current outcome to assembly. Assembly hands materials or an error to #3030;
+#3031 remains the final validator/saver. The search store feeds later reads, not an immediate
+execution loop. Only first/due content decisions start preparation. No physical queue or
+business data reader is invented by these design connections.
+
+The default policy is `realtime_search_required`: every eligible content update needs current
+search evidence even when stored materials cover the requested topics. This is an accepted
+policy for current incomplete crawler coverage, not a verified coverage audit of every token.
+The future `coverage_based` policy bypasses search only if all required material types and
+freshness requirements are satisfied. It is shown in a synthetic case and is not active.
+The content update schedule and source freshness are independent. Reading a webpage still
+only reads saved content; it does not trigger a search.
+
+Business-data readers, actual search tools, source freshness intervals, storage retention and
+physical storage remain unbound. Grok/Surf/custom workflows are candidates, not verified
+integrations. Search results must retain source identity, original URL, known publication
+time, fetch time and expiry. Source time remains null when unknown; fetch time never replaces
+it. Freshness expiry does not define storage deletion. Failures preserve prior successful
+search material and its timestamps. Successful empty responses are distinct from failures;
+without required current evidence the default route blocks generation, routes the error
+through #3030/#3031, and preserves previous successful content and normal retry rules.
+
+Assembly waits for collected data and the selected route, correlated by asset ID, information
+type and content-task version under a valid lease. It must not wait for both mutually exclusive
+branches. Source duplicates are removed, conflicts retain attribution, and another task's
+results cannot satisfy the current request. Current search results enter assembly directly;
+reading the store is not proof that this task's search completed. Simultaneous identical
+queries may share an in-flight request only with explicit task-correlated delivery. Earlier
+prepared data cannot substitute for required current search evidence in the default policy.
 
 Startup first ensures the original v1 design, then applies a transactional v2 upgrade.
 These historical installers read immutable `server/migration_snapshots` inputs. The final
 SS-84 migration adds the new UUID process/result, aligns candidate selection to three
 boards and binds the homepage third position, preserving existing IDs and positions.
-The upgrade replaces only the eight v1-owned dependencies, preserves unrelated nodes,
+The historical four-stage upgrade replaces only the eight v1-owned dependencies, preserves unrelated nodes,
 positions and user connections, rejects missing/conflicting prerequisites, and is idempotent.
 Obsolete v1 engine fields are removed only when their declarations still match and they
 have no remaining edge or requirement references. The rename, new cards, field mappings,
 reference counters, audit events and upgrade marker roll back together on failure.
+SS-87 then transactionally replaces only the owned #3029→#3030 and identity→#3030 shortcuts, adds five cards and their exact field mappings, updates #3030 and the #3029 destination wording, and advances recognized definition references. Edited definitions, name collisions and unknown revisions stop migration; failures roll back cards, edges, counters and audit records. Existing IDs/positions, extra user fields and unrelated connections survive.
 Existing board calculations and Supabase list synchronization retain their contracts.
 
 No crawler, generator, scheduler, production table or frontend reader is deployed here.
 Observed result rows remain empty. `src/contentRefreshDesign.ts` is a pure UI design-case
-evaluator (including the four-stage through-line), with no I/O, queue, atomic claims or generation. It is not a production task runner.
+evaluator (including the preparation and generation through-line), with no I/O, queue, atomic claims or generation. It is not a production task runner.
 
 ## Selection and scheduling requirements
 
@@ -83,7 +119,7 @@ The result card specifies a logical view, not a required new physical table. Map
 storage before runtime work. Types/nullability are in the catalog; content and scheduling state
 may live separately with an explicit content-key join. Keep every successful field on failure.
 
-After source fetch and type-specific output validation, atomically save successful content,
+After material preparation, generation and type-specific output validation, atomically save successful content,
 source references, trustworthy data time, generator version and `last_success_at` with task
 completion. Unknown `data_as_of` is null; generation time cannot substitute for source time.
 Successful no-new-information and source failure are distinct according to the bound output
@@ -122,7 +158,7 @@ Rule checks cover ranking/filter-before-limit, stable-ID deduplication, invalid/
 unavailable snapshots, independent information types, first generation, expiry boundary,
 retry backoff, lease expiry, stale completion rejection, preserved successful fields, exit and
 re-entry. Migration checks cover additive installation, unchanged existing nodes, focused
-field usages, idempotence and rollback. Inspect all four processing cards and the result table in a browser, including the three
+field usages, idempotence and rollback. Inspect the original content-flow cards and the five preparation cards and the result table in a browser, including the three
 branch choices, empty observed table, source navigation and collapsed technical settings.
 The four-stage cases derive candidates, decisions, eligible handoffs, assumed generation
 outputs and success/failure state replacement from the same synthetic records. The five-minute
@@ -137,3 +173,16 @@ SS-84 checks additionally run `python3 -m unittest test_new_uuid_board.py` and
 appropriate server/repository directories. New-UUID runtime requirements are in
 [NEW_UUID_BOARD.md](NEW_UUID_BOARD.md). The source registry declares `assets.created_at`;
 creation-origin classification and actual timestamp coverage remain unverified.
+
+SS-87 verification additionally runs:
+
+```sh
+python3 -m unittest discover -s server -p test_search_preparation.py
+npx tsx --test src/searchPreparationDesign.test.ts src/contentRefreshDesign.test.ts
+```
+
+The pure preparation evaluator checks required categories, provenance, asset match, freshness,
+lease expiry, default current-search policy and future bypass. Its adapter inputs assume the
+search outcome is already correlated with the current query/task; real adapter validation,
+atomic claims and concurrent request sharing remain unimplemented. Fictional records live
+only in design-case views, never the observed result tables.

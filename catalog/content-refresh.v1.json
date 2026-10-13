@@ -1,6 +1,6 @@
 {
-  "revision": "2026-10-13-v3-three-boards",
-  "rationale_url": "https://app.notion.com/p/3f8038a63d5a811b8c93dc4d0026804d",
+  "revision": "2026-10-13-v4-search-preparation",
+  "rationale_url": "https://app.notion.com/p/3f8038a63d5a810fa05bdfc1a2b29003",
   "approval_date": "2026-10-13",
   "delivery_scope": "studio_design_only",
   "node": {
@@ -292,10 +292,10 @@
       "description_zh": "内置信息类型和变体注册表未核验，不能从样式推断类型。"
     },
     {
-      "key": "fetch_and_generate",
+      "key": "generator",
       "status": "unconnected",
       "target": null,
-      "description_zh": "已有采集器与生成器输入输出契约未核验。"
+      "description_zh": "只消费已组装资料的生成器未绑定；采集与搜索另见search-preparation契约。"
     },
     {
       "key": "content_storage",
@@ -340,7 +340,9 @@
     "任务版本加有效租约校验拒绝迟到结果。超时可恢复，旧执行不能覆盖新任务结果；单项失败不回滚其他成功。",
     "退出所有前N范围后保留内容但停止安排主动刷新，重新进入按年龄补做；点击只读已有内容，无内容按既有页面表达待生成。",
     "物理存储、类型、生成器与前端绑定未核验前标未接通；不启动爬虫、调度或部署，不改变榜单计算与Supabase名单同步。",
-    "阶段输出为直接依赖契约，不自动新增候选表、队列或物理数据库。#3027保留编号改为候选代币筛选；#1019保留内容与状态职责。"
+    "阶段输出为直接依赖契约，不自动新增候选表、队列或物理数据库。#3027保留编号改为候选代币筛选；#1019保留内容与状态职责。",
+    "SS-87：#3030只使用组装好的资料生成；资料读取、缺口判断、实时补搜、暂存和组装均以独立卡片表达。",
+    "当前默认realtime_search_required，不以已有缓存跳过本次实时搜索。资料不足是当前运行策略，不宣称已核验所有代币的数据覆盖。"
   ],
   "acceptance_zh": [
     "跨榜同一资产只生成一个同类型任务；同名不同asset_id不合并；无效、不完整、过期及未来批次不贡献候选。",
@@ -348,7 +350,7 @@
     "失败保留成功字段与成功时间，重试不被60秒补查绕过；活动租约防重，过期租约可恢复，旧版本/旧租约完成被拒绝。",
     "退出范围取消待执行任务，已开始任务允许原租约完成；重新进入后按内容年龄判断。",
     "结果卡原表优先且实际记录为空；所有虚构演算只在设计例中，不写真实回填。",
-    "四张处理卡分别表达候选筛选、刷新判断、采集生成、验证保存；输入输出在前、触发可见、技术设置折叠、底部算法。三榜只输入筛选；状态输入判断/执行复查/保存，最终写回#1019。"
+    "原四阶段中#3030改为根据资料生成内容；五张独立资料卡、默认实时补搜与未来免搜索分支可见，#3031仍负责最终校验保存。"
   ],
   "case": {
     "provenance": "synthetic_design_case",
@@ -553,7 +555,7 @@
       "name": "刷新判断",
       "type": "Metric",
       "description_zh": "读取候选名单与#1019成功内容及任务状态，按代币与信息类型判断首次、到期、跳过或等待。",
-      "algorithm_zh": "对每个候选代币的已启用信息类型读取成功内容是否存在、last_success_at和任务状态。无成功内容则首次生成；年龄达到该类型间隔才刷新。未到期跳过，活动任务或重试等待不重复安排；接点或时间无效则阻塞。只有首次/到期项交给采集生成。",
+      "algorithm_zh": "对每个候选代币的已启用信息类型读取成功内容是否存在、last_success_at和任务状态。无成功内容则首次生成；年龄达到该类型间隔才刷新。未到期跳过，活动任务或重试等待不重复安排；接点或时间无效则阻塞。只有首次/到期项交给读取已有资料。",
       "trigger_zh": "候选筛选完成后检查；随60秒补查再次判断，即使榜单没有变化。",
       "output_fields": [
         "asset_id",
@@ -644,11 +646,11 @@
     },
     {
       "key": "generate",
-      "name": "数据采集与内容生成",
+      "name": "根据资料生成内容",
       "type": "Metric",
-      "description_zh": "接收待刷新项，重新检查资格并原子认领任务，调用已有采集器和生成器，输出待验证内容或错误。",
-      "algorithm_zh": "仅接收首次或到期项；调用前重新检查候选范围、类型、身份、成功时间、重试和当前任务状态，原子认领带版本与租约的任务，同键只执行一次，并发默认2。按稳定来源标识抓取该类型数据并调用已有生成器，输出内容、来源引用、可信数据时间、生成器版本或本次错误。本卡不直接替换成功内容。",
-      "trigger_zh": "刷新判断输出可执行项后调用；执行前复查，超时及重试沿用已有任务设施，当前未接通。",
+      "description_zh": "使用组装好的系统资料与搜索补充生成待验证内容；不负责采集或搜索。",
+      "algorithm_zh": "仅消费同一资产、内容类型、任务版本和有效租约的组装资料。执行前复查当前任务状态；preparation_error非空则不调用生成器，向#3031交付本次错误并保留旧成功内容。资料满足要求才调用生成器；输出附带实际输入来源、可信数据时间与生成器版本，不发起采集或搜索，不直接保存。",
+      "trigger_zh": "组装生成资料交付资料包或错误后进入；真实生成器与任务设施未接通。",
       "output_fields": [
         "asset_id",
         "information_key",
@@ -663,51 +665,44 @@
       "fields": [
         {
           "name": "asset_id",
+          "data_type": "string",
           "label_zh": "稳定内部资产ID",
           "meaning_en": "asset id",
-          "data_type": "string",
           "required": true
         },
         {
           "name": "information_key",
-          "label_zh": "内置信息类型",
+          "data_type": "string",
+          "label_zh": "内容资料类型",
           "meaning_en": "information key",
-          "data_type": "string",
           "required": true
         },
         {
-          "name": "action",
-          "label_zh": "首次生成 / 到期刷新 / 跳过 / 等待 / 阻塞",
-          "meaning_en": "action",
-          "data_type": "string",
-          "required": false
-        },
-        {
-          "name": "reason",
-          "label_zh": "判断原因",
-          "meaning_en": "reason",
-          "data_type": "string",
-          "required": false
-        },
-        {
-          "name": "age_minutes",
-          "label_zh": "成功内容年龄（分钟）；首次为空",
-          "meaning_en": "age minutes",
-          "data_type": "number | null",
-          "required": false
-        },
-        {
-          "name": "source_namespace",
-          "label_zh": "来源命名空间",
-          "meaning_en": "source namespace",
-          "data_type": "string",
+          "name": "task_version",
+          "data_type": "integer",
+          "label_zh": "所属内容任务版本",
+          "meaning_en": "task version",
           "required": true
         },
         {
-          "name": "external_identifier",
-          "label_zh": "来源稳定外部标识",
-          "meaning_en": "external identifier",
-          "data_type": "string",
+          "name": "lease_until",
+          "data_type": "UTC timestamp",
+          "label_zh": "所属任务租约",
+          "meaning_en": "lease until",
+          "required": true
+        },
+        {
+          "name": "prepared_materials_json",
+          "data_type": "JSON array",
+          "label_zh": "已有资料与本次补搜合并后的生成输入",
+          "meaning_en": "prepared materials json",
+          "required": true
+        },
+        {
+          "name": "preparation_error",
+          "data_type": "string | null",
+          "label_zh": "资料不满足需求则阻塞生成",
+          "meaning_en": "preparation error",
           "required": true
         },
         {
@@ -739,20 +734,6 @@
           "required": false
         },
         {
-          "name": "lease_until",
-          "label_zh": "原子认领租约截止",
-          "meaning_en": "lease until",
-          "data_type": "UTC timestamp | null",
-          "required": false
-        },
-        {
-          "name": "task_version",
-          "label_zh": "单键递增任务版本",
-          "meaning_en": "task version",
-          "data_type": "integer",
-          "required": true
-        },
-        {
           "name": "candidate_content_json",
           "label_zh": "尚未验证保存的生成内容",
           "meaning_en": "candidate content json",
@@ -761,17 +742,17 @@
         },
         {
           "name": "source_refs_json",
-          "label_zh": "可追溯输入引用",
-          "meaning_en": "source refs json",
           "data_type": "JSON array",
+          "label_zh": "原始证据来源引用",
+          "meaning_en": "source refs json",
           "required": true
         },
         {
           "name": "data_as_of",
-          "label_zh": "可信原始数据时间；未知为空",
-          "meaning_en": "data as of",
           "data_type": "UTC timestamp | null",
-          "required": false
+          "label_zh": "可信源数据时间；未知为空",
+          "meaning_en": "data as of",
+          "required": true
         },
         {
           "name": "generator_version",
@@ -782,10 +763,10 @@
         },
         {
           "name": "attempt_error",
-          "label_zh": "本次采集或生成错误；成功为空",
-          "meaning_en": "attempt error",
           "data_type": "string | null",
-          "required": false
+          "label_zh": "本次搜索或生成错误",
+          "meaning_en": "attempt error",
+          "required": true
         }
       ]
     },
@@ -953,28 +934,6 @@
       "note_zh": "查询每个代币与信息类型的最近成功时间和活动/退避状态。"
     },
     {
-      "source": "decision",
-      "target": "generate",
-      "fields": [
-        "asset_id",
-        "information_key",
-        "action",
-        "reason",
-        "age_minutes"
-      ],
-      "note_zh": "仅首次或到期项进入采集生成；其他分支仅供解释，不触发执行。"
-    },
-    {
-      "source": "asset_identifiers",
-      "target": "generate",
-      "fields": [
-        "asset_id",
-        "source_namespace",
-        "external_identifier"
-      ],
-      "note_zh": "解析采集来源的稳定身份，不能凭名称猜测。"
-    },
-    {
       "source": "asset_information_content",
       "target": "generate",
       "fields": [
@@ -1080,6 +1039,188 @@
         "algorithm_version"
       ],
       "note_zh": "仅读完整有效本榜结果中的已确认代币；按本榜顺序取前N。"
+    },
+    {
+      "source": "decision",
+      "target": "读取已有资料",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "action",
+        "reason",
+        "age_minutes"
+      ],
+      "note_zh": "#3029仅首次/到期项进入资料准备。",
+      "kind": "control",
+      "branches": [
+        "first",
+        "due"
+      ]
+    },
+    {
+      "source": "asset_identifiers",
+      "target": "读取已有资料",
+      "fields": [
+        "asset_id",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "note_zh": "使用稳定来源身份，不按名称猜测。",
+      "kind": "read"
+    },
+    {
+      "source": "asset_information_content",
+      "target": "读取已有资料",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "content_json",
+        "last_success_at",
+        "status",
+        "next_retry_at",
+        "lease_until",
+        "task_version"
+      ],
+      "note_zh": "搜索前复查并认领同一内容任务；设施未接通。",
+      "kind": "read"
+    },
+    {
+      "source": "搜索资料暂存",
+      "target": "读取已有资料",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ],
+      "note_zh": "按需求读取以前保存的资料；当前模式仍需要本次实时补搜。",
+      "kind": "read"
+    },
+    {
+      "source": "读取已有资料",
+      "target": "判断资料缺口",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "materials_json",
+        "gaps_json",
+        "search_policy"
+      ],
+      "note_zh": "读取后判断本次资料需求。",
+      "kind": "data"
+    },
+    {
+      "source": "读取已有资料",
+      "target": "组装生成资料",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "materials_json"
+      ],
+      "note_zh": "已有资料始终送往组装，不因补搜而丢弃。",
+      "kind": "data"
+    },
+    {
+      "source": "判断资料缺口",
+      "target": "搜索补缺",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "route",
+        "gaps_json",
+        "search_policy"
+      ],
+      "note_zh": "当前默认进入实时补搜。",
+      "kind": "control",
+      "branches": [
+        "need_search"
+      ]
+    },
+    {
+      "source": "判断资料缺口",
+      "target": "组装生成资料",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "route",
+        "gaps_json",
+        "search_policy"
+      ],
+      "note_zh": "未来全部资料够用时免搜索；当前默认不走。",
+      "kind": "control",
+      "branches": [
+        "enough"
+      ]
+    },
+    {
+      "source": "搜索补缺",
+      "target": "搜索资料暂存",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ],
+      "note_zh": "保存成功资料及本次状态；失败保留以前成功资料。",
+      "kind": "write"
+    },
+    {
+      "source": "搜索补缺",
+      "target": "组装生成资料",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ],
+      "note_zh": "交付本次搜索状态及结果；失败和空结果不能充当实时证据。",
+      "kind": "data"
+    },
+    {
+      "source": "组装生成资料",
+      "target": "generate",
+      "fields": [
+        "asset_id",
+        "information_key",
+        "task_version",
+        "lease_until",
+        "prepared_materials_json",
+        "source_refs_json",
+        "data_as_of",
+        "preparation_error"
+      ],
+      "note_zh": "交付有来源的资料包或明确错误，不混用任务版本。",
+      "kind": "data"
     }
-  ]
+  ],
+  "preparation_contract": "catalog/search-preparation.v1.json"
 }

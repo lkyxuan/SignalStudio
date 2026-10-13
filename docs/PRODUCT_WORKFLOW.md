@@ -339,3 +339,18 @@ The asset-scores page reads #1007 using the existing `catalog/supabase-score-syn
 The asset-correction review page hosts #4003 human decisions: pending proposals and conflicts, evidence and uncertainty, before/after changes, explicit approve/hold/reject, persisted reviewer/time/proposal version, guarded #3003 execution and feedback. Opening a design card or business page must never approve a change. The page must not write #1001/#1002 directly; proposal storage, deployed review/outcome APIs and permissions remain unverified. Its graph reference associates the interface with #4003 without inventing an automatic trigger or a known data endpoint. The original maintenance relations remain intact.
 
 Interface details follow the shared 300×160 frame and implementation evidence label. They show purpose, associated cards, required content, read/display rules, human actions, missing bindings and acceptance requirements; no functional business-action controls appear in Studio. Existing graph positions are preserved during installation. Arrange puts the score interface after Supabase and keeps the review interface in the existing maintenance side branch; it does not restore SS-70's withdrawn responsibility backgrounds or labels.
+
+## Content preparation split (SS-87, 2026-10-13)
+
+The approved Studio flow expands the former #3030 collection/generation step into five
+independent preparation cards: collected-data reading, gap assessment, search supplementation,
+search material storage and input assembly. #3030 retains its reference and saved position as
+`根据资料生成内容`, consuming prepared inputs without fetching. #3031 still validates/saves.
+The existing-data path is primary; current `realtime_search_required` policy additionally
+requires current search evidence for every eligible update. A future `coverage_based` branch
+may bypass search only with complete sufficiently fresh inputs; it is not currently active.
+Search errors, empty results and unconnected tools remain distinct and cannot be displayed as
+successful realtime evidence. Cards follow the shared inspector and show only clearly labeled
+fictional cases until real adapters and stores are verified. The versioned contract and
+implementation boundaries are in [CONTENT_REFRESH_ENGINE.md](CONTENT_REFRESH_ENGINE.md)
+and `catalog/search-preparation.v1.json`; [approval](https://app.notion.com/p/3f8038a63d5a810fa05bdfc1a2b29003).

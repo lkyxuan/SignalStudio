@@ -1,5 +1,6 @@
 // Pure design-case evaluator. No network, scheduler, database or generation calls.
 import contract from '../catalog/content-refresh.v1.json';
+import { preparationCase } from './searchPreparationDesign';
 
 export type Row = { asset_id: string; calculated_at: string; created_at?: string; asset_kind?: string; score_key?: string; score_value?: number; score?: number };
 export type Snapshot = { key: string; available: boolean; complete: boolean; valid: boolean; rows: Row[] };
@@ -96,7 +97,7 @@ export function settleDesignAttempt(state: ContentState, completion: Completion)
     next_retry_at: new Date(at + delay * 1000).toISOString() };
 }
 
-export type DesignScenario = 'check' | 'failure' | 'boundary';
+export type DesignScenario = 'check' | 'failure' | 'boundary' | 'enough' | 'empty' | 'unconnected';
 export type DesignAttempt = {
   asset_id: string; information_key: string; candidate_content_json: string | null;
   source_refs_json: string; data_as_of: string | null; generator_version: string | null;
@@ -117,6 +118,7 @@ export function buildDesignPipeline(scenario: DesignScenario) {
   const decisions = planDesignRefresh(ids, types, before, now);
   const eligible = decisions.filter(row => row.action === 'generate' || row.action === 'refresh');
   const attempts: DesignAttempt[] = [];
+  const preparations: ReturnType<typeof preparationCase>[] = [];
   const saved = new Map(before.map(row => [row.asset_id, row]));
   const claimed: ContentState[] = [];
   for (const decision of eligible) {
@@ -125,23 +127,26 @@ export function buildDesignPipeline(scenario: DesignScenario) {
       lease_until: new Date(Date.parse(now) + 300000).toISOString() };
     claimed.push(running);
     const sample = demo.generated_samples.find(row => row.asset_id === decision.asset_id)!;
-    const failure = scenario === 'failure' && decision.asset_id === 'demo-B';
+    const preparation = preparationCase(state.asset_id, state.information_key, running.task_version, running.lease_until, now,
+      scenario === 'failure' && decision.asset_id !== 'demo-B' ? 'check' : scenario);
+    preparations.push(preparation);
+    const failure = !preparation.result.ready;
     const attempt = { asset_id: state.asset_id, information_key: state.information_key,
       candidate_content_json: failure ? null : sample.candidate_content_json,
-      source_refs_json: failure ? '[]' : sample.source_refs_json,
-      data_as_of: sample.data_as_of, generator_version: failure ? null : sample.generator_version,
+      source_refs_json: preparation.assembled.source_refs_json,
+      data_as_of: preparation.assembled.data_as_of, generator_version: failure ? null : sample.generator_version,
       task_version: running.task_version, lease_until: running.lease_until,
-      attempt_error: failure ? 'synthetic_fetch_timeout' : null };
+      attempt_error: preparation.assembled.preparation_error };
     attempts.push(attempt);
     saved.set(state.asset_id, settleDesignAttempt(running, {
       task_version: attempt.task_version, lease_until: attempt.lease_until, now,
       ...(failure ? { error: attempt.attempt_error! } : { result: {
-        content_json: sample.candidate_content_json, source_refs_json: sample.source_refs_json,
-        data_as_of: sample.data_as_of, generator_version: sample.generator_version,
+        content_json: sample.candidate_content_json, source_refs_json: preparation.assembled.source_refs_json,
+        data_as_of: preparation.assembled.data_as_of, generator_version: sample.generator_version,
       } }),
     }));
   }
   const after = [...saved.values()];
   return { now, before, candidates: ids.map(asset_id => ({ asset_id })), decisions, eligible,
-    claimed, attempts, after, recheck: planDesignRefresh(ids, types, after, now) };
+    claimed, preparations, attempts, after, recheck: planDesignRefresh(ids, types, after, now) };
 }

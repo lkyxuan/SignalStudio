@@ -1,3 +1,4 @@
+import searchPreparation from '../catalog/search-preparation.v1.json';
 import { cardKind, cardKinds } from './cardModel';
 import copy from '../catalog/card-detail-copy.v1.json';
 import refresh from '../catalog/content-refresh.v1.json';
@@ -50,6 +51,8 @@ export function executionSummary(node, language) {
   const zh = language === 'zh-CN';
   const stage = refresh.stages.find(item => item.name === node.name);
   if (stage) return stage.trigger_zh;
+  const preparation = searchPreparation.nodes.find(item => item.name === node.name);
+  if (preparation) return preparation.trigger_zh;
   if (node.name === rollup.node.name) return zh ? '新贡献成功写入 #6001 后立即计算受影响资产；另每 60 秒刷新全部事件资产的衰减（已确认定义，运行另行核对）。' : 'Recompute affected assets after a new #6001 contribution; refresh all event assets every 60 seconds (approved definition; runtime separately verified).';
   const trigger = node.card_contract?.config.trigger || {};
   if (resourceSettings(node).design_key === 'assemble' && resourceSettings(node).parent_module) return zh ? '所属3035程序内，收到同一观测的五项结果后统一组装发布；不增加独立订阅或调度。' : 'Inside module 3035, assemble and publish five results for the same observation; no separate subscription or schedule.';
@@ -78,7 +81,7 @@ export function decisionBranches(node, graph, language) {
   return declared.map(branch => {
     const wording = moduleCopy?.branches[branch.id];
     const condition = branch.condition && branch.condition !== 'definition_refs' ? branch.condition : wording?.[1];
-    return { ...branch, label:zh && wording ? wording[0] : branch.id,
+    return { ...branch, label:zh && wording ? wording[0] : branch[zh ? 'label_zh' : 'label_en'] || branch.id,
       condition:condition || (zh ? '条件尚未定义' : 'Condition undefined'),
       targets:outgoing.filter(item => item.bindings.some(binding => binding.branch === branch.id)).map(item => item.other).filter(Boolean) };
   });
