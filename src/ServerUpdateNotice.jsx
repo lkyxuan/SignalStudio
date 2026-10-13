@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { commitURL, repository, uiBuild, versionLabel } from './buildVersion';
+import { refreshWorkspace } from './refreshWorkspace';
 
 export function useServerVersion() {
   const [version, setVersion] = useState({ revision: null, confirmedAt: null, reachable: false });
@@ -24,10 +25,25 @@ export function useServerVersion() {
 }
 
 export function ServerUpdateNotice({ language, version }) {
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const zh = language === 'zh-CN';
+  const refresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setError(null);
+    const result = await refreshWorkspace();
+    if (result !== 'refreshed') setError(result);
+    setRefreshing(false);
+  };
   const updated = version.reachable && commitURL(uiBuild.revision) && uiBuild.revision !== version.revision;
-  return updated ? <div className="live-update-banner" role="status">{language === 'zh-CN'
-    ? (window.location.protocol === 'signalstudio:' ? '工作台有新版本。请先保存编辑，再重新打开 App。' : '工作台有新版本。请先保存编辑，再刷新页面。')
-    : (window.location.protocol === 'signalstudio:' ? 'A workspace update is available. Save edits, then reopen the App.' : 'A workspace update is available. Save your edits, then refresh the page.')}</div> : null;
+  return updated ? <div className="live-update-banner" role="status">
+    <span>{zh ? '工作台有新版本。请先保存编辑，再刷新工作台。' : 'A workspace update is available. Save edits, then refresh the workspace.'}</span>
+    <button disabled={refreshing} onClick={refresh}>{refreshing ? (zh ? '正在刷新…' : 'Refreshing…') : (zh ? '刷新工作台' : 'Refresh workspace')}</button>
+    {error && <span role="alert">{error === 'blocked'
+      ? (zh ? '有未保存编辑、进行中的操作，或无法确认编辑状态。请先完成保存再刷新。' : 'Unsaved edits, pending operations, or an unconfirmed editor state. Finish saving before refreshing.')
+      : (zh ? '暂时无法确认工作台连接，请稍后重试。' : 'Workspace connection could not be confirmed. Try again later.')}</span>}
+  </div> : null;
 }
 
 export function WorkspaceVersion({ language, version }) {
