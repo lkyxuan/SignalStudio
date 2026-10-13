@@ -1,4 +1,3 @@
-import { CardPresentationDetails } from './CardPresentationDetails';
 import React, { useEffect, useState } from 'react';
 import { detailKind, cardRelations, decisionBranches, decisionActor, executionSummary, cardExplanation, resourceSettings, isCatalogSource } from './cardDetailModel';
 import { CardDetailContext } from './CardDetailContext';
@@ -137,7 +136,6 @@ export function CardDetails(props) {
   const explanation=cardExplanation(node,language);
   return <div className={`card-details card-details-${kind}`} data-card-detail-kind={kind}>
     <CardDetailContext.Provider value={true}>
-      <CardPresentationDetails {...props}/>
       {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
         {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
         {hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
