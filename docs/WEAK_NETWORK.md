@@ -17,7 +17,7 @@ on a fresh browser). These path identities detect configuration mistakes; they a
 or proof that a database at the same path has never been replaced.
 
 Health and graph requests are serialized with writes. Focus/reconnect reads coalesce while one is
-queued or in progress. Visible pages poll after 2 seconds when ready, 5 seconds while reconnecting;
+queued or in progress. Per [SS-96](https://app.notion.com/p/3f8038a63d5a8138a4dcc23cc169bffd), a confirmed workspace does not periodically poll graph data. Reads run on initial visible load, window focus, becoming visible, network recovery and manual reconnect; successful writes still read back the graph. Visible disconnected pages retry read-only connection checks after 5 seconds; retries stop once confirmed. A hidden page waits until visible. Other windows do not continuously follow external edits; optimistic revision checks still reject stale writes. Without polling, a silent server outage is detected by the next graph operation or browser offline event, not by idle graph checks. The independent 10-second UI-version check and save-before-manual-refresh behavior remain in place;
 API requests time out after 15 seconds. Network failure/offline notification revokes write permission.
 Writes retain If-Match and card-model headers and include X-Workspace-Identity, checked by the API
 before serving or mutating the database (412 on mismatch). A timed-out mutation may have committed;
@@ -68,7 +68,7 @@ The 2026-10-11 approved follow-up exposes queued and running reads immediately d
 connection/recovery and manual retry. Repeated clicks/focus events join the existing read, including
 one queued behind a save. Buttons remain disabled until that read finishes. Failures distinguish timeout,
 identity rejection and other connection/service failures; the existing automatic retry continues.
-Successful recovery displays the connected state. Routine successful background polls do not show a spinner.
+Successful recovery displays the connected state. Successful event-triggered reads do not show a recovery spinner.
 Read-only and draft/conflict protection remain enforced independently of this presentation state.
 
 The sidebar shows the actual UI build's Git commit, with a link to that commit and expandable details.

@@ -3,6 +3,7 @@ import type { Graph } from './contracts';
 import { GraphCache, type Workspace } from './graphCache';
 import { LiveGraphSession } from './liveGraphSession';
 import { RefreshQueue, type RefreshPhase } from './refreshQueue';
+import { retryGraphConnection } from './graphRecovery';
 
 declare global { interface Window { signalstudioWorkspace?: { endpoint: string; workspace: Workspace; codeRevision: string | null; appRevision?: string }; signalstudioStorage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> } }
 export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
@@ -48,21 +49,20 @@ export function useLiveGraph(setGraph: Dispatch<SetStateAction<Graph>>) {
   }, [enqueue, publish, setGraph, state]);
   useEffect(() => {
     if (state.graph) setGraph(state.graph);
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const tick = async () => {
-      if (document.visibilityState !== 'hidden') await reload();
-      if (alive) timer = setTimeout(tick, state.writable ? 2000 : 5000);
-    };
     const focus = () => { if (document.visibilityState !== 'hidden') void reload(); };
     const offline = () => { state.fail(); publish(); };
     const storageError = () => { state.cacheAvailable = false; publish(); };
     window.addEventListener('signalstudio-storage-error', storageError);
-    void tick();
+    focus();
     window.addEventListener('focus', focus); window.addEventListener('online', focus); window.addEventListener('offline', offline);
     document.addEventListener('visibilitychange', focus);
-    return () => { window.removeEventListener('signalstudio-storage-error', storageError); alive = false; clearTimeout(timer); window.removeEventListener('focus', focus); window.removeEventListener('online', focus); window.removeEventListener('offline', offline); document.removeEventListener('visibilitychange', focus); };
+    return () => { window.removeEventListener('signalstudio-storage-error', storageError); window.removeEventListener('focus', focus); window.removeEventListener('online', focus); window.removeEventListener('offline', offline); document.removeEventListener('visibilitychange', focus); };
   }, [reload, state, setGraph, publish]);
+  // Retry only while disconnected. A confirmed, idle workspace makes no graph reads.
+  useEffect(() => {
+    if (state.writable) return;
+    return retryGraphConnection(() => !state.writable, () => document.visibilityState !== 'hidden', reload);
+  }, [status, state, reload]);
   const write = useCallback((path: string, method: string, body: unknown, preserveEdits = false) => {
     pendingWrites.current += 1;
     return enqueue(async () => {
