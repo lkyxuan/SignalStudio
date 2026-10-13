@@ -43,6 +43,7 @@ from new_uuid_board import ensure_new_uuid_board
 from remove_retired_discovery_board import ensure_remove_retired_discovery_board
 from search_preparation import ensure_search_preparation
 from coingecko_hottest import ensure_coingecko_hottest
+from hottest_warmup import ensure_hottest_warmup
 from card_corrections import ensure_card_corrections
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -87,6 +88,7 @@ ensure_remove_retired_discovery_board(service)
 ensure_search_preparation(service)
 ensure_coingecko_hottest(service)
 ensure_card_corrections(service)
+ensure_hottest_warmup(service)
 
 
 class Handler(BaseHTTPRequestHandler):

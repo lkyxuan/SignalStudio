@@ -7,6 +7,7 @@ const graph=JSON.parse(readFileSync(process.argv[2],'utf8')),before=JSON.stringi
 const vite=await createServer({server:{middlewareMode:true},appType:'custom'});
 try {
  const {CardDetails}=await vite.ssrLoadModule('/src/CardDetails.jsx');
+ const {selectHottestCase}=await vite.ssrLoadModule('/src/HottestDesignPreview.jsx');
  const {hottestExample,hottestCases,hottestCard}=await vite.ssrLoadModule('/src/hottestDesign.js');
  const nodes=graph.nodes.filter(hottestCard);assert.equal(nodes.length,5);
  let fields=0;
@@ -17,12 +18,21 @@ try {
    for(const r of rows)for(const f of spec.fields){assert.notEqual(r[f.name],undefined,`${key}/${spec.key}/${f.name}`);fields++;}
   }
  }
+ for(const [key] of hottestCases){
+ selectHottestCase(key);
  for(const node of nodes)for(const language of ['zh-CN','en']){
   const html=renderToStaticMarkup(createElement(CardDetails,{node,graph,language,openNode:()=>{},mutate:()=>{throw new Error('No write');},busy:false}));
   assert.match(html,/data-hottest-preview/);assert.ok(!html.includes('设计缺口'));assert.ok(html.includes('rvol_7d'));
   if(language==='zh-CN'){assert.ok(html.includes('虚构'));if(node.kind==='process')assert.ok(html.includes('何时运行'));}
-  if(node.reference_number===3018){assert.ok(!html.includes('半衰期 30'));assert.ok(html.includes('z_clipped'));}
+  if(node.reference_number===3018){
+   assert.ok(!html.includes('半衰期 30'));if(hottestExample(key).batch.rows.length)assert.ok(html.includes('z_clipped'));
+   if(key==='warmup')assert.ok(html.includes(`<p class="card-detail-provenance">${language==='zh-CN'?'暂按三项排序':'Temporarily ranked by three metrics'}</p>`));
+   else assert.ok(!html.includes(`<p class="card-detail-provenance">${language==='zh-CN'?'暂按三项排序':'Temporarily ranked by three metrics'}</p>`));
+   if(['missing','warmup','one_valid','baseline_zero'].includes(key))assert.ok(html.includes('<code>—</code>'));
+  }
  }
+ }
+ selectHottestCase('normal');
  assert.equal(JSON.stringify(graph),before);
  console.log(JSON.stringify({cards:nodes.length,cases:hottestCases.length,fields,languages:2,read_only:true}));
 }finally{await vite.close();}

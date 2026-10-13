@@ -3,7 +3,7 @@ import math
 from datetime import datetime, timedelta
 from statistics import median, fmean
 
-VERSION = 'coingecko_hottest_z_v1'
+VERSION = 'coingecko_hottest_z_v2'
 METRIC_VERSION = 'market_indicators_v2'
 WEIGHTS = {'rvol_7d': .35, 'volume_to_market_cap': .25, 'total_volume': .20, 'abs_price_pct': .20}
 CONTEXT = ('source_id', 'source_object_id', 'quote_currency', 'coverage_key')
@@ -92,11 +92,30 @@ def normalize(values):
             'transformed': transformed, 'z_raw': raw, 'z_clipped': [max(-3., min(3., v)) for v in raw]}
 
 
+def rvol_available(row):
+    return (row.get('rvol_7d_status') == 'complete' and row.get('baseline_days_7d') == 7
+            and finite(row.get('rvol_7d')) and finite(row.get('baseline_mean_volume_7d'), True))
+
+
+def normalize_optional(values):
+    valid = [v for v in values if v is not None]
+    stats = normalize(valid) if valid else {'median': None, 'mad': None, 'scale': None,
+        'status': 'unavailable', 'transformed': [], 'z_raw': [], 'z_clipped': []}
+    cursor = 0
+    arrays = {key: [] for key in ('transformed', 'z_raw', 'z_clipped')}
+    for value in values:
+        for key in arrays:
+            arrays[key].append(stats[key][cursor] if value is not None else None if key == 'transformed' else 0.0)
+        if value is not None:
+            cursor += 1
+    return {**stats, **arrays}
+
+
 def board(rows, calculated_at, coverage_status='healthy'):
     """Freeze one batch, validate current candidates, normalize together, rank."""
     now = time(calculated_at)
     result = {'algorithm_version': VERSION, 'calculated_at': calculated_at, 'status': 'unavailable',
-              'rows': [], 'excluded': [], 'sample_count': 0, 'normalization_json': {}}
+              'rows': [], 'excluded': [], 'sample_count': 0, 'rvol_warmup': False, 'normalization_json': {}}
     if not now or coverage_status != 'healthy':
         result['reason'] = 'coverage_unavailable' if now else 'invalid_calculation_time'
         return result
@@ -136,10 +155,9 @@ def board(rows, calculated_at, coverage_status='healthy'):
             latest[row['asset_id']] = dict(row)
     selected = []
     for row in sorted(latest.values(), key=lambda r: r['asset_id']):
-        if row.get('rvol_7d_status') != 'complete' or row.get('baseline_days_7d') != 7 or not finite(row.get('rvol_7d')) or not finite(row.get('baseline_mean_volume_7d'), True):
-            result['excluded'].append({'asset_id': row['asset_id'], 'reason': 'incomplete_rvol'})
-            continue
         item = dict(row)
+        if not rvol_available(row):
+            item['rvol_7d'] = None
         item['volume_to_market_cap'] = row['total_volume'] / row['market_cap']
         if not finite(item['volume_to_market_cap']):
             result['excluded'].append({'asset_id': row['asset_id'], 'reason': 'invalid_turnover'})
@@ -149,8 +167,9 @@ def board(rows, calculated_at, coverage_status='healthy'):
     if not selected:
         result.update(status='success', reason='empty_qualified_batch', excluded_count=len(result['excluded']))
         return result
+    result['rvol_warmup'] = all(r['rvol_7d'] is None for r in selected)
     try:
-        normalized = {k: normalize([r[k] for r in selected]) for k in WEIGHTS}
+        normalized = {k: normalize_optional([r[k] for r in selected]) for k in WEIGHTS}
     except (ValueError, OverflowError):
         result['reason'] = 'nonfinite_normalization'
         return result
@@ -161,9 +180,9 @@ def board(rows, calculated_at, coverage_status='healthy'):
     for i, row in enumerate(selected):
         components = {k: {'value': row[k], 'log1p': n['transformed'][i], 'z_raw': n['z_raw'][i],
                          'z_clipped': n['z_clipped'][i], 'weight': WEIGHTS[k], 'contribution': WEIGHTS[k] * n['z_clipped'][i],
-                         'status': n['status']} for k, n in normalized.items()}
+                         'status': 'unavailable_neutral' if row[k] is None else n['status']} for k, n in normalized.items()}
         row.update(score=sum(c['contribution'] for c in components.values()), score_components_json=components,
-                   algorithm_version=VERSION, calculated_at=calculated_at, direction='up' if row['price_change_percentage_24h'] > 0 else 'down' if row['price_change_percentage_24h'] < 0 else 'flat')
+                   rvol_warmup=result['rvol_warmup'], algorithm_version=VERSION, calculated_at=calculated_at, direction='up' if row['price_change_percentage_24h'] > 0 else 'down' if row['price_change_percentage_24h'] < 0 else 'flat')
     selected.sort(key=lambda r: (-r['score'], r['asset_id']))
     result['rows'] = [dict(row, rank=i+1) for i, row in enumerate(selected[:20])]
     result.update(status='success', reason=None, excluded_count=len(result['excluded']))

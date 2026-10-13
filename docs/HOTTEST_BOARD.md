@@ -1,6 +1,7 @@
 # CoinGecko trading heat board
 
-Approved 2026-10-13 in [SS-95](https://app.notion.com/p/3f8038a63d5a81069b8ff12d27254eb4).
+Initial design approved 2026-10-13 in [SS-95](https://app.notion.com/p/3f8038a63d5a81069b8ff12d27254eb4).
+Missing-RVOL behavior approved 2026-10-14 in [SS-101](https://app.notion.com/p/3f8038a63d5a816ba17ae8f2fba51bcb), algorithm `coingecko_hottest_z_v2`; indicator messages remain `market_indicators_v2`.
 `catalog/coingecko-hottest.v1.json` overrides only the hottest-board path and adds
 versioned seven-day RVOL to the existing Polars module. This repository implements
 Studio definitions, a guarded migration, synthetic inspectors and pure evaluators;
@@ -27,7 +28,26 @@ and positive; observations must be no older than 15 minutes. Keep the existing
 collector's >USD10m range; add no board volume/cap or asset-class exclusions.
 Stablecoins and wrapped assets may therefore remain in this first version.
 
-Within the same cohort, for each metric `x`, compute `y = ln(1+x)`,
+RVOL is available only when `rvol_7d_status=complete` (the existing status for "ok"),
+seven baseline days exist, and the ratio is finite/nonnegative with a finite positive
+baseline. Otherwise retain the coin if its other eligibility checks pass. Preserve
+null RVOL and its diagnostic reason; only RVOL raw/clipped Z and contribution become
+zero (`unavailable_neutral`). This means median-neutral scoring, not a fabricated raw
+zero or observed median. RVOL statistics use only available values; missing values
+never enter log1p, median or MAD. With no available values, RVOL statistics are null
+with status `unavailable`; with one valid value or degenerate MAD, its Z is zero.
+Other metrics use every qualified candidate. Weights remain .35/.25/.20/.20.
+
+The snapshot sets `rvol_warmup=true` exactly when the nonempty qualified cohort has
+no available RVOL, before top-20 truncation. Mixed, complete and empty cohorts set
+false. Carry this flag on snapshot result rows; a successful empty batch has no rows
+but retains false on its envelope. The frontend displays “暂按三项排序” in warmup and
+“—” in missing RVOL multiples cells. History recovery recomputes the flag each batch.
+Existing coverage, freshness, numeric and all-incomparable protections still apply.
+This repository verifies Studio previews; the Few business frontend must implement
+this contract separately and is not claimed delivered here.
+
+Within the applicable cohort for each metric `x`, compute `y = ln(1+x)`,
 `z = (y - median(y)) / (1.4826 * median(abs(y - median(y))))`, clipped to [-3, 3].
 Units are fixed: USD volume, fractional turnover, RVOL multiples and percentage-point
 price changes (5 means 5%). `log1p` is an explicit zero-safe adjustment to the supplied
@@ -92,7 +112,7 @@ npm run build
 ```
 
 Synthetic cases include complete history, a missing day, zero current values, zero
-baseline, all-degenerate MAD, partial coverage, stale observations and empty batches.
+baseline, mixed/all-missing RVOL, one available RVOL, all-degenerate MAD, partial coverage, stale observations and empty batches.
 Independent Python and JavaScript evaluators compare history selection, normalized
 components, exact ordering and expiry. They are explanatory reference functions, not
 an operational board engine. Live seven-day coverage, actual message versioning,

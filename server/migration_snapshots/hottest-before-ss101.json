@@ -1,0 +1,1070 @@
+{
+  "digest": "8989063b1d0c6ec12b6c8f43a46cd51d0740fc56c27797e59310fcb79f9cdccb",
+  "spec": {
+    "version": "coingecko_hottest_z_v1",
+    "rationale_url": "https://app.notion.com/p/3f8038a63d5a81069b8ff12d27254eb4",
+    "approval_date": "2026-10-13",
+    "implementation": "studio_design_and_pure_reference_only",
+    "limitations_zh": "Studio定义与虚构演算；未启动Few采集/消费者，未创建业务存储或写真实榜单。历史覆盖、版本适配、物理绑定、真实排名质量未核验。",
+    "observed_rows": [],
+    "metric_version": "market_indicators_v2",
+    "legacy_metric_version": "market_indicators_v1",
+    "metric_compatibility": {
+      "legacy_consumers": "Accept v1 and v2; project existing fields with unchanged v1 semantics, frozen identity and metric_id. RVOL adds no scoring contribution.",
+      "new_hottest_consumer": "Only v2 with complete 7-day RVOL. No silent v1 fallback.",
+      "upgrade_boundary": "Explicit per-message version routing before thresholds. Never rewrite old frozen v1 messages or change their IDs."
+    },
+    "parameters": {
+      "weights": {
+        "rvol_7d": 0.35,
+        "volume_to_market_cap": 0.25,
+        "total_volume": 0.2,
+        "abs_price_pct": 0.2
+      },
+      "transform": "ln(1+x)",
+      "mad_factor": 1.4826,
+      "scale_epsilon": 1e-12,
+      "clip": [
+        -3,
+        3
+      ],
+      "history_days": 7,
+      "history_tolerance_minutes": 30,
+      "required_history_days": 7,
+      "refresh_seconds": 300,
+      "max_source_age_seconds": 900,
+      "result_expiry_seconds": 900,
+      "top_n": 20,
+      "additional_market_cap_gate": null,
+      "additional_volume_gate": null,
+      "class_exclusions": []
+    },
+    "history_rules": [
+      "Same source_id/source_object_id/usd/coverage_key; history quality healthy.",
+      "Per target choose requested_at≤target, target−requested_at≤30min, requested_at≤collected_at≤target, observed_at≤collected_at.",
+      "Require seven distinct daily targets/observation IDs; no current/future or late data.",
+      "Current volume≥0, historical volume≥0, baseline mean>0; missing history affects RVOL only.",
+      "No automatic history collector/backfill; reuse the 14-day archive design; real coverage unknown."
+    ],
+    "batch_rules": [
+      "Freeze latest observed input per asset at one cutoff before checking RVOL; no fallback to older complete metrics.",
+      "Freeze cohort, coverage, parameters, normalization stats, observations and result under snapshot_id; retry identical payload or reject conflict.",
+      "Identity resolved, object_kind coin, USD, finite positive price and market cap, source age≤15min; do not apply old volume/cap scoring gates.",
+      "Legacy asset/token kind values need an explicit verified coin adapter, not guessing from symbol.",
+      "Partial/failed/unknown coverage blocks publication; empty complete batches differ from failures.",
+      "Stablecoins/wrapped assets may remain; no unapproved classification filter.",
+      "Rank is cohort-relative, not a promise of news, investment value or absolute market activity."
+    ],
+    "metric_fields": [
+      {
+        "name": "rvol_7d",
+        "data_type": "number | null",
+        "label_zh": "当前滚动24h成交额/7日基线；缺历史不补0"
+      },
+      {
+        "name": "baseline_mean_volume_7d",
+        "data_type": "number | null",
+        "label_zh": "7个日目标成交额算术均值，USD；必须7日完整且均值>0"
+      },
+      {
+        "name": "baseline_days_7d",
+        "data_type": "integer",
+        "label_zh": "已选有效日目标数0—7"
+      },
+      {
+        "name": "baseline_refs_7d_json",
+        "data_type": "json",
+        "label_zh": "每日目标、实际请求/接收时间、观测ID与成交额"
+      },
+      {
+        "name": "rvol_7d_status",
+        "data_type": "string",
+        "label_zh": "complete/missing_history/zero_baseline/invalid_context等明确状态"
+      }
+    ],
+    "cards": [
+      {
+        "key": "baseline",
+        "name": "Polars · 计算7日成交额基线",
+        "kind": "process",
+        "description_zh": "从既有行情历史选7个可比日目标，给RVOL提供真实可追溯基线。",
+        "description_en": "Select seven comparable historical daily targets for RVOL.",
+        "algorithm_zh": "以当前requested_at前1—7天为目标，取各目标前最近且≤30分钟、已接收的同来源/coin ID/USD/覆盖有效观测；每目标1条，7日完整才算均值，不相加滚动24h成交额。",
+        "algorithm_en": "Select one as-of observation for each of seven daily targets, within 30 minutes and received by the target, with matching source/coin/USD/coverage. Require all seven days before computing the mean.",
+        "trigger_zh": "所属#3035程序内共享历史读取；不是独立消费者或爬虫。",
+        "fields": [
+          {
+            "name": "observation_id",
+            "data_type": "string",
+            "label_zh": "冻结观测ID"
+          },
+          {
+            "name": "asset_id",
+            "data_type": "uuid | null",
+            "label_zh": "可空UUID；最热榜仅接已核实coin"
+          },
+          {
+            "name": "identity_status",
+            "data_type": "string",
+            "label_zh": "resolved/source_only/lookup_error/conflict"
+          },
+          {
+            "name": "source_id",
+            "data_type": "string",
+            "label_zh": "来源范围"
+          },
+          {
+            "name": "source_object_id",
+            "data_type": "string",
+            "label_zh": "稳定CoinGecko coin ID"
+          },
+          {
+            "name": "quote_currency",
+            "data_type": "string",
+            "label_zh": "固定usd"
+          },
+          {
+            "name": "coverage_key",
+            "data_type": "string",
+            "label_zh": "一致覆盖版本"
+          },
+          {
+            "name": "requested_at",
+            "data_type": "datetime",
+            "label_zh": "请求时间；历史锚点"
+          },
+          {
+            "name": "collected_at",
+            "data_type": "datetime",
+            "label_zh": "实际接收时间"
+          },
+          {
+            "name": "observed_at",
+            "data_type": "datetime",
+            "label_zh": "来源观测时间"
+          },
+          {
+            "name": "quality_status",
+            "data_type": "string",
+            "label_zh": "来源质量状态"
+          },
+          {
+            "name": "total_volume",
+            "data_type": "number",
+            "label_zh": "滚动24h成交额，USD"
+          },
+          {
+            "name": "baseline_mean_volume_7d",
+            "data_type": "number | null",
+            "label_zh": "7个日目标成交额算术均值，USD；必须7日完整且均值>0"
+          },
+          {
+            "name": "baseline_days_7d",
+            "data_type": "integer",
+            "label_zh": "已选有效日目标数0—7"
+          },
+          {
+            "name": "baseline_refs_7d_json",
+            "data_type": "json",
+            "label_zh": "每日目标、实际请求/接收时间、观测ID与成交额"
+          },
+          {
+            "name": "rvol_7d_status",
+            "data_type": "string",
+            "label_zh": "complete/missing_history/zero_baseline/invalid_context等明确状态"
+          }
+        ],
+        "output_fields": [
+          "baseline_mean_volume_7d",
+          "baseline_days_7d",
+          "baseline_refs_7d_json",
+          "rvol_7d_status"
+        ]
+      },
+      {
+        "key": "rvol",
+        "name": "Polars · 计算7日相对放量RVOL",
+        "kind": "process",
+        "description_zh": "计算当前成交额相对7日常态的放量倍数，不替代相对昨日单点指标。",
+        "description_en": "Compute current volume relative to a seven-day mean; keep yesterday-only volume_ratio separate.",
+        "algorithm_zh": "rvol_7d=total_volume/baseline_mean_volume_7d；7日完整、均值有限且>0；缺日/零均值/无效输入为null并保留原因。无UUID仍可算，未知身份不得进最热榜。 用途：最热榜#3018；比较过去7日均值，不替换#3040相对昨日比值。",
+        "algorithm_en": "Divide current volume by the complete positive seven-day mean. Missing days or invalid/zero means produce null with a reason. Nullable identity may compute metrics but cannot rank.",
+        "trigger_zh": "所属#3035内部基线结果到达后，交#3041统一发布，不新增Topic。",
+        "fields": [
+          {
+            "name": "observation_id",
+            "data_type": "string",
+            "label_zh": "冻结观测ID"
+          },
+          {
+            "name": "asset_id",
+            "data_type": "uuid | null",
+            "label_zh": "可空UUID；最热榜仅接已核实coin"
+          },
+          {
+            "name": "identity_status",
+            "data_type": "string",
+            "label_zh": "resolved/source_only/lookup_error/conflict"
+          },
+          {
+            "name": "source_id",
+            "data_type": "string",
+            "label_zh": "来源范围"
+          },
+          {
+            "name": "source_object_id",
+            "data_type": "string",
+            "label_zh": "稳定CoinGecko coin ID"
+          },
+          {
+            "name": "quote_currency",
+            "data_type": "string",
+            "label_zh": "固定usd"
+          },
+          {
+            "name": "coverage_key",
+            "data_type": "string",
+            "label_zh": "一致覆盖版本"
+          },
+          {
+            "name": "requested_at",
+            "data_type": "datetime",
+            "label_zh": "请求时间；历史锚点"
+          },
+          {
+            "name": "collected_at",
+            "data_type": "datetime",
+            "label_zh": "实际接收时间"
+          },
+          {
+            "name": "observed_at",
+            "data_type": "datetime",
+            "label_zh": "来源观测时间"
+          },
+          {
+            "name": "quality_status",
+            "data_type": "string",
+            "label_zh": "来源质量状态"
+          },
+          {
+            "name": "total_volume",
+            "data_type": "number",
+            "label_zh": "滚动24h成交额，USD"
+          },
+          {
+            "name": "rvol_7d",
+            "data_type": "number | null",
+            "label_zh": "当前滚动24h成交额/7日基线；缺历史不补0"
+          },
+          {
+            "name": "baseline_mean_volume_7d",
+            "data_type": "number | null",
+            "label_zh": "7个日目标成交额算术均值，USD；必须7日完整且均值>0"
+          },
+          {
+            "name": "baseline_days_7d",
+            "data_type": "integer",
+            "label_zh": "已选有效日目标数0—7"
+          },
+          {
+            "name": "baseline_refs_7d_json",
+            "data_type": "json",
+            "label_zh": "每日目标、实际请求/接收时间、观测ID与成交额"
+          },
+          {
+            "name": "rvol_7d_status",
+            "data_type": "string",
+            "label_zh": "complete/missing_history/zero_baseline/invalid_context等明确状态"
+          }
+        ],
+        "output_fields": [
+          "rvol_7d",
+          "baseline_mean_volume_7d",
+          "baseline_days_7d",
+          "baseline_refs_7d_json",
+          "rvol_7d_status"
+        ]
+      },
+      {
+        "key": "candidates",
+        "name": "CoinGecko · 最热榜候选快照",
+        "kind": "state",
+        "description_zh": "按同一cutoff保存每个资产最新指标和覆盖；先选最新再判历史完整性，不回退旧合格指标。",
+        "description_en": "Keep each asset’s latest as-of metrics and coverage; never substitute an older history-complete observation.",
+        "algorithm_zh": "接收market_indicators_v2，按来源稳定ID和已核实UUID幂等更新；本轮冻结全体最新候选、样本范围、覆盖与输入引用。失败/身份冲突隔离；物理存储与恢复绑定待Few核验。",
+        "algorithm_en": "Consume v2, resolve stable source identity, and freeze a batch of latest candidates with cutoff, coverage and references. Isolate conflicts; physical storage and recovery remain unbound.",
+        "trigger_zh": "由最热处理程序消费#5007并维护；每5分钟固定cutoff供排名读取。",
+        "fields": [
+          {
+            "name": "observation_id",
+            "data_type": "string",
+            "label_zh": "冻结观测ID"
+          },
+          {
+            "name": "asset_id",
+            "data_type": "uuid | null",
+            "label_zh": "可空UUID；最热榜仅接已核实coin"
+          },
+          {
+            "name": "identity_status",
+            "data_type": "string",
+            "label_zh": "resolved/source_only/lookup_error/conflict"
+          },
+          {
+            "name": "source_id",
+            "data_type": "string",
+            "label_zh": "来源范围"
+          },
+          {
+            "name": "source_object_id",
+            "data_type": "string",
+            "label_zh": "稳定CoinGecko coin ID"
+          },
+          {
+            "name": "quote_currency",
+            "data_type": "string",
+            "label_zh": "固定usd"
+          },
+          {
+            "name": "coverage_key",
+            "data_type": "string",
+            "label_zh": "一致覆盖版本"
+          },
+          {
+            "name": "requested_at",
+            "data_type": "datetime",
+            "label_zh": "请求时间；历史锚点"
+          },
+          {
+            "name": "collected_at",
+            "data_type": "datetime",
+            "label_zh": "实际接收时间"
+          },
+          {
+            "name": "observed_at",
+            "data_type": "datetime",
+            "label_zh": "来源观测时间"
+          },
+          {
+            "name": "quality_status",
+            "data_type": "string",
+            "label_zh": "来源质量状态"
+          },
+          {
+            "name": "total_volume",
+            "data_type": "number",
+            "label_zh": "滚动24h成交额，USD"
+          },
+          {
+            "name": "asset_name",
+            "data_type": "string | null",
+            "label_zh": "展示名，不参与身份匹配"
+          },
+          {
+            "name": "object_kind",
+            "data_type": "string",
+            "label_zh": "最热候选须coin；旧asset/token标签须显式适配"
+          },
+          {
+            "name": "metric_id",
+            "data_type": "string",
+            "label_zh": "版本化冻结指标ID"
+          },
+          {
+            "name": "metric_version",
+            "data_type": "string",
+            "label_zh": "market_indicators_v2"
+          },
+          {
+            "name": "snapshot_ref",
+            "data_type": "string",
+            "label_zh": "来源响应引用"
+          },
+          {
+            "name": "current_price",
+            "data_type": "number",
+            "label_zh": "USD价格，有限且>0"
+          },
+          {
+            "name": "market_cap",
+            "data_type": "number",
+            "label_zh": "USD市值，有限且>0"
+          },
+          {
+            "name": "volume_to_market_cap",
+            "data_type": "number",
+            "label_zh": "成交额/市值，小数比值"
+          },
+          {
+            "name": "abs_price_pct",
+            "data_type": "number",
+            "label_zh": "绝对24h涨跌幅，百分数点，5表示5%"
+          },
+          {
+            "name": "price_change_percentage_24h",
+            "data_type": "number",
+            "label_zh": "来源有符号24h涨跌幅"
+          },
+          {
+            "name": "rvol_7d",
+            "data_type": "number | null",
+            "label_zh": "当前滚动24h成交额/7日基线；缺历史不补0"
+          },
+          {
+            "name": "baseline_mean_volume_7d",
+            "data_type": "number | null",
+            "label_zh": "7个日目标成交额算术均值，USD；必须7日完整且均值>0"
+          },
+          {
+            "name": "baseline_days_7d",
+            "data_type": "integer",
+            "label_zh": "已选有效日目标数0—7"
+          },
+          {
+            "name": "baseline_refs_7d_json",
+            "data_type": "json",
+            "label_zh": "每日目标、实际请求/接收时间、观测ID与成交额"
+          },
+          {
+            "name": "rvol_7d_status",
+            "data_type": "string",
+            "label_zh": "complete/missing_history/zero_baseline/invalid_context等明确状态"
+          }
+        ],
+        "output_fields": [
+          "observation_id",
+          "asset_id",
+          "identity_status",
+          "source_id",
+          "source_object_id",
+          "quote_currency",
+          "coverage_key",
+          "requested_at",
+          "collected_at",
+          "observed_at",
+          "quality_status",
+          "total_volume",
+          "asset_name",
+          "object_kind",
+          "metric_id",
+          "metric_version",
+          "snapshot_ref",
+          "current_price",
+          "market_cap",
+          "volume_to_market_cap",
+          "abs_price_pct",
+          "price_change_percentage_24h",
+          "rvol_7d",
+          "baseline_mean_volume_7d",
+          "baseline_days_7d",
+          "baseline_refs_7d_json",
+          "rvol_7d_status"
+        ]
+      },
+      {
+        "key": "rank",
+        "name": "生成基础最热榜",
+        "kind": "process",
+        "description_zh": "对整批CoinGecko候选计算四指标稳健Z交易热度，按当前分数取前20。",
+        "description_en": "Rank the current cohort by four-factor robust Z trading heat; top 20.",
+        "algorithm_zh": "同批次每项y=ln(1+x)，Z=(y−median(y))/(1.4826×MAD(y))并截断[−3,+3]。热度=0.35×Z(RVOL)+0.25×Z(换手率)+0.20×Z(成交额)+0.20×Z(绝对涨跌幅)。MAD尺度≤1e−12的分项全体0并标注退化，不重分配权重；全部退化不可比较。全精度排序，同分asset_id升序。直接快照排名，不读旧activity_score、不累计或衰减。",
+        "algorithm_en": "Within one frozen cohort, transform log1p, center by median and scale by 1.4826 MAD; clip Z to [−3,+3]. Weights: RVOL .35, turnover .25, volume .20, absolute move .20. Degenerate scale ≤1e−12 contributes zero without reweighting; all-degenerate batches are incomparable. Sort full precision, then asset ID. No event accumulation or decay.",
+        "trigger_zh": "每5分钟一批；来源≤15分钟，覆盖健康且完整才发布；失败不使用旧榜冒充当前。",
+        "fields": [
+          {
+            "name": "observation_id",
+            "data_type": "string",
+            "label_zh": "冻结观测ID"
+          },
+          {
+            "name": "asset_id",
+            "data_type": "uuid | null",
+            "label_zh": "可空UUID；最热榜仅接已核实coin"
+          },
+          {
+            "name": "identity_status",
+            "data_type": "string",
+            "label_zh": "resolved/source_only/lookup_error/conflict"
+          },
+          {
+            "name": "source_id",
+            "data_type": "string",
+            "label_zh": "来源范围"
+          },
+          {
+            "name": "source_object_id",
+            "data_type": "string",
+            "label_zh": "稳定CoinGecko coin ID"
+          },
+          {
+            "name": "quote_currency",
+            "data_type": "string",
+            "label_zh": "固定usd"
+          },
+          {
+            "name": "coverage_key",
+            "data_type": "string",
+            "label_zh": "一致覆盖版本"
+          },
+          {
+            "name": "requested_at",
+            "data_type": "datetime",
+            "label_zh": "请求时间；历史锚点"
+          },
+          {
+            "name": "collected_at",
+            "data_type": "datetime",
+            "label_zh": "实际接收时间"
+          },
+          {
+            "name": "observed_at",
+            "data_type": "datetime",
+            "label_zh": "来源观测时间"
+          },
+          {
+            "name": "quality_status",
+            "data_type": "string",
+            "label_zh": "来源质量状态"
+          },
+          {
+            "name": "total_volume",
+            "data_type": "number",
+            "label_zh": "滚动24h成交额，USD"
+          },
+          {
+            "name": "asset_name",
+            "data_type": "string | null",
+            "label_zh": "展示名，不参与身份匹配"
+          },
+          {
+            "name": "object_kind",
+            "data_type": "string",
+            "label_zh": "最热候选须coin；旧asset/token标签须显式适配"
+          },
+          {
+            "name": "metric_id",
+            "data_type": "string",
+            "label_zh": "版本化冻结指标ID"
+          },
+          {
+            "name": "metric_version",
+            "data_type": "string",
+            "label_zh": "market_indicators_v2"
+          },
+          {
+            "name": "snapshot_ref",
+            "data_type": "string",
+            "label_zh": "来源响应引用"
+          },
+          {
+            "name": "current_price",
+            "data_type": "number",
+            "label_zh": "USD价格，有限且>0"
+          },
+          {
+            "name": "market_cap",
+            "data_type": "number",
+            "label_zh": "USD市值，有限且>0"
+          },
+          {
+            "name": "volume_to_market_cap",
+            "data_type": "number",
+            "label_zh": "成交额/市值，小数比值"
+          },
+          {
+            "name": "abs_price_pct",
+            "data_type": "number",
+            "label_zh": "绝对24h涨跌幅，百分数点，5表示5%"
+          },
+          {
+            "name": "price_change_percentage_24h",
+            "data_type": "number",
+            "label_zh": "来源有符号24h涨跌幅"
+          },
+          {
+            "name": "rvol_7d",
+            "data_type": "number | null",
+            "label_zh": "当前滚动24h成交额/7日基线；缺历史不补0"
+          },
+          {
+            "name": "baseline_mean_volume_7d",
+            "data_type": "number | null",
+            "label_zh": "7个日目标成交额算术均值，USD；必须7日完整且均值>0"
+          },
+          {
+            "name": "baseline_days_7d",
+            "data_type": "integer",
+            "label_zh": "已选有效日目标数0—7"
+          },
+          {
+            "name": "baseline_refs_7d_json",
+            "data_type": "json",
+            "label_zh": "每日目标、实际请求/接收时间、观测ID与成交额"
+          },
+          {
+            "name": "rvol_7d_status",
+            "data_type": "string",
+            "label_zh": "complete/missing_history/zero_baseline/invalid_context等明确状态"
+          },
+          {
+            "name": "object_key",
+            "data_type": "string",
+            "label_zh": "asset/<asset_id>，兼容候选筛选"
+          },
+          {
+            "name": "rank",
+            "data_type": "integer",
+            "label_zh": "完整精度排名；同分asset_id升序"
+          },
+          {
+            "name": "score",
+            "data_type": "number",
+            "label_zh": "四项加权稳健Z，范围−3到+3，可为负"
+          },
+          {
+            "name": "algorithm_version",
+            "data_type": "string",
+            "label_zh": "coingecko_hottest_z_v1"
+          },
+          {
+            "name": "calculation_status",
+            "data_type": "string",
+            "label_zh": "success/unavailable；失败不冒充当前"
+          },
+          {
+            "name": "calculated_at",
+            "data_type": "datetime",
+            "label_zh": "同批次固定计算时刻"
+          },
+          {
+            "name": "source_as_of",
+            "data_type": "datetime",
+            "label_zh": "本批来源cutoff"
+          },
+          {
+            "name": "snapshot_id",
+            "data_type": "string",
+            "label_zh": "冻结整批输入和统计的标识"
+          },
+          {
+            "name": "sample_count",
+            "data_type": "integer",
+            "label_zh": "完整可排名资产数量"
+          },
+          {
+            "name": "excluded_count",
+            "data_type": "integer",
+            "label_zh": "剔除数量"
+          },
+          {
+            "name": "excluded_reasons_json",
+            "data_type": "json",
+            "label_zh": "按原因汇总，未知覆盖不作空榜"
+          },
+          {
+            "name": "normalization_json",
+            "data_type": "json",
+            "label_zh": "每项log1p中位数/MAD/scale/退化状态"
+          },
+          {
+            "name": "score_components_json",
+            "data_type": "json",
+            "label_zh": "各项原值、log1p、原始Z、截断Z、权重及贡献"
+          },
+          {
+            "name": "direction",
+            "data_type": "string",
+            "label_zh": "up/down/flat，不推断事件原因"
+          },
+          {
+            "name": "reason",
+            "data_type": "string | null",
+            "label_zh": "具体指标说明或不可用原因"
+          },
+          {
+            "name": "observation_refs_json",
+            "data_type": "json",
+            "label_zh": "本币当前观测与7日历史引用"
+          },
+          {
+            "name": "trend_status",
+            "data_type": "string",
+            "label_zh": "交易活动标签，非概率"
+          },
+          {
+            "name": "run_id",
+            "data_type": "string",
+            "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+          },
+          {
+            "name": "window_label",
+            "data_type": "string | null",
+            "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+          },
+          {
+            "name": "window_start",
+            "data_type": "UTC timestamp | null",
+            "label_zh": "来源明确给出的统计起点；未知不倒推"
+          },
+          {
+            "name": "window_end",
+            "data_type": "UTC timestamp | null",
+            "label_zh": "来源明确给出的统计止点；未知不倒推"
+          }
+        ],
+        "output_fields": [
+          "observation_id",
+          "asset_id",
+          "identity_status",
+          "source_id",
+          "source_object_id",
+          "quote_currency",
+          "coverage_key",
+          "requested_at",
+          "collected_at",
+          "observed_at",
+          "quality_status",
+          "total_volume",
+          "asset_name",
+          "object_kind",
+          "metric_id",
+          "metric_version",
+          "snapshot_ref",
+          "current_price",
+          "market_cap",
+          "volume_to_market_cap",
+          "abs_price_pct",
+          "price_change_percentage_24h",
+          "rvol_7d",
+          "baseline_mean_volume_7d",
+          "baseline_days_7d",
+          "baseline_refs_7d_json",
+          "rvol_7d_status",
+          "object_key",
+          "rank",
+          "score",
+          "algorithm_version",
+          "calculation_status",
+          "calculated_at",
+          "source_as_of",
+          "snapshot_id",
+          "sample_count",
+          "excluded_count",
+          "excluded_reasons_json",
+          "normalization_json",
+          "score_components_json",
+          "direction",
+          "reason",
+          "observation_refs_json",
+          "trend_status",
+          "run_id",
+          "window_label",
+          "window_start",
+          "window_end"
+        ]
+      },
+      {
+        "key": "result",
+        "name": "leaderboard_hottest",
+        "kind": "table",
+        "description_zh": "最新成功交易最热榜快照；分数−3到+3，不是概率，15分钟过期。",
+        "description_en": "Latest successful trading heat snapshot, score −3 to +3, expires at 15 minutes.",
+        "algorithm_zh": "完整成功批次原子发布；最多20条，可为空；失败、过期和无历史分别展示，不制造真实记录。下游只消费有效完整快照。",
+        "algorithm_en": "Publish complete successful batches atomically, at most 20 rows, including valid empty output. Distinguish failures, expiry and missing history.",
+        "trigger_zh": "由#3018成功完整发布更新；年龄≥900秒不可作当前输入。",
+        "fields": [
+          {
+            "name": "observation_id",
+            "data_type": "string",
+            "label_zh": "冻结观测ID"
+          },
+          {
+            "name": "asset_id",
+            "data_type": "uuid | null",
+            "label_zh": "可空UUID；最热榜仅接已核实coin"
+          },
+          {
+            "name": "identity_status",
+            "data_type": "string",
+            "label_zh": "resolved/source_only/lookup_error/conflict"
+          },
+          {
+            "name": "source_id",
+            "data_type": "string",
+            "label_zh": "来源范围"
+          },
+          {
+            "name": "source_object_id",
+            "data_type": "string",
+            "label_zh": "稳定CoinGecko coin ID"
+          },
+          {
+            "name": "quote_currency",
+            "data_type": "string",
+            "label_zh": "固定usd"
+          },
+          {
+            "name": "coverage_key",
+            "data_type": "string",
+            "label_zh": "一致覆盖版本"
+          },
+          {
+            "name": "requested_at",
+            "data_type": "datetime",
+            "label_zh": "请求时间；历史锚点"
+          },
+          {
+            "name": "collected_at",
+            "data_type": "datetime",
+            "label_zh": "实际接收时间"
+          },
+          {
+            "name": "observed_at",
+            "data_type": "datetime",
+            "label_zh": "来源观测时间"
+          },
+          {
+            "name": "quality_status",
+            "data_type": "string",
+            "label_zh": "来源质量状态"
+          },
+          {
+            "name": "total_volume",
+            "data_type": "number",
+            "label_zh": "滚动24h成交额，USD"
+          },
+          {
+            "name": "asset_name",
+            "data_type": "string | null",
+            "label_zh": "展示名，不参与身份匹配"
+          },
+          {
+            "name": "object_kind",
+            "data_type": "string",
+            "label_zh": "最热候选须coin；旧asset/token标签须显式适配"
+          },
+          {
+            "name": "metric_id",
+            "data_type": "string",
+            "label_zh": "版本化冻结指标ID"
+          },
+          {
+            "name": "metric_version",
+            "data_type": "string",
+            "label_zh": "market_indicators_v2"
+          },
+          {
+            "name": "snapshot_ref",
+            "data_type": "string",
+            "label_zh": "来源响应引用"
+          },
+          {
+            "name": "current_price",
+            "data_type": "number",
+            "label_zh": "USD价格，有限且>0"
+          },
+          {
+            "name": "market_cap",
+            "data_type": "number",
+            "label_zh": "USD市值，有限且>0"
+          },
+          {
+            "name": "volume_to_market_cap",
+            "data_type": "number",
+            "label_zh": "成交额/市值，小数比值"
+          },
+          {
+            "name": "abs_price_pct",
+            "data_type": "number",
+            "label_zh": "绝对24h涨跌幅，百分数点，5表示5%"
+          },
+          {
+            "name": "price_change_percentage_24h",
+            "data_type": "number",
+            "label_zh": "来源有符号24h涨跌幅"
+          },
+          {
+            "name": "rvol_7d",
+            "data_type": "number | null",
+            "label_zh": "当前滚动24h成交额/7日基线；缺历史不补0"
+          },
+          {
+            "name": "baseline_mean_volume_7d",
+            "data_type": "number | null",
+            "label_zh": "7个日目标成交额算术均值，USD；必须7日完整且均值>0"
+          },
+          {
+            "name": "baseline_days_7d",
+            "data_type": "integer",
+            "label_zh": "已选有效日目标数0—7"
+          },
+          {
+            "name": "baseline_refs_7d_json",
+            "data_type": "json",
+            "label_zh": "每日目标、实际请求/接收时间、观测ID与成交额"
+          },
+          {
+            "name": "rvol_7d_status",
+            "data_type": "string",
+            "label_zh": "complete/missing_history/zero_baseline/invalid_context等明确状态"
+          },
+          {
+            "name": "object_key",
+            "data_type": "string",
+            "label_zh": "asset/<asset_id>，兼容候选筛选"
+          },
+          {
+            "name": "rank",
+            "data_type": "integer",
+            "label_zh": "完整精度排名；同分asset_id升序"
+          },
+          {
+            "name": "score",
+            "data_type": "number",
+            "label_zh": "四项加权稳健Z，范围−3到+3，可为负"
+          },
+          {
+            "name": "algorithm_version",
+            "data_type": "string",
+            "label_zh": "coingecko_hottest_z_v1"
+          },
+          {
+            "name": "calculation_status",
+            "data_type": "string",
+            "label_zh": "success/unavailable；失败不冒充当前"
+          },
+          {
+            "name": "calculated_at",
+            "data_type": "datetime",
+            "label_zh": "同批次固定计算时刻"
+          },
+          {
+            "name": "source_as_of",
+            "data_type": "datetime",
+            "label_zh": "本批来源cutoff"
+          },
+          {
+            "name": "snapshot_id",
+            "data_type": "string",
+            "label_zh": "冻结整批输入和统计的标识"
+          },
+          {
+            "name": "sample_count",
+            "data_type": "integer",
+            "label_zh": "完整可排名资产数量"
+          },
+          {
+            "name": "excluded_count",
+            "data_type": "integer",
+            "label_zh": "剔除数量"
+          },
+          {
+            "name": "excluded_reasons_json",
+            "data_type": "json",
+            "label_zh": "按原因汇总，未知覆盖不作空榜"
+          },
+          {
+            "name": "normalization_json",
+            "data_type": "json",
+            "label_zh": "每项log1p中位数/MAD/scale/退化状态"
+          },
+          {
+            "name": "score_components_json",
+            "data_type": "json",
+            "label_zh": "各项原值、log1p、原始Z、截断Z、权重及贡献"
+          },
+          {
+            "name": "direction",
+            "data_type": "string",
+            "label_zh": "up/down/flat，不推断事件原因"
+          },
+          {
+            "name": "reason",
+            "data_type": "string | null",
+            "label_zh": "具体指标说明或不可用原因"
+          },
+          {
+            "name": "observation_refs_json",
+            "data_type": "json",
+            "label_zh": "本币当前观测与7日历史引用"
+          },
+          {
+            "name": "trend_status",
+            "data_type": "string",
+            "label_zh": "交易活动标签，非概率"
+          },
+          {
+            "name": "run_id",
+            "data_type": "string",
+            "label_zh": "采集运行标识；与统计窗口、来源记录时间分开"
+          },
+          {
+            "name": "window_label",
+            "data_type": "string | null",
+            "label_zh": "实际请求统计窗口，例如24h；不代表采集频率"
+          },
+          {
+            "name": "window_start",
+            "data_type": "UTC timestamp | null",
+            "label_zh": "来源明确给出的统计起点；未知不倒推"
+          },
+          {
+            "name": "window_end",
+            "data_type": "UTC timestamp | null",
+            "label_zh": "来源明确给出的统计止点；未知不倒推"
+          }
+        ],
+        "output_fields": [
+          "observation_id",
+          "asset_id",
+          "identity_status",
+          "source_id",
+          "source_object_id",
+          "quote_currency",
+          "coverage_key",
+          "requested_at",
+          "collected_at",
+          "observed_at",
+          "quality_status",
+          "total_volume",
+          "asset_name",
+          "object_kind",
+          "metric_id",
+          "metric_version",
+          "snapshot_ref",
+          "current_price",
+          "market_cap",
+          "volume_to_market_cap",
+          "abs_price_pct",
+          "price_change_percentage_24h",
+          "rvol_7d",
+          "baseline_mean_volume_7d",
+          "baseline_days_7d",
+          "baseline_refs_7d_json",
+          "rvol_7d_status",
+          "object_key",
+          "rank",
+          "score",
+          "algorithm_version",
+          "calculation_status",
+          "calculated_at",
+          "source_as_of",
+          "snapshot_id",
+          "sample_count",
+          "excluded_count",
+          "excluded_reasons_json",
+          "normalization_json",
+          "score_components_json",
+          "direction",
+          "reason",
+          "observation_refs_json",
+          "trend_status",
+          "run_id",
+          "window_label",
+          "window_start",
+          "window_end"
+        ]
+      }
+    ]
+  }
+}

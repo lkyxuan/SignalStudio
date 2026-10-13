@@ -11,7 +11,9 @@ try {
  const {buildCoinGeckoCase,designCases,previewRefs,previewColumns,previewInputs,nullReason}=await vite.ssrLoadModule('/src/coingeckoPreviewModel.js');
  const {CoinGeckoDesignPreview}=await vite.ssrLoadModule('/src/CoinGeckoDesignPreview.jsx');
  let records=0,fields=0;
- for(const ref of previewRefs){
+ // SS-98 removed the legacy candidate card; keep its pure math checks below.
+ const activeRefs=previewRefs.filter(ref=>ref!==3001||graph.nodes.some(n=>n.reference_number===ref));
+ for(const ref of activeRefs){
   const node=graph.nodes.find(n=>n.reference_number===ref);assert.ok(node,`Missing #${ref}`);
   for(const sample of designCases){
    const c=buildCoinGeckoCase(sample.key);
@@ -71,5 +73,5 @@ for c in json.load(sys.stdin):
 print('Python reference: indicators, alerts, contribution tiers and decay agree for all cases')
 `],{input:JSON.stringify(designCases.map(s=>buildCoinGeckoCase(s.key))),encoding:'utf8'});
  assert.equal(oracle.status,0,oracle.stderr);console.log(oracle.stdout.trim());
- console.log(JSON.stringify({cards:previewRefs.length,cases:designCases.length,records,output_fields_checked:fields,languages:2,math_identity_branches:true}));
+ console.log(JSON.stringify({cards:activeRefs.length,cases:designCases.length,records,output_fields_checked:fields,languages:2,math_identity_branches:true}));
 } finally {await vite.close()}
