@@ -217,3 +217,10 @@ h1, h2, h3, .brand strong, .workspace-head h1, .inspector h2,
 .live-update-banner button { padding: 6px 10px; border: 1px solid currentColor; border-radius: 6px; color: inherit; background: transparent; cursor: pointer; }
 
 .live-update-banner.modal-conflict { position: fixed; top: 12px; left: 20px; right: 20px; z-index: 10000; border: 1px solid currentColor; border-radius: 8px; }
+/* Display subtypes share a category palette; selected cards retain their tint. */
+.logic-node.state.tone-light{--ss-node-bg:#344c60;--ss-node-header:#283d50;--ss-node-border:#56748c;--ss-node-color:#9bcdf4}
+.logic-node.state.tone-medium{--ss-node-bg:#293f54;--ss-node-header:#203246;--ss-node-border:#486780;--ss-node-color:#86bde8}
+.logic-node.state.tone-deep{--ss-node-bg:#203249;--ss-node-header:#18263a;--ss-node-border:#3b5878;--ss-node-color:#7aafe7}
+.logic-node.metric.tone-light{--ss-node-bg:#345344;--ss-node-header:#294437;--ss-node-border:#537e66;--ss-node-color:#a0d9b2}
+.logic-node.metric.tone-medium{--ss-node-bg:#2b4436;--ss-node-header:#21372b;--ss-node-border:#466c55;--ss-node-color:#8bc9a0}
+.logic-node.metric.tone-deep{--ss-node-bg:#21372c;--ss-node-header:#192b22;--ss-node-border:#3e624e;--ss-node-color:#7fbc93}

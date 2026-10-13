@@ -74,6 +74,31 @@ are preserved; opening details must never execute a graph action.
 | channel | Message fields/case; delivery/dedupe/retention/replay rules; producers/consumers | Envelope, headers, topic/key, groups and code reference |
 | state | Stored or intended data/schema; business window and retention separately; writers/readers | Keys/indexes, dedupe/recovery and detailed configuration |
 
+The [SS-85 subtype and origin requirement](https://app.notion.com/p/3f8038a63d5a819499f8d781afc36bd4)
+(approved 2026-10-13) adds display metadata without changing execution kinds or
+contracts. `src/cardPresentationData.json` maps existing module names to their
+expected kind, defining catalog paths, purpose and declared origin;
+`src/cardPresentation.ts` resolves this metadata and catalog source providers.
+Unmatched names/kinds/module paths show purpose/origin unconfirmed. Never infer
+origin from historical numbers, transitive graph reachability or reference edges.
+A source label describes the declared origin, not observed collection evidence.
+
+Graph headers and table/local views show kind plus purpose. The graph status row
+shows origin separately; clipped header/origin text has full hover text. Details
+show both plus incoming data/read/reference/consume/write/publish bindings and their saved
+field usages, checking source and target ownership. Missing field mappings stay
+explicit. A reference is a relationship, not a permanent table subtype or proof
+of automatic loading. Shared asset records retain internal provenance; internally
+computed boards expose upstream dependencies rather than inheriting CoinGecko.
+
+Tables use blue shades (core/config/content/coverage light, history/current medium,
+board results deep); processes use green shades (preparation/metrics/filtering/AI
+checks light, scoring/signals medium, asset writes/archive/delivery/content deep).
+Decisions stay yellow and follow their actual execution kind. Channel, cache and
+source palettes remain category-specific. Text labels remain authoritative; shades
+are only an aid. Keep 300 × 160 geometry, current IDs, saved positions and selection
+styling. This presentation does not establish backend delivery or runtime success.
+
 Display graph relationships using validated endpoint bindings and stable branch
 IDs, including multiple branches on one visual edge. Missing bindings or routes
 stay explicit. A reference connection does not establish automated loading or

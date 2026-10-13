@@ -23,3 +23,8 @@
 @media (max-width: 900px) {
   .inspector:has(.card-details) { position: absolute; right: 0; top: 0; bottom: 0; width: min(840px, 90vw); }
 }
+.card-presentation-details{display:grid;gap:6px;padding:12px;border:1px solid var(--ss-border);border-radius:8px;background:var(--ss-inset);font-size:12px;overflow-wrap:anywhere}
+.card-presentation-details>span,.card-presentation-input small{color:var(--ss-muted);font-size:11px}
+.card-presentation-details summary{cursor:pointer;color:var(--ss-muted);font-size:11px}
+.card-presentation-input{display:grid;gap:4px;margin-top:10px}
+.card-presentation-details .card-detail-link{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:left}

@@ -1,0 +1,536 @@
+{
+  "assets": {
+    "kind": "table",
+    "subtype": "base",
+    "origin": "internal_data",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "asset_identifiers": {
+    "kind": "table",
+    "subtype": "base",
+    "origin": "internal_data",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "asset_relationships": {
+    "kind": "table",
+    "subtype": "base",
+    "origin": "internal_data",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "asset_monitoring_rules": {
+    "kind": "table",
+    "subtype": "config",
+    "origin": "internal_config",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "市场交易活跃候选": {
+    "kind": "process",
+    "subtype": "filter",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/signal-contracts.v1.json",
+      "catalog/market-current.v1.json"
+    ]
+  },
+  "市场账号查询内部资产": {
+    "kind": "decision",
+    "subtype": "automatic",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "新账号建立待识别资产": {
+    "kind": "process",
+    "subtype": "identity",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "定期 AI 检查资产地图": {
+    "kind": "process",
+    "subtype": "ai_check",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "人工审核资产纠错建议": {
+    "kind": "decision",
+    "subtype": "human",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "执行获批资产纠错": {
+    "kind": "process",
+    "subtype": "identity",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "已有 X 账号资产结果": {
+    "kind": "process",
+    "subtype": "filter",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "asset_score_events": {
+    "kind": "table",
+    "subtype": "history",
+    "origin": "multi",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "asset_scores_current": {
+    "kind": "table",
+    "subtype": "current",
+    "origin": "multi",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "计算当前资产评分": {
+    "kind": "process",
+    "subtype": "score",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/score-rollup.v1.json"
+    ]
+  },
+  "提交评分事件": {
+    "kind": "process",
+    "subtype": "sync",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/score-event-topic-proposal.v1.json",
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "评分事件 Topic": {
+    "kind": "channel",
+    "subtype": "score_event",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/score-event-topic-proposal.v1.json"
+    ]
+  },
+  "维护近期评分窗口": {
+    "kind": "process",
+    "subtype": "sync",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/score-event-topic-proposal.v1.json"
+    ]
+  },
+  "归档评分流水": {
+    "kind": "process",
+    "subtype": "sync",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/score-event-topic-proposal.v1.json"
+    ]
+  },
+  "Kaito 新关注账号 Topic": {
+    "kind": "channel",
+    "subtype": "social",
+    "origin": "kaito",
+    "definition_paths": []
+  },
+  "Redis 近期评分窗口": {
+    "kind": "state",
+    "subtype": "window",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/score-rollup.v1.json"
+    ]
+  },
+  "确定资产起始评分": {
+    "kind": "process",
+    "subtype": "score",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/asset-initial-score-sources.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "supabase_asset_scores": {
+    "kind": "table",
+    "subtype": "current",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "同步资产得分到 Supabase": {
+    "kind": "process",
+    "subtype": "sync",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/supabase-score-sync.v1.json"
+    ]
+  },
+  "Few Understand · market.snapshot": {
+    "kind": "channel",
+    "subtype": "market",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/coingecko-indicator-signals.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "Few Understand · signal.data": {
+    "kind": "channel",
+    "subtype": "signal_message",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-indicator-signals.v1.json"
+    ]
+  },
+  "CoinGecko · 24 小时大涨": {
+    "kind": "process",
+    "subtype": "signal",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-indicator-signals.v1.json"
+    ]
+  },
+  "CoinGecko · 24 小时大跌": {
+    "kind": "process",
+    "subtype": "signal",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-indicator-signals.v1.json"
+    ]
+  },
+  "CoinGecko · 成交量市值比偏高": {
+    "kind": "process",
+    "subtype": "signal",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-indicator-signals.v1.json"
+    ]
+  },
+  "CoinGecko · 接近历史高点": {
+    "kind": "process",
+    "subtype": "signal",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-indicator-signals.v1.json"
+    ]
+  },
+  "CoinGecko · 较历史高点深度回撤": {
+    "kind": "process",
+    "subtype": "signal",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-indicator-signals.v1.json"
+    ]
+  },
+  "CoinGecko · 首次收录新资产": {
+    "kind": "process",
+    "subtype": "signal",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-implemented-signals.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "leaderboard_warming": {
+    "kind": "table",
+    "subtype": "board",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "leaderboard_hottest": {
+    "kind": "table",
+    "subtype": "board",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "leaderboard_emerging": {
+    "kind": "table",
+    "subtype": "board",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/market-current.v1.json"
+    ]
+  },
+  "coingecko_market_history": {
+    "kind": "table",
+    "subtype": "history",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "leaderboard_coverage": {
+    "kind": "table",
+    "subtype": "coverage",
+    "origin": "collection_meta",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "候选代币筛选": {
+    "kind": "process",
+    "subtype": "filter",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "asset_information_content": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "multi",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "CoinGecko · 热榜上榜加分": {
+    "kind": "process",
+    "subtype": "score",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-trending-contribution.v1.json",
+      "catalog/trending-channel.v1.json"
+    ]
+  },
+  "刷新判断": {
+    "kind": "decision",
+    "subtype": "automatic",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/content-refresh.v1.json"
+    ]
+  },
+  "数据采集与内容生成": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/content-refresh.v1.json"
+    ]
+  },
+  "验证与保存": {
+    "kind": "process",
+    "subtype": "save",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/content-refresh.v1.json"
+    ]
+  },
+  "asset_initial_score_sources": {
+    "kind": "table",
+    "subtype": "config",
+    "origin": "internal_config",
+    "definition_paths": [
+      "catalog/business-tables.v1.json"
+    ]
+  },
+  "量价评分 · 生成贡献": {
+    "kind": "process",
+    "subtype": "score",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json",
+      "catalog/polars-indicator-current.v1.json"
+    ]
+  },
+  "量价评分 · 汇总Redis记分": {
+    "kind": "process",
+    "subtype": "score",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "market_scores_current": {
+    "kind": "table",
+    "subtype": "current",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "market_score_history": {
+    "kind": "table",
+    "subtype": "history",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "Few Understand · social.data": {
+    "kind": "channel",
+    "subtype": "social",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/trending-channel.v1.json"
+    ]
+  },
+  "归档 CoinGecko 行情": {
+    "kind": "process",
+    "subtype": "sync",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json"
+    ]
+  },
+  "Polars · 计算 CoinGecko 量价指标": {
+    "kind": "process",
+    "subtype": "metric",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json",
+      "catalog/polars-indicator-current.v1.json",
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "Few Understand · indicator.data": {
+    "kind": "channel",
+    "subtype": "indicator",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/market-current.v1.json",
+      "catalog/market-scoring.v1.json",
+      "catalog/coingecko-indicator-signals.v1.json",
+      "catalog/polars-indicator-current.v1.json",
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "资产得分页面": {
+    "kind": "interface",
+    "subtype": "score_page",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/application-interfaces.v1.json",
+      "catalog/supabase-score-sync.v1.json"
+    ]
+  },
+  "资产纠错审核页面": {
+    "kind": "interface",
+    "subtype": "review_page",
+    "origin": "internal_data",
+    "definition_paths": [
+      "catalog/application-interfaces.v1.json",
+      "catalog/identity-flow-case.v1.json"
+    ]
+  },
+  "Polars · 整理24h涨跌幅": {
+    "kind": "process",
+    "subtype": "reshape",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/polars-indicator-current.v1.json",
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "Polars · 整理ATH百分比": {
+    "kind": "process",
+    "subtype": "reshape",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/polars-indicator-current.v1.json",
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "Polars · 计算成交额市值比": {
+    "kind": "process",
+    "subtype": "metric",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/polars-indicator-current.v1.json",
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "Polars · 计算绝对24h涨跌幅": {
+    "kind": "process",
+    "subtype": "metric",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/polars-indicator-current.v1.json",
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "Polars · 计算相对昨日放量倍数": {
+    "kind": "process",
+    "subtype": "metric",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/polars-indicator-current.v1.json",
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "Polars · 汇总指标并发布": {
+    "kind": "process",
+    "subtype": "sync",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/polars-indicator-flow.v1.json",
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "CoinGecko · 筛选无UUID资产": {
+    "kind": "process",
+    "subtype": "filter",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "CoinGecko · 核实并建档": {
+    "kind": "process",
+    "subtype": "identity",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-identity-handoff.v1.json"
+    ]
+  },
+  "榜单与信号首页": {
+    "kind": "interface",
+    "subtype": "home_page",
+    "origin": "multi",
+    "definition_paths": [
+      "catalog/homepage-layout.v1.json"
+    ]
+  }
+}
