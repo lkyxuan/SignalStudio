@@ -80,8 +80,10 @@ def ensure_retire_market_discovery(service):
             return [rewrite(v) for v in value]
         if isinstance(value, dict):
             result = {k: rewrite(v) for k, v in value.items()}
-            if result.get('path') in REPLACEMENTS:
-                result['path'] = REPLACEMENTS[result['path']]
+            # Recursive string rewriting has already replaced result['path'].
+            # Select the new digest using the original path, not the rewritten one.
+            if value.get('path') in REPLACEMENTS:
+                result['path'] = REPLACEMENTS[value['path']]
                 result['revision'] = hashlib.sha256((ROOT / result['path']).read_bytes()).hexdigest()
             elif result.get('path') == 'catalog/market-scoring.v1.json':
                 result['revision'] = hashlib.sha256((ROOT / result['path']).read_bytes()).hexdigest()

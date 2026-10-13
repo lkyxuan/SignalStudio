@@ -30,6 +30,12 @@ Polars 负责统一输入身份/时间/质量检查，计算成交额/市值、�
 
 验收：事务失败无部分删除，未知外部依赖/受保护配置不覆盖，重入不覆盖用户后续编辑；隐藏卡也纳入迁移。运行`server.test_retire_market_discovery`与`server.test_market_scoring_reference`及现行建档/指标/范围检查，核验共享图和导出无旧发现字段与动作。
 
+## 定义引用摘要修复（SS-82）
+
+[2026-10-13批准修复](https://app.notion.com/p/3f8038a63d5a81a6ac99cbabe36deed6)：SS-80递归替换定义路径时，须根据原路径选择对应新文件摘要，不能在路径已经改写后再匹配旧路径。`repair_discovery_digests.py`为已执行SS-80的库提供一次性事务修复，递归检查全部保存契约（含收起卡和嵌套引用），仅替换已知旧文件摘要为固定的已批准目标摘要；目标文件变化拒绝修复，未知摘要保持并继续报告。只增量更新受影响契约的引用摘要与契约版本，不变更业务定义、节点、字段、布局或连线；重入不覆盖后续编辑。该修复不代表其他历史定义差异已审阅或Few运行已通过。
+
+验证：`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_retire_market_discovery server.test_repair_discovery_digests`覆盖新升级、历史错误引用、嵌套/收起卡、未知变化保留、失败回滚与重入；真实库副本另核对原业务行保持及本次提示消除。
+
 ## 当前工作台范围（SS-78）
 
 2026-10-12用户选择暂时只收起CoinGecko下的三个生成榜单卡；依据[SS-78](https://app.notion.com/p/3f7038a63d5a8191a52ed3f283228d3b)。`catalog/workspace-scope.v1.json`以稳定节点ID列出3017、3018、3019。当前图、表格、详情导航和图导出不包含这些卡及关联边、字段和端口；SS-78原操作保留节点、关系、编号和位置；SS-80已另行清空旧新发现榜依赖。升温/最热恢复时移除相应收起条目并重新加载服务，不创建新编号或覆盖其他卡。收起操作只改变工作台范围，不是Few后台停止指令。

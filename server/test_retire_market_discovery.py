@@ -1,4 +1,6 @@
 import copy
+import hashlib
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -58,6 +60,24 @@ class RetireDiscoveryTest(unittest.TestCase):
         self.assertNotIn('market_polars.discoveries_calc', active_ids)
         ensure_retire_market_discovery(s)
         self.assertEqual(package, CardModel(s).package())
+
+    def test_replaced_paths_always_include_the_replacement_digest(self):
+        ensure_retire_market_discovery(self.s)
+        refs = []
+        def collect(value):
+            if isinstance(value, dict):
+                if value.get('path') in ('catalog/market-current.v1.json', 'catalog/polars-indicator-current.v1.json'):
+                    refs.append(value)
+                for child in value.values(): collect(child)
+            elif isinstance(value, list):
+                for child in value: collect(child)
+        for row in self.s.db.execute('SELECT config FROM node_contracts'):
+            import json
+            collect(json.loads(row['config']))
+        self.assertTrue(refs)
+        self.assertEqual({r['path'] for r in refs}, {'catalog/market-current.v1.json', 'catalog/polars-indicator-current.v1.json'})
+        for ref in refs:
+            self.assertEqual(ref['revision'], hashlib.sha256(Path(ref['path']).read_bytes()).hexdigest())
 
     def test_cleanup_includes_shelved_cards(self):
         s = self.s

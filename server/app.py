@@ -38,6 +38,7 @@ from score_rollup_alignment import ensure_score_rollup_alignment
 from card_model import CardModel, MODEL, VERSION
 from application_interfaces import ensure_application_interfaces
 from homepage_interface import ensure_homepage_interface
+from repair_discovery_digests import ensure_repair_discovery_digests
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -75,6 +76,7 @@ ensure_coingecko_identity_handoff(service)
 ensure_retire_market_discovery(service)
 ensure_application_interfaces(service)
 ensure_homepage_interface(service)
+ensure_repair_discovery_digests(service)
 
 
 class Handler(BaseHTTPRequestHandler):
