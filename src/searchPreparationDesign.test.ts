@@ -8,7 +8,8 @@ const example = () => preparationCase('bitcoin-design','news',1,'2026-10-13T05:0
 test('default requests current search even with complete stored coverage and preserves both sources', () => {
   const p = example();
   assert.equal(p.result.route,'need_search');
-  assert.deepEqual(p.result.gaps,[]);
+  assert.deepEqual(p.result.coverage_gaps,[]);
+  assert.deepEqual(p.result.gaps,['news']);
   assert.equal(p.result.ready,true);
   assert.equal(p.result.materials.length,2);
   assert.equal(p.result.data_as_of,null);

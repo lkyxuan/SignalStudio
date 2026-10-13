@@ -549,5 +549,53 @@
     "definition_paths": [
       "catalog/new-uuid-board.v1.json"
     ]
+  },
+  "根据资料生成内容": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/content-refresh.v1.json"
+    ]
+  },
+  "读取已有资料": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/search-preparation.v1.json"
+    ]
+  },
+  "判断资料缺口": {
+    "kind": "decision",
+    "subtype": "automatic",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/search-preparation.v1.json"
+    ]
+  },
+  "搜索补缺": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/search-preparation.v1.json"
+    ]
+  },
+  "搜索资料暂存": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/search-preparation.v1.json"
+    ]
+  },
+  "组装生成资料": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/search-preparation.v1.json"
+    ]
   }
 }

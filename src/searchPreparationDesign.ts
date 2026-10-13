@@ -22,7 +22,8 @@ export function prepareMaterials(input: PreparationInput) {
       (Number.isFinite(Date.parse(m.published_at)) && Date.parse(m.published_at) <= at));
   const existing = input.existing.filter(usable);
   const covered = new Set(existing.map(m => m.material_key));
-  const gaps = input.required_keys.filter(key => !covered.has(key));
+  const coverageGaps = input.required_keys.filter(key => !covered.has(key));
+  const gaps = policy === 'realtime_search_required' ? [...input.required_keys] : coverageGaps;
   const route = !validTask ? 'blocked' : policy === 'realtime_search_required' || gaps.length ? 'need_search' : 'enough';
   // This evaluator assumes a successful current search response belongs to this
   // input task. The real adapter must verify query/task identity before invoking it.
@@ -43,7 +44,7 @@ export function prepareMaterials(input: PreparationInput) {
   const times = unique.map(m => m.published_at);
   const dataAsOf = !times.length || times.some(t => t === null) ? null :
     new Date(Math.min(...times.map(t => Date.parse(t!)))).toISOString();
-  return { policy, route, existing, gaps, searched, materials: unique, missing,
+  return { policy, route, existing, gaps, coverage_gaps: coverageGaps, searched, materials: unique, missing,
     preparation_error: error, ready: !error, source_refs_json: JSON.stringify([...new Set(unique.map(m => m.source_ref))]),
     data_as_of: dataAsOf };
 }
