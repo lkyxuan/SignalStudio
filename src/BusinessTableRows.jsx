@@ -5,10 +5,11 @@ function CellValue({ name, value, displayDecimalPlaces }) {
   if (typeof value === 'number' && Number.isFinite(value) && displayDecimalPlaces != null) {
     return <code>{value.toFixed(displayDecimalPlaces)}</code>;
   }
-  if (name.endsWith('_json')) {
-    let formatted = value;
-    try { formatted = JSON.stringify(JSON.parse(value), null, 2); } catch { /* Show the stored text. */ }
-    return <details className="business-table-json"><summary><code>{value.length > 50 ? `${value.slice(0, 50)}…` : value}</code></summary>
+  if (name.endsWith('_json') || typeof value === 'object') {
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    let formatted = JSON.stringify(value, null, 2);
+    try { formatted = JSON.stringify(JSON.parse(text), null, 2); } catch { /* Show the stored text. */ }
+    return <details className="business-table-json"><summary><code>{text.length > 50 ? `${text.slice(0, 50)}…` : text}</code></summary>
       <pre>{formatted}</pre></details>;
   }
   return <code>{String(value)}</code>;
