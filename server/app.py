@@ -40,6 +40,7 @@ from application_interfaces import ensure_application_interfaces
 from homepage_interface import ensure_homepage_interface
 from repair_discovery_digests import ensure_repair_discovery_digests
 from new_uuid_board import ensure_new_uuid_board
+from remove_retired_discovery_board import ensure_remove_retired_discovery_board
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -79,6 +80,7 @@ ensure_application_interfaces(service)
 ensure_homepage_interface(service)
 ensure_repair_discovery_digests(service)
 ensure_new_uuid_board(service)
+ensure_remove_retired_discovery_board(service)
 
 
 class Handler(BaseHTTPRequestHandler):

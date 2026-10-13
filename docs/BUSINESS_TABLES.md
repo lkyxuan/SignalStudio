@@ -217,7 +217,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 ## 当前首版：三榜与共享状态
 
-当前以[三榜契约](THREE_BOARDS.md)和 `catalog/leaderboard-foundation.v1.json` 与 `catalog/market-scoring.v1.json` 为准：#1008升温榜、#1009热榜、#1010新榜；量价贡献经原评分事件/Redis链记分，旧+100不混入。#1011复用为关注状态表，降温仅标签；分歧及旧单独热度快照分支退出首版。证据、覆盖、关注历史、发现记录是基础数据，不额外占首页榜位。下面五榜说明仅记录旧安装结构，旧窗口和算法不得作为三榜默认值。
+当前以[三榜契约](THREE_BOARDS.md)和 `catalog/leaderboard-foundation.v1.json` 与 `catalog/market-scoring.v1.json` 为准：#1008升温榜、#1009热榜、#1023新发现UUID榜（见[新UUID榜契约](NEW_UUID_BOARD.md)）；旧#1010已由SS-86删除；量价贡献经原评分事件/Redis链记分，旧+100不混入。#1011复用为关注状态表，降温仅标签；分歧及旧单独热度快照分支退出首版。证据、覆盖、关注历史、发现记录是基础数据，不额外占首页榜位。下面五榜说明仅记录旧安装结构，旧窗口和算法不得作为三榜默认值。
 
 ## 历史安装结构：2026-10-08五榜骨架（已替代）
 

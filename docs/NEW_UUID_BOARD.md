@@ -38,7 +38,8 @@ confirmed `coin` identities from the three boards, at most 20 per board and 60 u
 asset IDs, retaining their board references. Project/person/account UUIDs never enter a
 token generator without an explicit corresponding capability. Board overlap is allowed
 and creates no repeated content task or scoring reward. No old discovery +20, seven-day
-rule or retired #1010 dependency is restored.
+rule or retired #1010 dependency is restored. SS-86 removes the empty retired #1010
+Studio card after this installer; #1023 remains the current result identity.
 
 ## Studio installation and verification
 
