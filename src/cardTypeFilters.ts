@@ -23,7 +23,7 @@ const purposes: Record<string,[string,string]> = {
   'decision/automatic':['自动规则判断','Automatic decisions'], 'decision/human':['人工审核判断','Human review'],
   'channel/market':['CoinGecko 行情消息','CoinGecko market messages'], 'channel/indicator':['CoinGecko 指标消息','CoinGecko indicator messages'],
   'channel/signal':['CoinGecko 信号消息','CoinGecko signal messages'], 'channel/social':['CoinGecko 热榜消息','CoinGecko trending messages'], 'channel/kaito':['Kaito 关注消息','Kaito following messages'],
-  'channel/score':['公共评分事件','Shared score events'], 'state/window':['公共评分窗口','Shared score window'],
+  'channel/score':['公共评分事件','Shared score events'], 'state/window':['公共评分窗口','Shared score window'], 'state/heat':['CoinGecko 最热候选','CoinGecko heat candidates'],
   'interface/score':['资产得分界面','Asset scores UI'], 'interface/review':['资产审核界面','Asset review UI'],
   'interface/home':['榜单与信号界面','Boards / signals UI'],
 };

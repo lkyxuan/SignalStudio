@@ -8,6 +8,7 @@ const listeners=new Set();
 const subscribe=listener=>{listeners.add(listener);return()=>listeners.delete(listener);};
 const select=key=>{selected=key;listeners.forEach(f=>f());};
 const text=v=>v===null?'NULL':typeof v==='object'?JSON.stringify(v):typeof v==='number'?String(Number(v.toPrecision(8))):String(v);
+const displayRows=rows=>rows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,typeof v==='number'?(k==='score'?v.toFixed(2):Number(v.toPrecision(7))):v])));
 const context=['observation_id','asset_id','source_id','source_object_id','quote_currency','coverage_key','requested_at','total_volume'];
 function Values({rows,fields,zh}) {
   if(!rows.length)return <p>{zh?'0条设计输出；不是线上空表。':'No design output; not evidence of empty live storage.'}</p>;
@@ -36,20 +37,20 @@ export function HottestDesignPreview({node,graph,language,openNode}) {
       </div>
     </>:<>
       {entry.key==='rank'&&<section className="source-case-inspector-section"><h3>{zh?'输入 · 同批完整候选':'Input · frozen candidate cohort'}</h3>{link('CoinGecko · 最热榜候选快照')}
-        <BusinessTableRows table={{primary_key:['asset_id'],columns:inputFields.map(name=>({name,label_zh:name}))}} rows={c.current} language={language}/>
+        <BusinessTableRows table={{primary_key:['asset_id'],columns:inputFields.map(name=>({name,label_zh:name}))}} rows={displayRows(c.current)} language={language}/>
         <p>{zh?'本例覆盖状态：':'Example coverage: '}<code>{key==='partial'?'partial':'healthy'}</code> · {link('leaderboard_coverage')}</p>
       </section>}
       <h3>{zh?entry.key==='candidates'?'保存的候选 · 设计值':'输出 · 排名设计值':entry.key==='candidates'?'Candidate state · design values':'Output · designed ranks'}</h3>
-      <BusinessTableRows table={entry.key==='rank'?{primary_key:['asset_id'],columns:schema.columns.filter(f=>['rank','asset_name','score','direction','reason'].includes(f.name))}:schema} rows={output} language={language}/>
-      {entry.key==='rank'&&<details className="processing-advanced"><summary>{zh?'完整输出字段与追溯记录':'Complete output fields and lineage'}</summary><BusinessTableRows table={schema} rows={output} language={language}/></details>}
+      <BusinessTableRows table={entry.key==='rank'?{primary_key:['asset_id'],columns:schema.columns.filter(f=>['rank','asset_name','score','direction','reason'].includes(f.name))}:schema} rows={displayRows(output)} language={language}/>
+      {entry.key==='rank'&&<details className="processing-advanced"><summary>{zh?'完整输出字段与追溯记录':'Complete output fields and lineage'}</summary><BusinessTableRows table={schema} rows={displayRows(output)} language={language}/></details>}
       <p>{zh?'批次状态':'Batch status'}: <code>{c.batch.status}</code> · <code>{c.batch.reason||'complete'}</code> · N={c.batch.sample_count}</p>
       {c.batch.excluded.length>0&&<p>{zh?'未入榜及原因：':'Excluded and reasons: '}<code>{JSON.stringify(c.batch.excluded)}</code></p>}
     </>}
     {['rank','result'].includes(entry.key)&&<>
       <h3>{zh?'分数怎么算出来 · 以本例第一名为例':'Score derivation · first ranked asset'}</h3>
-      {c.batch.rows.length?<><p>{c.batch.rows[0].asset_name} · <strong>{c.batch.rows[0].score.toFixed(6)}</strong></p>
+      {c.batch.rows.length?<><p>{c.batch.rows[0].asset_name} · <strong>{c.batch.rows[0].score.toFixed(2)}</strong></p>
         <BusinessTableRows table={{primary_key:['metric'],columns:['metric','value','log1p','z_raw','z_clipped','weight','contribution','status'].map(name=>({name,label_zh:name}))}}
-          rows={Object.entries(c.batch.rows[0].score_components_json).map(([metric,r])=>({metric,...r}))} language={language}/></>:<p>{zh?'本例没有可发布排名，不制造第一名。':'No publishable ranks in this case; no fabricated first place.'}</p>}
+          rows={displayRows(Object.entries(c.batch.rows[0].score_components_json).map(([metric,r])=>({metric,...r})))} language={language}/></>:<p>{zh?'本例没有可发布排名，不制造第一名。':'No publishable ranks in this case; no fabricated first place.'}</p>}
       <details className="processing-advanced"><summary>{zh?'本批中位数、MAD和尺度':'Batch medians, MAD and scales'}</summary>
         <BusinessTableRows table={{primary_key:['metric'],columns:['metric','median','mad','scale','status'].map(name=>({name,label_zh:name}))}} rows={Object.entries(c.batch.normalization_json).map(([metric,n])=>({metric,...n}))} language={language}/>
       </details>

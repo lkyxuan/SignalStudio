@@ -266,7 +266,8 @@
     "origin": "internal_compute",
     "definition_paths": [
       "catalog/market-current.v1.json",
-      "catalog/market-scoring.v1.json"
+      "catalog/market-scoring.v1.json",
+      "catalog/coingecko-hottest.v1.json"
     ]
   },
   "leaderboard_emerging": {
@@ -596,6 +597,38 @@
     "origin": "internal_compute",
     "definition_paths": [
       "catalog/search-preparation.v1.json"
+    ]
+  },
+  "生成基础最热榜": {
+    "kind": "process",
+    "subtype": "board_build",
+    "origin": "internal_data",
+    "definition_paths": [
+      "catalog/coingecko-hottest.v1.json"
+    ]
+  },
+  "Polars · 计算7日成交额基线": {
+    "kind": "process",
+    "subtype": "metric",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-hottest.v1.json"
+    ]
+  },
+  "Polars · 计算7日相对放量RVOL": {
+    "kind": "process",
+    "subtype": "metric",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-hottest.v1.json"
+    ]
+  },
+  "CoinGecko · 最热榜候选快照": {
+    "kind": "state",
+    "subtype": "heat",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-hottest.v1.json"
     ]
   }
 }
