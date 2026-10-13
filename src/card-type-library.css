@@ -1,0 +1,24 @@
+/* Only sidebar navigation; graph cards and inspectors keep their existing style. */
+.sidebar-navigation{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.sidebar-bottom{flex:none}
+.card-type-library{gap:3px;margin-bottom:16px}
+.card-type-parent{display:flex;align-items:center}
+.card-type-parent>.library-item{flex:1;min-width:0;padding-right:5px}
+.card-type-toggle{display:grid;place-items:center;flex:none;width:25px;height:30px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--ss-muted)}
+.card-type-toggle:hover{background:var(--ss-accent-soft)}
+.card-type-toggle[aria-expanded=false] svg{transform:rotate(-90deg)}
+.card-type-children[hidden]{display:none}
+.card-type-children .library-item{padding:7px 14px 7px 26px;gap:8px;font-size:11px}
+.card-type-name{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:16px}
+.card-type-library .type-dot.source.tone-light,.card-type-library .type-dot.state.tone-light{background:#a4d4f5}
+.card-type-library .type-dot.source.tone-medium,.card-type-library .type-dot.state.tone-medium{background:#73aeda}
+.card-type-library .type-dot.source.tone-deep,.card-type-library .type-dot.state.tone-deep{background:#4479aa}
+.card-type-library .type-dot.metric.tone-light{background:#a5dcb4}
+.card-type-library .type-dot.metric.tone-medium{background:#73b78d}
+.card-type-library .type-dot.metric.tone-deep{background:#45845f}
+.sidebar-navigation .brand{padding-bottom:18px}
+.sidebar-navigation>.sidebar-link{padding-top:8px;padding-bottom:8px}
+.sidebar-navigation .nav-label{margin-top:16px}
+.sidebar-navigation .sidebar-divider{margin:14px 12px}
+.sidebar-navigation::-webkit-scrollbar{width:5px}
+.sidebar-navigation::-webkit-scrollbar-thumb{background:var(--ss-border);border-radius:4px}
