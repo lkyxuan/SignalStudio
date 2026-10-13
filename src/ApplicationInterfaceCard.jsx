@@ -1,6 +1,7 @@
 import React from 'react';
 import sync from '../catalog/supabase-score-sync.v1.json';
 import homepage from '../catalog/homepage-layout.v1.json';
+import {displayNodeName} from './i18n';
 
 export function ApplicationInterfaceCard(props) {
   const {node, language} = props, zh = language === 'zh-CN';
@@ -21,7 +22,7 @@ export function ApplicationInterfaceCard(props) {
       <p>{zh ? '前三框：榜单 · 后三框：信号。仅示意位置，没有真实记录。' : 'First three: boards. Last three: signals. Structure only, no real records.'}</p>
       <div className="homepage-layout-preview">{homepage.slots.map(slot => <article key={slot.key} data-homepage-slot={slot.position}>
         <small>{zh ? `位置 ${slot.position} · ${slot.kind === 'board' ? '榜单' : '信号'}` : `Position ${slot.position} · ${slot.kind}`}</small>
-        <h4>{slot[zh ? 'label_zh' : 'label_en']}</h4>
+        <h4>{slot.source_name === 'leaderboard_new_uuid' ? displayNodeName(language, slot.source_name) : slot[zh ? 'label_zh' : 'label_en']}</h4>
         <p>{slot.source_name ? <code>{slot.source_name}</code> : (zh ? '来源待定义' : 'Source undefined')}</p>
         <p>{slot.status === 'defined_generator_shelved' ? (zh ? '规则已定义 · 生成卡已收起' : 'Rules defined · generator shelved') : slot.status === 'defined_runtime_unverified' ? (zh ? '规则已定义 · 后台未核验' : 'Rules defined · runtime unverified') : (zh ? '内容待定义' : 'Content undefined')}</p>
         <small>{zh ? '读取 API：待绑定' : 'Read API: unbound'}</small>

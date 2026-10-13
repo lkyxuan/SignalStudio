@@ -345,8 +345,8 @@ const zh: Record<string, string> = {
 
 export function displayNodeName(language: Language, name: string = '') {
   if (name === '榜单与信号首页') return language === 'zh-CN' ? name : 'Boards and signals home';
-  if (name === '生成最新UUID榜') return language === 'zh-CN' ? name : 'Select newest registered UUIDs';
-  if (name === 'leaderboard_new_uuid') return language === 'zh-CN' ? '新发现UUID结果榜' : 'Newly discovered UUID results';
+  if (name === '生成最新UUID榜') return language === 'zh-CN' ? '生成新资产榜' : 'Generate new assets board';
+  if (name === 'leaderboard_new_uuid') return language === 'zh-CN' ? '新资产榜' : 'New assets board';
   if (name === '资产得分页面') return language === 'zh-CN' ? name : 'Asset scores page';
   if (name === '资产纠错审核页面') return language === 'zh-CN' ? name : 'Asset correction review page';
   const dataNames: Record<string, string> = {

@@ -30,7 +30,7 @@ export function NewUuidBoardCard({node,graph,openNode,language}: {node: GraphNod
         <p>{zh ? '案例另外假设创建来源为正常发现、初始化导入或迁移；这是待绑定的判定信息，不是已经采集的资产字段。' : 'The case additionally assumes discovery/import/migration origins. This check is unbound, not an observed asset column.'}</p>
         <BusinessTableRows table={{primary_key:['asset_id'],columns:[{name:'asset_id'},{name:'creation_origin'},{name:'source_refs_json'}]}} rows={spec.case.rows} language={language}/>
       </section>
-      <section className="source-case-inspector-section"><h3>{zh ? '输出 · 最新UUID榜' : 'Output · newest registered UUIDs'}</h3>
+      <section className="source-case-inspector-section"><h3>{zh ? '输出 · 新资产榜' : 'Output · new assets board'}</h3>
         <BusinessTableRows table={table} rows={output.rows} language={language}/>
         <p>{zh ? '人物也可在新榜；代币内容链仅取coin。旧项目今天首次建档可以入榜；旧UUID新增渠道不刷新时间，导入与待确认对象不入榜。' : 'The board can include a person; token content accepts coin only. An old project newly registered can enter; another source never renews its original creation time. Imports and pending identities are excluded.'}</p>
       </section>

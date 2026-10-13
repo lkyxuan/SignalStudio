@@ -7,6 +7,10 @@ deploy a business collector, board calculator, task runner or content generator.
 
 ## Required behavior
 
+The user-facing name of #1023 is “新资产榜” (New assets board), and #3044 is
+“生成新资产榜” (Generate new assets board), including the homepage preview.
+The saved identifiers `leaderboard_new_uuid` and `生成最新UUID榜` remain unchanged.
+
 All channels converge on the existing unified asset registration. Select confirmed
 objects created through normal discovery, order by immutable `assets.created_at`
 descending then `asset_id` ascending and take the latest 20. `created_at` means first
