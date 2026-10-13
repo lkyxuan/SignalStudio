@@ -2,3 +2,6 @@
 .graph-search-status{position:absolute;top:12px;left:60px;z-index:6;max-width:calc(100% - 76px);box-sizing:border-box;display:flex;flex-wrap:wrap;gap:6px;padding:7px 10px;border:1px solid var(--ss-border);border-radius:6px;background:var(--ss-surface);color:var(--ss-text);font-size:12px;pointer-events:none}
 
 .shared-location-nav{display:inline-flex;align-items:center;gap:8px;margin-left:12px}.shared-location-nav button{pointer-events:auto;border:1px solid var(--ss-border);border-radius:4px;background:var(--ss-raised);color:var(--ss-accent);padding:2px 7px;cursor:pointer}
+/* Category selection identifies matches without hiding or dimming the full graph. */
+.react-flow__node.graph-type-match{opacity:1}
+.react-flow__node.graph-type-match .logic-node{border-color:var(--ss-accent);outline:3px solid var(--ss-accent);outline-offset:2px;box-shadow:0 0 0 7px var(--ss-accent-soft)}

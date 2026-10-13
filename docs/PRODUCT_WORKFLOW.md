@@ -101,7 +101,7 @@ the shared model. See [the precise model and migration contract](CARD_MODEL.md).
 
 The [SS-85 sidebar classification requirement](https://app.notion.com/p/3f8038a63d5a819499f8d781afc36bd4)
 (confirmed 2026-10-13 after correcting the initial scope) applies only to the left
-**Graph nodes / Card types** navigation and its filter selection. Keep the existing
+**Graph nodes / Card types** navigation and its category selection. Keep the existing
 graph card headers, details and category colors unchanged. The original broader
 presentation change was reverted in `b97b597`.
 
@@ -119,11 +119,17 @@ unmapped/unknown definitions remain visible in an unclassified group.
 matches in the retained `src/cardPresentationData.json`; this is display-only
 navigation, not new execution kinds or evidence of runtime collection. Sidebar
 children use category-colored dots with shades; do not recolor canvas cards.
-Parent selection filters the whole kind; child selection filters its subset;
-selecting it again or All cards clears the filter. Clear search on a sidebar
-selection so canvas search navigation cannot hide the chosen filter. The toolbar
-selector represents the same selection. Preserve saved positions and existing
-search semantics; the navigation area scrolls independently of bottom controls.
+After the user refinement on 2026-10-13, sidebar selection opens the full Overview
+canvas and highlights the chosen kind/subcategory, including all shared visual
+copies. Every other node, connection and label remains visible at normal opacity;
+category selection does not fit, center or save the viewport. A temporary orange
+outline and minimap marker identify matches, with a count/status on the canvas.
+Selecting the same category again or All cards clears category highlighting.
+Clear search on a sidebar selection so search emphasis cannot mask the selection.
+The toolbar selector represents the same category and highlights it on the graph;
+the existing table-only filtering still applies when browsing the table view.
+Preserve saved positions, underlying contracts and existing search semantics;
+the navigation area scrolls independently of bottom controls.
 Source/table groups start expanded, others can be expanded using their chevrons.
 Check counts, provider/shared-process separation, fallback visibility, filtering,
 collapse/scroll behavior and bilingual navigation in addition to build checks.
