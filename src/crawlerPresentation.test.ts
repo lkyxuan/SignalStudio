@@ -138,3 +138,34 @@ test('each shared display moves independently, survives reload and shares conten
     assert.deepEqual(next.edges, view.edges);
   }
 });
+
+test('CoinGecko product lines keep outputs nearby while preserving shared output readers', () => {
+  const nodes = [node('markets', 'source', 'coingecko.coins_markets'), node('kaito', 'source', 'kaito.mcp.feed'),
+    node('snapshot', 'channel', 'Few Understand · market.snapshot'), node('metrics', 'process', 'Polars · 计算 CoinGecko 量价指标'),
+    node('indicator', 'channel', 'Few Understand · indicator.data'), node('candidate', 'state', 'CoinGecko · 最热榜候选快照'),
+    node('rank', 'process', '生成基础最热榜'), node('hot', 'table', 'leaderboard_hottest'),
+    node('alert', 'process', 'CoinGecko · 24 小时大涨'), node('signal', 'channel', 'Few Understand · signal.data'),
+    node('discover', 'process', 'CoinGecko · 核实并建档'), node('new-rank', 'process', '生成最新UUID榜'), node('new', 'table', 'leaderboard_new_uuid'),
+    node('legacy', 'process', '量价评分 · 生成贡献'), node('warming', 'table', 'leaderboard_warming'), node('content', 'process', '候选代币筛选')];
+  const edges = [edge('markets','snapshot'), edge('snapshot','metrics'), edge('metrics','indicator'), edge('indicator','candidate'),
+    edge('candidate','rank'), edge('rank','hot'), edge('indicator','alert'), edge('alert','signal'), edge('snapshot','discover'),
+    edge('discover','new-rank'), edge('kaito','new-rank'), edge('new-rank','new'), edge('indicator','legacy'), edge('legacy','warming'), edge('hot','content')];
+  const before = structuredClone({nodes,edges}), plan = crawlerLayout(nodes,edges);
+  assert.deepEqual({nodes,edges},before);
+  assert.deepEqual(crawlerLayout([...nodes].reverse(),[...edges].reverse()),plan);
+  assert.equal(plan.positions.length,nodes.length);
+  const market = plan.occurrences.filter(n => n.towerId === 'markets');
+  const p = (id:string) => market.find(n => n.logicalId === id)!;
+  assert.ok(p('candidate').position_y > p('indicator').position_y);
+  assert.ok(p('rank').position_y > p('candidate').position_y && p('hot').position_y > p('rank').position_y);
+  assert.ok(p('alert').position_x > p('rank').position_x);
+  assert.ok(p('discover').position_x > p('alert').position_x);
+  assert.ok(p('legacy').position_x > p('discover').position_x);
+  for (const id of ['hot','new','warming']) assert.ok(plan.occurrences.some(n => n.logicalId === id && n.towerId === null));
+  for (const a of plan.occurrences) for (const b of plan.occurrences) if (a.id !== b.id)
+    assert.ok(Math.abs(a.position_x-b.position_x) >= 300 || Math.abs(a.position_y-b.position_y) >= 160);
+  const view = crawlerPresentation(nodes.map(n => ({...n,...plan.positions.find(p => p.id === n.id)!})),edges);
+  assert.deepEqual(new Set(view.edges.map(e => e.logicalEdgeId)),new Set(edges.map(e => e.id)));
+  assert.equal(view.nodes.filter(n => n.logicalId === 'hot' && n.id === 'hot').length,1);
+  assert.equal(view.nodes.filter(n => n.logicalId === 'new-rank' && n.towerId === 'kaito').length,1);
+});

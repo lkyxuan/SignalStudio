@@ -152,6 +152,7 @@ const zh: Record<string, string> = {
   'All types': '所有类型',
   'Fit graph': '适应画布',
   'Arrange nodes': '整理节点',
+  'Restore standard layout; CoinGecko is grouped by product line': '恢复标准布局；CoinGecko按产品线分组，清除手动位置',
   'Arrange nodes by dependency': '按依赖关系整理节点',
   'Arrange each crawler in its own tower; shared cards appear beside each flow': '每条爬虫独立向下展开；共用卡片在各自流程旁显示',
   'Nodes arranged': '节点已整理',

@@ -1,4 +1,5 @@
 import layoutPolicy from './layoutPolicy.json';
+import { coinGeckoProductLayout, coinGeckoOutputNames } from './coinGeckoProductLayout';
 export const LAYOUT_VERSION = layoutPolicy.version;
 import type { GraphNode, GraphEdge } from './contracts';
 import { cardKind } from './cardModel';
@@ -207,7 +208,7 @@ const occurrenceId = (tower: string, logical: string) => `occurrence:${encodeURI
 export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
   const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
   const roots = active.filter(isSource).sort((a, b) => textOrder(a.name.split('.')[0]!, b.name.split('.')[0]!) || nodeOrder(a, b));
-  if (roots.length < 2) {
+  if (roots.length < 2 && !roots.some(n => n.name === 'coingecko.coins_markets')) {
     const positions = baseLayout(nodes, edges);
     return { positions, occurrences: positions.map(p => ({ ...p, logicalId: p.id, towerId: null, shared: false })) as CardOccurrence[] };
   }
@@ -228,7 +229,7 @@ export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
       owners.get(id)!.add(root.id); pending.push(...outgoing.get(id)!);
     }
   }
-  const occurrences: CardOccurrence[] = [], used = new Set<string>();
+  const occurrences: CardOccurrence[] = [], used = new Set<string>(), productMirrors = new Set<string>();
   let left = 0;
   for (const root of roots) {
     const ids = new Set(main.filter(n => owners.get(n.id)!.has(root.id)).map(n => n.id));
@@ -246,9 +247,15 @@ export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
       if (readers.has(e.downstream_id) && support.has(e.upstream_id)) ids.add(e.upstream_id);
       if (readers.has(e.upstream_id) && support.has(e.downstream_id)) ids.add(e.downstream_id);
     }
+    if (root.name === 'coingecko.coins_markets') {
+      for (const n of active) if (coinGeckoOutputNames.has(n.name)) { ids.add(n.id); productMirrors.add(n.id); }
+    }
     const members = active.filter(n => ids.has(n.id));
     // Leave room for strategy branches beside each local asset/support card.
-    const placed = baseLayout(members, edges.filter(e => ids.has(e.upstream_id) && ids.has(e.downstream_id)), 600, 960);
+    const localEdges = edges.filter(e => ids.has(e.upstream_id) && ids.has(e.downstream_id));
+    const placed = root.name === 'coingecko.coins_markets'
+      ? coinGeckoProductLayout(members, forwardLayoutEdges(members, localEdges))
+      : baseLayout(members, localEdges, 600, 960);
     const minX = Math.min(...placed.map(p => p.position_x));
     const maxX = Math.max(...placed.map(p => p.position_x + 300));
     for (const p of placed) {
@@ -258,7 +265,7 @@ export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
     }
     left += maxX - minX + 720;
   }
-  const globalIds = new Set(active.filter(n => !used.has(n.id)).map(n => n.id));
+  const globalIds = new Set(active.filter(n => !used.has(n.id) || productMirrors.has(n.id)).map(n => n.id));
   // Shared maintenance/content readers need their own local table occurrences,
   // too; otherwise their lines would still run back up through a crawler tower.
   const globalReaders = new Set(globalIds);
