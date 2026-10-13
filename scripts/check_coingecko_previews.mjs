@@ -47,7 +47,7 @@ try {
  for(const key of ['lookup_error','conflict'])for(const ref of [5007,3042,3043,3016,3032,5005,1001,1002])assert.equal(buildCoinGeckoCase(key).rows[ref].length,0,`${key} must not publish/create/score`);
  for(const c of designCases.map(s=>buildCoinGeckoCase(s.key))){
   for(const e of c.events){assert.ok(c.decisions.some(d=>d.decision_ref===e.decision_ref));assert.ok(e.event_key.startsWith('design:ss83:'));assert.equal(e.created_at,c.events[0].created_at);}
-  for(const metric of c.rows[5007])assert.equal(metric.metric_id,metric.observation_id+'/market_indicators_v1');
+  for(const metric of c.rows[5007])assert.equal(metric.metric_id,metric.observation_id+'/'+metric.metric_version);
   if(c.baseline){const target=Date.parse(c.shared.requested_at)-86400000;assert.ok(Date.parse(c.baseline.collected_at)<=target);assert.ok(target-Date.parse(c.baseline.requested_at)<=1800000);}
  }
  const oracle=spawnSync('python3',['-c',`

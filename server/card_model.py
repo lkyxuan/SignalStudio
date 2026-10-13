@@ -400,6 +400,14 @@ class CardModel:
                 {'id':'foundation.'+entry['key'],'version':1,'definition_paths':['catalog/leaderboard-foundation.v1.json'],'implementation':'unknown'}
                 for entry in json.loads((ROOT/'catalog/leaderboard-foundation.v1.json').read_text())['nodes']
                 if entry['role']=='process' and 'foundation.'+entry['key'] in active]
+        if self.db.execute("SELECT 1 FROM schema_meta WHERE key='coingecko_hottest_z_v1'").fetchone():
+            hottest_path = 'catalog/coingecko-hottest.v1.json'
+            registry += [{'id':'hottest.'+key,'version':1,'definition_paths':[hottest_path],
+                          'implementation':'planned'} for key in ('baseline','rvol','rank')]
+            for entry in registry:
+                if entry['id'] in ('market_polars.polars','polars_indicator.assemble'):
+                    entry['version'] = 2
+                    entry['definition_paths'] = [hottest_path] + entry['definition_paths']
         return [entry for entry in registry if entry['id'] in active]
 
     def bindings(self):

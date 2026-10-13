@@ -21,6 +21,8 @@ import './card-details.css';
 import './application-interface.css';
 import { CoinGeckoDesignPreview } from './CoinGeckoDesignPreview';
 import { hasCoinGeckoPreview } from './coingeckoPreviewModel';
+import { HottestDesignPreview } from './HottestDesignPreview';
+import { hottestCard } from './hottestDesign';
 import { ApplicationInterfaceCard } from './ApplicationInterfaceCard';
 
 const words = (language, zh, en) => language === 'zh-CN' ? zh : en;
@@ -115,11 +117,12 @@ function TableDetails(props) {
       : businessTables.tables[node.name] && !special
         ? words(language,'主表为设计案例 · 真实快照另列于回填模块（如有）','Main table: design cases · imported snapshots are separate, when available')
         : words(language,'表结构 · 未回填的真实记录不等于线上表为空','Table structure · missing imported records do not establish empty live storage')}</p>
+    {hottestCard(node) && <HottestDesignPreview {...props}/>}
     {hasCoinGeckoPreview(node) && <CoinGeckoDesignPreview {...props}/>}
-    <ExistingTableReference active={hasCoinGeckoPreview(node)} language={language}>
+    {!hottestCard(node) && <ExistingTableReference active={hasCoinGeckoPreview(node)} language={language}>
     {special ? contentRefreshCard(node.name) ? <ContentRefreshCard {...props}/> : <LeaderboardScaffoldCard {...props}/>
       : businessTables.tables[node.name] ? <BusinessTableCard {...props}/> : <GenericTableCard {...props}/>}
-    </ExistingTableReference>
+    </ExistingTableReference>}
     <CardConnections {...props}/>
     <details className="processing-advanced"><summary>{words(language,'其他设置 · 存储与表字段','Other settings · storage and fields')}</summary>
       <p>{words(language,'逻辑表定义与物理数据库分别核对；连线不证明已经写入或同步。','Logical table and physical database are checked separately; connections do not establish writes or synchronization.')}</p>
@@ -138,7 +141,7 @@ export function CardDetails(props) {
     <CardDetailContext.Provider value={true}>
       {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
         {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
-        {hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
+        {hottestCard(node) ? <HottestDesignPreview {...props}/> : hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
         {kind === 'state' && leaderboardCard(node.name) && <section className="card-detail-execution"><h3>{words(language,'窗口与保留规则','Window and retention')}</h3><p>{node.definition}</p><p>{words(language,'业务比较窗口见上述定义；存储 TTL、更新时间索引及丢失后的重建绑定尚未核验，不能按业务窗口推断。','See the definition for the business window. TTL, update time index and recovery bindings remain unverified.')}</p></section>}
         {kind === 'decision' && <Branches {...props}/>}
         <CardConnections {...props}/>

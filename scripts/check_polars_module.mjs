@@ -44,7 +44,7 @@ try {
   const consumers = graph.nodes.filter(n => n.card_contract?.config.resource?.indicator_dependency);
   const shelved = new Set((graph.workspace_scope?.shelved_cards || []).map(n => n.name));
   const spec = JSON.parse(readFileSync('catalog/polars-indicator-current.v1.json', 'utf8'));
-  assert.equal(consumers.length, spec.consumers.filter(c => !shelved.has(c.name)).length);
+  assert.equal(consumers.length, spec.consumers.filter(c => !shelved.has(c.name) && !(c.key==='hottest_calc' && graph.nodes.some(n=>n.card_contract?.config.resource?.hottest_key==='rank'))).length);
   for (const node of consumers) {
     const html = render(node);
     assert.match(html, /从5007实际读取哪些字段/);

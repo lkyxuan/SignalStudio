@@ -344,6 +344,8 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  const heatNames: Record<string,string> = {'Polars · 计算7日成交额基线':'Polars · Seven-day volume baseline','Polars · 计算7日相对放量RVOL':'Polars · Seven-day relative volume','CoinGecko · 最热榜候选快照':'CoinGecko · Latest heat candidates'};
+  if(language!=='zh-CN' && heatNames[name]) return heatNames[name];
   if (name === '榜单与信号首页') return language === 'zh-CN' ? name : 'Boards and signals home';
   if (name === '生成最新UUID榜') return language === 'zh-CN' ? '生成新资产榜' : 'Generate new assets board';
   if (name === 'leaderboard_new_uuid') return language === 'zh-CN' ? '新资产榜' : 'New assets board';

@@ -31,7 +31,7 @@ Execution triggers answer when a program runs (schedule, message arrival, upstre
 
 ## Design graph organization
 
-The accepted homepage definition reserves six positions: 1 warming, 2 hottest, 3 newly discovered UUIDs (SS-84), and 4–6 signal areas whose grouping remains undefined. `catalog/homepage-layout.v1.json` is the single current position contract ([SS-81](https://app.notion.com/p/3f7038a63d5a81e59299fbe2553ee9ae)). The Studio interface card previews this structure without business records or bound APIs. Market scoring still consumes indicator.data through #3032; alerts independently produce signal.data. The old new-discovery board is retired, and the three generator cards remain shelved. Cooling remains an attention-state tag. See [THREE_BOARDS.md](THREE_BOARDS.md) for precise scoring and board boundaries; the separate total_heat demonstration below remains independent.
+The accepted homepage definition reserves six positions: 1 warming, 2 hottest, 3 newly discovered UUIDs (SS-84), and 4–6 signal areas whose grouping remains undefined. `catalog/homepage-layout.v1.json` is the single current position contract ([SS-81](https://app.notion.com/p/3f7038a63d5a81e59299fbe2553ee9ae)). The Studio interface card previews this structure without business records or bound APIs. Market scoring still consumes indicator.data through #3032; alerts independently produce signal.data. The old new-discovery board is retired, and warming/retired-discovery generators remain shelved. SS-95 restores #3018 as a separate four-factor robust-Z snapshot ranker; [its contract](HOTTEST_BOARD.md) overrides the former hottest activity-score route. Cooling remains an attention-state tag. See [THREE_BOARDS.md](THREE_BOARDS.md) for precise scoring and board boundaries; the separate total_heat demonstration below remains independent.
 
 Kaito's `kaito://tokens` and `kaito://narratives` are MCP reference resources, not database tables or `kaito_entities` / `kaito_narratives` tool calls. Show them as separate Source references in the graph, with their resource URIs and identity-lookup purpose. Do not imply their contents were crawled or infer response fields before a resource read is verified.
 
@@ -382,3 +382,7 @@ This delivery adds definitions and display only. No paid connection, streaming
 collector, downstream binding or automatic subscription is implemented by it.
 Account access, coverage, message consumption, reconnection recovery and actual
 latency remain unverified. These channels do not provide trending-list feeds.
+
+## Trading heat cards (SS-95)
+
+The approved four-factor robust-Z board reuses the ordinary inspector. Two Polars children supply seven-day baseline and RVOL, and a state card specifies latest candidates; #3018 ranks a frozen cohort and #1009 retains result identity. Shared case selection provides eight explicitly synthetic cases and preserves selection across these five cards. Show focused inputs, numeric outputs, per-factor Z contributions and collapsed statistics/parameters. Source and batch failures never become fabricated ranks. The detailed contract and limitations are in [HOTTEST_BOARD.md](HOTTEST_BOARD.md). Existing CoinGecko through-line previews now explicitly display the v2 extension, with legacy alert/scoring behavior preserved through version adapters.

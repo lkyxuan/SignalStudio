@@ -28,6 +28,10 @@ export function CoinGeckoDesignPreview({node,graph,language,openNode}) {
   if(ref===3005)columns=previewColumns(graph.nodes.find(n=>n.reference_number===1006),graph);
   const rows=c.rows[ref];
   const inputs=previewInputs(ref,c);
+  if(ref===3041) for(const child of graph.nodes.filter(n=>['baseline','rvol'].includes(n.card_contract?.config.resource?.hottest_key))) {
+    const fields=child.card_contract.config.resource.hottest_key==='baseline'?['observation_id','baseline_mean_volume_7d','baseline_days_7d','baseline_refs_7d_json','rvol_7d_status']:['observation_id','rvol_7d'];
+    inputs.push({source:child.reference_number,rows:[Object.fromEntries(fields.map(k=>[k,c.metrics[k]]))],fields});
+  }
   const tableKind=node.kind==='table';
   const processKind=['process','decision','source'].includes(node.kind);
   const table=business.tables[node.name] || {columns:columns.map(name=>({name,label_zh:name})),primary_key:columns};
@@ -49,7 +53,7 @@ export function CoinGeckoDesignPreview({node,graph,language,openNode}) {
       <section className="source-case-inspector-section"><h3>{zh?'输出 · 预期设计值':'Output · expected design values'}</h3>{output}</section>
     </div>:output}
     <p className="card-detail-provenance">{zh?'设计示例 · 来源记录、UUID、映射、时间、建档成功和消息均为假设；不代表真实采集、审批、运行或已写入。真实样本保留在下方独立参考中。':'Design example · source records, UUID, mapping, timestamps, successful creation and messages are hypothetical. No observed collection, approval, execution or writes. Saved evidence remains separate below.'}</p>
-    <p>{previewNote(ref,c,zh)}</p>
+    <p>{previewNote(ref,c,zh)}</p>{[3035,3041,5007].includes(ref)&&<p>{zh?'v2新增7日RVOL：本案例7日输入也为虚构；缺历史只令新RVOL为空。旧提醒与四项贡献保持原规则，按版本明确适配。':'v2 adds seven-day RVOL using fictional history here. Missing history only nulls the new RVOL. Legacy alerts and contributions keep their rules through explicit version adapters.'}</p>}
     {!rows.length&&<p>{zh?'0条预期输出；字段结构保留：':'No expected output; declared fields: '}<code>{columns.join(', ')}</code></p>}
     {tableKind&&rows.length>0&&<p>{[...new Set(rows.flatMap(row=>columns.filter(name=>row[name]===null)))].map(name=><span key={name}><code>{name}=NULL</code> · {nullReason(name,language)}<br/></span>)}</p>}
     {tableKind&&[1013].includes(ref)&&<p>{zh?'首行（如有）是历史基线，末行是当前观测；来源范围与覆盖一致。':'First row, when present, is the historical baseline; last is the current observation with matching source and coverage.'}</p>}

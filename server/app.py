@@ -42,6 +42,7 @@ from repair_discovery_digests import ensure_repair_discovery_digests
 from new_uuid_board import ensure_new_uuid_board
 from remove_retired_discovery_board import ensure_remove_retired_discovery_board
 from search_preparation import ensure_search_preparation
+from coingecko_hottest import ensure_coingecko_hottest
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -83,6 +84,7 @@ ensure_repair_discovery_digests(service)
 ensure_new_uuid_board(service)
 ensure_remove_retired_discovery_board(service)
 ensure_search_preparation(service)
+ensure_coingecko_hottest(service)
 
 
 class Handler(BaseHTTPRequestHandler):

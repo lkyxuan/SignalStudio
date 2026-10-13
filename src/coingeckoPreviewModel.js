@@ -4,6 +4,7 @@ import candidateContracts from '../catalog/signal-contracts.v1.json';
 import scoring from '../catalog/market-scoring.v1.json';
 import signals from '../catalog/coingecko-indicator-signals.v1.json';
 import business from '../catalog/business-tables.v1.json';
+import { baseline7d } from './hottestDesign';
 import { previewTrending } from './coingeckoTrendingDesign';
 
 export const designCases = fixture.cases;
@@ -12,7 +13,7 @@ export const hasCoinGeckoPreview = node => previewRefs.includes(node.reference_n
 const shift = (stamp, minutes) => new Date(Date.parse(stamp) + minutes * 60000).toISOString();
 const pick = (row, keys) => Object.fromEntries(keys.map(key => [key, row[key]]));
 const tier = (rule, value) => value == null ? 0 : Math.max(0, ...rule.tiers.filter(([minimum]) => value >= minimum).map(([,points]) => points));
-export const nullReason = (name, language) => fixture.null_reasons[name]?.[language === 'zh-CN' ? 0 : 1];
+export const nullReason = (name, language) => ['rvol_7d','baseline_mean_volume_7d'].includes(name) ? (language==='zh-CN'?'7日历史不完整或均值无效；只影响新RVOL，不补零。':'Seven-day history is incomplete or its mean invalid; only new RVOL is unavailable, without zero filling.') : fixture.null_reasons[name]?.[language === 'zh-CN' ? 0 : 1];
 export function previewColumns(node, graph) {
   const table = business.tables[node.name];
   return table ? table.columns.map(c => c.name) : graph.fields.filter(f => f.node_id === node.id).sort((a,b) => a.ordinal-b.ordinal).map(f => f.name);
@@ -63,7 +64,7 @@ export function buildCoinGeckoCase(key = 'up') {
     quality_status: 'healthy', coverage_key: coverage, current_price: price,
     price_change_percentage_24h: sample.price_pct, ath_change_percentage: sample.ath_pct,
     total_volume: sample.volume, market_cap: raw.market_cap, quote_currency: 'usd', symbol: fixture.symbol,
-    metric_version: 'market_indicators_v1', slot_start: at('requested_at'),
+    metric_version: 'market_indicators_v2', slot_start: at('requested_at'),
   };
   const baseline = sample.baseline_volume == null ? null : {
     ...shared, observation_id: 'design:ss83:baseline:observation', snapshot_ref: 'design:ss83:baseline:snapshot',
@@ -75,7 +76,14 @@ export function buildCoinGeckoCase(key = 'up') {
     abs_price_pct: Math.abs(sample.price_pct), volume_ratio: baseline ? sample.volume/baseline.total_volume : null,
     baseline_observation_id: baseline?.observation_id ?? null,
     baseline_requested_at: baseline?.requested_at ?? null, baseline_volume: baseline?.total_volume ?? null,
-    metric_id: `${observation}/market_indicators_v1`, calculated_at: at('calculated_at')};
+    metric_id: `${observation}/market_indicators_v2`, calculated_at: at('calculated_at')};
+  // Explicitly fictional seven-day inputs for the v2 extension; never infer observed coverage.
+  const sevenDays = sample.baseline_volume == null ? [] : Array.from({length:7},(_,i)=>{
+    const target=Date.parse(shared.requested_at)-(i+1)*86400000;
+    return {...shared,observation_id:`design:ss95:${key}:day-${i+1}`,requested_at:new Date(target-60000).toISOString(),collected_at:new Date(target-59000).toISOString(),observed_at:new Date(target-60000).toISOString(),total_volume:sample.baseline_volume};
+  });
+  const extension=baseline7d(shared,sevenDays);
+  Object.assign(shared,extension);Object.assign(metrics,extension);
   const coverageRow = {coverage_key:coverage, source_id:shared.source_id, run_id:run, snapshot_ref:snapshot,
     requested_at:shared.requested_at, completed_at:shared.collected_at, status:'healthy', baseline_status: key==='new'?'baseline':'tracking', record_count:1, reason:null};
   const mapping = {source_namespace:'coingecko_coin_id', external_identifier:fixture.coin_id, asset_id:fixture.asset_id};

@@ -75,6 +75,7 @@ def volume_baseline(observation, history):
 
 
 METRIC_VERSION = 'market_indicators_v1'
+ACCEPTED_METRIC_VERSIONS = (METRIC_VERSION, 'market_indicators_v2')
 
 
 def indicator_input_valid(observation, at, allow_source_only=False):
@@ -122,8 +123,11 @@ def calculate_indicators(observation, history, at):
     for key in ('current_price', 'market_cap', 'total_volume', 'price_change_percentage_24h', 'ath_change_percentage'):
         normalized[key] = observation.get(key) if finite(observation.get(key)) else None
     volume, cap, pct = (normalized[k] for k in ('total_volume', 'market_cap', 'price_change_percentage_24h'))
-    return {**normalized, 'metric_version': METRIC_VERSION,
-            'metric_id': observation['observation_id'] + '/' + METRIC_VERSION,
+    version = observation.get('metric_version', METRIC_VERSION)
+    if version not in ACCEPTED_METRIC_VERSIONS:
+        return None
+    return {**normalized, 'metric_version': version,
+            'metric_id': observation['observation_id'] + '/' + version,
             'slot_start': slot_start(observation['requested_at']), 'calculated_at': timestamp(at),
             'volume_to_market_cap': volume / cap if volume is not None and volume >= 0 and cap is not None and cap > 0 else None,
             'abs_price_pct': abs(pct) if pct is not None else None,
@@ -138,8 +142,8 @@ def alert_conditions(metrics, at):
     if not metrics or not indicator_input_valid(metrics, at):
         return []
     try:
-        if (metrics['metric_version'] != METRIC_VERSION
-                or metrics['metric_id'] != metrics['observation_id'] + '/' + METRIC_VERSION
+        if (metrics['metric_version'] not in ACCEPTED_METRIC_VERSIONS
+                or metrics['metric_id'] != metrics['observation_id'] + '/' + metrics['metric_version']
                 or not timestamp(metrics['requested_at']) <= timestamp(metrics['calculated_at']) <= timestamp(at)):
             return []
     except (KeyError, ValueError, TypeError):
@@ -158,8 +162,8 @@ def valid_indicators(metrics, at):
         return False
     try:
         ratio = metrics.get('volume_ratio')
-        return (metrics['metric_version'] == METRIC_VERSION
-                and metrics['metric_id'] == metrics['observation_id'] + '/' + METRIC_VERSION
+        return (metrics['metric_version'] in ACCEPTED_METRIC_VERSIONS
+                and metrics['metric_id'] == metrics['observation_id'] + '/' + metrics['metric_version']
                 and timestamp(metrics['slot_start']) == slot_start(metrics['requested_at'])
                 and timestamp(metrics['requested_at']) <= timestamp(metrics['calculated_at']) <= timestamp(at)
                 and all(finite(metrics[k]) and metrics[k] >= 0 for k in ('volume_to_market_cap', 'abs_price_pct'))
