@@ -31,7 +31,7 @@ Execution triggers answer when a program runs (schedule, message arrival, upstre
 
 ## Design graph organization
 
-The accepted homepage definition reserves six positions: 1 warming, 2 hottest, 3 a third board whose rules remain undefined, and 4–6 signal areas whose grouping remains undefined. `catalog/homepage-layout.v1.json` is the single current position contract ([SS-81](https://app.notion.com/p/3f7038a63d5a81e59299fbe2553ee9ae)). The Studio interface card previews this structure without business records or bound APIs. Market scoring still consumes indicator.data through #3032; alerts independently produce signal.data. The old new-discovery board is retired, and the three generator cards remain shelved. Cooling remains an attention-state tag. See [THREE_BOARDS.md](THREE_BOARDS.md) for precise scoring and board boundaries; the separate total_heat demonstration below remains independent.
+The accepted homepage definition reserves six positions: 1 warming, 2 hottest, 3 newly discovered UUIDs (SS-84), and 4–6 signal areas whose grouping remains undefined. `catalog/homepage-layout.v1.json` is the single current position contract ([SS-81](https://app.notion.com/p/3f7038a63d5a81e59299fbe2553ee9ae)). The Studio interface card previews this structure without business records or bound APIs. Market scoring still consumes indicator.data through #3032; alerts independently produce signal.data. The old new-discovery board is retired, and the three generator cards remain shelved. Cooling remains an attention-state tag. See [THREE_BOARDS.md](THREE_BOARDS.md) for precise scoring and board boundaries; the separate total_heat demonstration below remains independent.
 
 Kaito's `kaito://tokens` and `kaito://narratives` are MCP reference resources, not database tables or `kaito_entities` / `kaito_narratives` tool calls. Show them as separate Source references in the graph, with their resource URIs and identity-lookup purpose. Do not imply their contents were crawled or infer response fields before a resource read is verified.
 
@@ -156,7 +156,9 @@ refinement is recorded in SS-46 and selection treatment in SS-47; earlier frame 
 
 Approved content refresh design (2026-10-10, refined in the same discussion): four processing
 cards express candidate selection, refresh decision, fetch/generation and validation/saving.
-The five existing boards feed candidate selection (#3027); the logical content/state table
+The current three boards (warming, hottest and newest registered UUIDs, SS-84) feed
+candidate selection (#3027), with token identities filtered before per-board limits;
+the logical content/state table
 (#1019) feeds decision, execution recheck and saving, then receives the final write.
 Cards and dependencies are installed from `catalog/content-refresh.v1.json`. Each stage uses
 the shared processing frame, visible execution triggers and a synthetic through-line case;

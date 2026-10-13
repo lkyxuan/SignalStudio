@@ -301,7 +301,8 @@
     "origin": "internal_compute",
     "definition_paths": [
       "catalog/market-current.v1.json",
-      "catalog/market-scoring.v1.json"
+      "catalog/market-scoring.v1.json",
+      "catalog/content-refresh.v1.json"
     ]
   },
   "asset_information_content": {
@@ -531,6 +532,22 @@
     "origin": "multi",
     "definition_paths": [
       "catalog/homepage-layout.v1.json"
+    ]
+  },
+  "leaderboard_new_uuid": {
+    "kind": "table",
+    "subtype": "board",
+    "origin": "multi",
+    "definition_paths": [
+      "catalog/new-uuid-board.v1.json"
+    ]
+  },
+  "生成最新UUID榜": {
+    "kind": "process",
+    "subtype": "board_build",
+    "origin": "multi",
+    "definition_paths": [
+      "catalog/new-uuid-board.v1.json"
     ]
   }
 }

@@ -52,6 +52,6 @@ test('homepage preview has three board positions and three signal positions with
   assert.ok(!html.includes('leaderboard_emerging'));
  }
  assert.equal(displayNodeName('en',n.name),'Boards and signals home');
- assert.equal(homepage.slots[2]!.source_name,null);
+ assert.equal(homepage.slots[2]!.source_name,'leaderboard_new_uuid');
  assert.equal(new Set(homepage.slots.slice(3).map(s=>s.source_name)).size,1);
 });

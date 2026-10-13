@@ -9,7 +9,7 @@ export type LayoutGroup = { key: string; title: string; titleEn: string; nodes: 
 const textOrder = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const nodeOrder = (a: LayoutNode, b: LayoutNode) => textOrder(a.workflow_lane || '', b.workflow_lane || '') || (a.reference_number ?? Infinity) - (b.reference_number ?? Infinity) || textOrder(a.name, b.name) || textOrder(a.id, b.id);
 const isSource = (n: LayoutNode) => cardKind(n) === 'source';
-const isLeaderboard = (n: LayoutNode) => ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_emerging'].includes(n.name);
+const isLeaderboard = (n: LayoutNode) => ['leaderboard_warming', 'leaderboard_hottest', 'leaderboard_new_uuid', 'leaderboard_emerging'].includes(n.name);
 const isFinal = (n: LayoutNode) => n.name === 'supabase_asset_scores';
 // Presentation roles reviewed on SS-58; never infer them from type or fan-out.
 const sideSpecs = [

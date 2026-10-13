@@ -1,6 +1,7 @@
 # Asset information content refresh · v1
 
 Approved 2026-10-10: [plan and implementation record](https://app.notion.com/p/3f4038a63d5a8170b017f6615cf4af45).
+Current three-board inputs approved 2026-10-13 in [SS-84](https://app.notion.com/p/3f8038a63d5a811b8c93dc4d0026804d).
 The authoritative portable contract is [`catalog/content-refresh.v1.json`](../catalog/content-refresh.v1.json).
 
 ## Delivered scope
@@ -9,7 +10,7 @@ The approved 2026-10-10 refinement splits the engine into four processing cards:
 
 | Stage | Responsibility | Inputs | Output |
 | --- | --- | --- | --- |
-| Candidate selection | Per-board valid top N, then stable-ID union | Five board tables | Candidate `asset_id` values |
+| Candidate selection | Per-board valid token top N, then stable-ID union | Warming, hottest and new-UUID results | Candidate `asset_id` values |
 | Refresh decision | Per-type first/due/fresh/backoff/active checks | Candidates and content/state table | Decisions; only first/due proceed |
 | Fetch and generate | Recheck eligibility and atomically claim before calling existing capabilities | Eligible decisions, identities and current task state | Unvalidated content or error, provenance, task version and lease |
 | Validate and save | Reject stale completions, validate output, atomically persist or record failure | Generation result and current successful/task state | Updated logical content/state row |
@@ -17,12 +18,15 @@ The approved 2026-10-10 refinement splits the engine into four processing cards:
 The existing #3027 is renamed to `候选代币筛选`, retaining its ID, reference and position.
 Three new processing cards use the normal allocator; references depend on the workspace.
 The existing #1019 `asset_information_content` retains its ID, reference, fields and position.
-The graph contains 13 design dependencies: five board inputs, three sequential handoffs,
+The current refresh contract contains 11 design dependencies: three board inputs, three sequential handoffs,
 identity input, three content/state reads (decision, execution recheck/claim, saving), and
 one final write. No decision skip/wait/blocked branch is handed to generation. The result
 is a logical view; neither intermediate candidate nor pending lists require new tables or queues.
 
 Startup first ensures the original v1 design, then applies a transactional v2 upgrade.
+These historical installers read immutable `server/migration_snapshots` inputs. The final
+SS-84 migration adds the new UUID process/result, aligns candidate selection to three
+boards and binds the homepage third position, preserving existing IDs and positions.
 The upgrade replaces only the eight v1-owned dependencies, preserves unrelated nodes,
 positions and user connections, rejects missing/conflicting prerequisites, and is idempotent.
 Obsolete v1 engine fields are removed only when their declarations still match and they
@@ -38,25 +42,24 @@ evaluator (including the four-stage through-line), with no I/O, queue, atomic cl
 
 | Board | Existing logical table | Ranking field | Filter |
 | --- | --- | --- | --- |
-| Hottest | `asset_scores_current` | `score_value` | `score_key = total_heat` |
+| Hottest | `leaderboard_hottest` | `score` | Confirmed token identities |
 | Warming | `leaderboard_warming` | `score` | Existing eligibility |
-| Emerging | `leaderboard_emerging` | `score` | Existing eligibility |
-| Cooling | `leaderboard_cooling` | `score` | Existing eligibility |
-| Divergence | `leaderboard_divergence` | `score` | Existing eligibility |
+| New UUID | `leaderboard_new_uuid` | First registration `created_at` | Confirmed discovery-origin objects; only coins enter token content |
 
 Consume complete successful valid snapshots, with qualification/version/time checks before
 sorting or limiting. Reject malformed or partial snapshots rather than backfilling missing ranks.
-Sort by unrounded score descending then `asset_id` ascending, take each board's top N, then
+Sort hottest/warming by unrounded score descending and new UUIDs by first registration
+time descending, then `asset_id` ascending; take each board's top N qualified tokens, then
 union by stable `asset_id`. Names/tickers are not identity keys. An unavailable board contributes
 nothing; other valid boards continue independently.
 
-The four simple boards inherit their 15-minute validity from `leaderboard-simple.v1.json`.
-The hottest source is backend #1006, not Supabase #1007. Its complete-read/freshness binding
-is unresolved: `max_age_seconds = null` means unbound, not unlimited freshness. Do not apply
-#1007's 180-second display rule. The design evaluator requires explicit `available`, `complete`,
-`valid` reader assertions; its hottest example assumes that binding only for illustration.
+Require successful complete current result snapshots younger than 15 minutes; at exactly
+900 seconds they expire. This is snapshot age, not object age. The newest UUID list has no
+object-age cutoff. Actual complete readers and identity/type qualification remain unbound.
+Do not substitute backend total_heat #1006 or Supabase #1007; their demonstration and
+180-second display rule are separate from these board results.
 
-Defaults are top 20 independently per board (at most 100 distinct assets), 1,800-second content
+Defaults are top 20 independently per board (at most 60 distinct assets), 1,800-second content
 refresh, 60-second recheck and concurrency 2. Per-board N and per-type refresh intervals are
 configurable without changing board display limits or market-data cadence. Check after a
 successful table commit, at startup and on the timer; merge repeated notifications. A check
@@ -101,7 +104,7 @@ illustrates fencing and preservation; it does not prove deployed concurrency or 
 ## Unconnected bindings
 
 Current repository/graph evidence does not establish the real type registry, generators,
-physical store, frontend reader, commit notifications, hottest freshness or persistent task
+physical store, frontend reader, commit notifications, complete board readers or persistent task
 facility. Each is explicitly unconnected in the catalog/UI. Reuse verified fewunderstand
 capabilities; do not invent source/product nodes or require a new Redis/Topic/service.
 Production rollout requires a separate execution plan.
@@ -128,3 +131,9 @@ validation and durable claims/transactions are external requirements, not implem
 Upgrade checks also cover v1 identity/position preservation, unrelated links/field references,
 focused field mappings, and rollback of rename, counters and audit events.
 These checks validate the design implementation, not live generation or signal validity.
+
+SS-84 checks additionally run `python3 -m unittest test_new_uuid_board.py` and
+`npx tsx --test src/newUuidBoardDesign.test.ts src/contentRefreshDesign.test.ts` from the
+appropriate server/repository directories. New-UUID runtime requirements are in
+[NEW_UUID_BOARD.md](NEW_UUID_BOARD.md). The source registry declares `assets.created_at`;
+creation-origin classification and actual timestamp coverage remain unverified.

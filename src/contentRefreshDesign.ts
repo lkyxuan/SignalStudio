@@ -1,7 +1,7 @@
 // Pure design-case evaluator. No network, scheduler, database or generation calls.
 import contract from '../catalog/content-refresh.v1.json';
 
-export type Row = { asset_id: string; calculated_at: string; score_key?: string; score_value?: number; score?: number };
+export type Row = { asset_id: string; calculated_at: string; created_at?: string; asset_kind?: string; score_key?: string; score_value?: number; score?: number };
 export type Snapshot = { key: string; available: boolean; complete: boolean; valid: boolean; rows: Row[] };
 export type ContentState = {
   asset_id: string; information_key: string; content_json?: string | null;
@@ -22,18 +22,21 @@ export function selectCandidates(snapshots: Snapshot[], now: string, boards = co
     const snapshot = snapshots.find(item => item.key === board.key);
     if (!board.enabled || !snapshot?.available || !snapshot.complete || !snapshot.valid) continue;
     const seen = new Set<string>();
-    const rows = snapshot.rows.filter(row => !board.filter.score_key || row.score_key === board.filter.score_key);
+    // Complete readers already qualify identity and asset kind for market boards.
+    // New UUID results include non-token objects, which never enter token generation.
+    const rows = snapshot.rows.filter(row => board.key !== 'new_uuid' || row.asset_kind === 'coin');
     // Refuse malformed partial snapshots; never silently backfill their top N.
     if (rows.some(row => {
       const time = Date.parse(row.calculated_at);
       const duplicate = seen.has(row.asset_id);
       seen.add(row.asset_id);
-      const score = row[board.score_field as 'score' | 'score_value'];
+      const score = board.score_field === 'created_at' ? Date.parse(row.created_at ?? '') : row.score;
       return !row.asset_id || duplicate || typeof score !== 'number' || !Number.isFinite(score) ||
+        (board.score_field === 'created_at' && score > at) ||
         !Number.isFinite(time) || time > at ||
-        (board.max_age_seconds != null && at - time > board.max_age_seconds * 1000);
+        (board.max_age_seconds != null && at - time >= board.max_age_seconds * 1000);
     })) continue;
-    const score = (row: Row) => row[board.score_field as 'score' | 'score_value']!;
+    const score = (row: Row) => board.score_field === 'created_at' ? Date.parse(row.created_at!) : row.score!;
     rows.sort((a, b) => score(b) - score(a) || compare(a.asset_id, b.asset_id));
     for (const row of rows.slice(0, Math.max(0, Math.floor(board.top_n)))) ids.add(row.asset_id);
   }

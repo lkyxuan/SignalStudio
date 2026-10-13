@@ -15,6 +15,19 @@
       "table_name": "leaderboard_hottest",
       "calculator_name": "生成基础最热榜",
       "score_rule": "activity_score"
+    },
+    {
+      "key": "new_uuid",
+      "label_zh": "新发现",
+      "slot": 3,
+      "table_name": "leaderboard_new_uuid",
+      "calculator_name": "生成最新UUID榜",
+      "score_rule": null,
+      "order_by": [
+        "created_at DESC",
+        "asset_id ASC"
+      ],
+      "definition_ref": "catalog/new-uuid-board.v1.json"
     }
   ],
   "frontend": {
@@ -49,7 +62,7 @@
   },
   "rules_ref": "catalog/market-scoring.v1.json",
   "version": "market-current.v1",
-  "revision": "ss80-four-market-factors",
+  "revision": "ss84-three-board-inputs",
   "status": "approved_design_backend_adaptation_pending",
   "rationale_url": "https://app.notion.com/p/3f7038a63d5a810a9614cbbe6242fa76",
   "purpose": "CoinGecko → Polars指标 → 四项量价加分 → Redis；资产建档与起始评分独立走统一流程。",
@@ -1580,7 +1593,7 @@
       "key": "candidates",
       "name": "候选代币筛选",
       "old_name": "候选代币筛选",
-      "description": "保留的升温/最热结果供下游候选筛选；旧新发现榜不再作为输入。",
+      "description": "合并升温、最热、新发现UUID三榜有效结果；仅已确认代币进入内容维护。",
       "columns": [
         {
           "name": "asset_id",
@@ -1610,11 +1623,12 @@
       ],
       "sources": [
         "leaderboard_warming",
-        "leaderboard_hottest"
+        "leaderboard_hottest",
+        "leaderboard_new_uuid"
       ],
       "role": "process",
       "board": null,
-      "algorithm": "按asset_id合并已生成的升温/最热结果，保留score/版本和引用；未生成榜单不兜底用旧total_heat。只传已核实资产。",
+      "algorithm": "各榜先校验完整有效批次并过滤已确认代币，再按本榜排序取前20，按asset_id合并去重；新发现按created_at倒序，其他两榜按score降序。保留本榜引用，缺榜独立跳过，不回退旧total_heat。",
       "primary_key": [
         "asset_id"
       ]

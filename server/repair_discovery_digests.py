@@ -13,7 +13,7 @@ MARKER = 'repair_discovery_digests_v1'
 REPAIRS = {
     'catalog/market-current.v1.json': (
         '0cf57ccd0bad81da5140a9c9cb853485ecd8ed2fe8377a310a89fd8ad35542c3',
-        '551226095b719bc6cf01b32e1faf18ca3e3d7697632d82b628fc9e6d2bd18119'),
+        'dbd2ddec8cfd49958e2b3ceb94748a2d1ec37ced970c24d88757616309b9d8dc'),
     'catalog/polars-indicator-current.v1.json': (
         'dfd8c4cefc170c695d09491f85ce7049d66813f23a3ed3c3fe7e66c348b9d858',
         'd8f0bbd32021ed4e56885b69ad33a44b58f17561a06d2fac3b19bcd7c3475682'),

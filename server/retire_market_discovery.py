@@ -14,7 +14,7 @@ from graph_service import now
 ROOT = Path(__file__).resolve().parent.parent
 MARKER = 'retire_market_discovery_v1'
 ACTOR = 'ss80-retire-discovery'
-CATALOG = ROOT / 'catalog/market-current.v1.json'
+CATALOG = ROOT / 'server/migration_snapshots/market-ss80.json'
 REPLACEMENTS = {
     'catalog/market-polars.v1.json': 'catalog/market-current.v1.json',
     'catalog/polars-indicator-module.v1.json': 'catalog/polars-indicator-current.v1.json',

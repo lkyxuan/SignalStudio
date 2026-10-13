@@ -5,7 +5,7 @@ from pathlib import Path
 from leaderboard_algorithms import _fields
 from graph_service import now
 
-CATALOG = Path(__file__).resolve().parent.parent / 'catalog/content-refresh.v1.json'
+CATALOG = Path(__file__).resolve().parent / 'migration_snapshots/content-refresh-20261010.json'
 MARKER = 'content_refresh_design_v1'
 ACTOR = 'content-refresh-design-v1'
 
@@ -22,7 +22,7 @@ def _ensure_legacy_content_refresh(service):
                for board in contract['boards']]
     sources.append((service.find_name('asset_identifiers'),
                     ['asset_id', 'source_namespace', 'external_identifier']))
-    business = json.loads((CATALOG.parent / 'business-tables.v1.json').read_text())['tables']
+    business = json.loads((Path(__file__).resolve().parent.parent / 'catalog/business-tables.v1.json').read_text())['tables']
     for node, columns in sources:
         declared = business.get(node['name'], {}).get('columns', []) if node else []
         known = {f['name'] for f in service.get_fields(node['id'])} if node else set()

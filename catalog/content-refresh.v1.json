@@ -1,15 +1,15 @@
 {
-  "revision": "2026-10-10-v2-four-stages",
-  "rationale_url": "https://app.notion.com/p/3f4038a63d5a8170b017f6615cf4af45",
-  "approval_date": "2026-10-10",
+  "revision": "2026-10-13-v3-three-boards",
+  "rationale_url": "https://app.notion.com/p/3f8038a63d5a811b8c93dc4d0026804d",
+  "approval_date": "2026-10-13",
   "delivery_scope": "studio_design_only",
   "node": {
     "key": "candidates",
     "name": "候选代币筛选",
     "type": "Metric",
-    "description_zh": "从五榜有效完整结果各取前N，按稳定asset_id合并去重；只确定本轮维护范围。",
-    "algorithm_zh": "先校验各榜资格、时间与完整批次，再按未舍入分数降序、asset_id升序各取前N。合并稳定asset_id，同一代币跨榜只保留一次。本卡不查内容时间，不生成文案，也不保存内容。",
-    "trigger_zh": "业务表成功提交、启动时与每60秒补查；合并连续通知。默认每榜前20，可逐榜改为30/50，与榜单展示条数独立。",
+    "description_zh": "合并升温、最热、新发现UUID三榜有效结果；仅已确认代币进入内容维护。",
+    "algorithm_zh": "各榜先校验完整有效批次并过滤已确认代币，再按本榜排序取前20，按asset_id合并去重；新发现按created_at倒序，其他两榜按score降序。保留本榜引用，缺榜独立跳过，不回退旧total_heat。",
+    "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
     "output_fields": [
       "asset_id"
     ],
@@ -22,23 +22,9 @@
         "required": true
       },
       {
-        "name": "score_value",
-        "label_zh": "未舍入资产得分",
-        "meaning_en": "score value",
-        "data_type": "number",
-        "required": true
-      },
-      {
         "name": "calculated_at",
         "label_zh": "榜单计算时间",
         "meaning_en": "calculated at",
-        "data_type": "string",
-        "required": true
-      },
-      {
-        "name": "score_key",
-        "label_zh": "评分维度；本流程只取total_heat",
-        "meaning_en": "score key",
         "data_type": "string",
         "required": true
       },
@@ -55,6 +41,18 @@
         "meaning_en": "algorithm version",
         "data_type": "string",
         "required": true
+      },
+      {
+        "name": "asset_kind",
+        "data_type": "string",
+        "label_zh": "只将coin交代币内容链",
+        "meaning_en": "asset kind"
+      },
+      {
+        "name": "created_at",
+        "data_type": "UTC timestamp",
+        "label_zh": "首次建档时间；新榜排序依据",
+        "meaning_en": "created at"
       }
     ]
   },
@@ -201,24 +199,21 @@
   "boards": [
     {
       "key": "hottest",
-      "table_name": "asset_scores_current",
+      "table_name": "leaderboard_hottest",
       "label_zh": "最热",
-      "reference_at_design": 1006,
       "enabled": true,
       "top_n": 20,
-      "score_field": "score_value",
+      "score_field": "score",
       "consumed_fields": [
         "asset_id",
-        "score_value",
+        "score",
         "calculated_at",
-        "score_key"
+        "algorithm_version"
       ],
-      "filter": {
-        "score_key": "total_heat"
-      },
+      "filter": {},
       "order_by": [
         {
-          "field": "score_value",
+          "field": "score",
           "direction": "desc"
         },
         {
@@ -226,15 +221,14 @@
           "direction": "asc"
         }
       ],
-      "max_age_seconds": null,
-      "validity_binding": "unbound_current_view_policy",
+      "max_age_seconds": 900,
+      "validity_binding": "complete_current_result_snapshot",
       "requires_complete_valid_snapshot": true
     },
     {
       "key": "warming",
       "table_name": "leaderboard_warming",
       "label_zh": "升温",
-      "reference_at_design": 1008,
       "enabled": true,
       "top_n": 20,
       "score_field": "score",
@@ -256,27 +250,27 @@
         }
       ],
       "max_age_seconds": 900,
-      "validity_binding": "catalog/leaderboard-simple.v1.json",
+      "validity_binding": "complete_current_result_snapshot",
       "requires_complete_valid_snapshot": true
     },
     {
-      "key": "emerging",
-      "table_name": "leaderboard_emerging",
-      "label_zh": "新出现",
-      "reference_at_design": 1010,
+      "key": "new_uuid",
+      "table_name": "leaderboard_new_uuid",
+      "label_zh": "新发现",
       "enabled": true,
       "top_n": 20,
-      "score_field": "score",
+      "score_field": "created_at",
       "consumed_fields": [
         "asset_id",
-        "score",
+        "asset_kind",
+        "created_at",
         "calculated_at",
         "algorithm_version"
       ],
       "filter": {},
       "order_by": [
         {
-          "field": "score",
+          "field": "created_at",
           "direction": "desc"
         },
         {
@@ -285,65 +279,7 @@
         }
       ],
       "max_age_seconds": 900,
-      "validity_binding": "catalog/leaderboard-simple.v1.json",
-      "requires_complete_valid_snapshot": true
-    },
-    {
-      "key": "cooling",
-      "table_name": "leaderboard_cooling",
-      "label_zh": "降温",
-      "reference_at_design": 1011,
-      "enabled": true,
-      "top_n": 20,
-      "score_field": "score",
-      "consumed_fields": [
-        "asset_id",
-        "score",
-        "calculated_at",
-        "algorithm_version"
-      ],
-      "filter": {},
-      "order_by": [
-        {
-          "field": "score",
-          "direction": "desc"
-        },
-        {
-          "field": "asset_id",
-          "direction": "asc"
-        }
-      ],
-      "max_age_seconds": 900,
-      "validity_binding": "catalog/leaderboard-simple.v1.json",
-      "requires_complete_valid_snapshot": true
-    },
-    {
-      "key": "divergence",
-      "table_name": "leaderboard_divergence",
-      "label_zh": "分歧",
-      "reference_at_design": 1012,
-      "enabled": true,
-      "top_n": 20,
-      "score_field": "score",
-      "consumed_fields": [
-        "asset_id",
-        "score",
-        "calculated_at",
-        "algorithm_version"
-      ],
-      "filter": {},
-      "order_by": [
-        {
-          "field": "score",
-          "direction": "desc"
-        },
-        {
-          "field": "asset_id",
-          "direction": "asc"
-        }
-      ],
-      "max_age_seconds": 900,
-      "validity_binding": "catalog/leaderboard-simple.v1.json",
+      "validity_binding": "complete_current_result_snapshot",
       "requires_complete_valid_snapshot": true
     }
   ],
@@ -380,16 +316,16 @@
       "description_zh": "成功提交或完整批次通知通道未绑定。"
     },
     {
-      "key": "hottest_validity",
-      "status": "unconnected",
-      "target": null,
-      "description_zh": "后台#1006完整读取与有效性策略未绑定；不套用#1007的180秒。"
-    },
-    {
       "key": "task_facility",
       "status": "unconnected",
       "target": null,
       "description_zh": "持久队列、原子认领、租约时长及任务版本设施待绑定。"
+    },
+    {
+      "key": "board_readers",
+      "status": "unconnected",
+      "target": null,
+      "description_zh": "三榜完整有效结果读取、对象类型过滤及新发现创建来源核验尚未绑定。"
     }
   ],
   "requirements_zh": [
@@ -412,13 +348,13 @@
     "失败保留成功字段与成功时间，重试不被60秒补查绕过；活动租约防重，过期租约可恢复，旧版本/旧租约完成被拒绝。",
     "退出范围取消待执行任务，已开始任务允许原租约完成；重新进入后按内容年龄判断。",
     "结果卡原表优先且实际记录为空；所有虚构演算只在设计例中，不写真实回填。",
-    "四张处理卡分别表达候选筛选、刷新判断、采集生成、验证保存；输入输出在前、触发可见、技术设置折叠、底部算法。五榜只输入筛选；状态输入判断/执行复查/保存，最终写回#1019。"
+    "四张处理卡分别表达候选筛选、刷新判断、采集生成、验证保存；输入输出在前、触发可见、技术设置折叠、底部算法。三榜只输入筛选；状态输入判断/执行复查/保存，最终写回#1019。"
   ],
   "case": {
     "provenance": "synthetic_design_case",
     "now": "2026-10-10T02:00:00Z",
     "information_key": "demo_information",
-    "caption_zh": "虚构设计例，示例信息类型未注册为生产类型；A、B、C不是真实代币ID。假设来源身份与生成器均已接通，10:00北京时间检查。",
+    "caption_zh": "虚构三榜输入：最热A/B、升温A/C、新发现C/A；去重后A/B/C，跨榜同币只判断一次。未执行采集或生成。",
     "board_snapshots": [
       {
         "key": "hottest",
@@ -428,15 +364,13 @@
         "rows": [
           {
             "asset_id": "demo-A",
-            "score_key": "total_heat",
-            "score_value": 100,
-            "calculated_at": "2026-10-10T02:00:00Z"
+            "calculated_at": "2026-10-10T02:00:00Z",
+            "score": 100
           },
           {
             "asset_id": "demo-B",
-            "score_key": "total_heat",
-            "score_value": 90,
-            "calculated_at": "2026-10-10T02:00:00Z"
+            "calculated_at": "2026-10-10T02:00:00Z",
+            "score": 90
           }
         ]
       },
@@ -457,6 +391,26 @@
             "score": 10,
             "calculated_at": "2026-10-10T02:00:00Z",
             "algorithm_version": "synthetic-warming/v1"
+          }
+        ]
+      },
+      {
+        "key": "new_uuid",
+        "available": true,
+        "complete": true,
+        "valid": true,
+        "rows": [
+          {
+            "asset_id": "demo-C",
+            "asset_kind": "coin",
+            "created_at": "2026-10-09T02:00:00Z",
+            "calculated_at": "2026-10-10T02:00:00Z"
+          },
+          {
+            "asset_id": "demo-A",
+            "asset_kind": "coin",
+            "created_at": "2026-10-08T02:00:00Z",
+            "calculated_at": "2026-10-10T02:00:00Z"
           }
         ]
       }
@@ -540,20 +494,14 @@
     ]
   },
   "limitations_zh": "Studio设计契约与虚构演算；尚无真实生成记录。内置信息类型、生成器、内容存储、前端读取、完整批次通知、最热源有效性及任务设施均未绑定。仅创建设计依赖，不宣称后台已运行。",
-  "legacy_node": {
-    "name": "刷新代币信息内容",
-    "type": "Metric",
-    "description_zh": "合并五榜前N代币，按代币与信息类型检查首次或到期刷新，复用已有采集与生成能力。设计已定义，后台未接通。",
-    "algorithm_zh": "先沿各榜资格、完整批次及有效性取前N，再按asset_id合并。对每个已启用信息类型分别检查成功时间：无内容首次生成，达到刷新间隔才更新；活动任务或未到重试时间则等待。调用前复查资格，成功校验后原子保存，失败保留旧内容。跨榜只生成一份，退出全部主动范围后停止安排新任务。"
-  },
   "stages": [
     {
       "key": "candidates",
       "name": "候选代币筛选",
       "type": "Metric",
-      "description_zh": "从五榜有效完整结果各取前N，按稳定asset_id合并去重；只确定本轮维护范围。",
-      "algorithm_zh": "先校验各榜资格、时间与完整批次，再按未舍入分数降序、asset_id升序各取前N。合并稳定asset_id，同一代币跨榜只保留一次。本卡不查内容时间，不生成文案，也不保存内容。",
-      "trigger_zh": "业务表成功提交、启动时与每60秒补查；合并连续通知。默认每榜前20，可逐榜改为30/50，与榜单展示条数独立。",
+      "description_zh": "合并升温、最热、新发现UUID三榜有效结果；仅已确认代币进入内容维护。",
+      "algorithm_zh": "各榜先校验完整有效批次并过滤已确认代币，再按本榜排序取前20，按asset_id合并去重；新发现按created_at倒序，其他两榜按score降序。保留本榜引用，缺榜独立跳过，不回退旧total_heat。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
       "output_fields": [
         "asset_id"
       ],
@@ -566,23 +514,9 @@
           "required": true
         },
         {
-          "name": "score_value",
-          "label_zh": "未舍入资产得分",
-          "meaning_en": "score value",
-          "data_type": "number",
-          "required": true
-        },
-        {
           "name": "calculated_at",
           "label_zh": "榜单计算时间",
           "meaning_en": "calculated at",
-          "data_type": "string",
-          "required": true
-        },
-        {
-          "name": "score_key",
-          "label_zh": "评分维度；本流程只取total_heat",
-          "meaning_en": "score key",
           "data_type": "string",
           "required": true
         },
@@ -599,6 +533,18 @@
           "meaning_en": "algorithm version",
           "data_type": "string",
           "required": true
+        },
+        {
+          "name": "asset_kind",
+          "data_type": "string",
+          "label_zh": "只将coin交代币内容链",
+          "meaning_en": "asset kind"
+        },
+        {
+          "name": "created_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "首次建档时间；新榜排序依据",
+          "meaning_en": "created at"
         }
       ]
     },
@@ -984,61 +930,6 @@
   ],
   "connections": [
     {
-      "source": "asset_scores_current",
-      "target": "candidates",
-      "fields": [
-        "asset_id",
-        "score_value",
-        "calculated_at",
-        "score_key"
-      ],
-      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
-    },
-    {
-      "source": "leaderboard_warming",
-      "target": "candidates",
-      "fields": [
-        "asset_id",
-        "score",
-        "calculated_at",
-        "algorithm_version"
-      ],
-      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
-    },
-    {
-      "source": "leaderboard_emerging",
-      "target": "candidates",
-      "fields": [
-        "asset_id",
-        "score",
-        "calculated_at",
-        "algorithm_version"
-      ],
-      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
-    },
-    {
-      "source": "leaderboard_cooling",
-      "target": "candidates",
-      "fields": [
-        "asset_id",
-        "score",
-        "calculated_at",
-        "algorithm_version"
-      ],
-      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
-    },
-    {
-      "source": "leaderboard_divergence",
-      "target": "candidates",
-      "fields": [
-        "asset_id",
-        "score",
-        "calculated_at",
-        "algorithm_version"
-      ],
-      "note_zh": "只读本榜候选筛选字段，先验证完整有效快照再取前N。"
-    },
-    {
       "source": "candidates",
       "target": "decision",
       "fields": [
@@ -1155,6 +1046,40 @@
         "failure_count"
       ],
       "note_zh": "验证成功后原子替换；失败仅写尝试状态，成功字段与时间不变。"
+    },
+    {
+      "source": "leaderboard_hottest",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "仅读完整有效本榜结果中的已确认代币；按本榜顺序取前N。"
+    },
+    {
+      "source": "leaderboard_warming",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "仅读完整有效本榜结果中的已确认代币；按本榜顺序取前N。"
+    },
+    {
+      "source": "leaderboard_new_uuid",
+      "target": "candidates",
+      "fields": [
+        "asset_id",
+        "asset_kind",
+        "created_at",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "仅读完整有效本榜结果中的已确认代币；按本榜顺序取前N。"
     }
   ]
 }

@@ -44,12 +44,11 @@ test('four-stage failure carries the error to saving and independent success to 
 
 test('top N is per board, after ranking and eligibility; cross-board IDs merge without using names', () => {
   const boards = contract.boards.map(board => ({ ...board, top_n: 1 }));
-  assert.deepEqual(selectCandidates(contract.case.board_snapshots, now, boards), ['demo-A']);
+  assert.deepEqual(selectCandidates(contract.case.board_snapshots, now, boards), ['demo-A','demo-C']);
   assert.deepEqual(selectCandidates(contract.case.board_snapshots, now), ['demo-A', 'demo-B', 'demo-C']);
   const snapshot: Snapshot = { ...contract.case.board_snapshots[0]!, rows: [
-    { asset_id: 'other-score', score_key: 'other', score_value: 999, calculated_at: now },
-    { asset_id: 'z', score_key: 'total_heat', score_value: 1, calculated_at: now },
-    { asset_id: 'a', score_key: 'total_heat', score_value: 1, calculated_at: now },
+    { asset_id: 'z', score: 1, calculated_at: now },
+    { asset_id: 'a', score: 1, calculated_at: now },
   ] };
   assert.deepEqual(selectCandidates([snapshot], now, boards), ['a']);
 });
@@ -64,7 +63,8 @@ test('bad, unavailable, incomplete or expired snapshots never masquerade as curr
   }
   // One bad row invalidates this snapshot, rather than silently filling its spot.
   assert.deepEqual(selectCandidates([{ ...board, rows: [...board.rows, { ...board.rows[0]! }] }], now), []);
-  assert.deepEqual(selectCandidates([{ ...board, rows: [{ asset_id: 'a', score: 1, calculated_at: '2026-10-10T01:45:00Z' }] }], now), ['a']);
+  assert.deepEqual(selectCandidates([{ ...board, rows: [{ asset_id: 'a', score: 1, calculated_at: '2026-10-10T01:45:00Z' }] }], now), []);
+  assert.deepEqual(selectCandidates([{ ...board, rows: [{ asset_id: 'a', score: 1, calculated_at: '2026-10-10T01:45:01Z' }] }], now), ['a']);
   assert.deepEqual(selectCandidates([{ ...board, available: false }, contract.case.board_snapshots[0]!], now), ['demo-A', 'demo-B']);
 });
 

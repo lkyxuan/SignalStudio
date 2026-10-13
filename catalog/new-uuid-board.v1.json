@@ -1,0 +1,149 @@
+{
+  "version": "new-uuid-board.v1",
+  "revision": "ss84-new-uuid",
+  "rationale_url": "https://app.notion.com/p/3f8038a63d5a811b8c93dc4d0026804d",
+  "delivery_scope": "studio_design_only",
+  "table_name": "leaderboard_new_uuid",
+  "calculator_name": "生成最新UUID榜",
+  "top_n": 20,
+  "order_by": [
+    "created_at DESC",
+    "asset_id ASC"
+  ],
+  "max_result_age_seconds": 900,
+  "age_window_seconds": null,
+  "score_contribution": null,
+  "asset_source": "assets",
+  "identity_status": "confirmed",
+  "content_asset_kinds": [
+    "coin"
+  ],
+  "bindings": {
+    "asset_created_at": "assets.created_at (declared, runtime unverified)",
+    "source_refs": "unconnected",
+    "creation_origin": "unconnected",
+    "frontend_reader": "unconnected"
+  },
+  "requirements_zh": [
+    "各渠道统一建档成功后按系统首次created_at倒序取最新20个，同刻asset_id升序；不是项目上线日期，不按UUID字符串判断新旧。",
+    "身份确认后才入榜，不设置热度、市值、成交量或涨跌门槛；不改变资产建档准入。",
+    "来源新增、重新抓取和身份纠错不得刷新首次建档时间；多渠道同对象沿用原UUID。",
+    "批量初始化、迁移、重导入与UUID替换不制造实时新发现；须绑定持久的创建来源判定，未知则该榜不可用。",
+    "非法、未来或未知首次时间不补当前时间；单项不合格先过滤，完整有效资产集合排序再limit。",
+    "整批成功发布，结果15分钟有效；无合格对象可发布空批次，不拿旧结果补齐。",
+    "新榜可含不同对象类型；代币内容链只接收confirmed且asset_kind=coin的稳定asset_id，其他类型生成能力未绑定。",
+    "新发现不发评分奖励，不恢复旧发现+20或7天规则。"
+  ],
+  "limitations_zh": "工作台定义与虚构演算；无生产榜单、来源读取、任务或Agent运行。assets.created_at在既有表契约已声明，真实覆盖与创建来源/迁移隔离待核实。",
+  "columns": [
+    {
+      "name": "asset_id",
+      "data_type": "string",
+      "label_zh": "统一建档的稳定UUID",
+      "meaning_en": "asset id"
+    },
+    {
+      "name": "asset_name",
+      "data_type": "string | null",
+      "label_zh": "对象名称",
+      "meaning_en": "asset name"
+    },
+    {
+      "name": "asset_kind",
+      "data_type": "string",
+      "label_zh": "对象类型",
+      "meaning_en": "asset kind"
+    },
+    {
+      "name": "created_at",
+      "data_type": "UTC timestamp",
+      "label_zh": "系统首次建档时间；来源更新不得改写",
+      "meaning_en": "created at"
+    },
+    {
+      "name": "source_refs_json",
+      "data_type": "JSON array",
+      "label_zh": "发现来源引用；真实读取绑定待核实",
+      "meaning_en": "source refs json"
+    },
+    {
+      "name": "rank",
+      "data_type": "integer",
+      "label_zh": "按首次建档时间倒序的序号",
+      "meaning_en": "rank"
+    },
+    {
+      "name": "calculated_at",
+      "data_type": "UTC timestamp",
+      "label_zh": "本批结果生成时间，不是建档时间",
+      "meaning_en": "calculated at"
+    },
+    {
+      "name": "algorithm_version",
+      "data_type": "string",
+      "label_zh": "new_uuid_v1",
+      "meaning_en": "algorithm version"
+    }
+  ],
+  "observed_rows": [],
+  "case": {
+    "now": "2026-10-13T04:00:00Z",
+    "caption_zh": "虚构输入；迁移/导入标记与来源引用均为演算假设，未写入真实库。",
+    "rows": [
+      {
+        "asset_id": "demo-C",
+        "name": "Old project, newly found",
+        "asset_kind": "coin",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-13T03:55:00Z",
+        "creation_origin": "discovery",
+        "source_refs_json": [
+          "synthetic/channel-a"
+        ]
+      },
+      {
+        "asset_id": "demo-A",
+        "name": "Known object, another channel",
+        "asset_kind": "coin",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-12T00:00:00Z",
+        "creation_origin": "discovery",
+        "source_refs_json": [
+          "synthetic/channel-a",
+          "synthetic/channel-b"
+        ]
+      },
+      {
+        "asset_id": "demo-person",
+        "name": "New person",
+        "asset_kind": "person",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-13T03:59:00Z",
+        "creation_origin": "discovery",
+        "source_refs_json": [
+          "synthetic/channel-c"
+        ]
+      },
+      {
+        "asset_id": "demo-import",
+        "name": "Imported old asset",
+        "asset_kind": "coin",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-13T03:59:30Z",
+        "creation_origin": "initial_import",
+        "source_refs_json": [
+          "synthetic/import"
+        ]
+      },
+      {
+        "asset_id": "demo-pending",
+        "name": "Pending identity",
+        "asset_kind": "coin",
+        "identity_status": "pending_identity",
+        "created_at": "2026-10-13T03:59:40Z",
+        "creation_origin": "discovery",
+        "source_refs_json": []
+      }
+    ]
+  }
+}

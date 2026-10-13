@@ -12,7 +12,7 @@ MARKET_PATH = 'catalog/market-current.v1.json'
 def ensure_homepage_interface(service):
     if service.db.execute('SELECT 1 FROM schema_meta WHERE key=?', (MARKER,)).fetchone():
         return
-    spec = json.loads((ROOT / PATH).read_text())
+    spec = json.loads((ROOT / 'server/migration_snapshots/homepage-ss81.json').read_text())
     item = spec['interface']
     names = list(dict.fromkeys(slot['source_name'] for slot in spec['slots'] if slot['source_name']))
     targets = [service.find_name(name) for name in names]

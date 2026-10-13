@@ -4,10 +4,11 @@ import { BusinessTableRows } from './BusinessTableRows';
 import { ProcessingCardFrame } from './ProcessingCardFrame';
 import { buildDesignPipeline, type DesignScenario } from './contentRefreshDesign';
 import type { Graph, GraphNode, Language } from './contracts';
+import {NewUuidBoardCard, newUuidBoardCard} from './NewUuidBoardCard';
 
 type Props = { node: GraphNode; graph?: Graph; openNode?: (id: string) => void; language: Language };
 export const contentRefreshCard = (name: string) =>
-  name === catalog.result.name || catalog.stages.some(stage => stage.name === name);
+  newUuidBoardCard(name) || name === catalog.result.name || catalog.stages.some(stage => stage.name === name);
 const resultColumns = (names: string[]) => catalog.result.columns.filter(column => names.includes(column.name));
 
 function FieldRows({ rows }: { rows: [string, string][] }) {
@@ -19,6 +20,7 @@ function FieldRows({ rows }: { rows: [string, string][] }) {
 export function ContentRefreshCard({ node, graph, openNode, language }: Props) {
   const zh = language === 'zh-CN';
   const [scenario, setScenario] = useState<DesignScenario>('check');
+  if (newUuidBoardCard(node.name)) return <NewUuidBoardCard node={node} graph={graph} openNode={openNode} language={language}/>;
   const pipeline = buildDesignPipeline(scenario);
   const stage = catalog.stages.find(item => item.name === node.name);
   const status = <p className="processing-io-case-caption">{zh ? catalog.limitations_zh
@@ -104,7 +106,7 @@ export function ContentRefreshCard({ node, graph, openNode, language }: Props) {
         <option value="boundary">{zh ? '10:10 · A到期边界补查' : '10:10 · A expiry boundary'}</option>
       </select></label>
       <p>{catalog.case.caption_zh}</p><p>UTC <code>{pipeline.now}</code> · <code>{catalog.case.information_key}</code></p>
-      <p>{zh ? '最热A、B；升温A、C → 候选A、B、C。10:00判断：A年龄20分钟跳过，B年龄60分钟刷新，C首次生成。10:10时A恰好30分钟，进入刷新。' : 'Hottest A/B and warming A/C merge to A/B/C. At 10:00, A skips (20 minutes), B refreshes (60 minutes), C generates first. At 10:10, A reaches 30 minutes.'}</p>
+      <p>{zh ? '最热A、B；升温A、C；新发现C、A → 候选A、B、C。10:00判断：A年龄20分钟跳过，B年龄60分钟刷新，C首次生成。10:10时A恰好30分钟，进入刷新。' : 'Hottest A/B, warming A/C and newly discovered C/A merge to A/B/C. At 10:00, A skips (20 minutes), B refreshes (60 minutes), C generates first. At 10:10, A reaches 30 minutes.'}</p>
       {scenario === 'failure' && <p>{zh ? 'B失败后保留09:00成功内容与时间，10:01才可重试；C独立成功。再次检查时B为retry_backoff，C为fresh。' : 'B retains its 09:00 success and waits until 10:01; C succeeds independently. Rechecking yields retry_backoff for B and fresh for C.'}</p>}
     </section>{status}{bindings}{settings}
   </ProcessingCardFrame>;

@@ -23,7 +23,7 @@ export function ApplicationInterfaceCard(props) {
         <small>{zh ? `位置 ${slot.position} · ${slot.kind === 'board' ? '榜单' : '信号'}` : `Position ${slot.position} · ${slot.kind}`}</small>
         <h4>{slot[zh ? 'label_zh' : 'label_en']}</h4>
         <p>{slot.source_name ? <code>{slot.source_name}</code> : (zh ? '来源待定义' : 'Source undefined')}</p>
-        <p>{slot.status === 'defined_generator_shelved' ? (zh ? '规则已定义 · 生成卡已收起' : 'Rules defined · generator shelved') : (zh ? '内容待定义' : 'Content undefined')}</p>
+        <p>{slot.status === 'defined_generator_shelved' ? (zh ? '规则已定义 · 生成卡已收起' : 'Rules defined · generator shelved') : slot.status === 'defined_runtime_unverified' ? (zh ? '规则已定义 · 后台未核验' : 'Rules defined · runtime unverified') : (zh ? '内容待定义' : 'Content undefined')}</p>
         <small>{zh ? '读取 API：待绑定' : 'Read API: unbound'}</small>
       </article>)}</div>
     </section>}

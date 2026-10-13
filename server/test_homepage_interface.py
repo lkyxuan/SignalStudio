@@ -38,7 +38,7 @@ class HomepageTest(unittest.TestCase):
         slots = package['definitions'][PATH]['body']['slots']
         self.assertEqual([s['position'] for s in slots],list(range(1,7)))
         self.assertEqual([s['kind'] for s in slots],['board']*3+['signal']*3)
-        self.assertIsNone(slots[2]['source_name'])
+        self.assertEqual(slots[2]['source_name'], 'leaderboard_new_uuid')
         self.assertEqual({s['source_name'] for s in slots[3:]},{'Few Understand · signal.data'})
         self.assertTrue(all(s['api_endpoint'] is None for s in slots))
         other=self.model.contract(ui['id'])

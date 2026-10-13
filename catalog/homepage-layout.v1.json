@@ -1,6 +1,6 @@
 {
   "version": "homepage-layout.v1",
-  "rationale_url": "https://app.notion.com/p/3f7038a63d5a81e59299fbe2553ee9ae",
+  "rationale_url": "https://app.notion.com/p/3f8038a63d5a811b8c93dc4d0026804d",
   "status": "approved_definition_runtime_unverified",
   "slots": [
     {
@@ -25,12 +25,12 @@
     },
     {
       "position": 3,
-      "key": "reserved_board",
+      "key": "new_uuid",
       "kind": "board",
-      "label_zh": "第三榜 · 待定义",
-      "label_en": "Third board · undefined",
-      "source_name": null,
-      "status": "undefined",
+      "label_zh": "新发现榜",
+      "label_en": "Newly discovered",
+      "source_name": "leaderboard_new_uuid",
+      "status": "defined_runtime_unverified",
       "api_endpoint": null
     },
     {
@@ -71,15 +71,15 @@
     "purpose_en": "Three board positions rank attention; three signal positions show what happened.",
     "display_fields": [],
     "display_zh": [
-      "1：升温榜；2：最热榜；3：第三榜待定义。",
+      "1：升温榜；2：最热榜；3：新发现榜（按系统首次建档时间）。",
       "4—6：三个信号区域，具体分组和时间排序规则待定义。",
-      "榜单引用结果表1008/1009；信号引用5005通道定义，读取API与持久存储未绑定。",
+      "三榜引用结果定义；信号引用5005通道定义，读取API与持久存储未绑定。",
       "评分：5007 → 3032 → 评分事件；提醒：5007 → 3011—3015 → 5005。两者独立，不将提醒重复计分。"
     ],
     "display_en": [
-      "1: Warming; 2: Hottest; 3: third board undefined.",
+      "1: Warming; 2: Hottest; 3: Newly discovered (first system registration time).",
       "4–6: signal areas; grouping and time ordering remain undefined.",
-      "Boards reference results 1008/1009. Signals reference channel 5005; APIs and persisted storage are unbound.",
+      "Three board result definitions; signals reference channel 5005. APIs and persistence remain unbound.",
       "Scoring: 5007 → 3032 → score events. Alerts: 5007 → 3011–3015 → 5005. Alerts do not automatically add scores."
     ],
     "actions_zh": [
@@ -91,13 +91,13 @@
     "limitations_zh": [
       "六框是结构预览，没有真实币、分数或信号记录。",
       "榜单生成卡3017/3018/3019继续收起；结果表存在不证明已有榜单输出。",
-      "第三榜不沿用已退休的新发现榜；三类信号分组未定。",
+      "新发现榜使用统一建档UUID及首次创建时间，不恢复旧发现奖励；三类信号分组未定。",
       "业务首页、读取API、信号持久化与回测尚未实现或核验。"
     ],
     "limitations_en": [
       "Structure preview without real assets, scores or signal records.",
       "Generators 3017/3018/3019 remain shelved; result definitions do not prove board output.",
-      "The third board does not reuse retired discovery logic; signal grouping is undefined.",
+      "Newly discovered uses registered UUIDs and first creation time, without retired discovery rewards; signal grouping remains undefined.",
       "Business page, read APIs, signal persistence and backtesting are unimplemented or unverified."
     ],
     "acceptance": [
