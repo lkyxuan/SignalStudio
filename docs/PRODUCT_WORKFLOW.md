@@ -59,6 +59,8 @@ The neutral refinement was checked again on the graph, #4001 details, #1002 raw 
 
 ## Card UI standard
 
+Shared cards retain one logical ID, definition and configuration across crawler towers. Under [SS-90](https://app.notion.com/p/3f8038a63d5a817f9953f3567c8d9f37), every display, including the canonical one, can be dragged independently. The server stores display coordinates in `node_display_positions`, separate from logical node coordinates and execution contracts, and includes each node's `display_positions` in graph snapshots/deltas. Drag writes use the logical node ID plus a validated display ID; the first write seeds sibling coordinates without overwriting saved positions. Refreshes retain positions. Automatic arrangement clears display overrides; bringing neighbors closer resets overrides for logical nodes whose base coordinates change. Layout moves do not change semantic revisions or card progress evidence. Legacy graphs without display overrides retain their prior placement. UI implementation and verification results are recorded in SS-90.
+
 The approved [SS-49 detail standard](https://app.notion.com/p/3f5038a63d5a8120826fd3b2a444e24f)
 uses `CardDetails` as the single inspector router, selected by the shared `kind`.
 Business-specific components supply content within that template. Unknown kinds

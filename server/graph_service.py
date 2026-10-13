@@ -79,6 +79,12 @@ class GraphService:
               position_x REAL NOT NULL DEFAULT 0, position_y REAL NOT NULL DEFAULT 0,
               created_at TEXT NOT NULL, updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS node_display_positions (
+              node_id TEXT NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+              occurrence_id TEXT NOT NULL,
+              position_x REAL NOT NULL, position_y REAL NOT NULL,
+              PRIMARY KEY(node_id, occurrence_id)
+            );
             CREATE TABLE IF NOT EXISTS edges (
               id TEXT PRIMARY KEY, reference_number INTEGER,
               upstream_id TEXT NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
@@ -594,6 +600,12 @@ class GraphService:
 
     def graph(self):
         nodes = [dict(row) for row in self.db.execute("SELECT * FROM nodes ORDER BY created_at, name")]
+        positions = {}
+        for row in self.db.execute("SELECT * FROM node_display_positions"):
+            positions.setdefault(row["node_id"], {})[row["occurrence_id"]] = {
+                "position_x": row["position_x"], "position_y": row["position_y"]}
+        for node in nodes:
+            node["display_positions"] = positions.get(node["id"], {})
         edges = [dict(row) for row in self.db.execute("SELECT * FROM edges ORDER BY created_at")]
         fields = [dict(row) for row in self.db.execute("SELECT * FROM node_fields ORDER BY node_id, ordinal, name")]
         usages = [dict(row) for row in self.db.execute("SELECT * FROM edge_field_usages ORDER BY created_at")]
@@ -1107,6 +1119,56 @@ class GraphService:
         self.db.commit()
         return after
 
+    def update_display_position(self, node_id, data, actor="user"):
+        # Presentation coordinates never mutate a logical card's execution contract.
+        from urllib.parse import unquote
+        self.get_node(node_id)
+        if not isinstance(data, dict) or data.get("layout_version") != LAYOUT_VERSION:
+            raise GraphError("Layout rules changed; refresh the client")
+        initial = data.get("initial_positions", [])
+        if not isinstance(initial, list) or len(initial) > 1000:
+            raise GraphError("Invalid display positions")
+
+        def validate(item):
+            if not isinstance(item, dict):
+                raise GraphError("Invalid display position")
+            occurrence = item.get("id")
+            if occurrence != node_id:
+                try:
+                    if not isinstance(occurrence, str) or not occurrence.startswith("occurrence:"):
+                        raise ValueError()
+                    tower, logical = json.loads(unquote(occurrence[len("occurrence:"):]))
+                    if logical != node_id or not isinstance(tower, str):
+                        raise ValueError()
+                    if tower != 'shared-area':
+                        self.get_node(tower)
+                except (ValueError, TypeError):
+                    raise GraphError("Display does not belong to this node")
+            try:
+                x, y = float(item["position_x"]), float(item["position_y"])
+            except (KeyError, ValueError, TypeError):
+                raise GraphError("Position must be numeric")
+            if not math.isfinite(x) or not math.isfinite(y):
+                raise GraphError("Position must be finite")
+            return occurrence, x, y
+
+        seeded = [validate(item) for item in initial]
+        occurrence, x, y = validate(data.get("position"))
+        before = [dict(row) for row in self.db.execute(
+            "SELECT * FROM node_display_positions WHERE node_id=?", (node_id,))]
+        with self.db:
+            # Freeze existing visible coordinates once, without overwriting another
+            # display's saved position when a later drag uses an older snapshot.
+            self.db.executemany("INSERT OR IGNORE INTO node_display_positions VALUES (?,?,?,?)",
+                                [(node_id, key, px, py) for key, px, py in seeded])
+            self.db.execute("INSERT INTO node_display_positions VALUES (?,?,?,?) "
+                            "ON CONFLICT(node_id,occurrence_id) DO UPDATE SET "
+                            "position_x=excluded.position_x, position_y=excluded.position_y",
+                            (node_id, occurrence, x, y))
+            self._event(actor, "move_display", "node", node_id, before,
+                        {"id": occurrence, "position_x": x, "position_y": y})
+        return {"updated": occurrence}
+
     def update_layout(self, data, actor="user"):
         # Older open pages/native bundles compute their own obsolete coordinates.
         # Refuse them before reading or changing the graph; do not replay the write.
@@ -1132,6 +1194,11 @@ class GraphService:
         before = {node_id: [node["position_x"], node["position_y"]] for node_id, node in current.items()}
         stamp = now()
         with self.db:
+            if data.get("reset_display_positions") is True:
+                self.db.execute("DELETE FROM node_display_positions")
+            else:
+                self.db.executemany("DELETE FROM node_display_positions WHERE node_id=?",
+                                    [(key,) for key, pos in updated.items() if list(pos) != before[key]])
             self.db.executemany(
                 "UPDATE nodes SET position_x=?, position_y=?, updated_at=? WHERE id=?",
                 [(x, y, stamp, node_id) for node_id, (x, y) in updated.items()],

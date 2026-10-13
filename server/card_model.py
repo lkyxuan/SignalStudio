@@ -33,7 +33,7 @@ def package_digest(payload):
     graph = semantic.get('graph', {})
     graph.pop('presentation_revision', None)
     for node in graph.get('nodes', []):
-        for key in ('position_x','position_y','updated_at'):
+        for key in ('position_x','position_y','updated_at','display_positions'):
             node.pop(key, None)
     return digest(semantic)
 
@@ -622,7 +622,7 @@ class CardModel:
                 values = {key:row[key] for key in columns if key in row}
                 existing = self.db.execute('SELECT * FROM '+table+' WHERE id=?',(row['id'],)).fetchone()
                 if existing:
-                    comparable = {key:value for key,value in values.items() if key not in ('position_x','position_y','updated_at')}
+                    comparable = {key:value for key,value in values.items() if key not in ('position_x','position_y','updated_at','display_positions')}
                     if any(existing[key] != value for key,value in comparable.items()):
                         raise ValueError('Import conflicts with an existing identity: '+row['id'])
                     continue

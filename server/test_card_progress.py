@@ -46,6 +46,11 @@ class CardProgressTest(unittest.TestCase):
         self.report()
         self.service.update_node(self.node['id'],{'name':'renamed'})
         self.service.update_layout({'layout_version': LAYOUT_VERSION, 'positions':[{'id':self.node['id'],'position_x':20,'position_y':30}]})
+        package = self.model.package()['package_revision']
+        self.service.update_display_position(self.node['id'], {
+            'layout_version': LAYOUT_VERSION,
+            'position': {'id': self.node['id'], 'position_x': 50, 'position_y': 60}})
+        self.assertEqual(package, self.model.package()['package_revision'])
         self.assertIsNotNone(self.progress()['report'])
         self.service.update_node(self.node['id'],{'formula':'different calculation'})
         self.assertIsNone(self.progress()['report'])

@@ -1,10 +1,11 @@
 import { crawlerLayout, type LayoutNode } from './autoLayout';
 
-type PositionedNode = LayoutNode & { position_x: number; position_y: number };
+type Position = { position_x: number; position_y: number };
+type PositionedNode = LayoutNode & Position & { display_positions?: Record<string, Position> };
 type Edge = { id: string; upstream_id: string; downstream_id: string; relationship_id?: string };
 
 // Keep presentation identity separate from the IDs accepted by mutation APIs.
-// Positions of mirrors follow the saved logical card, with deterministic offsets.
+// Legacy positions retain their offsets until a display gets its own saved position.
 export function crawlerPresentation<N extends PositionedNode, E extends Edge>(nodes: N[], savedEdges: E[], displayEdges: E[] = savedEdges) {
   const plan = crawlerLayout(nodes, savedEdges);
   const byId = new Map(nodes.map(n => [n.id, n]));
@@ -12,8 +13,8 @@ export function crawlerPresentation<N extends PositionedNode, E extends Edge>(no
   const cards = plan.occurrences.map(p => {
     const node = byId.get(p.logicalId)!, base = canonical.get(p.logicalId)!;
     return { ...node, id: p.id, logicalId: p.logicalId, towerId: p.towerId, shared: p.shared,
-      position_x: node.position_x + p.position_x - base.position_x,
-      position_y: node.position_y + p.position_y - base.position_y };
+      position_x: node.display_positions?.[p.id]?.position_x ?? node.position_x + p.position_x - base.position_x,
+      position_y: node.display_positions?.[p.id]?.position_y ?? node.position_y + p.position_y - base.position_y };
   });
   const occurrences = new Map<string, typeof cards>();
   for (const n of cards) occurrences.set(n.logicalId, [...(occurrences.get(n.logicalId) || []), n]);
@@ -36,4 +37,14 @@ export function crawlerPresentation<N extends PositionedNode, E extends Edge>(no
     }
   }
   return { nodes: cards, edges };
+}
+
+// Freeze siblings at their current coordinates so even the canonical display
+// can move independently. The backend only seeds positions that are not saved.
+export function displayPositionUpdate<N extends PositionedNode & { logicalId: string }>(cards: N[], id: string, position: { x: number; y: number }) {
+  const card = cards.find(n => n.id === id);
+  if (!card) throw Error('Display not found');
+  return { initial_positions: cards.filter(n => n.logicalId === card.logicalId).map(n => ({
+    id: n.id, position_x: n.position_x, position_y: n.position_y,
+  })), position: { id, position_x: position.x, position_y: position.y } };
 }

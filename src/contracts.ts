@@ -37,6 +37,7 @@ export const nodeSchema = z.looseObject({
   definition: text, formula: text, rationale: text, caveats: text, notes: text,
   workflow_lane: z.enum(['shared', 'signal', 'knowledge']),
   position_x: z.number(), position_y: z.number(),
+  display_positions: z.record(z.string(), z.object({position_x:z.number(),position_y:z.number()})).optional(),
   is_catalog_source: z.union([z.literal(0), z.literal(1)]),
   is_system_state: z.union([z.literal(0), z.literal(1)]),
   decision_question: text, observation_window: text, trigger_rule: text,

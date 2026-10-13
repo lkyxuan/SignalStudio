@@ -35,6 +35,41 @@ class GraphServiceTest(unittest.TestCase):
                                                            "target_field_id": output["id"]})
         return source, target, other, source_field, output, wrong, edge, usage
 
+    def test_display_positions_persist_independently_and_reset_with_layout(self):
+        from urllib.parse import quote
+        from live_state import snapshot
+        node = self.service.create_node({"name": "Shared", "type": "Metric"})
+        root = self.service.create_node({"name": "Crawler", "type": "Source"})
+        identity = node['id']
+        mirror = 'occurrence:' + quote(json.dumps([root['id'], identity], separators=(',', ':')), safe='')
+        before = snapshot(self.service)
+        initial = [{'id': identity, 'position_x': 10, 'position_y': 20},
+                   {'id': mirror, 'position_x': 400, 'position_y': 500}]
+        body = {'layout_version': LAYOUT_VERSION, 'initial_positions': initial,
+                'position': {'id': mirror, 'position_x': 450, 'position_y': 550}}
+        self.service.update_display_position(identity, body)
+        first = snapshot(self.service)
+        self.assertEqual(first['semantic_revision'], before['semantic_revision'])
+        self.assertNotEqual(first['presentation_revision'], before['presentation_revision'])
+        self.service.update_display_position(identity, {**body, 'position': {
+            'id': identity, 'position_x': 30, 'position_y': 40}})
+        self.service.db.close()
+        self.service = GraphService(self.path)
+        saved = next(n for n in self.service.graph()['nodes'] if n['id'] == identity)['display_positions']
+        self.assertEqual(saved[identity], {'position_x': 30, 'position_y': 40})
+        self.assertEqual(saved[mirror], {'position_x': 450, 'position_y': 550})
+        for invalid in [dict(body, position={'id': root['id'], 'position_x': 1, 'position_y': 2}),
+                        dict(body, position={'id': mirror, 'position_x': float('nan'), 'position_y': 2}),
+                        dict(body, layout_version='old')]:
+            with self.assertRaises(GraphError):
+                self.service.update_display_position(identity, invalid)
+        self.assertEqual(next(n for n in self.service.graph()['nodes'] if n['id'] == identity)['display_positions'], saved)
+        positions = [{'id': n['id'], 'position_x': n['position_x'], 'position_y': n['position_y']}
+                     for n in self.service.graph()['nodes']]
+        self.service.update_layout({'layout_version': LAYOUT_VERSION, 'positions': positions,
+                                    'reset_display_positions': True})
+        self.assertTrue(all(n['display_positions'] == {} for n in self.service.graph()['nodes']))
+
     def test_new_database_has_no_demo_graph(self):
         graph = self.service.graph()
         self.assertEqual((len(graph["nodes"]), len(graph["edges"]), len(graph["fields"])), (0, 0, 0))

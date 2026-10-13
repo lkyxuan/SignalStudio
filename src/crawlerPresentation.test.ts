@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout, crawlerLayout, traceRoute, type LayoutNode } from './autoLayout';
-import { crawlerPresentation } from './crawlerPresentation';
+import { crawlerPresentation, displayPositionUpdate } from './crawlerPresentation';
 import { arcStyles } from './edgeRouting';
 
 const node = (id: string, kind = 'process', name = id): LayoutNode & { position_x: number; position_y: number; reference_number: number; definition: string } =>
@@ -120,4 +120,21 @@ test('shared maintenance gets a local table occurrence and does not draw its rea
   assert.ok(local && local.id !== local.logicalId && local.shared);
   assert.equal(view.edges.find(e => e.logicalEdgeId === 'table-maintenance')!.upstream_id, local.id);
   assert.equal(plan.positions.filter(p => p.id === 'table').length, 1);
+});
+
+test('each shared display moves independently, survives reload and shares content', () => {
+  const { nodes, edges, view } = arranged();
+  for (const target of view.nodes.filter(n => n.logicalId === 'table')) {
+    const body = displayPositionUpdate(view.nodes, target.id, {x:1234, y:5678});
+    const display_positions = Object.fromEntries([...body.initial_positions, body.position].map(p => [p.id, {position_x:p.position_x, position_y:p.position_y}]));
+    const saved = nodes.map(n => n.id === 'table' ? {...n, display_positions, definition:'Shared definition'} : n);
+    const next = crawlerPresentation(structuredClone(saved), structuredClone(edges));
+    for (const old of view.nodes) {
+      const card = next.nodes.find(n => n.id === old.id)!;
+      assert.equal(card.position_x, old.id === target.id ? 1234 : old.position_x);
+      assert.equal(card.position_y, old.id === target.id ? 5678 : old.position_y);
+      if (card.logicalId === 'table') assert.equal(card.definition, 'Shared definition');
+    }
+    assert.deepEqual(next.edges, view.edges);
+  }
 });

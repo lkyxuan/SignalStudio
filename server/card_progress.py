@@ -25,7 +25,7 @@ def definition_revisions(graph):
             # Only hashes are exposed. Existing package validation owns allowed paths.
             modules[ref['path']] = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
         revisions[node['id']] = digest({
-            'node': clean(node, ('name', 'position_x', 'position_y', 'card_contract')),
+            'node': clean(node, ('name', 'position_x', 'position_y', 'display_positions', 'card_contract')),
             'contract': contract, 'modules': modules,
             'fields': [clean(f) for f in graph['fields'] if f['node_id'] in neighbors],
             'edges': [clean(e) for e in edges],
