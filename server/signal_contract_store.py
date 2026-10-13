@@ -169,7 +169,7 @@ class SignalContractStore:
                  "graph_node_id": (node or {}).get("id"),
                  "name": spec["graph_node_name"],
                  "design_status": spec["design_status"]}
-                for key, spec in self.signals.items()
+                for key, spec in self.signals.items() if not spec.get("retired", False)
                 for node in [graph.find_signal_key(key)]]
 
     def package(self, graph, signal_id):

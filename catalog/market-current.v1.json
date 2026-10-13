@@ -11,15 +11,15 @@
     {
       "key": "hottest",
       "label_zh": "热",
-      "slot": 2,
+      "slot": 3,
       "table_name": "leaderboard_hottest",
       "calculator_name": "生成基础最热榜",
-      "score_rule": "activity_score"
+      "score_rule": "heat_score_v1; catalog/coingecko-hottest.v1.json"
     },
     {
       "key": "new_uuid",
       "label_zh": "新发现",
-      "slot": 3,
+      "slot": 4,
       "table_name": "leaderboard_new_uuid",
       "calculator_name": "生成最新UUID榜",
       "score_rule": null,
@@ -736,7 +736,7 @@
       "key": "coverage",
       "name": "leaderboard_coverage",
       "old_name": "leaderboard_coverage",
-      "description": "共享采集覆盖与首次基线状态表；需Few采集运行元数据写入器，尚未接入，不能由成功记录推测失败或完整覆盖。",
+      "description": "共享采集覆盖与首次基线状态表。FEW-78已报告接入测试网采集与历史链；完整覆盖和持续运行须核对实际覆盖记录，不能只由成功行情推断。",
       "columns": [
         {
           "name": "coverage_key",

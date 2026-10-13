@@ -31,15 +31,6 @@
       "catalog/business-tables.v1.json"
     ]
   },
-  "市场交易活跃候选": {
-    "kind": "process",
-    "subtype": "filter",
-    "origin": "coingecko",
-    "definition_paths": [
-      "catalog/signal-contracts.v1.json",
-      "catalog/market-current.v1.json"
-    ]
-  },
   "市场账号查询内部资产": {
     "kind": "decision",
     "subtype": "automatic",

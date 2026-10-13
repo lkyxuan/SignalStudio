@@ -7,6 +7,8 @@
       "version": 3,
       "graph_node_name": "市场交易活跃候选",
       "design_status": "hypothesis",
+      "retired": true,
+      "retirement_note": "SS-98: legacy #3001 removed; retain historical hypothesis. Current turnover is #3038 and alerts use #3013.",
       "question_zh": "哪些币种的最近 24 小时成交额相对其市值偏高，值得进一步调查？",
       "interpretation_zh": "这是待调查候选，不表示价格将上涨，也不表示规则经过回测验证。",
       "graph_display": {

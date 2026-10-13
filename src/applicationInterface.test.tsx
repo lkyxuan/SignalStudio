@@ -41,7 +41,7 @@ test('review surface reference describes association without an execution trigge
  assert.ok(JSON.stringify(result).includes('人工审核界面 · 不自动触发'));
 });
 
-test('homepage preview has three board positions and three signal positions without invented content',async()=>{
+test('homepage preview has four side boards and two center signals without invented content',async()=>{
  const {default:homepage}=await import('../catalog/homepage-layout.v1.json');
  const n={...node(0),name:homepage.interface.name,card_contract:{config:{interface:homepage.interface}}};
  for(const language of ['zh-CN','en']){
@@ -52,6 +52,6 @@ test('homepage preview has three board positions and three signal positions with
   assert.ok(!html.includes('leaderboard_emerging'));
  }
  assert.equal(displayNodeName('en',n.name),'Boards and signals home');
- assert.equal(homepage.slots[2]!.source_name,'leaderboard_new_uuid');
- assert.equal(new Set(homepage.slots.slice(3).map(s=>s.source_name)).size,1);
+ assert.equal(homepage.slots[3]!.source_name,'leaderboard_new_uuid');
+ assert.deepEqual(homepage.slots.map(s=>s.kind),['board','signal','board','board','signal','board']);
 });

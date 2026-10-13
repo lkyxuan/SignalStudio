@@ -1,6 +1,6 @@
 {
   "version": "homepage-layout.v1",
-  "rationale_url": "https://app.notion.com/p/3f8038a63d5a811b8c93dc4d0026804d",
+  "rationale_url": "https://app.notion.com/p/3f8038a63d5a816aa480e6132b98e8a7",
   "status": "approved_definition_runtime_unverified",
   "slots": [
     {
@@ -15,32 +15,32 @@
     },
     {
       "position": 2,
-      "key": "hottest",
-      "kind": "board",
-      "label_zh": "最热榜",
-      "label_en": "Hottest",
-      "source_name": "leaderboard_hottest",
-      "status": "defined_generator_shelved",
-      "api_endpoint": null
-    },
-    {
-      "position": 3,
-      "key": "new_uuid",
-      "kind": "board",
-      "label_zh": "新发现榜",
-      "label_en": "Newly discovered",
-      "source_name": "leaderboard_new_uuid",
-      "status": "defined_runtime_unverified",
-      "api_endpoint": null
-    },
-    {
-      "position": 4,
       "key": "signal_1",
       "kind": "signal",
       "label_zh": "信号区域 1 · 分组待定义",
       "label_en": "Signal area 1 · grouping undefined",
       "source_name": "Few Understand · signal.data",
       "status": "grouping_undefined",
+      "api_endpoint": null
+    },
+    {
+      "position": 3,
+      "key": "hottest",
+      "kind": "board",
+      "label_zh": "最热榜",
+      "label_en": "Hottest",
+      "source_name": "leaderboard_hottest",
+      "status": "defined_runtime_unverified",
+      "api_endpoint": null
+    },
+    {
+      "position": 4,
+      "key": "new_uuid",
+      "kind": "board",
+      "label_zh": "新发现榜",
+      "label_en": "Newly discovered",
+      "source_name": "leaderboard_new_uuid",
+      "status": "defined_runtime_unverified",
       "api_endpoint": null
     },
     {
@@ -54,33 +54,33 @@
       "api_endpoint": null
     },
     {
-      "position": 6,
-      "key": "signal_3",
-      "kind": "signal",
-      "label_zh": "信号区域 3 · 分组待定义",
-      "label_en": "Signal area 3 · grouping undefined",
-      "source_name": "Few Understand · signal.data",
-      "status": "grouping_undefined",
-      "api_endpoint": null
+      "key": "board_4",
+      "kind": "board",
+      "label_zh": "第四榜 · 待绑定",
+      "label_en": "Fourth board · unbound",
+      "source_name": null,
+      "status": "source_undefined",
+      "api_endpoint": null,
+      "position": 6
     }
   ],
   "interface": {
     "key": "boards_and_signals_home",
     "name": "榜单与信号首页",
-    "purpose_zh": "首页前三个位置展示榜单，后三个位置展示信号事件；榜单按关注分排序，信号显示发生了什么。",
-    "purpose_en": "Three board positions rank attention; three signal positions show what happened.",
+    "purpose_zh": "首页为两行三列：中间上下两格展示信号，左右四格展示榜单。榜单说明谁值得关注，信号说明发生了什么。",
+    "purpose_en": "Two rows and three columns: signals in the center column, four boards on the sides. Boards show who merits attention; signals show what happened.",
     "display_fields": [],
     "display_zh": [
-      "1：升温榜；2：最热榜；3：新发现榜（按系统首次建档时间）。",
-      "4—6：三个信号区域，具体分组和时间排序规则待定义。",
-      "三榜引用结果定义；信号引用5005通道定义，读取API与持久存储未绑定。",
-      "评分：5007 → 3032 → 评分事件；提醒：5007 → 3011—3015 → 5005。两者独立，不将提醒重复计分。"
+      "按行从左到右编号：1左上升温、2中上信号、3右上最热、4左下新发现、5中下信号、6右下第四榜待绑定。",
+      "四榜的具体格位目前是Studio结构占位，不代表已核验/app对应关系；第四榜来源与信号分组不猜测。",
+      "最热使用七日相对放量RVOL；旧量价评分及旧升温条件使用相对昨日比值，两者比较基准不同。",
+      "榜单/信号来源引用不代表已接通查询API或网站同步；#1009网站同步由用户另补卡。"
     ],
     "display_en": [
-      "1: Warming; 2: Hottest; 3: Newly discovered (first system registration time).",
-      "4–6: signal areas; grouping and time ordering remain undefined.",
-      "Three board result definitions; signals reference channel 5005. APIs and persistence remain unbound.",
-      "Scoring: 5007 → 3032 → score events. Alerts: 5007 → 3011–3015 → 5005. Alerts do not automatically add scores."
+      "Row-major positions: 1 top-left Warming, 2 top-center signal, 3 top-right Hottest, 4 bottom-left Newly discovered, 5 bottom-center signal, 6 bottom-right fourth board unbound.",
+      "Board positions are Studio placeholders; their /app mapping is unverified. Fourth-board source and signal groups remain unbound.",
+      "Hottest uses seven-day RVOL; legacy scoring and warming gates use the previous-day ratio. Their comparison baselines differ.",
+      "Source references do not establish read APIs or website synchronization. The user owns the separate #1009 sync card."
     ],
     "actions_zh": [
       "当前只查看六框结构与来源定义；真实资产详情导航待实现。"
@@ -89,19 +89,19 @@
       "Inspect the six positions and their source definitions; real asset navigation is pending."
     ],
     "limitations_zh": [
-      "六框是结构预览，没有真实币、分数或信号记录。",
-      "榜单生成卡3017/3018/3019继续收起；结果表存在不证明已有榜单输出。",
-      "新发现榜使用统一建档UUID及首次创建时间，不恢复旧发现奖励；三类信号分组未定。",
-      "业务首页、读取API、信号持久化与回测尚未实现或核验。"
+      "本卡仅展示结构，没有真实榜单或信号记录。",
+      "中间两格信号、两边四榜是已确认设计；现有/app运行状态、完整格位与信号分组未核验。",
+      "升温生成卡仍收起；最热已有独立快照算法，新发现按系统首次建档时间，规则定义不证明真实输出。",
+      "第四榜未绑定来源；本站查询API、网站同步及信号持久化不由本次修改实现。"
     ],
     "limitations_en": [
-      "Structure preview without real assets, scores or signal records.",
-      "Generators 3017/3018/3019 remain shelved; result definitions do not prove board output.",
-      "Newly discovered uses registered UUIDs and first creation time, without retired discovery rewards; signal grouping remains undefined.",
-      "Business page, read APIs, signal persistence and backtesting are unimplemented or unverified."
+      "Structure only, without real board or signal records.",
+      "Center signals and four side boards are confirmed; live /app state, exact positions and signal groups remain unverified.",
+      "Warming remains shelved; Hottest has a snapshot algorithm and Newly discovered uses first registration time. Definitions do not prove real output.",
+      "Fourth-board source is unbound. This edit does not implement read APIs, website sync or signal persistence."
     ],
     "acceptance": [
-      "six_positions_three_boards_three_signals",
+      "six_positions_four_side_boards_two_center_signals",
       "no_fake_records_or_execution",
       "undefined_groups_explicit",
       "sources_reference_only"

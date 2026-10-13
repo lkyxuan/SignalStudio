@@ -185,7 +185,7 @@
       "kind": "process",
       "description_zh": "计算当前成交额相对7日常态的放量倍数，不替代相对昨日单点指标。",
       "description_en": "Compute current volume relative to a seven-day mean; keep yesterday-only volume_ratio separate.",
-      "algorithm_zh": "rvol_7d=total_volume/baseline_mean_volume_7d；7日完整、均值有限且>0；缺日/零均值/无效输入为null并保留原因。无UUID仍可算，未知身份不得进最热榜。",
+      "algorithm_zh": "rvol_7d=total_volume/baseline_mean_volume_7d；7日完整、均值有限且>0；缺日/零均值/无效输入为null并保留原因。无UUID仍可算，未知身份不得进最热榜。 用途：最热榜#3018；比较过去7日均值，不替换#3040相对昨日比值。",
       "algorithm_en": "Divide current volume by the complete positive seven-day mean. Missing days or invalid/zero means produce null with a reason. Nullable identity may compute metrics but cannot rank.",
       "trigger_zh": "所属#3035内部基线结果到达后，交#3041统一发布，不新增Topic。",
       "fields": [

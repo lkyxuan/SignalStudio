@@ -167,7 +167,7 @@
         "quote_currency",
         "coverage_key"
       ],
-      "formula": "volume_ratio = total_volume / baseline_volume；两者都是滚动24h成交额，不是5分钟或1小时新增成交量。",
+      "formula": "volume_ratio = total_volume / baseline_volume；两者都是滚动24h成交额，不是5分钟或1小时新增成交量。 用途：旧量价评分#3032及旧升温条件；这是“比昨天”，不等于最热榜#3049的“比过去7日均值”。",
       "missing": "当前成交额须有限且≥0；缺少合格历史基线时为null，其他指标继续输出。",
       "polars_expression": "pl.when((pl.col(\"total_volume\") >= 0) & (pl.col(\"baseline_volume\") > 0)).then(pl.col(\"total_volume\") / pl.col(\"baseline_volume\")).otherwise(None).alias(\"volume_ratio\")",
       "unit": "multiple",

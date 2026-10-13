@@ -19,7 +19,7 @@ export function ApplicationInterfaceCard(props) {
     {props.connections}
     {ui.homepage_layout_ref === 'catalog/homepage-layout.v1.json' && <section>
       <h3>{zh ? '六框结构预览' : 'Six-position structure preview'}</h3>
-      <p>{zh ? '前三框：榜单 · 后三框：信号。仅示意位置，没有真实记录。' : 'First three: boards. Last three: signals. Structure only, no real records.'}</p>
+      <p>{zh ? '两行三列：中间上下两格是信号，两边四格是榜单。仅示意结构，没有真实记录。' : 'Two rows, three columns: two center signals and four side boards. Structure only, no real records.'}</p>
       <div className="homepage-layout-preview">{homepage.slots.map(slot => <article key={slot.key} data-homepage-slot={slot.position}>
         <small>{zh ? `位置 ${slot.position} · ${slot.kind === 'board' ? '榜单' : '信号'}` : `Position ${slot.position} · ${slot.kind}`}</small>
         <h4>{slot.source_name === 'leaderboard_new_uuid' ? displayNodeName(language, slot.source_name) : slot[zh ? 'label_zh' : 'label_en']}</h4>

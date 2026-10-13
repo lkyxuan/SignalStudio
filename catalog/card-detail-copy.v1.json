@@ -3,13 +3,6 @@
   "scope": "Display explanations of existing accepted rules; no runtime or implementation claims. Module and instance definitions take precedence.",
   "rationale_url": "https://app.notion.com/p/3f5038a63d5a8120826fd3b2a444e24f",
   "explanations": {
-    "市场交易活跃候选": {
-      "zh": "用 24 小时成交额除以市值得到换手比例，市值必须大于零。把比例与设计阈值比较，只有满足条件且资产标识和数据时间齐全，才生成候选。价格不参与这个计算。",
-      "en": "Divide 24-hour volume by a positive market cap. Compare the ratio with the design threshold; emit a candidate only when the condition is met and identity and timestamp are present. Price is not used.",
-      "definition_refs": [
-        "catalog/signal-contracts.v1.json"
-      ]
-    },
     "新账号建立待识别资产": {
       "zh": "仅处理未命中的稳定外部 ID。幂等创建内部资产，用账号名作为暂定名称，并把外部 ID 映射到同一个内部 ID；身份保持待确认。两张表写入成功后，携带采集链路的source_id交付新建结果给起始评分步骤。重复请求复用已有 ID。",
       "en": "For an unmatched stable external ID, idempotently create an internal asset with a provisional account name and map the external ID to it. Keep identity pending. After both writes succeed, pass the created result to initial scoring; retries reuse the ID.",
