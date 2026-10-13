@@ -13,7 +13,7 @@ class SourceContractStoreTest(unittest.TestCase):
         contract = SourceContractStore()
         self.assertEqual(contract.meta()["owner"], "SignalStudio")
         self.assertEqual(contract.meta()["source_count"], 8)
-        self.assertEqual(contract.meta()["operation_count"], 37)
+        self.assertEqual(contract.meta()["operation_count"], 41)
         self.assertEqual(contract.meta()["resource_count"], 2)
         self.assertEqual(contract.get_resource("kaito.resource.tokens")["resource"]["uri"], "kaito://tokens")
         self.assertEqual(contract.get_resource("kaito.resource.narratives")["resource"]["uri"], "kaito://narratives")
@@ -25,6 +25,30 @@ class SourceContractStoreTest(unittest.TestCase):
                          ["operation"]["response_coverage"], "page_observation_lower_bound")
         self.assertTrue(any(field["path"] == "mindshare" for field in contract.get_operation(
             "kaito.mcp.kaito_mindshare_entity_by_account")["operation"]["fields"]))
+
+    def test_websocket_payloads_keep_channel_specific_semantics_and_no_live_calls(self):
+        store = SourceContractStore()
+        expected = {
+            'CGSimplePrice': 'c i vs p pp pp7d pp30d pp60d pp1y m cs fdv v t',
+            'OnchainSimpleTokenPrice': 'c n ta p pp m v r tr pa t',
+            'OnchainTrade': 'c n pa tx ty to toq vo pc pu t',
+            'OnchainOHLCV': 'ch n pa to i o h l c v t',
+        }
+        for channel, paths in expected.items():
+            operation = store.get_operation('coingecko.websocket.' + channel)['operation']
+            self.assertEqual([field['path'] for field in operation['fields']], paths.split())
+            self.assertNotIn('call_examples', operation)
+            self.assertFalse(operation['observed'])
+            self.assertEqual(operation['documentation_example']['evidence'], 'official_documentation')
+            self.assertTrue(all(field['official_name'] and field['type'] != 'unknown'
+                                and field['unit'] and field['nullable'] for field in operation['fields']))
+            data = json.loads(operation['documentation_example']['message']['data'])
+            self.assertEqual(set(data), {field['name'] for field in operation['inputs']})
+        trade = store.operations['coingecko.websocket.OnchainTrade']
+        candle = store.operations['coingecko.websocket.OnchainOHLCV']
+        self.assertEqual(next(f for f in trade['fields'] if f['path'] == 't')['unit'], 'UNIX 毫秒')
+        self.assertEqual(next(f for f in candle['fields'] if f['path'] == 't')['official_name'], 'timestamp')
+        self.assertEqual(next(f for f in candle['fields'] if f['path'] == 'c')['official_name'], 'close')
 
     def test_modified_contract_cannot_keep_old_revision(self):
         payload = json.loads(DEFAULT_CONTRACT.read_text())
@@ -119,10 +143,10 @@ class SourceContractStoreTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             graph = GraphService(str(Path(directory) / "graph.db"))
             result = graph.ensure_source_contract_sources(contract.contract["operations"])
-            self.assertEqual(result, {"created": 37, "total": 37})
+            self.assertEqual(result, {"created": 41, "total": 41})
             search_ref = graph.find_name("kaito.mcp.kaito_search")["reference_number"]
             entries = contract.contract["operations"] + contract.contract["resources"]
-            self.assertEqual(graph.ensure_source_contract_sources(entries), {"created": 2, "total": 39})
+            self.assertEqual(graph.ensure_source_contract_sources(entries), {"created": 2, "total": 43})
             self.assertEqual(graph.ensure_source_contract_sources(entries)["created"], 0)
             self.assertEqual(graph.find_name("kaito.mcp.kaito_search")["reference_number"], search_ref)
             self.assertEqual(graph.find_name("kaito.mcp.kaito_search")["type"], "Source")

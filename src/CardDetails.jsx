@@ -98,7 +98,7 @@ function SourceDetails(props) {
     <CardConnections {...props}/>
     <details className="processing-advanced"><summary>{words(language,'其他设置 · 来源与字段','Other settings · source and fields')}</summary>
       {catalog && !resource && <SourceCollectionSettings node={node} language={language}/>}
-      <FieldCatalog node={node} fields={fields} mutate={mutate} busy={busy} language={language}/>
+      {!node.name.startsWith('coingecko.websocket.') && <FieldCatalog node={node} fields={fields} mutate={mutate} busy={busy} language={language}/>}
       {catalog && <SourceUsageGuide node={node} language={language} hasDownstream={graph.edges.some(edge=>edge.upstream_id===node.id)}/>}
     </details>
   </>;

@@ -3,7 +3,7 @@
   "owner": "SignalStudio",
   "direction": "SignalStudio defines desired upstream inputs; Few Understand implements and reports evidence.",
   "source_count": 8,
-  "operation_count": 37,
+  "operation_count": 41,
   "resource_count": 2,
   "sources": [
     {
@@ -6080,6 +6080,900 @@
       "input_note_zh": "这是 Telethon Message 对象，不是单一 API 操作；需在具体采集方法确定后记录 chat、时间和分页参数。",
       "inputs": [],
       "call_status_note_zh": "还没有该项目获授权的 Telethon 会话与频道，因此不能展示真实消息读取。"
+    },
+    {
+      "id": "coingecko.websocket.CGSimplePrice",
+      "source_id": "coingecko",
+      "label_zh": "WebSocket · 币价与市场指标",
+      "endpoint": "wss://stream.coingecko.com/v1",
+      "documentation_url": "https://docs.coingecko.com/websocket/cgsimpleprice",
+      "response_coverage": "documented_websocket_payload",
+      "raw_response_policy": "preserve_complete_response",
+      "transport": "websocket",
+      "channel": "CGSimplePrice",
+      "channel_code": "C1",
+      "implementation_status": "not_implemented",
+      "observed": false,
+      "reviewed_at": "2026-10-13",
+      "note_zh": "官方最快约10秒更新，仅适用于活跃币或池，不保证固定频率。Basic 及以上付费套餐；Basic 最多5个并发连接，Analyst及以上自助套餐最多10个；每连接每通道最多100个订阅；每条响应0.1 credit，扣月度API额度。Beta，不在平台SLA内。服务端每10秒ping，20秒无pong断开；需自动重连与指数退避。",
+      "call_status_note_zh": "尚未建立本项目付费 WebSocket 连接，没有真实订阅与推送记录。以下仅为官方文档示例，字段定义不代表已采集。",
+      "call_status_note_en": "No live subscription has been made. Documentation examples below are not collected records.",
+      "connection_note_zh": "Pro API Key：连接头 x-cg-pro-api-key，或查询参数 x_cg_pro_api_key。不要把密钥填入卡片或业务参数。",
+      "fields": [
+        {
+          "path": "c",
+          "official_name": "channel_type",
+          "label_zh": "通道标识",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "通道标识；不适用",
+          "description_en": "Channel type subscribed to.",
+          "example_value": "C1"
+        },
+        {
+          "path": "i",
+          "official_name": "coin_id",
+          "label_zh": "币种 ID",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "币种 ID；不适用",
+          "description_en": "Coin identifier.",
+          "example_value": "bitcoin"
+        },
+        {
+          "path": "vs",
+          "official_name": "vs_currency",
+          "label_zh": "计价货币",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "计价货币；不适用",
+          "description_en": "Target quote currency.",
+          "example_value": "usd"
+        },
+        {
+          "path": "p",
+          "official_name": "price",
+          "label_zh": "当前价格",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "vs_currency",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "当前价格；vs_currency",
+          "description_en": "Current price in the specified `vs_currency`.",
+          "example_value": 61696.68
+        },
+        {
+          "path": "pp",
+          "official_name": "price_24h_change_percentage",
+          "label_zh": "24 小时涨跌幅",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "%（1.42 表示 1.42%）",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "24 小时涨跌幅；%（1.42 表示 1.42%）",
+          "description_en": "Price change percentage over the last 24 hours.",
+          "example_value": 1.42
+        },
+        {
+          "path": "pp7d",
+          "official_name": "price_7d_change_percentage",
+          "label_zh": "7 日涨跌幅",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "%（1.42 表示 1.42%）",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "7 日涨跌幅；%（1.42 表示 1.42%）",
+          "description_en": "Price change percentage over the last 7 days.",
+          "example_value": 3.8214
+        },
+        {
+          "path": "pp30d",
+          "official_name": "price_30d_change_percentage",
+          "label_zh": "30 日涨跌幅",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "%（1.42 表示 1.42%）",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "30 日涨跌幅；%（1.42 表示 1.42%）",
+          "description_en": "Price change percentage over the last 30 days.",
+          "example_value": -2.1543
+        },
+        {
+          "path": "pp60d",
+          "official_name": "price_60d_change_percentage",
+          "label_zh": "60 日涨跌幅",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "%（1.42 表示 1.42%）",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "60 日涨跌幅；%（1.42 表示 1.42%）",
+          "description_en": "Price change percentage over the last 60 days.",
+          "example_value": 12.4512
+        },
+        {
+          "path": "pp1y",
+          "official_name": "price_1y_change_percentage",
+          "label_zh": "1 年涨跌幅",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "%（1.42 表示 1.42%）",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "1 年涨跌幅；%（1.42 表示 1.42%）",
+          "description_en": "Price change percentage over the last 1 year.",
+          "example_value": 120.8541
+        },
+        {
+          "path": "m",
+          "official_name": "market_cap",
+          "label_zh": "市值",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "vs_currency",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "市值；vs_currency",
+          "description_en": "Market capitalization in the specified `vs_currency`.",
+          "example_value": 1236047139289.68
+        },
+        {
+          "path": "cs",
+          "official_name": "circulating_supply",
+          "label_zh": "流通供应量",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "币种数量",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "流通供应量；币种数量",
+          "description_en": "Circulating supply of coin.",
+          "example_value": 19734150
+        },
+        {
+          "path": "fdv",
+          "official_name": "fully_diluted_value",
+          "label_zh": "完全稀释估值",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "vs_currency",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "完全稀释估值；vs_currency",
+          "description_en": "Fully diluted valuation in the specified `vs_currency`.",
+          "example_value": 1312500000000
+        },
+        {
+          "path": "v",
+          "official_name": "24h_vol",
+          "label_zh": "24 小时成交额",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "vs_currency",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "24 小时成交额；vs_currency",
+          "description_en": "24-hour trading volume in the specified `vs_currency`.",
+          "example_value": 30595921115.54
+        },
+        {
+          "path": "t",
+          "official_name": "last_updated_at",
+          "label_zh": "上游更新时间",
+          "type": "integer",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "UNIX 秒",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "上游更新时间；UNIX 秒",
+          "description_en": "UNIX timestamp in seconds.",
+          "example_value": 1780839768
+        }
+      ],
+      "documentation_example": {
+        "evidence": "official_documentation",
+        "subscribe": {
+          "command": "subscribe",
+          "identifier": "{\"channel\":\"CGSimplePrice\"}"
+        },
+        "message": {
+          "command": "message",
+          "identifier": "{\"channel\":\"CGSimplePrice\"}",
+          "data": "{\"coin_id\":[\"bitcoin\"],\"vs_currencies\":[\"usd\"],\"action\":\"set_tokens\"}"
+        },
+        "response": {
+          "c": "C1",
+          "i": "bitcoin",
+          "vs": "usd",
+          "p": 61696.67928656691,
+          "pp": 1.4192404041947198,
+          "pp7d": 3.8214,
+          "pp30d": -2.1543,
+          "pp60d": 12.4512,
+          "pp1y": 120.8541,
+          "m": 1236047139289.684,
+          "cs": 19734150,
+          "fdv": 1312500000000,
+          "v": 30595921115.53988,
+          "t": 1780839768
+        }
+      },
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/cgsimpleprice",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "coin_id",
+          "label_zh": "币种 ID 列表",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "vs_currencies",
+          "label_zh": "计价货币列表",
+          "required": false,
+          "type": "array",
+          "default": "[\"usd\"]"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_tokens / unset_tokens"
+        }
+      ]
+    },
+    {
+      "id": "coingecko.websocket.OnchainSimpleTokenPrice",
+      "source_id": "coingecko",
+      "label_zh": "WebSocket · 链上代币行情与流动性",
+      "endpoint": "wss://stream.coingecko.com/v1",
+      "documentation_url": "https://docs.coingecko.com/websocket/onchainsimpletokenprice",
+      "response_coverage": "documented_websocket_payload",
+      "raw_response_policy": "preserve_complete_response",
+      "transport": "websocket",
+      "channel": "OnchainSimpleTokenPrice",
+      "channel_code": "G1",
+      "implementation_status": "not_implemented",
+      "observed": false,
+      "reviewed_at": "2026-10-13",
+      "note_zh": "官方最快约1秒更新，仅适用于活跃币或池，不保证固定频率。Basic 及以上付费套餐；Basic 最多5个并发连接，Analyst及以上自助套餐最多10个；每连接每通道最多100个订阅；每条响应0.1 credit，扣月度API额度。Beta，不在平台SLA内。服务端每10秒ping，20秒无pong断开；需自动重连与指数退避。除 tr 跨池汇总外，数据来自代币的主要池；r 为最具流动性池储备。",
+      "call_status_note_zh": "尚未建立本项目付费 WebSocket 连接，没有真实订阅与推送记录。以下仅为官方文档示例，字段定义不代表已采集。",
+      "call_status_note_en": "No live subscription has been made. Documentation examples below are not collected records.",
+      "connection_note_zh": "Pro API Key：连接头 x-cg-pro-api-key，或查询参数 x_cg_pro_api_key。不要把密钥填入卡片或业务参数。",
+      "fields": [
+        {
+          "path": "c",
+          "official_name": "channel_type",
+          "label_zh": "通道标识",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "通道标识；不适用",
+          "description_en": "Channel type subscribed to.",
+          "example_value": "G1"
+        },
+        {
+          "path": "n",
+          "official_name": "network_id",
+          "label_zh": "链 ID",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "链 ID；不适用",
+          "description_en": "Blockchain network identifier.",
+          "example_value": "bsc"
+        },
+        {
+          "path": "ta",
+          "official_name": "token_address",
+          "label_zh": "代币合约地址",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "代币合约地址；不适用",
+          "description_en": "Token contract address.",
+          "example_value": "0x55d398326f99059ff775485246999027b3197955"
+        },
+        {
+          "path": "p",
+          "official_name": "usd_price",
+          "label_zh": "美元价格",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "美元价格；USD",
+          "description_en": "Current token price in USD.",
+          "example_value": 1.0002630480973
+        },
+        {
+          "path": "pp",
+          "official_name": "usd_price_24h_change_percentage",
+          "label_zh": "24 小时涨跌幅",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "%（1.42 表示 1.42%）",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "24 小时涨跌幅；%（1.42 表示 1.42%）",
+          "description_en": "Price change percentage (24h).",
+          "example_value": 0.05
+        },
+        {
+          "path": "m",
+          "official_name": "usd_market_cap",
+          "label_zh": "美元市值",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "美元市值；USD",
+          "description_en": "Market capitalization in USD.",
+          "example_value": 9187408426.01
+        },
+        {
+          "path": "v",
+          "official_name": "usd_24h_vol",
+          "label_zh": "24 小时成交额",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "24 小时成交额；USD",
+          "description_en": "24-hour trading volume in USD.",
+          "example_value": 1999727791.12
+        },
+        {
+          "path": "r",
+          "official_name": "reserve",
+          "label_zh": "主池流动性储备",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "主池流动性储备；USD",
+          "description_en": "Liquidity reserve in USD of the token's most liquid pool.",
+          "example_value": 30595921111
+        },
+        {
+          "path": "tr",
+          "official_name": "total_reserve",
+          "label_zh": "全部池流动性储备",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "全部池流动性储备；USD",
+          "description_en": "Total liquidity reserve in USD of the token, across all pools.",
+          "example_value": 130595921115
+        },
+        {
+          "path": "pa",
+          "official_name": "pool_address",
+          "label_zh": "主池地址",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "主池地址；不适用",
+          "description_en": "Pool address of the token's most liquid pool.",
+          "example_value": "0x172fcd41e0913e95784454622d1c3724f546f849"
+        },
+        {
+          "path": "t",
+          "official_name": "last_updated_at",
+          "label_zh": "上游更新时间",
+          "type": "integer",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "UNIX 秒",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "上游更新时间；UNIX 秒",
+          "description_en": "UNIX timestamp in seconds.",
+          "example_value": 1780840630
+        }
+      ],
+      "documentation_example": {
+        "evidence": "official_documentation",
+        "subscribe": {
+          "command": "subscribe",
+          "identifier": "{\"channel\":\"OnchainSimpleTokenPrice\"}"
+        },
+        "message": {
+          "command": "message",
+          "identifier": "{\"channel\":\"OnchainSimpleTokenPrice\"}",
+          "data": "{\"network_id:token_addresses\":[\"bsc:0x55d398326f99059ff775485246999027b3197955\"],\"action\":\"set_tokens\"}"
+        },
+        "response": {
+          "c": "G1",
+          "n": "bsc",
+          "ta": "0x55d398326f99059ff775485246999027b3197955",
+          "p": 1.0002630480973,
+          "pp": 0.04574653488,
+          "m": 9187408426.010283,
+          "v": 1999727791.12026,
+          "r": 30595921111,
+          "tr": 130595921115,
+          "pa": "0x172fcd41e0913e95784454622d1c3724f546f849",
+          "t": 1780840630
+        }
+      },
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/onchainsimpletokenprice",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "network_id:token_addresses",
+          "label_zh": "链与代币地址列表",
+          "required": true,
+          "type": "array",
+          "condition_zh": "元素格式 network_id:token_address"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_tokens / unset_tokens"
+        }
+      ]
+    },
+    {
+      "id": "coingecko.websocket.OnchainTrade",
+      "source_id": "coingecko",
+      "label_zh": "WebSocket · DEX 池成交",
+      "endpoint": "wss://stream.coingecko.com/v1",
+      "documentation_url": "https://docs.coingecko.com/websocket/onchaintrade",
+      "response_coverage": "documented_websocket_payload",
+      "raw_response_policy": "preserve_complete_response",
+      "transport": "websocket",
+      "channel": "OnchainTrade",
+      "channel_code": "G2",
+      "implementation_status": "not_implemented",
+      "observed": false,
+      "reviewed_at": "2026-10-13",
+      "note_zh": "官方最快约0.1秒更新，仅适用于活跃币或池，不保证固定频率。Basic 及以上付费套餐；Basic 最多5个并发连接，Analyst及以上自助套餐最多10个；每连接每通道最多100个订阅；每条响应0.1 credit，扣月度API额度。Beta，不在平台SLA内。服务端每10秒ping，20秒无pong断开；需自动重连与指数退避。ty: b=买、s=卖；to 为 base 数量，toq 为 quote 数量；t 为毫秒。",
+      "call_status_note_zh": "尚未建立本项目付费 WebSocket 连接，没有真实订阅与推送记录。以下仅为官方文档示例，字段定义不代表已采集。",
+      "call_status_note_en": "No live subscription has been made. Documentation examples below are not collected records.",
+      "connection_note_zh": "Pro API Key：连接头 x-cg-pro-api-key，或查询参数 x_cg_pro_api_key。不要把密钥填入卡片或业务参数。",
+      "fields": [
+        {
+          "path": "c",
+          "official_name": "channel_type",
+          "label_zh": "通道标识",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "通道标识；不适用",
+          "description_en": "Channel type subscribed to.",
+          "example_value": "G2"
+        },
+        {
+          "path": "n",
+          "official_name": "network_id",
+          "label_zh": "链 ID",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "链 ID；不适用",
+          "description_en": "Blockchain network identifier.",
+          "example_value": "bsc"
+        },
+        {
+          "path": "pa",
+          "official_name": "pool_address",
+          "label_zh": "池地址",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "池地址；不适用",
+          "description_en": "Pool contract address.",
+          "example_value": "0x172fcd41e0913e95784454622d1c3724f546f849"
+        },
+        {
+          "path": "tx",
+          "official_name": "tx_hash",
+          "label_zh": "交易哈希",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "交易哈希；不适用",
+          "description_en": "Transaction hash.",
+          "example_value": "0x743b271e...5adf698"
+        },
+        {
+          "path": "ty",
+          "official_name": "type",
+          "label_zh": "买卖方向",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "买卖方向；不适用",
+          "description_en": "Trade type (`b` = buy, `s` = sell).",
+          "example_value": "b"
+        },
+        {
+          "path": "to",
+          "official_name": "token_amount",
+          "label_zh": "基础代币数量",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "base 代币数量",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "基础代币数量；base 代币数量",
+          "description_en": "Base token amount.",
+          "example_value": 0.037
+        },
+        {
+          "path": "toq",
+          "official_name": "quote_token_amount",
+          "label_zh": "报价代币数量",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "quote 代币数量",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "报价代币数量；quote 代币数量",
+          "description_en": "Quote token amount.",
+          "example_value": 6.26e-05
+        },
+        {
+          "path": "vo",
+          "official_name": "volume_in_usd",
+          "label_zh": "美元成交额",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "美元成交额；USD",
+          "description_en": "Trade volume in USD.",
+          "example_value": 0.037
+        },
+        {
+          "path": "pc",
+          "official_name": "price_in_native_currency",
+          "label_zh": "原生币价格",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "链原生币 / 代币",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "原生币价格；链原生币 / 代币",
+          "description_en": "Token price in network native currency.",
+          "example_value": 0.0017
+        },
+        {
+          "path": "pu",
+          "official_name": "price_in_usd",
+          "label_zh": "美元价格",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "美元价格；USD",
+          "description_en": "Token price in USD.",
+          "example_value": 0.999
+        },
+        {
+          "path": "t",
+          "official_name": "last_updated_at",
+          "label_zh": "上游更新时间",
+          "type": "integer",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "UNIX 毫秒",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "上游更新时间；UNIX 毫秒",
+          "description_en": "UNIX timestamp in milliseconds.",
+          "example_value": 1780840929000
+        }
+      ],
+      "documentation_example": {
+        "evidence": "official_documentation",
+        "subscribe": {
+          "command": "subscribe",
+          "identifier": "{\"channel\":\"OnchainTrade\"}"
+        },
+        "message": {
+          "command": "message",
+          "identifier": "{\"channel\":\"OnchainTrade\"}",
+          "data": "{\"network_id:pool_addresses\":[\"bsc:0x172fcd41e0913e95784454622d1c3724f546f849\"],\"action\":\"set_pools\"}"
+        },
+        "response": {
+          "c": "G2",
+          "n": "bsc",
+          "pa": "0x172fcd41e0913e95784454622d1c3724f546f849",
+          "tx": "0x3aa702e87ebc87cc4f877ab494afa0ac59f46873c147ee406a546c1e12ab5f57",
+          "ty": "s",
+          "to": 0.0369078635593666,
+          "toq": 6.2600168318069e-05,
+          "vo": 0.036858979105679,
+          "pc": 0.0016961200752619,
+          "pu": 0.998675500314209,
+          "t": 1780840929000
+        }
+      },
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/onchaintrade",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "network_id:pool_addresses",
+          "label_zh": "链与池地址列表",
+          "required": true,
+          "type": "array",
+          "condition_zh": "元素格式 network_id:pool_address"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_pools / unset_pools"
+        }
+      ]
+    },
+    {
+      "id": "coingecko.websocket.OnchainOHLCV",
+      "source_id": "coingecko",
+      "label_zh": "WebSocket · 池 K 线",
+      "endpoint": "wss://stream.coingecko.com/v1",
+      "documentation_url": "https://docs.coingecko.com/websocket/onchainohlcv",
+      "response_coverage": "documented_websocket_payload",
+      "raw_response_policy": "preserve_complete_response",
+      "transport": "websocket",
+      "channel": "OnchainOHLCV",
+      "channel_code": "G3",
+      "implementation_status": "not_implemented",
+      "observed": false,
+      "reviewed_at": "2026-10-13",
+      "note_zh": "官方最快约1秒更新，仅适用于活跃币或池，不保证固定频率。Basic 及以上付费套餐；Basic 最多5个并发连接，Analyst及以上自助套餐最多10个；每连接每通道最多100个订阅；每条响应0.1 credit，扣月度API额度。Beta，不在平台SLA内。服务端每10秒ping，20秒无pong断开；需自动重连与指数退避。同一池的每个 interval 与 token 组合分别占订阅；t 是K线开盘时间，不是消息收到时间。",
+      "call_status_note_zh": "尚未建立本项目付费 WebSocket 连接，没有真实订阅与推送记录。以下仅为官方文档示例，字段定义不代表已采集。",
+      "call_status_note_en": "No live subscription has been made. Documentation examples below are not collected records.",
+      "connection_note_zh": "Pro API Key：连接头 x-cg-pro-api-key，或查询参数 x_cg_pro_api_key。不要把密钥填入卡片或业务参数。",
+      "fields": [
+        {
+          "path": "ch",
+          "official_name": "channel_type",
+          "label_zh": "通道标识",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "通道标识；不适用",
+          "description_en": "Channel type subscribed to.",
+          "example_value": "G3"
+        },
+        {
+          "path": "n",
+          "official_name": "network_id",
+          "label_zh": "链 ID",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "链 ID；不适用",
+          "description_en": "Blockchain network identifier.",
+          "example_value": "bsc"
+        },
+        {
+          "path": "pa",
+          "official_name": "pool_address",
+          "label_zh": "池地址",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "池地址；不适用",
+          "description_en": "Pool contract address.",
+          "example_value": "0x172fcd41e0913e95784454622d1c3724f546f849"
+        },
+        {
+          "path": "to",
+          "official_name": "token",
+          "label_zh": "代币侧",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "代币侧；不适用",
+          "description_en": "Token side (`base` or `quote`).",
+          "example_value": "base"
+        },
+        {
+          "path": "i",
+          "official_name": "interval",
+          "label_zh": "周期",
+          "type": "string",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "不适用",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "周期；不适用",
+          "description_en": "Candle interval.",
+          "example_value": "1m"
+        },
+        {
+          "path": "o",
+          "official_name": "open",
+          "label_zh": "开盘价",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "开盘价；USD",
+          "description_en": "Open price in USD.",
+          "example_value": 1.0005
+        },
+        {
+          "path": "h",
+          "official_name": "high",
+          "label_zh": "最高价",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "最高价；USD",
+          "description_en": "High price in USD.",
+          "example_value": 1.0006
+        },
+        {
+          "path": "l",
+          "official_name": "low",
+          "label_zh": "最低价",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "最低价；USD",
+          "description_en": "Low price in USD.",
+          "example_value": 0.9999
+        },
+        {
+          "path": "c",
+          "official_name": "close",
+          "label_zh": "收盘价",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "收盘价；USD",
+          "description_en": "Close price in USD.",
+          "example_value": 0.9999
+        },
+        {
+          "path": "v",
+          "official_name": "volume",
+          "label_zh": "成交额",
+          "type": "number",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "USD",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "成交额；USD",
+          "description_en": "Volume in USD.",
+          "example_value": 59672.13
+        },
+        {
+          "path": "t",
+          "official_name": "timestamp",
+          "label_zh": "K 线开盘时间",
+          "type": "integer",
+          "evidence": "official_documentation",
+          "nullable": true,
+          "unit": "UNIX 秒",
+          "condition": "官方说明：数据不可用时字段可能为 null；不是零值。",
+          "purpose_zh": "K 线开盘时间；UNIX 秒",
+          "description_en": "Candle open time, UNIX timestamp (s).",
+          "example_value": 1780841100
+        }
+      ],
+      "documentation_example": {
+        "evidence": "official_documentation",
+        "subscribe": {
+          "command": "subscribe",
+          "identifier": "{\"channel\":\"OnchainOHLCV\"}"
+        },
+        "message": {
+          "command": "message",
+          "identifier": "{\"channel\":\"OnchainOHLCV\"}",
+          "data": "{\"network_id:pool_addresses\":[\"bsc:0x172fcd41e0913e95784454622d1c3724f546f849\"],\"interval\":\"1m\",\"token\":\"base\",\"action\":\"set_pools\"}"
+        },
+        "response": {
+          "ch": "G3",
+          "n": "bsc",
+          "pa": "0x172fcd41e0913e95784454622d1c3724f546f849",
+          "to": "base",
+          "i": "1m",
+          "o": 1.00052534269941,
+          "h": 1.00063525778742,
+          "l": 0.999952061655863,
+          "c": 0.999952061655863,
+          "v": 59672.13452671968,
+          "t": 1780841100
+        }
+      },
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/onchainohlcv",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "network_id:pool_addresses",
+          "label_zh": "链与池地址列表",
+          "required": true,
+          "type": "array",
+          "condition_zh": "元素格式 network_id:pool_address"
+        },
+        {
+          "name": "interval",
+          "label_zh": "K 线周期",
+          "required": true,
+          "type": "string",
+          "accepted_values": "1s / 1m / 5m / 15m / 1h / 2h / 4h / 8h / 12h / 1d"
+        },
+        {
+          "name": "token",
+          "label_zh": "代币侧",
+          "required": true,
+          "type": "string",
+          "accepted_values": "base / quote"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_pools / unset_pools"
+        }
+      ]
     }
   ],
   "resources": [
@@ -6130,5 +7024,5 @@
       "call_status_note_zh": "已尝试通过当前 Kaito MCP 端点读取此资源；服务端返回 -32601（不支持该方法），暂时没有可展示的真实资源内容。"
     }
   ],
-  "revision": "sha256:d4497f665d170fc4868e0a637532172e56b649f10e29ef64efa2e46eb031c4d1"
+  "revision": "sha256:24ed33f32342f4ee428b11b6658ee2b8398471913144041674499a5c64e6741e"
 }

@@ -356,3 +356,29 @@ successful realtime evidence. Cards follow the shared inspector and show only cl
 fictional cases until real adapters and stores are verified. The versioned contract and
 implementation boundaries are in [CONTENT_REFRESH_ENGINE.md](CONTENT_REFRESH_ENGINE.md)
 and `catalog/search-preparation.v1.json`; [approval](https://app.notion.com/p/3f8038a63d5a810fa05bdfc1a2b29003).
+
+## CoinGecko WebSocket source cards (SS-93)
+
+Approved 2026-10-13: four independent CoinGecko source cards define the official
+`CGSimplePrice`, `OnchainSimpleTokenPrice`, `OnchainTrade`, and `OnchainOHLCV`
+channels. `catalog/coingecko-websocket.v1.json` owns their documented payloads;
+`catalog/source-inputs.v1.json` owns the subscription parameters. Run
+`python3 scripts/build_source_contracts.py` to regenerate the application contract.
+[Approval and delivery scope](https://app.notion.com/p/3f8038a63d5a81a6bf58fac5f1838854).
+
+Use the shared source inspector and field cards. Show capability and access limits,
+then explicitly labeled documentation examples; collapse the complete input and
+field definitions. Retain each wire key, official full name, Chinese meaning,
+type, unit, nullability note and example provenance. Do not infer real observations
+from examples. `OnchainTrade.t` is UNIX milliseconds; the other timestamps are
+seconds, and `OnchainOHLCV.t` is candle open time. Same short keys have different
+meanings across channels (`c`, `i`, `to`, `v`). G1 reserve `tr` spans pools; other
+G1 data comes from the main pool. G3 interval/token combinations consume distinct
+subscriptions. Update speeds are upstream fastest-case descriptions, not schedules
+or guaranteed end-to-end latency. API keys are connection credentials and must
+not be saved as business inputs or examples.
+
+This delivery adds definitions and display only. No paid connection, streaming
+collector, downstream binding or automatic subscription is implemented by it.
+Account access, coverage, message consumption, reconnection recovery and actual
+latency remain unverified. These channels do not provide trending-list feeds.

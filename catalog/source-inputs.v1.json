@@ -1175,15 +1175,35 @@
         }
       ]
     },
-  "taoli.funding_page": {
+    "taoli.funding_page": {
       "input_coverage": "live_page_controls",
       "input_note_zh": "这些是 2026-09-28 实际操作过的网页筛选控件，不是已验证的公开 API 参数。",
       "inputs": [
-        {"name": "coin_search", "label_zh": "币种搜索", "required": false},
-        {"name": "exchange_filter", "label_zh": "交易所筛选", "required": false},
-        {"name": "min_open_interest", "label_zh": "未平仓额下限", "required": false},
-        {"name": "min_daily_volume", "label_zh": "日成交额下限", "required": false},
-        {"name": "interval_filter", "label_zh": "间隔筛选", "required": false}
+        {
+          "name": "coin_search",
+          "label_zh": "币种搜索",
+          "required": false
+        },
+        {
+          "name": "exchange_filter",
+          "label_zh": "交易所筛选",
+          "required": false
+        },
+        {
+          "name": "min_open_interest",
+          "label_zh": "未平仓额下限",
+          "required": false
+        },
+        {
+          "name": "min_daily_volume",
+          "label_zh": "日成交额下限",
+          "required": false
+        },
+        {
+          "name": "interval_filter",
+          "label_zh": "间隔筛选",
+          "required": false
+        }
       ]
     },
     "telegram.bot.message": {
@@ -1219,6 +1239,110 @@
       "input_coverage": "design_input",
       "input_note_zh": "这是 Telethon Message 对象，不是单一 API 操作；需在具体采集方法确定后记录 chat、时间和分页参数。",
       "inputs": []
+    },
+    "coingecko.websocket.CGSimplePrice": {
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/cgsimpleprice",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "coin_id",
+          "label_zh": "币种 ID 列表",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "vs_currencies",
+          "label_zh": "计价货币列表",
+          "required": false,
+          "type": "array",
+          "default": "[\"usd\"]"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_tokens / unset_tokens"
+        }
+      ]
+    },
+    "coingecko.websocket.OnchainSimpleTokenPrice": {
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/onchainsimpletokenprice",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "network_id:token_addresses",
+          "label_zh": "链与代币地址列表",
+          "required": true,
+          "type": "array",
+          "condition_zh": "元素格式 network_id:token_address"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_tokens / unset_tokens"
+        }
+      ]
+    },
+    "coingecko.websocket.OnchainTrade": {
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/onchaintrade",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "network_id:pool_addresses",
+          "label_zh": "链与池地址列表",
+          "required": true,
+          "type": "array",
+          "condition_zh": "元素格式 network_id:pool_address"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_pools / unset_pools"
+        }
+      ]
+    },
+    "coingecko.websocket.OnchainOHLCV": {
+      "input_coverage": "official_documentation",
+      "input_source_url": "https://docs.coingecko.com/websocket/onchainohlcv",
+      "input_note_zh": "以下参数位于 message 的 data JSON字符串内。先 command=subscribe，identifier 为包含 channel 的JSON字符串；随后 command=message，identifier 相同，data 为订阅参数JSON字符串。退出整个通道用 command=unsubscribe。API Key是连接鉴权，不是业务字段。",
+      "inputs": [
+        {
+          "name": "network_id:pool_addresses",
+          "label_zh": "链与池地址列表",
+          "required": true,
+          "type": "array",
+          "condition_zh": "元素格式 network_id:pool_address"
+        },
+        {
+          "name": "interval",
+          "label_zh": "K 线周期",
+          "required": true,
+          "type": "string",
+          "accepted_values": "1s / 1m / 5m / 15m / 1h / 2h / 4h / 8h / 12h / 1d"
+        },
+        {
+          "name": "token",
+          "label_zh": "代币侧",
+          "required": true,
+          "type": "string",
+          "accepted_values": "base / quote"
+        },
+        {
+          "name": "action",
+          "label_zh": "订阅动作",
+          "required": true,
+          "type": "string",
+          "accepted_values": "set_pools / unset_pools"
+        }
+      ]
     }
   },
   "resources": {

@@ -4,6 +4,7 @@ import { SourceFieldCard } from './SourceFieldCard';
 import './source-contract-fields.css';
 
 const coverage = {
+  documented_websocket_payload: '官方 WebSocket 推送字段；尚无本项目采集记录',
   api_sample_lower_bound: '官方 API 响应样本；字段是已见下限',
   api_sample_plus_documented_optionals: 'API 样本及文档中的条件字段',
   mcp_sample_lower_bound: 'MCP 响应样本；字段是已见下限',
@@ -35,7 +36,7 @@ function InputFields({ operation, zh }) {
       <strong>{zh ? pageControls ? '页面筛选控件' : '接口参数定义' : pageControls ? 'Page filters' : 'API parameter definitions'}</strong>
       <span>{unknown ? (zh ? '数量未知' : 'Count unknown') : zh ? `${required} 必填 · ${optional} 可省略` : `${required} required · ${optional} optional`}</span>
     </div>
-    <p className="source-contract-input-note">{pageControls ? (zh ? '这里只列本次观察到的网页控件；上方案例显示当时实际采用的筛选值。' : 'These are observed page controls. The example above shows the active filters.') : (zh ? '这里只说明接口允许哪些参数；上方案例中的值才是实际发送的输入。' : 'These are allowed parameters. Only the values in the observed call above were sent.')}</p>
+    <p className="source-contract-input-note">{operation.transport === 'websocket' ? (zh ? '以下是官方订阅参数定义；上方仅为文档示例，没有发送实际订阅。' : 'Documented subscription parameters only; the example above was not executed.') : pageControls ? (zh ? '这里只列本次观察到的网页控件；上方案例显示当时实际采用的筛选值。' : 'These are observed page controls. The example above shows the active filters.') : (zh ? '这里只说明接口允许哪些参数；上方案例中的值才是实际发送的输入。' : 'These are allowed parameters. Only the values in the observed call above were sent.')}</p>
     <p className="source-contract-evidence">{zh ? source[0] : source[1]}{operation.input_source_url && <a href={operation.input_source_url} target="_blank" rel="noopener noreferrer">{zh ? '查看依据' : 'View source'}<ArrowUpRight size={11} aria-hidden="true" /></a>}</p>
     {operation.input_note_zh && <p className="source-contract-input-note">{zh ? operation.input_note_zh : operation.input_note_zh}</p>}
     {unknown ? <p className="source-contract-input-empty">{zh ? '尚不能确认参数名或必填数量。' : 'Parameter names and required count are not confirmed.'}</p>
@@ -43,6 +44,7 @@ function InputFields({ operation, zh }) {
       : <div className="source-contract-input-list">{fields.map(field => <div className="source-contract-input-field" key={field.name} title={zh ? field.description_en || '' : ''}>
         <div><strong title={field.name}>{zh ? field.label_zh : field.name}</strong><span className={field.required ? 'required' : ''}>{zh ? field.required ? '必填' : '可省略' : field.required ? 'Required' : 'Optional'}</span></div>
         <code>{field.name}</code>
+        {field.type && <small>{zh ? '类型：' : 'Type: '}{field.type}</small>}
         {field.default !== undefined && <small>{zh ? '默认/预设：' : 'Default/preset: '}{field.default}</small>}
         {field.accepted_values && <small>{zh ? '可用值：' : 'Accepted: '}{field.accepted_values}</small>}
         {field.condition_zh && <small>{field.condition_zh}</small>}
@@ -78,6 +80,13 @@ function CallPreview({ operation, zh }) {
   if (!example) return <section className="source-call-preview source-call-preview-empty" aria-label={zh ? '实际调用案例' : 'Observed call example'}>
     <strong>{zh ? '暂缺实际调用案例' : 'No observed call yet'}</strong>
     <p>{zh ? operation.call_status_note_zh || '目前没有保存同一次请求与返回的实测记录，因此这里不展示推测的输入或返回。' : operation.call_status_note_en || 'No verified request and response from the same call have been saved for this operation.'}</p>
+    {operation.documentation_example && <div className="source-documentation-example">
+      <strong>{zh ? '官方文档示例 · 未实测' : 'Documentation example · not observed'}</strong>
+      <p>{zh ? '先订阅通道，再发送订阅参数；下方是文档展示的推送消息。这里没有执行订阅。' : 'Subscribe to the channel, then send the parameters. The payload is from the documentation; no subscription was executed.'}</p>
+      <h4>{zh ? '订阅通道' : 'Subscribe'}</h4><pre>{JSON.stringify(operation.documentation_example.subscribe, null, 2)}</pre>
+      <h4>{zh ? '订阅参数消息' : 'Subscription message'}</h4><pre>{JSON.stringify(operation.documentation_example.message, null, 2)}</pre>
+      <h4>{zh ? '推送消息示例' : 'Example payload'}</h4><pre>{JSON.stringify(operation.documentation_example.response, null, 2)}</pre>
+    </div>}
   </section>;
   const inputs = Object.entries(example.request || {});
   const outputs = example.response && !Array.isArray(example.response) ? Object.entries(example.response) : [];
@@ -117,21 +126,25 @@ export function SourceContractFields({ data, language }) {
         <strong>{zh ? operation.label_zh : operation.id}</strong>
         <a href={operation.documentation_url} target="_blank" rel="noopener noreferrer">{zh ? '官方说明' : 'Documentation'}<ArrowUpRight size={13} aria-hidden="true" /></a>
       </div>
+      {operation.transport === 'websocket' && <div className="section-help"><p>{operation.note_zh}</p><p>{operation.connection_note_zh}</p></div>}
       <CallPreview key={operation.id} operation={operation} zh={zh} />
       <details className="source-contract-all-fields"><summary>{zh ? `查看字段定义与接口信息（${(operation.inputs || []).length} 项输入 / ${operation.fields.length} 项返回）` : `Field definitions and API details (${(operation.inputs || []).length} inputs / ${operation.fields.length} outputs)`}</summary>
         <div className="source-contract-origin"><span>{zh ? '数据来源' : 'Source'}</span><a href={data.source.authority_url} target="_blank" rel="noopener noreferrer">{zh ? data.source.label_zh : data.source.id}<ArrowUpRight size={13} aria-hidden="true" /></a></div>
         <div className="source-contract-meta"><span>{operation.uri ? (zh ? '资源 ID' : 'Resource ID') : (zh ? '操作 ID' : 'Operation ID')}</span><code>{operation.id}</code></div>
-        <div className="source-contract-endpoint"><span>{operation.uri ? (zh ? 'MCP 资源' : 'MCP resource') : operation.endpoint.startsWith('mcp://') ? 'MCP' : operation.endpoint.startsWith('/') ? 'GET' : '来源'}</span><code>{operation.uri || operation.endpoint}</code></div>
+        <div className="source-contract-endpoint"><span>{operation.uri ? (zh ? 'MCP 资源' : 'MCP resource') : operation.transport === 'websocket' ? 'WSS' : operation.endpoint.startsWith('mcp://') ? 'MCP' : operation.endpoint.startsWith('/') ? 'GET' : '来源'}</span><code>{operation.uri || operation.endpoint}</code></div>
         <InputFields operation={operation} zh={zh} />
         <div className="source-contract-io-heading"><strong>{zh ? '返回字段' : 'Response fields'}</strong><span>{zh ? `${operation.fields.length} 个已列字段` : `${operation.fields.length} listed fields`}</span></div>
-        <p className="section-help">{operation.uri ? (zh ? operation.note_zh : 'The response has not been checked.') : (zh ? coverage[operation.response_coverage] || operation.response_coverage : operation.response_coverage)}{!operation.uri && zh && operation.note_zh ? `。${operation.note_zh}` : ''}</p>
+        <p className="section-help">{operation.uri ? (zh ? operation.note_zh : 'The response has not been checked.') : (zh ? coverage[operation.response_coverage] || operation.response_coverage : operation.response_coverage)}{!operation.uri && operation.transport !== 'websocket' && zh && operation.note_zh ? `。${operation.note_zh}` : ''}</p>
         {operation.fields.length ? <div className="kaito-tool-fields">{operation.fields.map((field, index) => <SourceFieldCard
         key={field.path} number={index + 1} name={zh ? field.label_zh : field.path} path={field.path}
+        officialName={field.official_name} dataType={field.official_name ? field.type : undefined}
+        unit={field.unit} condition={field.official_name ? field.condition : undefined}
         purpose={field.purpose_zh} useCase={zh ? guidance(field) : field.path}
         exampleValue={fieldExampleValue(operation, field)} showNullValue={field.evidence === 'api_sample'}
         observed={field.evidence === 'mcp_sample' || field.evidence === 'live_page_observation'}
         exampleLabel={field.evidence === 'mcp_sample' ? (zh ? 'MCP 响应样本' : 'MCP sample') :
           field.evidence === 'api_sample' ? (zh ? 'API 响应样本' : 'API sample') :
+          field.official_name && field.evidence === 'official_documentation' ? (zh ? '官方文档示例 · 未实测' : 'Documentation example · not observed') :
           field.evidence === 'live_page_observation' ? (zh ? '网页观察值' : 'Observed page value') : undefined}
         exampleStatus={field.evidence === 'official_documentation' ? 'unavailable' : undefined}
         exampleUrl={operation.sample_url || operation.documentation_url}

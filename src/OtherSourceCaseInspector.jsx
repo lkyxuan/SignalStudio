@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Maximize2 } from 'lucide-react';
 import { interpretOtherCall, interpretOtherRow, otherResponseRows, otherRowLabel } from './otherSourceCaseData';
+import { SourceContractFields } from './SourceContractFields';
+import sourceCatalog from '../catalog/source-contracts.v1.json';
 import identityPilot from '../catalog/identity-flow-case.v1.json';
 import './source-case-inspector.css';
 
@@ -63,6 +65,10 @@ export function OtherSourceCaseInspector({ operationId, language, purpose, onOpe
   const row = rows[rowIndex] || rows[0];
   const visibleFields = row ? displayedFields(operationId, row) : [];
   if (loading) return <p className="source-case-inspector-status">{zh ? '正在读取案例…' : 'Loading case…'}</p>;
+  if (contract?.transport === 'websocket') return <div className="source-case-inspector websocket-source-inspector">
+    <p>{purpose}</p>
+    <SourceContractFields data={{ source: sourceCatalog.sources.find(source => source.id === contract.source_id), operation: contract }} language={language}/>
+  </div>;
   return <div className="source-case-inspector">
     {example ? <>
       {cases.length > 1 && <label className="source-case-inspector-picker">{zh ? operationId === 'taoli.funding_page' ? '网页观察' : '调用案例' : 'Call'}<select value={caseIndex} onChange={event => { setCaseIndex(Number(event.target.value)); setRowIndex(0); }} aria-label={zh ? operationId === 'taoli.funding_page' ? '选择网页观察' : '选择调用案例' : 'Select call'}>{cases.map((item, index) => <option value={index} key={index}>{index + 1} · {item.case_label_zh || `案例 ${index + 1}`}</option>)}</select></label>}

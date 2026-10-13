@@ -72,3 +72,5 @@
 .source-contract-all-fields>summary{cursor:pointer;color:var(--ss-accent);font-size:11px;font-weight:700}
 .source-contract-all-fields[open]{display:grid;gap:9px}
 .source-contract-all-fields>.section-help{margin:0}
+
+.source-documentation-example pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; max-width: 100%; }

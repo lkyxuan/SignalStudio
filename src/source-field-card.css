@@ -19,3 +19,6 @@
 .source-response-case code,.source-response-case pre{font:11px/1.4 'IBM Plex Mono',monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 .source-response-case pre{max-height:160px;overflow:auto;margin:7px 0 0}
 .source-response-case a{display:inline-block;margin-top:7px;color:var(--ss-accent);font-size:11px}
+
+.source-field-card:has(.source-field-line:nth-child(5)) .source-field-line { grid-template-columns: 72px minmax(0,1fr); }
+.source-field-card:has(.source-field-line:nth-child(5)) .source-field-line code { white-space: normal; overflow-wrap: anywhere; }

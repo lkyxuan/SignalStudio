@@ -5,7 +5,7 @@ import './source-field-card.css';
 const compactValue = (value: unknown) => JSON.stringify(value);
 
 export function SourceFieldCard({ name, path, purpose, useCase, exampleValue,
-  exampleLabel, exampleStatus, exampleUrl, number, observed = false, showNullValue = false, language }: SourceFieldCardProps) {
+  exampleLabel, exampleStatus, exampleUrl, officialName, dataType, unit, condition, number, observed = false, showNullValue = false, language }: SourceFieldCardProps) {
   const zh = language === 'zh-CN';
   const say = (cn: string, en: string) => zh ? cn : en;
   const hasValue = exampleValue !== undefined && (exampleValue !== null || showNullValue);
@@ -18,6 +18,9 @@ export function SourceFieldCard({ name, path, purpose, useCase, exampleValue,
     {number != null && <span className="source-field-number">{say('字段', 'Field')} {String(number).padStart(2, '0')}</span>}
     <div className="source-field-line"><span>{say('名称', 'Name')}</span>
       {exampleUrl ? <a href={exampleUrl} target="_blank" rel="noopener noreferrer">{name}</a> : <strong>{name}</strong>}</div>
+    {officialName && <div className="source-field-line"><span>{say('原始字段', 'Raw field')}</span><code>{path} · {officialName}</code></div>}
+    {dataType && <div className="source-field-line"><span>{say('类型 / 单位', 'Type / unit')}</span><code>{dataType} · {unit}</code></div>}
+    {condition && <div className="source-field-line"><span>{say('说明', 'Notes')}</span><p>{condition}</p></div>}
     <div className="source-field-line"><span>{say('具体数据', 'Data')}</span><code title={`${value}${provenance}`}>{value}{provenance && <em>{provenance}</em>}</code></div>
     <div className="source-field-line"><span>{say('怎么用', 'Use')}</span><p title={guidance}>{guidance}</p></div>
   </article>;
@@ -27,5 +30,6 @@ interface SourceFieldCardProps {
   name: string; path: string; language: Language;
   purpose?: string; useCase?: string; exampleValue?: unknown;
   exampleLabel?: string; exampleStatus?: string; exampleUrl?: string;
+  officialName?: string; dataType?: string; unit?: string; condition?: string;
   number?: number; observed?: boolean; showNullValue?: boolean;
 }

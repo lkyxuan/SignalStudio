@@ -28,3 +28,5 @@
 .other-source-technical{margin:16px 0;border-top:1px solid var(--ss-border);padding-top:10px}
 .other-source-technical>summary{cursor:pointer;color:var(--ss-accent);font-size:11px;font-weight:700}
 @media(max-width:1050px){.inspector .source-case-inspector{grid-template-columns:1fr}.inspector .source-case-inspector-section{max-height:none;overflow:visible}}
+
+.inspector .websocket-source-inspector { display: block; }

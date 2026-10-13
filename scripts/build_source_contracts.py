@@ -308,6 +308,8 @@ def build():
                                 alias="tg-spider-telethon.telegram_message",
                                 note="这些是本产品计划读取的 Telethon Message 属性；不是对象完整属性列表。"))
 
+    operations.extend(read("coingecko-websocket.v1.json")["operations"])
+
     input_contract = read("source-inputs.v1.json")
     if input_contract.get("version") != "source-inputs.v1":
         raise ValueError("Unsupported source input contract")
