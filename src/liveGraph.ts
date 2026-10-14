@@ -9,7 +9,10 @@ export class LiveGraphState {
   dragging = false;
   expected = '';
   receive(next: Graph): boolean {
-    if (next.revision === this.expected && this.graph) return false;
+    // A prior client may have persisted this revision while dropping new
+    // review metadata. Adopt restored metadata once, with draft/drag protection.
+    if (next.revision === this.expected && this.graph &&
+        JSON.stringify(next.card_progress) === JSON.stringify(this.graph.card_progress)) return false;
     if (this.dragging) { this.pending = next; return false; }
     if (this.dirty) { this.pending = next; return false; }
     this.graph = next; this.expected = String(next.revision); this.pending = null;

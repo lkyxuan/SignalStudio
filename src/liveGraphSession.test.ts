@@ -63,3 +63,23 @@ test('ambiguous write failure is never replayed and disables further writes unti
   await assert.rejects(state.write('/nodes', 'POST', {})); assert.equal(writes, 1);
   await state.refresh(); assert.equal(state.writable, true);
 });
+
+
+test('same-revision review metadata upgrade appears on the first refresh and preserves drafts', async context => {
+  const old={...graph('same'),card_progress:{card:{definition_revision:'design',report:null,stale:true}}};
+  const current={...old,card_progress:{card:{...old.card_progress.card,schema_version:'card-review.v1',
+    status:'unknown',history:[{id:'history',code_revision:'legacy'}]}}};
+  context.mock.method(globalThis,'fetch',async (url:string)=>Response.json(url.endsWith('desktop-health')
+    ? {...workspace,app:'SignalStudio',client_ready:true}:current));
+  for(const dirty of [false,true]) {
+    const cache=new GraphCache(storage(),'host');cache.save(workspace,old,new Date().toISOString());
+    const state=new LiveGraphSession(cache);state.dirty=dirty;
+    assert.equal(await state.refresh(),!dirty);
+    if(dirty) {
+      assert.equal(state.graph?.card_progress?.card?.history,undefined);
+      assert.equal(state.pending?.card_progress?.card?.history?.length,1);
+      state.clear();assert.equal(state.receive(state.pending!),true);
+    }
+    assert.equal(state.graph?.card_progress?.card?.history?.length,1);
+  }
+});
