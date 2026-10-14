@@ -1,4 +1,5 @@
 import hottest from '../catalog/coingecko-hottest.v1.json';
+import warming from '../catalog/coingecko-warming.v1.json';
 import searchPreparation from '../catalog/search-preparation.v1.json';
 import { cardKind, cardKinds } from './cardModel';
 import copy from '../catalog/card-detail-copy.v1.json';
@@ -32,6 +33,8 @@ function acceptedCopy(node) {
 }
 export function cardExplanation(node, language) {
   const zh = language === 'zh-CN';
+  const warmingCard=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);
+  if (warmingCard) return zh?warmingCard.algorithm_zh:warmingCard.algorithm_en;
   const heatCard=hottest.cards.find(c=>c.key===node.card_contract?.config.resource?.hottest_key);
   if (heatCard) return zh?heatCard.algorithm_zh:heatCard.algorithm_en;
   if (node.card_contract?.config.resource?.identity_handoff) return node.formula || '';
@@ -52,6 +55,8 @@ export function cardExplanation(node, language) {
 }
 export function executionSummary(node, language) {
   const zh = language === 'zh-CN';
+  const entry=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);
+  if(entry) return zh?entry.trigger_zh:'Inside the warming program: one healthy complete round, frozen daily baseline; no independent hourly scheduler.';
   const stage = refresh.stages.find(item => item.name === node.name);
   if (stage) return stage.trigger_zh;
   const preparation = searchPreparation.nodes.find(item => item.name === node.name);

@@ -45,6 +45,7 @@ from search_preparation import ensure_search_preparation
 from coingecko_hottest import ensure_coingecko_hottest
 from hottest_warmup import ensure_hottest_warmup
 from hottest_round_trigger import ensure_hottest_round_trigger
+from coingecko_warming import ensure_coingecko_warming
 from card_corrections import ensure_card_corrections
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -91,6 +92,7 @@ ensure_coingecko_hottest(service)
 ensure_card_corrections(service)
 ensure_hottest_warmup(service)
 ensure_hottest_round_trigger(service)
+ensure_coingecko_warming(service)
 
 
 class Handler(BaseHTTPRequestHandler):

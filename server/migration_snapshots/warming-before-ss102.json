@@ -1,0 +1,1210 @@
+{
+  "leaderboard_warming": {
+    "definition": "升温榜：量价门槛通过后按60分钟评分正增量排序。 保留评分明细、事件及原始依据；无真实写入时不伪造行。",
+    "formula": "",
+    "fields": [
+      {
+        "name": "object_key",
+        "data_type": "string",
+        "definition": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+      },
+      {
+        "name": "asset_id",
+        "data_type": "string | null",
+        "definition": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+      },
+      {
+        "name": "asset_name",
+        "data_type": "string | null",
+        "definition": "资产展示名，不作为身份匹配依据"
+      },
+      {
+        "name": "object_kind",
+        "data_type": "asset | unknown",
+        "definition": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+      },
+      {
+        "name": "identity_status",
+        "data_type": "resolved | source_only | conflict",
+        "definition": "身份映射状态，冲突不自动合并"
+      },
+      {
+        "name": "rank",
+        "data_type": "integer | null",
+        "definition": "基础结果展示序号；来源名次和综合分数分开"
+      },
+      {
+        "name": "score",
+        "data_type": "number | null",
+        "definition": "本榜最终记分排序值，来自Redis量价投影；没有运行结果时为空"
+      },
+      {
+        "name": "calculation_status",
+        "data_type": "pending | calculated",
+        "definition": "真实计算状态；设计交付不伪造calculated"
+      },
+      {
+        "name": "algorithm_version",
+        "data_type": "string | null",
+        "definition": "实际使用的量价规则版本market_v1；无运行结果为空"
+      },
+      {
+        "name": "reason",
+        "data_type": "string | null",
+        "definition": "只能描述来源数值/首次发现事实，不能虚构重要事件或原因"
+      },
+      {
+        "name": "trend_status",
+        "data_type": "warming | stable | cooling | unknown",
+        "definition": "共享状态规则未定时unknown"
+      },
+      {
+        "name": "observation_refs_json",
+        "data_type": "JSON array",
+        "definition": "本条关联的观测引用，包括补充行情"
+      },
+      {
+        "name": "calculated_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "实际结果生成时间，不能冒充来源统计截止"
+      },
+      {
+        "name": "source_id",
+        "data_type": "string",
+        "definition": "来源操作ID；不同接口不可混成一个口径"
+      },
+      {
+        "name": "source_object_id",
+        "data_type": "string",
+        "definition": "CoinGecko稳定coin ID，不能按symbol猜映射"
+      },
+      {
+        "name": "snapshot_ref",
+        "data_type": "string",
+        "definition": "可持久回查的完整原始响应及请求参数"
+      },
+      {
+        "name": "run_id",
+        "data_type": "string",
+        "definition": "采集运行标识；与统计窗口、来源记录时间分开"
+      },
+      {
+        "name": "window_label",
+        "data_type": "string | null",
+        "definition": "实际请求统计窗口，例如24h；不代表采集频率"
+      },
+      {
+        "name": "window_start",
+        "data_type": "UTC timestamp | null",
+        "definition": "来源明确给出的统计起点；未知不倒推"
+      },
+      {
+        "name": "window_end",
+        "data_type": "UTC timestamp | null",
+        "definition": "来源明确给出的统计止点；未知不倒推"
+      },
+      {
+        "name": "observed_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "来源观测时间；未知不能用采集时间冒充"
+      },
+      {
+        "name": "collected_at",
+        "data_type": "UTC timestamp",
+        "definition": "采集接收时间，由采集器提供"
+      },
+      {
+        "name": "quality_status",
+        "data_type": "healthy | partial | missing | unknown",
+        "definition": "质量及覆盖状态；无数据不补零"
+      },
+      {
+        "name": "coverage_key",
+        "data_type": "string",
+        "definition": "来源监测集合及版本"
+      },
+      {
+        "name": "current_price",
+        "data_type": "number | null",
+        "definition": "CoinGecko报价币种下的当前价格"
+      },
+      {
+        "name": "price_change_percentage_24h",
+        "data_type": "number | null",
+        "definition": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+      },
+      {
+        "name": "total_volume",
+        "data_type": "number | null",
+        "definition": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+      },
+      {
+        "name": "market_cap",
+        "data_type": "number | null",
+        "definition": "CoinGecko市值，用于准入和成交额/市值活跃度"
+      },
+      {
+        "name": "quote_currency",
+        "data_type": "string | null",
+        "definition": "实际请求报价币种；缺失不猜USD"
+      },
+      {
+        "name": "activity_score",
+        "data_type": "number",
+        "definition": "Redis中四类market_v1量价事件各自衰减后的合计"
+      },
+      {
+        "name": "score_components_json",
+        "data_type": "JSON object",
+        "definition": "每项当前有效分及原始贡献依据"
+      },
+      {
+        "name": "score_event_refs_json",
+        "data_type": "JSON array",
+        "definition": "参与计算的评分事件键和decision_ref"
+      },
+      {
+        "name": "baseline_activity_score",
+        "data_type": "number | null",
+        "definition": "60分钟前有效已保存评分"
+      },
+      {
+        "name": "baseline_score_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "实际评分比较时刻"
+      },
+      {
+        "name": "volume_ratio",
+        "data_type": "number | null",
+        "definition": "当前/前一天滚动24h成交额"
+      },
+      {
+        "name": "baseline_volume_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "行情基线时刻"
+      },
+      {
+        "name": "price_direction",
+        "data_type": "up | down | flat",
+        "definition": "价格方向与评分正负分开"
+      }
+    ]
+  },
+  "生成基础升温榜": {
+    "definition": "升温榜：量价门槛通过后按60分钟评分正增量排序。 保留评分明细、事件及原始依据；无真实写入时不伪造行。",
+    "formula": "验证同版/覆盖的有效Polars指标与当前评分，volume_ratio≥1.5、abs_price_pct≥5；读取60分钟前已保存活动分，正增量降序。缺基线不出榜，不读取行情历史计算放量。",
+    "fields": [
+      {
+        "name": "object_key",
+        "data_type": "string",
+        "definition": "稳定资产键asset/<asset_id>；唯一身份未核实时只留观测，不发布评分"
+      },
+      {
+        "name": "asset_id",
+        "data_type": "string | null",
+        "definition": "唯一核实映射的内部资产ID；账号线索或身份未定可为空"
+      },
+      {
+        "name": "asset_name",
+        "data_type": "string | null",
+        "definition": "资产展示名，不作为身份匹配依据"
+      },
+      {
+        "name": "object_kind",
+        "data_type": "asset | unknown",
+        "definition": "本轮只处理行情资产，账号/文本线索不进入量价榜"
+      },
+      {
+        "name": "identity_status",
+        "data_type": "resolved | source_only | conflict",
+        "definition": "身份映射状态，冲突不自动合并"
+      },
+      {
+        "name": "rank",
+        "data_type": "integer | null",
+        "definition": "基础结果展示序号；来源名次和综合分数分开"
+      },
+      {
+        "name": "score",
+        "data_type": "number | null",
+        "definition": "本榜最终记分排序值，来自Redis量价投影；没有运行结果时为空"
+      },
+      {
+        "name": "calculation_status",
+        "data_type": "pending | calculated",
+        "definition": "真实计算状态；设计交付不伪造calculated"
+      },
+      {
+        "name": "algorithm_version",
+        "data_type": "string | null",
+        "definition": "实际使用的量价规则版本market_v1；无运行结果为空"
+      },
+      {
+        "name": "reason",
+        "data_type": "string | null",
+        "definition": "只能描述来源数值/首次发现事实，不能虚构重要事件或原因"
+      },
+      {
+        "name": "trend_status",
+        "data_type": "warming | stable | cooling | unknown",
+        "definition": "共享状态规则未定时unknown"
+      },
+      {
+        "name": "observation_refs_json",
+        "data_type": "JSON array",
+        "definition": "本条关联的观测引用，包括补充行情"
+      },
+      {
+        "name": "calculated_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "实际结果生成时间，不能冒充来源统计截止"
+      },
+      {
+        "name": "source_id",
+        "data_type": "string",
+        "definition": "来源操作ID；不同接口不可混成一个口径"
+      },
+      {
+        "name": "source_object_id",
+        "data_type": "string",
+        "definition": "CoinGecko稳定coin ID，不能按symbol猜映射"
+      },
+      {
+        "name": "snapshot_ref",
+        "data_type": "string",
+        "definition": "可持久回查的完整原始响应及请求参数"
+      },
+      {
+        "name": "run_id",
+        "data_type": "string",
+        "definition": "采集运行标识；与统计窗口、来源记录时间分开"
+      },
+      {
+        "name": "window_label",
+        "data_type": "string | null",
+        "definition": "实际请求统计窗口，例如24h；不代表采集频率"
+      },
+      {
+        "name": "window_start",
+        "data_type": "UTC timestamp | null",
+        "definition": "来源明确给出的统计起点；未知不倒推"
+      },
+      {
+        "name": "window_end",
+        "data_type": "UTC timestamp | null",
+        "definition": "来源明确给出的统计止点；未知不倒推"
+      },
+      {
+        "name": "observed_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "来源观测时间；未知不能用采集时间冒充"
+      },
+      {
+        "name": "collected_at",
+        "data_type": "UTC timestamp",
+        "definition": "采集接收时间，由采集器提供"
+      },
+      {
+        "name": "quality_status",
+        "data_type": "healthy | partial | missing | unknown",
+        "definition": "质量及覆盖状态；无数据不补零"
+      },
+      {
+        "name": "coverage_key",
+        "data_type": "string",
+        "definition": "来源监测集合及版本"
+      },
+      {
+        "name": "current_price",
+        "data_type": "number | null",
+        "definition": "CoinGecko报价币种下的当前价格"
+      },
+      {
+        "name": "price_change_percentage_24h",
+        "data_type": "number | null",
+        "definition": "CoinGecko原始24h价格变化百分比，不等同关注变化"
+      },
+      {
+        "name": "total_volume",
+        "data_type": "number | null",
+        "definition": "CoinGecko原始24h成交额，不称作短窗新增成交量"
+      },
+      {
+        "name": "market_cap",
+        "data_type": "number | null",
+        "definition": "CoinGecko市值，用于准入和成交额/市值活跃度"
+      },
+      {
+        "name": "quote_currency",
+        "data_type": "string | null",
+        "definition": "实际请求报价币种；缺失不猜USD"
+      },
+      {
+        "name": "activity_score",
+        "data_type": "number",
+        "definition": "Redis中四类market_v1量价事件各自衰减后的合计"
+      },
+      {
+        "name": "score_components_json",
+        "data_type": "JSON object",
+        "definition": "每项当前有效分及原始贡献依据"
+      },
+      {
+        "name": "score_event_refs_json",
+        "data_type": "JSON array",
+        "definition": "参与计算的评分事件键和decision_ref"
+      },
+      {
+        "name": "baseline_activity_score",
+        "data_type": "number | null",
+        "definition": "60分钟前有效已保存评分"
+      },
+      {
+        "name": "baseline_score_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "实际评分比较时刻"
+      },
+      {
+        "name": "volume_ratio",
+        "data_type": "number | null",
+        "definition": "当前/前一天滚动24h成交额"
+      },
+      {
+        "name": "baseline_volume_at",
+        "data_type": "UTC timestamp | null",
+        "definition": "行情基线时刻"
+      },
+      {
+        "name": "price_direction",
+        "data_type": "up | down | flat",
+        "definition": "价格方向与评分正负分开"
+      }
+    ]
+  },
+  "_mappings": [
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "abs_price_pct",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "asset_id",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "baseline_observation_id",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "baseline_requested_at",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "baseline_volume",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "calculated_at",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "collected_at",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "coverage_key",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "current_price",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "identity_status",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "market_cap",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "metric_id",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "metric_version",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "observation_id",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "observed_at",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "price_change_percentage_24h",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "quality_status",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "quote_currency",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "requested_at",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "slot_start",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "source_id",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "source_object_id",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "total_volume",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "volume_ratio",
+      null
+    ],
+    [
+      "Few Understand · indicator.data",
+      "生成基础升温榜",
+      "volume_to_market_cap",
+      null
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "baseline_status",
+      null
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "completed_at",
+      null
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "coverage_key",
+      "coverage_key"
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "reason",
+      "reason"
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "record_count",
+      null
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "requested_at",
+      null
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "run_id",
+      "run_id"
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "snapshot_ref",
+      "snapshot_ref"
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "source_id",
+      "source_id"
+    ],
+    [
+      "leaderboard_coverage",
+      "生成基础升温榜",
+      "status",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "activity_score",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "algorithm_version",
+      "algorithm_version"
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "asset_id",
+      "asset_id"
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "asset_name",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "baseline_activity_score",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "baseline_score_at",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "baseline_volume_at",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "calculated_at",
+      "calculated_at"
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "calculation_status",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "collected_at",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "coverage_key",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "current_price",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "identity_status",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "market_cap",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "object_key",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "object_kind",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "observation_refs_json",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "observed_at",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "price_change_percentage_24h",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "price_direction",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "quality_status",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "quote_currency",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "rank",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "reason",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "run_id",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "score",
+      "score"
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "score_components_json",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "score_event_refs_json",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "snapshot_ref",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "source_id",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "source_object_id",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "total_volume",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "trend_status",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "volume_ratio",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "window_end",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "window_label",
+      null
+    ],
+    [
+      "leaderboard_warming",
+      "候选代币筛选",
+      "window_start",
+      null
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "activity_score",
+      "activity_score"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "algorithm_version",
+      "algorithm_version"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "asset_id",
+      "asset_id"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "asset_name",
+      "asset_name"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "calculated_at",
+      "calculated_at"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "coverage_key",
+      "coverage_key"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "quality_status",
+      "quality_status"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "score_components_json",
+      "score_components_json"
+    ],
+    [
+      "market_score_history",
+      "生成基础升温榜",
+      "score_event_refs_json",
+      "score_event_refs_json"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "activity_score",
+      "activity_score"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "algorithm_version",
+      "algorithm_version"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "asset_id",
+      "asset_id"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "asset_name",
+      "asset_name"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "calculated_at",
+      "calculated_at"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "coverage_key",
+      "coverage_key"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "quality_status",
+      "quality_status"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "score_components_json",
+      "score_components_json"
+    ],
+    [
+      "market_scores_current",
+      "生成基础升温榜",
+      "score_event_refs_json",
+      "score_event_refs_json"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "activity_score",
+      "activity_score"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "algorithm_version",
+      "algorithm_version"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "asset_id",
+      "asset_id"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "asset_name",
+      "asset_name"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "baseline_activity_score",
+      "baseline_activity_score"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "baseline_score_at",
+      "baseline_score_at"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "baseline_volume_at",
+      "baseline_volume_at"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "calculated_at",
+      "calculated_at"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "calculation_status",
+      "calculation_status"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "collected_at",
+      "collected_at"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "coverage_key",
+      "coverage_key"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "current_price",
+      "current_price"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "identity_status",
+      "identity_status"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "market_cap",
+      "market_cap"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "object_key",
+      "object_key"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "object_kind",
+      "object_kind"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "observation_refs_json",
+      "observation_refs_json"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "observed_at",
+      "observed_at"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "price_change_percentage_24h",
+      "price_change_percentage_24h"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "price_direction",
+      "price_direction"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "quality_status",
+      "quality_status"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "quote_currency",
+      "quote_currency"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "rank",
+      "rank"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "reason",
+      "reason"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "run_id",
+      "run_id"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "score",
+      "score"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "score_components_json",
+      "score_components_json"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "score_event_refs_json",
+      "score_event_refs_json"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "snapshot_ref",
+      "snapshot_ref"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "source_id",
+      "source_id"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "source_object_id",
+      "source_object_id"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "total_volume",
+      "total_volume"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "trend_status",
+      "trend_status"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "volume_ratio",
+      "volume_ratio"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "window_end",
+      "window_end"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "window_label",
+      "window_label"
+    ],
+    [
+      "生成基础升温榜",
+      "leaderboard_warming",
+      "window_start",
+      "window_start"
+    ]
+  ],
+  "_legacy_rollup_mappings": [
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "activity_score",
+      "activity_score"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "algorithm_version",
+      "algorithm_version"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "asset_id",
+      "asset_id"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "asset_name",
+      "asset_name"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "calculated_at",
+      "calculated_at"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "coverage_key",
+      "coverage_key"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "input_records_json",
+      null
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "quality_status",
+      "quality_status"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "score_components_json",
+      "score_components_json"
+    ],
+    [
+      "量价评分 · 汇总Redis记分",
+      "生成基础升温榜",
+      "score_event_refs_json",
+      "score_event_refs_json"
+    ]
+  ]
+}

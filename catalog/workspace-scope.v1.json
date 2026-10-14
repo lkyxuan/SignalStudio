@@ -1,13 +1,8 @@
 {
   "version": "workspace-scope.v1",
-  "rationale_url": "https://app.notion.com/p/3f8038a63d5a81069b8ff12d27254eb4",
-  "effect": "SS-95 restores only #3018 with robust-Z snapshot ranking; warming and retired discovery remain shelved. Preserve IDs and saved positions; not a Few runtime command.",
+  "rationale_url": "https://app.notion.com/p/3f9038a63d5a819eac83dde1100f58dc",
+  "effect": "SS-102 restores warming growth alongside SS-95 hottest. Retired discovery remains shelved. Preserve IDs and saved positions; not a Few runtime command.",
   "shelved_cards": [
-    {
-      "node_id": "3d877534-1cdd-4da5-a00e-617e424df166",
-      "reference_number": 3017,
-      "name": "生成基础升温榜"
-    },
     {
       "node_id": "1b0ad0f2-c820-4c59-84a4-998c40c2b793",
       "reference_number": 3019,

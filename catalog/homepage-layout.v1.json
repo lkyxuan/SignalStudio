@@ -10,7 +10,7 @@
       "label_zh": "升温榜",
       "label_en": "Warming",
       "source_name": "leaderboard_warming",
-      "status": "defined_generator_shelved",
+      "status": "defined_runtime_unverified",
       "api_endpoint": null
     },
     {
@@ -73,13 +73,13 @@
     "display_zh": [
       "按行从左到右编号：1左上升温、2中上信号、3右上最热、4左下新发现、5中下信号、6右下第四榜待绑定。",
       "四榜的具体格位目前是Studio结构占位，不代表已核验/app对应关系；第四榜来源与信号分组不猜测。",
-      "最热使用七日相对放量RVOL；旧量价评分及旧升温条件使用相对昨日比值，两者比较基准不同。",
+      "最热看当前交易活跃水平；升温看滚动24h成交额的近期增长，日冻结7日常态另作比较，两榜允许重叠。",
       "榜单/信号来源引用不代表已接通查询API或网站同步；#1009网站同步由用户另补卡。"
     ],
     "display_en": [
       "Row-major positions: 1 top-left Warming, 2 top-center signal, 3 top-right Hottest, 4 bottom-left Newly discovered, 5 bottom-center signal, 6 bottom-right fourth board unbound.",
       "Board positions are Studio placeholders; their /app mapping is unverified. Fourth-board source and signal groups remain unbound.",
-      "Hottest uses seven-day RVOL; legacy scoring and warming gates use the previous-day ratio. Their comparison baselines differ.",
+      "Hottest shows trading activity level; Warming ranks recent growth in rolling-24h volume above a frozen daily baseline. Both boards may overlap.",
       "Source references do not establish read APIs or website synchronization. The user owns the separate #1009 sync card."
     ],
     "actions_zh": [
@@ -91,13 +91,13 @@
     "limitations_zh": [
       "本卡仅展示结构，没有真实榜单或信号记录。",
       "中间两格信号、两边四榜是已确认设计；现有/app运行状态、完整格位与信号分组未核验。",
-      "升温生成卡仍收起；最热已有独立快照算法，新发现按系统首次建档时间，规则定义不证明真实输出。",
+      "升温和最热已有独立快照算法；新发现按系统首次建档时间，Studio契约与虚构演算不证明真实输出。",
       "第四榜未绑定来源；本站查询API、网站同步及信号持久化不由本次修改实现。"
     ],
     "limitations_en": [
       "Structure only, without real board or signal records.",
       "Center signals and four side boards are confirmed; live /app state, exact positions and signal groups remain unverified.",
-      "Warming remains shelved; Hottest has a snapshot algorithm and Newly discovered uses first registration time. Definitions do not prove real output.",
+      "Warming and Hottest have snapshot algorithms; Newly discovered uses first registration time. Studio contracts and synthetic evaluation do not prove real output.",
       "Fourth-board source is unbound. This edit does not implement read APIs, website sync or signal persistence."
     ],
     "acceptance": [

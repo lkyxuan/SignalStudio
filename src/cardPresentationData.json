@@ -248,7 +248,8 @@
     "origin": "internal_compute",
     "definition_paths": [
       "catalog/market-current.v1.json",
-      "catalog/market-scoring.v1.json"
+      "catalog/market-scoring.v1.json",
+      "catalog/coingecko-warming.v1.json"
     ]
   },
   "leaderboard_hottest": {
@@ -620,6 +621,30 @@
     "origin": "coingecko",
     "definition_paths": [
       "catalog/coingecko-hottest.v1.json"
+    ]
+  },
+  "生成基础升温榜": {
+    "kind": "process",
+    "subtype": "board_build",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/coingecko-warming.v1.json"
+    ]
+  },
+  "CoinGecko · 计算升温日冻结基准": {
+    "kind": "process",
+    "subtype": "metric",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-warming.v1.json"
+    ]
+  },
+  "CoinGecko · 升温候选快照": {
+    "kind": "state",
+    "subtype": "warming_candidates",
+    "origin": "coingecko",
+    "definition_paths": [
+      "catalog/coingecko-warming.v1.json"
     ]
   }
 }

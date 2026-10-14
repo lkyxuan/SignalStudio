@@ -408,6 +408,9 @@ class CardModel:
                 if entry['id'] in ('market_polars.polars','polars_indicator.assemble'):
                     entry['version'] = 2
                     entry['definition_paths'] = [hottest_path] + entry['definition_paths']
+        if self.db.execute("SELECT 1 FROM schema_meta WHERE key='coingecko_warming_growth_ss102_v1'").fetchone():
+            registry += [{'id': 'warming.'+key, 'version': 1, 'definition_paths': ['catalog/coingecko-warming.v1.json'],
+                          'implementation': 'planned'} for key in ('baseline', 'rank')]
         return [entry for entry in registry if entry['id'] in active]
 
     def bindings(self):

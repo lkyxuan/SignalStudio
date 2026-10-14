@@ -73,7 +73,8 @@ log1p values, raw/clipped Z, weights/contributions, cohort median/MAD/scale, exc
 input references and timestamps. Age >=900 seconds expires the result. Replaying a
 snapshot ID must use identical frozen inputs/results or reject conflicts. No events,
 accumulation, old `activity_score`, initial score, social/search +10 or decay enter this
-ranking. Existing score events, warming design and alerts retain their prior semantics.
+ranking. Existing score events and alerts retain their prior semantics. SS-102 separately
+supersedes legacy warming behavior; see [WARMING_BOARD.md](WARMING_BOARD.md).
 
 ## Cards and version compatibility
 

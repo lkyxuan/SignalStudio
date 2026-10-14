@@ -1,0 +1,1121 @@
+{
+  "version": "coingecko_warming_growth_v1",
+  "rationale_url": "https://app.notion.com/p/3f9038a63d5a819eac83dde1100f58dc",
+  "delivery": "studio_design_only",
+  "metric_version": "market_indicators_v2",
+  "trigger": {
+    "kind": "event",
+    "event": "crawler_round_complete",
+    "source": "coingecko.coins_markets",
+    "requires": "healthy complete frozen metric batch",
+    "dedupe_key": [
+      "run_id",
+      "coverage_key",
+      "algorithm_version"
+    ]
+  },
+  "parameters": {
+    "baseline_days": 7,
+    "baseline_tolerance_seconds": 1800,
+    "history_window_seconds": 3600,
+    "history_tolerance_seconds": 900,
+    "max_source_age_seconds": 900,
+    "expiry_seconds": 900,
+    "top_n": 10,
+    "minimum_multiple_exclusive": 1,
+    "minimum_growth_exclusive": 0,
+    "growth_change_epsilon_pp": 1e-09
+  },
+  "hottest_overlap": true,
+  "observed_rows": [],
+  "limitations_zh": "本批是Studio契约和虚构演算，不证明Few消费者/数据库/业务页已运行。只使用滚动24h成交额，无法还原真实1h/4h量；旧量退出、覆盖变化与修订影响数值。七日覆盖、长尾范围和预测效果未核验；dev上游仍有市值>1000万美元范围。不识别巨鲸/内幕，不发送事件或提醒。",
+  "cards": [
+    {
+      "key": "baseline",
+      "name": "CoinGecko · 计算升温日冻结基准",
+      "kind": "process",
+      "description_zh": "独立升温7日常态；每日更新，日内固定。",
+      "algorithm_zh": "每天UTC00:00（上海08:00）固定基准版本；取前1—7个UTC日界各一条同源同资产USD同覆盖、当时已收到且不晚于目标最多30分钟旧的有效滚动24h观测，算均值。7条完整且均值>0才可用；不补零、不用迟到数据改写旧基准；日内复用，不修改最热7日RVOL。",
+      "algorithm_en": "Freeze seven prior UTC-midnight rolling-24h observations each day; do not reuse hottest RVOL as this baseline.",
+      "trigger_zh": "所属升温程序在新UTC日界首次完整批次选择并冻结新基准，日内复用；不另启动基准爬虫。",
+      "fields": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "冻结观测ID"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "uuid | null",
+          "label_zh": "可空UUID；最热榜仅接已核实coin"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名，不参与身份匹配"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "string",
+          "label_zh": "resolved/source_only/lookup_error/conflict"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "string",
+          "label_zh": "最热候选须coin；旧asset/token标签须显式适配"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源范围"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "稳定CoinGecko coin ID"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string",
+          "label_zh": "固定usd"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "一致覆盖版本"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "datetime",
+          "label_zh": "请求时间；历史锚点"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "datetime",
+          "label_zh": "实际接收时间"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "datetime",
+          "label_zh": "来源观测时间"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "string",
+          "label_zh": "来源质量状态"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number",
+          "label_zh": "滚动24h成交额，USD"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number",
+          "label_zh": "USD价格，有限且>0"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number",
+          "label_zh": "USD市值，有限且>0"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number",
+          "label_zh": "来源有符号24h涨跌幅"
+        },
+        {
+          "name": "metric_id",
+          "data_type": "string",
+          "label_zh": "版本化冻结指标ID"
+        },
+        {
+          "name": "metric_version",
+          "data_type": "string",
+          "label_zh": "market_indicators_v2"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "来源响应引用"
+        },
+        {
+          "name": "warming_baseline_mean_7d",
+          "data_type": "number | null",
+          "label_zh": "升温日冻结7日成交额均值，不是最热随观测更新基线"
+        },
+        {
+          "name": "warming_baseline_days",
+          "data_type": "integer",
+          "label_zh": "匹配到的历史日目标数，完整要求7"
+        },
+        {
+          "name": "warming_baseline_refs_json",
+          "data_type": "json",
+          "label_zh": "七个UTC日界目标及实际历史观测引用"
+        },
+        {
+          "name": "warming_baseline_at",
+          "data_type": "datetime",
+          "label_zh": "本轮基准日界UTC00:00，上海08:00"
+        },
+        {
+          "name": "warming_baseline_status",
+          "data_type": "string",
+          "label_zh": "完整/缺历史/零基准/冲突状态"
+        }
+      ],
+      "input_fields": [
+        "observation_id",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "object_kind",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "quality_status",
+        "total_volume",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "metric_id",
+        "metric_version",
+        "snapshot_ref"
+      ],
+      "output_fields": [
+        "warming_baseline_mean_7d",
+        "warming_baseline_days",
+        "warming_baseline_refs_json",
+        "warming_baseline_at",
+        "warming_baseline_status",
+        "observation_id",
+        "asset_id"
+      ]
+    },
+    {
+      "key": "candidates",
+      "name": "CoinGecko · 升温候选快照",
+      "kind": "state",
+      "description_zh": "冻结每轮各资产最新指标及覆盖，不回退旧合格值。",
+      "algorithm_zh": "由#3017所属升温程序从indicator.data更新最新当前观测并冻结完整批次；历史与日基准引用保留供恢复，物理存储绑定待Few核验。",
+      "algorithm_en": "The owning warming program freezes latest raw metrics per complete round; physical storage and recovery are unverified.",
+      "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
+      "fields": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "冻结观测ID"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "uuid | null",
+          "label_zh": "可空UUID；最热榜仅接已核实coin"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名，不参与身份匹配"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "string",
+          "label_zh": "resolved/source_only/lookup_error/conflict"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "string",
+          "label_zh": "最热候选须coin；旧asset/token标签须显式适配"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源范围"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "稳定CoinGecko coin ID"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string",
+          "label_zh": "固定usd"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "一致覆盖版本"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "datetime",
+          "label_zh": "请求时间；历史锚点"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "datetime",
+          "label_zh": "实际接收时间"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "datetime",
+          "label_zh": "来源观测时间"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "string",
+          "label_zh": "来源质量状态"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number",
+          "label_zh": "滚动24h成交额，USD"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number",
+          "label_zh": "USD价格，有限且>0"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number",
+          "label_zh": "USD市值，有限且>0"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number",
+          "label_zh": "来源有符号24h涨跌幅"
+        },
+        {
+          "name": "metric_id",
+          "data_type": "string",
+          "label_zh": "版本化冻结指标ID"
+        },
+        {
+          "name": "metric_version",
+          "data_type": "string",
+          "label_zh": "market_indicators_v2"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "来源响应引用"
+        }
+      ],
+      "input_fields": [
+        "observation_id",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "object_kind",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "quality_status",
+        "total_volume",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "metric_id",
+        "metric_version",
+        "snapshot_ref"
+      ],
+      "output_fields": [
+        "observation_id",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "object_kind",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "quality_status",
+        "total_volume",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "metric_id",
+        "metric_version",
+        "snapshot_ref"
+      ]
+    },
+    {
+      "key": "rank",
+      "name": "生成基础升温榜",
+      "kind": "process",
+      "description_zh": "近期增长速度排序，双榜允许重叠，增长是否加快另作解释。",
+      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多10。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
+      "algorithm_en": "Rank positive 1h growth above the daily seven-day baseline. Allow hottest overlap; acceleration is explanatory, never a ranking weight.",
+      "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
+      "fields": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "冻结观测ID"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "uuid | null",
+          "label_zh": "可空UUID；最热榜仅接已核实coin"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名，不参与身份匹配"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "string",
+          "label_zh": "resolved/source_only/lookup_error/conflict"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "string",
+          "label_zh": "最热候选须coin；旧asset/token标签须显式适配"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源范围"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "稳定CoinGecko coin ID"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string",
+          "label_zh": "固定usd"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "一致覆盖版本"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "datetime",
+          "label_zh": "请求时间；历史锚点"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "datetime",
+          "label_zh": "实际接收时间"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "datetime",
+          "label_zh": "来源观测时间"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "string",
+          "label_zh": "来源质量状态"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number",
+          "label_zh": "滚动24h成交额，USD"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number",
+          "label_zh": "USD价格，有限且>0"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number",
+          "label_zh": "USD市值，有限且>0"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number",
+          "label_zh": "来源有符号24h涨跌幅"
+        },
+        {
+          "name": "metric_id",
+          "data_type": "string",
+          "label_zh": "版本化冻结指标ID"
+        },
+        {
+          "name": "metric_version",
+          "data_type": "string",
+          "label_zh": "market_indicators_v2"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "来源响应引用"
+        },
+        {
+          "name": "warming_baseline_mean_7d",
+          "data_type": "number | null",
+          "label_zh": "升温日冻结7日成交额均值，不是最热随观测更新基线"
+        },
+        {
+          "name": "warming_baseline_days",
+          "data_type": "integer",
+          "label_zh": "匹配到的历史日目标数，完整要求7"
+        },
+        {
+          "name": "warming_baseline_refs_json",
+          "data_type": "json",
+          "label_zh": "七个UTC日界目标及实际历史观测引用"
+        },
+        {
+          "name": "warming_baseline_at",
+          "data_type": "datetime",
+          "label_zh": "本轮基准日界UTC00:00，上海08:00"
+        },
+        {
+          "name": "warming_baseline_status",
+          "data_type": "string",
+          "label_zh": "完整/缺历史/零基准/冲突状态"
+        },
+        {
+          "name": "warming_multiple",
+          "data_type": "number | null",
+          "label_zh": "当前滚动24h成交额／升温日冻结基准"
+        },
+        {
+          "name": "history_1h_volume",
+          "data_type": "number | null",
+          "label_zh": "一小时前目标匹配的滚动24h成交额，非新增1h成交额"
+        },
+        {
+          "name": "history_1h_ref_json",
+          "data_type": "json | null",
+          "label_zh": "1h比较目标、实际采样时间、观测引用"
+        },
+        {
+          "name": "history_2h_volume",
+          "data_type": "number | null",
+          "label_zh": "两小时前目标匹配的滚动24h成交额，仅用于解释"
+        },
+        {
+          "name": "history_2h_ref_json",
+          "data_type": "json | null",
+          "label_zh": "2h比较目标、实际采样时间、观测引用"
+        },
+        {
+          "name": "growth_1h",
+          "data_type": "number | null",
+          "label_zh": "近期1h目标成交额增长率，小数0.2表示20%"
+        },
+        {
+          "name": "previous_growth_1h",
+          "data_type": "number | null",
+          "label_zh": "前一个1h目标窗口增长率，小数"
+        },
+        {
+          "name": "growth_change_pp",
+          "data_type": "number | null",
+          "label_zh": "两段增长率差，百分点；不参与排名，不是新增成交额加速度"
+        },
+        {
+          "name": "growth_change_status",
+          "data_type": "string",
+          "label_zh": "加快/近似稳定/放缓/历史不足"
+        },
+        {
+          "name": "warming_status",
+          "data_type": "string",
+          "label_zh": "指标完整或不可用原因"
+        },
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定asset/<asset_id>"
+        },
+        {
+          "name": "rank",
+          "data_type": "integer",
+          "label_zh": "近期增长率降序、常态倍数降序、asset_id升序"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "label_zh": "兼容下游排序字段，值等于growth_1h，非旧评分/Z"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "coingecko_warming_growth_v1"
+        },
+        {
+          "name": "calculation_status",
+          "data_type": "string",
+          "label_zh": "成功冻结快照行为success"
+        },
+        {
+          "name": "snapshot_id",
+          "data_type": "string",
+          "label_zh": "同一输入/版本/批次冻结标识"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "datetime",
+          "label_zh": "本轮演算时刻"
+        },
+        {
+          "name": "source_as_of",
+          "data_type": "datetime",
+          "label_zh": "冻结来源cutoff"
+        },
+        {
+          "name": "sample_count",
+          "data_type": "integer",
+          "label_zh": "本轮合格当前候选数，截取前"
+        },
+        {
+          "name": "excluded_count",
+          "data_type": "integer",
+          "label_zh": "排除候选数"
+        },
+        {
+          "name": "excluded_reasons_json",
+          "data_type": "json",
+          "label_zh": "本轮未入榜原因"
+        },
+        {
+          "name": "warming_warmup",
+          "data_type": "boolean",
+          "label_zh": "有合格当前候选但无完整基准/1h指标；空批为false"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "label_zh": "成交额、增长和基准的事实解释，不推断巨鲸或内幕"
+        },
+        {
+          "name": "trend_status",
+          "data_type": "string",
+          "label_zh": "warming，不表示价格上涨"
+        },
+        {
+          "name": "price_direction",
+          "data_type": "string",
+          "label_zh": "来源24h涨跌方向，不称作1h方向"
+        },
+        {
+          "name": "observation_refs_json",
+          "data_type": "json",
+          "label_zh": "当前、基准及1h/2h历史引用"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "本批来源运行引用"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string",
+          "label_zh": "rolling_24h_with_1h_comparison"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源未给出滚动统计起点则null"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源未给出滚动统计止点则null"
+        }
+      ],
+      "input_fields": [
+        "observation_id",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "object_kind",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "quality_status",
+        "total_volume",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "metric_id",
+        "metric_version",
+        "snapshot_ref"
+      ],
+      "output_fields": [
+        "observation_id",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "object_kind",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "quality_status",
+        "total_volume",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "metric_id",
+        "metric_version",
+        "snapshot_ref",
+        "warming_baseline_mean_7d",
+        "warming_baseline_days",
+        "warming_baseline_refs_json",
+        "warming_baseline_at",
+        "warming_baseline_status",
+        "warming_multiple",
+        "history_1h_volume",
+        "history_1h_ref_json",
+        "history_2h_volume",
+        "history_2h_ref_json",
+        "growth_1h",
+        "previous_growth_1h",
+        "growth_change_pp",
+        "growth_change_status",
+        "warming_status",
+        "object_key",
+        "rank",
+        "score",
+        "algorithm_version",
+        "calculation_status",
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "sample_count",
+        "excluded_count",
+        "excluded_reasons_json",
+        "warming_warmup",
+        "reason",
+        "trend_status",
+        "price_direction",
+        "observation_refs_json",
+        "run_id",
+        "window_label",
+        "window_start",
+        "window_end"
+      ]
+    },
+    {
+      "key": "result",
+      "name": "leaderboard_warming",
+      "kind": "table",
+      "description_zh": "原子升温快照：增长率、常态倍数、是否加快及完整追溯。",
+      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多10。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
+      "algorithm_en": "Atomic warming rows ordered by growth, baseline multiple, then asset ID; no score ledger or hottest exclusion.",
+      "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
+      "fields": [
+        {
+          "name": "observation_id",
+          "data_type": "string",
+          "label_zh": "冻结观测ID"
+        },
+        {
+          "name": "asset_id",
+          "data_type": "uuid | null",
+          "label_zh": "可空UUID；最热榜仅接已核实coin"
+        },
+        {
+          "name": "asset_name",
+          "data_type": "string | null",
+          "label_zh": "展示名，不参与身份匹配"
+        },
+        {
+          "name": "identity_status",
+          "data_type": "string",
+          "label_zh": "resolved/source_only/lookup_error/conflict"
+        },
+        {
+          "name": "object_kind",
+          "data_type": "string",
+          "label_zh": "最热候选须coin；旧asset/token标签须显式适配"
+        },
+        {
+          "name": "source_id",
+          "data_type": "string",
+          "label_zh": "来源范围"
+        },
+        {
+          "name": "source_object_id",
+          "data_type": "string",
+          "label_zh": "稳定CoinGecko coin ID"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "string",
+          "label_zh": "固定usd"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "一致覆盖版本"
+        },
+        {
+          "name": "requested_at",
+          "data_type": "datetime",
+          "label_zh": "请求时间；历史锚点"
+        },
+        {
+          "name": "collected_at",
+          "data_type": "datetime",
+          "label_zh": "实际接收时间"
+        },
+        {
+          "name": "observed_at",
+          "data_type": "datetime",
+          "label_zh": "来源观测时间"
+        },
+        {
+          "name": "quality_status",
+          "data_type": "string",
+          "label_zh": "来源质量状态"
+        },
+        {
+          "name": "total_volume",
+          "data_type": "number",
+          "label_zh": "滚动24h成交额，USD"
+        },
+        {
+          "name": "current_price",
+          "data_type": "number",
+          "label_zh": "USD价格，有限且>0"
+        },
+        {
+          "name": "market_cap",
+          "data_type": "number",
+          "label_zh": "USD市值，有限且>0"
+        },
+        {
+          "name": "price_change_percentage_24h",
+          "data_type": "number",
+          "label_zh": "来源有符号24h涨跌幅"
+        },
+        {
+          "name": "metric_id",
+          "data_type": "string",
+          "label_zh": "版本化冻结指标ID"
+        },
+        {
+          "name": "metric_version",
+          "data_type": "string",
+          "label_zh": "market_indicators_v2"
+        },
+        {
+          "name": "snapshot_ref",
+          "data_type": "string",
+          "label_zh": "来源响应引用"
+        },
+        {
+          "name": "warming_baseline_mean_7d",
+          "data_type": "number | null",
+          "label_zh": "升温日冻结7日成交额均值，不是最热随观测更新基线"
+        },
+        {
+          "name": "warming_baseline_days",
+          "data_type": "integer",
+          "label_zh": "匹配到的历史日目标数，完整要求7"
+        },
+        {
+          "name": "warming_baseline_refs_json",
+          "data_type": "json",
+          "label_zh": "七个UTC日界目标及实际历史观测引用"
+        },
+        {
+          "name": "warming_baseline_at",
+          "data_type": "datetime",
+          "label_zh": "本轮基准日界UTC00:00，上海08:00"
+        },
+        {
+          "name": "warming_baseline_status",
+          "data_type": "string",
+          "label_zh": "完整/缺历史/零基准/冲突状态"
+        },
+        {
+          "name": "warming_multiple",
+          "data_type": "number | null",
+          "label_zh": "当前滚动24h成交额／升温日冻结基准"
+        },
+        {
+          "name": "history_1h_volume",
+          "data_type": "number | null",
+          "label_zh": "一小时前目标匹配的滚动24h成交额，非新增1h成交额"
+        },
+        {
+          "name": "history_1h_ref_json",
+          "data_type": "json | null",
+          "label_zh": "1h比较目标、实际采样时间、观测引用"
+        },
+        {
+          "name": "history_2h_volume",
+          "data_type": "number | null",
+          "label_zh": "两小时前目标匹配的滚动24h成交额，仅用于解释"
+        },
+        {
+          "name": "history_2h_ref_json",
+          "data_type": "json | null",
+          "label_zh": "2h比较目标、实际采样时间、观测引用"
+        },
+        {
+          "name": "growth_1h",
+          "data_type": "number | null",
+          "label_zh": "近期1h目标成交额增长率，小数0.2表示20%"
+        },
+        {
+          "name": "previous_growth_1h",
+          "data_type": "number | null",
+          "label_zh": "前一个1h目标窗口增长率，小数"
+        },
+        {
+          "name": "growth_change_pp",
+          "data_type": "number | null",
+          "label_zh": "两段增长率差，百分点；不参与排名，不是新增成交额加速度"
+        },
+        {
+          "name": "growth_change_status",
+          "data_type": "string",
+          "label_zh": "加快/近似稳定/放缓/历史不足"
+        },
+        {
+          "name": "warming_status",
+          "data_type": "string",
+          "label_zh": "指标完整或不可用原因"
+        },
+        {
+          "name": "object_key",
+          "data_type": "string",
+          "label_zh": "稳定asset/<asset_id>"
+        },
+        {
+          "name": "rank",
+          "data_type": "integer",
+          "label_zh": "近期增长率降序、常态倍数降序、asset_id升序"
+        },
+        {
+          "name": "score",
+          "data_type": "number",
+          "label_zh": "兼容下游排序字段，值等于growth_1h，非旧评分/Z"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "coingecko_warming_growth_v1"
+        },
+        {
+          "name": "calculation_status",
+          "data_type": "string",
+          "label_zh": "成功冻结快照行为success"
+        },
+        {
+          "name": "snapshot_id",
+          "data_type": "string",
+          "label_zh": "同一输入/版本/批次冻结标识"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "datetime",
+          "label_zh": "本轮演算时刻"
+        },
+        {
+          "name": "source_as_of",
+          "data_type": "datetime",
+          "label_zh": "冻结来源cutoff"
+        },
+        {
+          "name": "sample_count",
+          "data_type": "integer",
+          "label_zh": "本轮合格当前候选数，截取前"
+        },
+        {
+          "name": "excluded_count",
+          "data_type": "integer",
+          "label_zh": "排除候选数"
+        },
+        {
+          "name": "excluded_reasons_json",
+          "data_type": "json",
+          "label_zh": "本轮未入榜原因"
+        },
+        {
+          "name": "warming_warmup",
+          "data_type": "boolean",
+          "label_zh": "有合格当前候选但无完整基准/1h指标；空批为false"
+        },
+        {
+          "name": "reason",
+          "data_type": "string",
+          "label_zh": "成交额、增长和基准的事实解释，不推断巨鲸或内幕"
+        },
+        {
+          "name": "trend_status",
+          "data_type": "string",
+          "label_zh": "warming，不表示价格上涨"
+        },
+        {
+          "name": "price_direction",
+          "data_type": "string",
+          "label_zh": "来源24h涨跌方向，不称作1h方向"
+        },
+        {
+          "name": "observation_refs_json",
+          "data_type": "json",
+          "label_zh": "当前、基准及1h/2h历史引用"
+        },
+        {
+          "name": "run_id",
+          "data_type": "string",
+          "label_zh": "本批来源运行引用"
+        },
+        {
+          "name": "window_label",
+          "data_type": "string",
+          "label_zh": "rolling_24h_with_1h_comparison"
+        },
+        {
+          "name": "window_start",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源未给出滚动统计起点则null"
+        },
+        {
+          "name": "window_end",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "来源未给出滚动统计止点则null"
+        }
+      ],
+      "input_fields": [
+        "observation_id",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "object_kind",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "quality_status",
+        "total_volume",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "metric_id",
+        "metric_version",
+        "snapshot_ref",
+        "warming_baseline_mean_7d",
+        "warming_baseline_days",
+        "warming_baseline_refs_json",
+        "warming_baseline_at",
+        "warming_baseline_status",
+        "warming_multiple",
+        "history_1h_volume",
+        "history_1h_ref_json",
+        "history_2h_volume",
+        "history_2h_ref_json",
+        "growth_1h",
+        "previous_growth_1h",
+        "growth_change_pp",
+        "growth_change_status",
+        "warming_status",
+        "object_key",
+        "rank",
+        "score",
+        "algorithm_version",
+        "calculation_status",
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "sample_count",
+        "excluded_count",
+        "excluded_reasons_json",
+        "warming_warmup",
+        "reason",
+        "trend_status",
+        "price_direction",
+        "observation_refs_json",
+        "run_id",
+        "window_label",
+        "window_start",
+        "window_end"
+      ],
+      "output_fields": [
+        "observation_id",
+        "asset_id",
+        "asset_name",
+        "identity_status",
+        "object_kind",
+        "source_id",
+        "source_object_id",
+        "quote_currency",
+        "coverage_key",
+        "requested_at",
+        "collected_at",
+        "observed_at",
+        "quality_status",
+        "total_volume",
+        "current_price",
+        "market_cap",
+        "price_change_percentage_24h",
+        "metric_id",
+        "metric_version",
+        "snapshot_ref",
+        "warming_baseline_mean_7d",
+        "warming_baseline_days",
+        "warming_baseline_refs_json",
+        "warming_baseline_at",
+        "warming_baseline_status",
+        "warming_multiple",
+        "history_1h_volume",
+        "history_1h_ref_json",
+        "history_2h_volume",
+        "history_2h_ref_json",
+        "growth_1h",
+        "previous_growth_1h",
+        "growth_change_pp",
+        "growth_change_status",
+        "warming_status",
+        "object_key",
+        "rank",
+        "score",
+        "algorithm_version",
+        "calculation_status",
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "sample_count",
+        "excluded_count",
+        "excluded_reasons_json",
+        "warming_warmup",
+        "reason",
+        "trend_status",
+        "price_direction",
+        "observation_refs_json",
+        "run_id",
+        "window_label",
+        "window_start",
+        "window_end"
+      ]
+    }
+  ]
+}
