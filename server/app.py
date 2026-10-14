@@ -44,6 +44,7 @@ from remove_retired_discovery_board import ensure_remove_retired_discovery_board
 from search_preparation import ensure_search_preparation
 from coingecko_hottest import ensure_coingecko_hottest
 from hottest_warmup import ensure_hottest_warmup
+from hottest_round_trigger import ensure_hottest_round_trigger
 from card_corrections import ensure_card_corrections
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -89,6 +90,7 @@ ensure_search_preparation(service)
 ensure_coingecko_hottest(service)
 ensure_card_corrections(service)
 ensure_hottest_warmup(service)
+ensure_hottest_round_trigger(service)
 
 
 class Handler(BaseHTTPRequestHandler):

@@ -61,7 +61,13 @@ All-degenerate or single-asset cohorts are incomparable and cannot publish a nor
 ranking. An empty qualified cohort under healthy complete coverage is a successful
 empty result. Partial/unknown/failed coverage must not masquerade as an empty market.
 
-Every five minutes, target a new atomic snapshot. Sort full-precision score descending,
+Trigger revision approved 2026-10-14 in [SS-105](https://app.notion.com/p/3f9038a63d5a814281cfd87056dfaa04):
+once all indicator results from one crawler round arrive with healthy complete
+coverage, freeze that round at its cutoff and calculate one atomic snapshot. Do not
+use a fixed five-minute schedule or mix rounds. One round corresponds to one frozen
+batch; retries use the same snapshot identity and identical inputs. Actual round
+identity, completion notification and durable deduplication remain Few implementation
+requirements, unverified here. Sort full-precision score descending,
 then asset ID ascending, take at most 20, display two decimals. Keep original values,
 log1p values, raw/clipped Z, weights/contributions, cohort median/MAD/scale, exclusions,
 input references and timestamps. Age >=900 seconds expires the result. Replaying a

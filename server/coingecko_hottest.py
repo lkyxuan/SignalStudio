@@ -98,7 +98,7 @@ def ensure_coingecko_hottest(service):
             observed_rows=[], algorithm_version=spec['version'])
         cfg['resource'].pop('indicator_dependency', None)
         cfg['action'] = {'id': 'hottest.' + key if entry['kind'] == 'process' else '', 'version': 1, 'implementation': 'planned'}
-        cfg['trigger'] = {'kind': 'schedule', 'interval_seconds': 300} if key == 'rank' else {'kind': 'unspecified'}
+        cfg['trigger'] = spec['trigger'] if key == 'rank' else {'kind': 'unspecified'}
         if key in ('baseline', 'rvol'):
             cfg['resource'].update(parent_module={'node_id': nodes['parent']['id'], 'reference_number': nodes['parent']['reference_number']},
                 nullable_identity_context=True, execution_scope='shared_polars_program')

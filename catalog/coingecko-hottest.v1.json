@@ -29,7 +29,6 @@
     "history_days": 7,
     "history_tolerance_minutes": 30,
     "required_history_days": 7,
-    "refresh_seconds": 300,
     "max_source_age_seconds": 900,
     "result_expiry_seconds": 900,
     "top_n": 20,
@@ -45,6 +44,7 @@
     "No automatic history collector/backfill; reuse the 14-day archive design; real coverage unknown."
   ],
   "batch_rules": [
+    "One crawler round produces one frozen ranking batch only after all its indicator results arrive and coverage is healthy and complete; no fixed five-minute schedule or mixed-round inputs.",
     "Freeze latest observed input per asset at one cutoff before checking RVOL; no fallback to older complete metrics.",
     "Freeze cohort, coverage, parameters, normalization stats, observations and result under snapshot_id; retry identical payload or reject conflict.",
     "Identity resolved, object_kind coin, USD, finite positive price and market cap, source age≤15min; do not apply old volume/cap scoring gates.",
@@ -294,7 +294,7 @@
       "description_en": "Keep each asset’s latest as-of metrics and coverage; never substitute an older history-complete observation.",
       "algorithm_zh": "接收market_indicators_v2，按来源稳定ID和已核实UUID幂等更新；本轮冻结全体最新候选、样本范围、覆盖与输入引用。失败/身份冲突隔离；物理存储与恢复绑定待Few核验。 RVOL不可用不剔除币：原值null，仅放量项Z/贡献为0，权重不变；RVOL统计仅用有效值，其他三项用全部合格候选。非空合格候选全缺RVOL时快照rvol_warmup=true，前端注明「暂按三项排序」；缺失倍数显示「—」。",
       "algorithm_en": "Consume v2, resolve stable source identity, and freeze a batch of latest candidates with cutoff, coverage and references. Isolate conflicts; physical storage and recovery remain unbound. Unavailable RVOL keeps qualified coins with null raw values and zero RVOL Z/contribution, unchanged weights. RVOL statistics use valid values only; other metrics use all qualified candidates. Nonempty all-missing RVOL cohorts set rvol_warmup=true: “Temporarily ranked by three metrics”; missing multiples show “—”.",
-      "trigger_zh": "由最热处理程序消费#5007并维护；每5分钟固定cutoff供排名读取。",
+      "trigger_zh": "由最热处理程序消费#5007并维护；每收齐一轮爬虫固定该轮cutoff供排名读取，不混用不同轮次。",
       "fields": [
         {
           "name": "observation_id",
@@ -470,7 +470,7 @@
       "description_en": "Rank the current cohort by four-factor robust Z trading heat; top 20.",
       "algorithm_zh": "同批次每项y=ln(1+x)，Z=(y−median(y))/(1.4826×MAD(y))并截断[−3,+3]。热度=0.35×Z(RVOL)+0.25×Z(换手率)+0.20×Z(成交额)+0.20×Z(绝对涨跌幅)。MAD尺度≤1e−12的分项全体0并标注退化，不重分配权重；全部退化不可比较。全精度排序，同分asset_id升序。直接快照排名，不读旧activity_score、不累计或衰减。 RVOL不可用不剔除币：原值null，仅放量项Z/贡献为0，权重不变；RVOL统计仅用有效值，其他三项用全部合格候选。非空合格候选全缺RVOL时快照rvol_warmup=true，前端注明「暂按三项排序」；缺失倍数显示「—」。",
       "algorithm_en": "Within one frozen cohort, transform log1p, center by median and scale by 1.4826 MAD; clip Z to [−3,+3]. Weights: RVOL .35, turnover .25, volume .20, absolute move .20. Degenerate scale ≤1e−12 contributes zero without reweighting; all-degenerate batches are incomparable. Sort full precision, then asset ID. No event accumulation or decay. Unavailable RVOL keeps qualified coins with null raw values and zero RVOL Z/contribution, unchanged weights. RVOL statistics use valid values only; other metrics use all qualified candidates. Nonempty all-missing RVOL cohorts set rvol_warmup=true: “Temporarily ranked by three metrics”; missing multiples show “—”.",
-      "trigger_zh": "每5分钟一批；来源≤15分钟，覆盖健康且完整才发布；失败不使用旧榜冒充当前。",
+      "trigger_zh": "每收齐一轮爬虫算一次；同轮指标收齐、覆盖健康且完整才冻结并计算一批；来源≤15分钟，失败不使用旧榜冒充当前。",
       "fields": [
         {
           "name": "observation_id",
@@ -1078,5 +1078,12 @@
         "rvol_warmup"
       ]
     }
-  ]
+  ],
+  "trigger": {
+    "kind": "event",
+    "event": "crawler_round_complete",
+    "condition": "All indicator results for the same crawler round received; coverage healthy and complete",
+    "idempotency": "One frozen snapshot per crawler round; identical replay only"
+  },
+  "trigger_rationale_url": "https://app.notion.com/p/3f9038a63d5a814281cfd87056dfaa04"
 }
