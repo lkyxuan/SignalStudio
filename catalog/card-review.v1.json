@@ -1,0 +1,81 @@
+{
+  "version": "card-review.v1",
+  "default_status": "unknown",
+  "statuses": [
+    {
+      "id": "unknown",
+      "label_zh": "待核实",
+      "label_en": "Unconfirmed",
+      "meaning_zh": "没有当前有效依据，或相关版本变化后需要重新核实。"
+    },
+    {
+      "id": "incomplete",
+      "label_zh": "未完成",
+      "label_en": "Incomplete",
+      "meaning_zh": "尚未实现或仅部分完成。"
+    },
+    {
+      "id": "pending_review",
+      "label_zh": "待核验",
+      "label_en": "Awaiting review",
+      "meaning_zh": "实现侧已提交完成报告，尚未核验通过。"
+    },
+    {
+      "id": "passed",
+      "label_zh": "已通过",
+      "label_en": "Passed",
+      "meaning_zh": "针对指定设计与代码版本的检查项已通过。"
+    },
+    {
+      "id": "mismatch",
+      "label_zh": "有偏差",
+      "label_en": "Mismatch",
+      "meaning_zh": "已观察到实现与设计有差异。"
+    },
+    {
+      "id": "discussion",
+      "label_zh": "待讨论",
+      "label_en": "Needs discussion",
+      "meaning_zh": "设计约束、歧义或相互冲突的报告需要讨论。"
+    }
+  ],
+  "report_fields": {
+    "schema_version": "固定 card-review.v1",
+    "node_id": "卡片逻辑 ID",
+    "definition_revision": "当前逐卡语义修订",
+    "package_revision": "读取材料时的设计包修订",
+    "code_repository": "实现仓库地址或稳定标识",
+    "code_revision": "被检查的完整 Git commit SHA（40 或 64 位）",
+    "reported_by": "报告方稳定标识；当前为调用方声明",
+    "reporter_role": "implementer 或 reviewer；角色是声明，不是认证",
+    "status": "六种状态之一；passed 仅限 reviewer",
+    "summary": "简短原因/结论",
+    "evidence_ref": "报告证据引用",
+    "checks": "检查项数组，每项含 requirement、result（pass/fail/unverified）、evidence_ref",
+    "differences": "具体差异字符串数组",
+    "unverified_items": "未验证项字符串数组",
+    "implementation_report_id": "审核报告必填，指向同一卡/设计/仓库/代码版本的实现报告",
+    "supersedes_report_ids": "可选；仅替代自己的同卡、同角色、同设计/代码版本报告",
+    "reported_at": "服务端生成的 UTC 时间",
+    "id": "服务端生成的报告 ID",
+    "base_implementation_report_id": "实现报告必填（首份为 null）；读取审阅材料 progress.active_implementation_report_id，明确接续当前实现版本"
+  },
+  "identity_policy": "Existing trusted workspace access; reporter identities and roles are declared, not authenticated. No independent-identity guarantee.",
+  "code_version_policy": "Agent pins a repository commit. Studio does not poll external repositories or infer deployment/runtime health.",
+  "required_report_fields": [
+    "schema_version",
+    "node_id",
+    "definition_revision",
+    "package_revision",
+    "code_repository",
+    "code_revision",
+    "reported_by",
+    "reporter_role",
+    "status",
+    "summary",
+    "evidence_ref",
+    "checks",
+    "differences",
+    "unverified_items"
+  ]
+}

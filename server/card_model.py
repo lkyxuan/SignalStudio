@@ -537,17 +537,27 @@ class CardModel:
         if data.get('package_revision') != package['package_revision']:
             raise ValueError('Runtime report refers to an outdated definition package')
         node_id = data.get('node_id')
+        if node_id is not None and (not isinstance(node_id, str) or not node_id.strip()):
+            raise ValueError('Report node_id must be a nonempty card ID')
         if node_id:
             self.service.get_node(node_id)
         if any(not isinstance(data.get(key), str) or not data[key].strip()
                for key in ('code_revision', 'evidence_ref')):
             raise ValueError('Runtime reports require code revision and evidence reference')
-        allowed = {'implementation':{'unknown','planned','not_started','in_progress','partial','implemented','verified','blocked','not_implemented','disputed','mismatch'},
+        modern = 'schema_version' in data
+        if modern:
+            from card_reviews import validate
+            from card_progress import definition_revisions
+            revision = definition_revisions(package['graph']).get(node_id)
+            data = validate(self, data, revision)
+        allowed = {'implementation':{'unknown','planned','not_started','in_progress','partial','implemented','verified','blocked','not_implemented','disputed','mismatch','incomplete','pending_review','passed','discussion'},
                    'deployment':{'unknown','not_deployed','deployed'},'health':{'unknown','healthy','degraded','failed'},
                    'coverage':{'unknown','partial','complete'},'research_validity':{'unknown','unvalidated','validated','rejected'}}
         observations = data.get('observations')
         if not isinstance(observations,dict) or not observations or any(key not in allowed or not isinstance(value,str) or value not in allowed[key] for key,value in observations.items()):
             raise ValueError('Invalid independent evidence dimensions')
+        if not modern and observations.get('implementation') in {'incomplete','pending_review','passed','discussion'}:
+            raise ValueError('New review states require schema_version card-review.v1')
         for key in ('reported_by', 'environment', 'summary'):
             if key in data and (not isinstance(data[key],str) or not data[key].strip()):
                 raise ValueError('Report attribution and summary must be nonempty text')
@@ -561,7 +571,7 @@ class CardModel:
         if data.get('definition_revision') and data['definition_revision'] != revision:
             raise ValueError('Runtime report refers to an outdated card definition')
         report = {**data,'definition_revision':revision,'reported_at':now(),
-                  'claims_are':'reported_observation_not_independent_verification'}
+                  'claims_are':data['claims_are'] if modern else 'reported_observation_not_independent_verification'}
         identifier = uid()
         self.db.execute('INSERT INTO graph_definition_reports VALUES (?,?,?,?,?)',
                         (identifier,package['package_revision'],node_id,encoded(report),report['reported_at']))

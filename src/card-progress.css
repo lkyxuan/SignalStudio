@@ -1,6 +1,6 @@
 .card-progress-badge{display:inline-block;align-self:flex-start;border:1px solid var(--ss-border);border-radius:4px;padding:1px 6px;font-size:10px;line-height:16px;font-weight:500;color:var(--ss-muted);background:var(--ss-raised);white-space:nowrap}
-.card-progress-badge.progress-implemented{color:var(--ss-success);background:var(--ss-success-soft)}
-.card-progress-badge.progress-disputed,.card-progress-badge.progress-mismatch{color:var(--ss-warning);background:var(--ss-warning-soft)}
+.card-progress-badge.progress-passed{color:var(--ss-success);background:var(--ss-success-soft)}
+.card-progress-badge.progress-discussion,.card-progress-badge.progress-mismatch{color:var(--ss-warning);background:var(--ss-warning-soft)}
 .logic-node .node-top.node-top{height:18px;flex-wrap:nowrap}
 .logic-node.logic-node{gap:6px}
 .logic-node>.card-progress-badge{height:20px;flex:none}
@@ -10,3 +10,9 @@
 .card-progress-note small,.card-progress-note summary{color:var(--ss-muted)}
 .card-progress-note summary{cursor:pointer;margin-top:6px}
 .local-neighbor-node>.card-progress-badge,.local-focus-node>.card-progress-badge{margin-top:8px}
+
+.card-progress-badge.progress-pending_review{color:var(--ss-accent);background:var(--ss-raised)}
+.card-progress-note dd{margin:0 0 6px;overflow-wrap:anywhere}.card-progress-note dt{color:var(--ss-muted)}
+.card-progress-note li{margin-bottom:10px}.card-progress-note li>small{display:block}
+
+.card-progress-note small{overflow-wrap:anywhere}

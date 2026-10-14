@@ -159,12 +159,14 @@ with no glow. The top category stripe retains its category color in every intera
 state. Hover uses #a0a0a0; direct-neighbor cards and relationship lines use #777777.
 Selection/search takes precedence over hover, which takes precedence over related-card
 styling. Directly selected connection lines retain their existing editing feedback.
-Each card now has one implementation-check label: implemented, not implemented,
-disputed, or different from the card; absent or stale reports show unconfirmed.
-Studio renders the label from Few Understand's attributed per-card report. The
-label does not establish deployment or runtime success. Keep the short reason and
-collapsed evidence in details; do not add a separate design-stage dashboard.
-See [the report contract](CARD_MODEL.md#卡片实现核对标签).
+Each card, including newly created cards, has one shared implementation-check label:
+unconfirmed, incomplete, awaiting review, passed, mismatch, or needs discussion.
+New cards default to unconfirmed without invented reports. Studio computes the label
+from version-pinned implementation/reviewer reports, preserving history and conflicts.
+Legacy implementation reports do not become review passes. The label does not establish
+authenticated reviewer identity, deployment or runtime success. Show versions, reporter,
+checks and evidence in details. See [the Agent review contract](CARD_REVIEW_API.md)
+and `catalog/card-review.v1.json` for fields, transitions and conflict rules.
 
 Implemented in the shared graph stylesheet and node renderer. Verification for the header
 refinement is recorded in SS-46 and selection treatment in SS-47; earlier frame build/layout and browser coverage is in the

@@ -48,27 +48,13 @@ Studio 负责定义、存储、校验、迁移、展示及交付；Few Understan
 
 ## 卡片实现核对标签
 
-[SS-44批准范围及简化要求](https://app.notion.com/p/3f5038a63d5a81f0bd3cf69b5d53506a)：画布每张卡仅一个标签：已实现、未实现、有分歧、与卡片不一致。没有逐卡回报或定义已变更时显示待核实。Studio负责展示，Few Understand实现侧负责填报；详情仅提供一句原因、报告归属/时间和折叠依据。标签不建立部署、运行或本侧独立验收结论。
+[SS-103](https://app.notion.com/p/3f9038a63d5a8167b9dfed143f9b0b0a)（2026-10-14 批准）扩展 [SS-44](https://app.notion.com/p/3f5038a63d5a81f0bd3cf69b5d53506a) 的现有逐卡回报接口。每卡一个三字标签：待核实、未完成、待核验、已通过、有偏差、待讨论。新建卡默认待核实，不伪造报告。统一字段规范在 `catalog/card-review.v1.json`；[完整接口、字段、版本及合成规则](CARD_REVIEW_API.md) 是当前开发契约。
 
-继续使用 `POST /api/graph/reports`，请求带当前图 `If-Match`、`X-Card-Model`，以及当前完整包的 `package_revision`。逐卡请求示例（占位符不是运行证据）：
+`GET /api/nodes/{id}/review` 返回逐卡审阅材料，`GET /api/nodes/{id}/reports` 返回追加历史；`POST /api/graph/reports` 保持兼容并接收 `card-review.v1`。新报告必须绑定当前设计包/逐卡修订和实现仓库完整 commit，区分 implementer 与 reviewer；通过报告必须引用同一卡及版本的实现报告，检查项通过且无差异/未验证项。身份和角色仍是调用方声明，不等于独立认证。
 
-```json
-{
-  "node_id": "<graph.nodes中对应卡号的id>",
-  "package_revision": "<GET /api/graph/package返回的package_revision>",
-  "code_revision": "<Few提交>",
-  "evidence_ref": "<实现/测试依据链接或引用>",
-  "reported_by": "few_understand",
-  "summary": "与卡片不同的地方或核对结论，一句话即可",
-  "observations": {"implementation": "mismatch"}
-}
-```
+`GET /api/graph` 的 `card_progress` 为所有卡片返回服务端合成状态、当前设计修订、代表报告、冲突标志及历史摘要。旧 implemented/verified 只显示待核验；缺失/过期报告显示待核实。当前目标上的有效审核结论冲突不能按最后写入变成通过；明确新实现版本后，旧 commit 的迟到审核不切换当前目标。
 
-`implementation` 使用 `implemented / not_implemented / disputed / mismatch`。有分歧表示需求/解释尚有分歧；不一致表示已观察实现与卡片定义不同。后两种必须有简短原因，新状态必须指定卡片及报告方。身份仍是调用方声明，当前共享服务未增加独立认证。旧字段/状态继续接受：verified显示已实现但仍是实现侧回报，not_started/in_progress显示未实现（具体进展可写原因），partial显示与卡片不一致；planned/blocked无法可靠映射四种结论，显示待核实。
-
-`GET /api/graph` 的 `card_progress` 按节点ID返回标签依据，沿用现有图刷新和编辑冲突保护。服务为逐卡回报保存 `definition_revision`，绑定该卡行为、配置、当前模块摘要、相邻字段结构及连接映射；改标题/坐标、无关卡片或写回报不使标签失效。业务/相关输入发生变化后旧回报保存在原报告表，当前标签退回待核实。没有逐卡修订的历史回报保留为未对齐，不自动套用到当前定义。全图报告不广播为所有卡片已实现。每次回报是完整观察，不继承前次部署/健康声明。
-
-标签和回报不进入执行包或语义摘要；没有新增业务表、调度或自动同步设施。不修改 `action.implementation` 或结构ready来代替真实回报。
+逐卡 `definition_revision` 绑定行为、配置、模块摘要、相邻字段结构和连接映射；标题/坐标/无关卡片和写报告不使标签失效。行为或相关输入变更后历史报告保留，当前结论退回待核实。标签和报告不进入执行包或语义摘要，不表示部署、运行健康或研究有效。外部代码版本变化依赖 Agent 明确回报，不是自动仓库监控。
 
 ## 连线语义与触发追溯
 

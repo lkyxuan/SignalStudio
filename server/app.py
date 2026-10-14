@@ -185,6 +185,13 @@ class Handler(BaseHTTPRequestHandler):
             if not node_ids or len(node_ids) > 100 or not node_ids.issubset({n['id'] for n in graph['nodes']}):
                 raise GraphError('Invalid detail selection')
             return details(graph, node_ids)
+        if parts == ['api','card-reviews','schema'] and method == 'GET':
+            from card_reviews import STANDARD
+            return STANDARD
+        if len(parts) == 4 and parts[:2] == ['api','nodes'] and parts[3] in ('review', 'reports') and method == 'GET':
+            from card_reviews import material, history
+            return material(card_model, parts[2]) if parts[3] == 'review' else {
+                'node_id': parts[2], 'reports': history(card_model, parts[2])}
         if parts == ['api','card-model'] and method == 'GET':
             return {**MODEL,'actions':card_model.action_registry()}
         if parts == ['api','graph','readiness'] and method == 'GET':

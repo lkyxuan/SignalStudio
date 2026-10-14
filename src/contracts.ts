@@ -70,13 +70,22 @@ export const requirementSchema = z.looseObject({
   source_field_id: id.nullable(), created_at: text, updated_at: text,
 });
 export const cardProgressReportSchema = z.looseObject({
+  id:text.optional(), schema_version:text.optional(),
+  code_repository:text.optional(), reporter_role:z.enum(['implementer','reviewer']).optional(),
+  status:text.optional(), implementation_report_id:text.optional(),
+  checks:z.array(z.object({requirement:text,result:z.enum(['pass','fail','unverified']),evidence_ref:text})).optional(),
+  differences:z.array(text).optional(),unverified_items:z.array(text).optional(),
   package_revision: text, definition_revision: text.nullable().optional(),
   code_revision: text, evidence_ref: text, reported_at: text.optional(),
   reported_by: text.optional(), environment: text.optional(), summary: text.optional(),
   observations: z.record(text, text),
 });
 export const cardProgressSchema = z.object({
+  schema_version:text.optional(), status:text.optional(),conflict:z.boolean().optional(),reason:text.optional(),
+  active_report_ids:z.array(text).optional(),active_implementation_report_id:text.optional(),
+  active_code_repository:text.optional(),active_code_revision:text.optional(),
   definition_revision: text, report:cardProgressReportSchema.nullable(), stale:z.boolean(),
+  history:z.array(cardProgressReportSchema.partial().extend({id:text})).optional(),
 });
 export type CardProgress = z.infer<typeof cardProgressSchema>;
 export const graphSchema = z.looseObject({

@@ -51,7 +51,11 @@ class CardProgress:
             current = [r for r in observed if r.get('definition_revision') == revision]
             # Each report is a complete observation, never merge a prior healthy
             # deployment into a newer partial/failed implementation report.
-            latest = current[-1] if current else None
-            result[node_id] = {'definition_revision': revision, 'report': latest,
-                'stale': bool(observed and not latest)}
+            from card_reviews import aggregate
+            conclusion = aggregate(current)
+            result[node_id] = {**conclusion, 'schema_version': 'card-review.v1',
+                'definition_revision': revision, 'stale': bool(observed and not current),
+                'history': [{k: r[k] for k in ('id','schema_version','definition_revision','code_repository',
+                    'code_revision','reported_by','reporter_role','reported_at','summary','evidence_ref','status',
+                    'observations','implementation_report_id','supersedes_report_ids') if k in r} for r in reversed(observed)]}
         return result
