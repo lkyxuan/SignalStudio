@@ -65,6 +65,10 @@ async function requestData(path: string, options: RequestOptions = {}, condition
 }
 
 export async function requestGraph(revision?: string, workspace?: Workspace, base?: Graph | null): Promise<Graph | typeof NOT_MODIFIED> {
+  // Older clients may have cached this server revision after stripping new
+  // review fields. A 304/delta cannot restore fields missing from that base.
+  if (base?.card_progress && Object.values(base.card_progress).some(progress =>
+    progress.schema_version !== 'card-review.v1' || !Array.isArray(progress.history))) revision = undefined;
   const headers = { 'X-Graph-Transport': 'canvas.v1', ...(revision ? { 'If-None-Match': `"${revision}"` } : {}),
     ...(base?.transport === 'canvas.v1' && revision ? { 'X-Graph-Base': revision } : {}),
     ...(workspace ? { 'X-Workspace-Identity': JSON.stringify(workspace) } : {}) };

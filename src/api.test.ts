@@ -45,3 +45,21 @@ test('conditional graph responses skip JSON; reads have an enforced timeout and 
   await assert.rejects(request('/nodes', { method: 'POST', body: {}, timeoutMs: 10 }), error => error instanceof DOMException && error.name === 'TimeoutError');
   assert.equal(fetch.mock.callCount(), 2);
 });
+
+
+test('old cached revision without review history forces a full graph read', async context => {
+  const {requestGraph} = await import('./api');
+  const old = {...serverGraph(), revision:'same', transport:'canvas.v1',
+    card_progress:{card:{definition_revision:'design',report:null,stale:true}}};
+  const current={...old,card_progress:{card:{...old.card_progress.card,schema_version:'card-review.v1',
+    status:'unknown',history:[{id:'historical',code_revision:'legacy'}]}}};
+  context.mock.method(globalThis,'fetch',async (_url:string, options:RequestInit)=>{
+    const headers=new Headers(options.headers);
+    assert.equal(headers.has('If-None-Match'),false);
+    assert.equal(headers.has('X-Graph-Base'),false);
+    return Response.json(current);
+  });
+  const result=await requestGraph('same',undefined,old);
+  assert.notEqual(typeof result,'symbol');
+  if(typeof result!=='symbol') assert.equal(result.card_progress?.card?.history?.length,1);
+});
