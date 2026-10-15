@@ -646,5 +646,109 @@
     "definition_paths": [
       "catalog/coingecko-warming.v1.json"
     ]
+  },
+  "content.items": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "content.bodies": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "值得读 · 摘要指纹": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "值得读 · 正文指纹": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "值得读 · 摘要翻译": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "值得读 · 正文翻译": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "content.translator_usage": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "content.translations": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "值得读 · 译文同步": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "app_worth_reading": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "app_worth_reading_bodies": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "app_worth_reading_translations": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
+  },
+  "值得读 · 中文阅读界面": {
+    "kind": "interface",
+    "subtype": "home_page",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/worth-reading-translation.v1.json"
+    ]
   }
 }

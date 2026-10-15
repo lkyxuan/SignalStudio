@@ -1,3 +1,4 @@
+import {WorthReadingTranslationCard, translationCard} from './WorthReadingTranslationCard';
 import React, { useEffect, useState } from 'react';
 import { detailKind, cardRelations, decisionBranches, decisionActor, executionSummary, cardExplanation, resourceSettings, isCatalogSource } from './cardDetailModel';
 import { CardDetailContext } from './CardDetailContext';
@@ -123,7 +124,7 @@ function TableDetails(props) {
     {hottestCard(node) && <HottestDesignPreview {...props}/>}
     {!warmingCard(node) && hasCoinGeckoPreview(node) && <CoinGeckoDesignPreview {...props}/>}
     {!warmingCard(node) && !hottestCard(node) && <ExistingTableReference active={hasCoinGeckoPreview(node)} language={language}>
-    {special ? contentRefreshCard(node.name) ? <ContentRefreshCard {...props}/> : <LeaderboardScaffoldCard {...props}/>
+    {translationCard(node) ? <WorthReadingTranslationCard {...props}/> : special ? contentRefreshCard(node.name) ? <ContentRefreshCard {...props}/> : <LeaderboardScaffoldCard {...props}/>
       : businessTables.tables[node.name] ? <BusinessTableCard {...props}/> : <GenericTableCard {...props}/>}
     </ExistingTableReference>}
     <CardConnections {...props}/>
@@ -139,19 +140,20 @@ export function CardDetails(props) {
   const kind=detailKind(node);
   if (kind === 'unknown' || node.card_contract?.config.read_only) return <section className="card-details card-detail-unknown" data-card-detail-kind="unknown"><h3>{words(language,'只读定义','Read-only definition')}</h3><p>{node.definition}</p><p>{words(language,'定义尚不能按当前卡片类型安全解释，保留原始内容供核对。','This definition cannot be safely interpreted by the current templates. Original content is retained for review.')}</p><pre>{JSON.stringify(node.card_contract,null,2)}</pre></section>;
   const execution=kind === 'process'||kind === 'decision';
-  const explanation=cardExplanation(node,language);
+  const translation = translationCard(node);
+  const explanation=translation ? translation[language === 'zh-CN' ? 'rule_zh' : 'rule_en'] : cardExplanation(node,language);
   return <div className={`card-details card-details-${kind}`} data-card-detail-kind={kind}>
     <CardDetailContext.Provider value={true}>
-      {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
+      {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? translationCard(node) ? <><WorthReadingTranslationCard {...props}/><CardConnections {...props}/></> : <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
         {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
-        {warmingCard(node) ? <WarmingDesignPreview {...props}/> : hottestCard(node) ? <HottestDesignPreview {...props}/> : hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
+        {translationCard(node) ? <WorthReadingTranslationCard {...props}/> : warmingCard(node) ? <WarmingDesignPreview {...props}/> : hottestCard(node) ? <HottestDesignPreview {...props}/> : hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
         {kind === 'state' && leaderboardCard(node.name) && <section className="card-detail-execution"><h3>{words(language,'窗口与保留规则','Window and retention')}</h3><p>{node.definition}</p><p>{words(language,'业务比较窗口见上述定义；存储 TTL、更新时间索引及丢失后的重建绑定尚未核验，不能按业务窗口推断。','See the definition for the business window. TTL, update time index and recovery bindings remain unverified.')}</p></section>}
         {kind === 'decision' && <Branches {...props}/>}
         <CardConnections {...props}/>
         {execution && <>
           <section className="card-detail-execution"><h3>{words(language,'何时运行','When it runs')}</h3><p>{executionSummary(node,language)}</p>
             <p>{words(language,'以上为定义；打开详情只读数据，不启动这一步。','Definition only; opening details reads data without starting this step.')}</p>
-            {(node.caveats || node.trigger_rule) && <p>{node.trigger_rule || node.caveats}</p>}
+            {(node.caveats || node.trigger_rule) && <p>{translation && language !== 'zh-CN' ? ['summary','body','sync'].includes(translation.key) ? 'One content-translator service runs every 3 minutes; these are not separate jobs.' : 'Existing writes or UI reads; Studio does not execute this step.' : node.trigger_rule || node.caveats}</p>}
           </section>
           {node.name === scoreRollup.node.name ? <ScoreRollupExplanation language={language}/> : <section className="processing-goal-readonly processing-algorithm"><h3>{words(language,kind === 'decision'?'判断规则':'怎么处理',kind === 'decision'?'Decision rule':'How it works')}</h3>
             <p>{explanation || words(language,'规则尚未定义，暂时无法给出可验证的推导。','No rule is defined; a verifiable derivation is unavailable.')}</p>

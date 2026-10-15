@@ -1,3 +1,4 @@
+import translationSpec from '../catalog/worth-reading-translation.v1.json';
 import type { Language, GraphNode } from './contracts';
 const zh: Record<string, string> = {
   'asset_initial_score_sources': '首次建档来源评分配置',
@@ -345,6 +346,8 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  const translatedCard = translationSpec.cards.find(card => card.name === name);
+  if (language !== 'zh-CN' && translatedCard) return translatedCard.name_en;
   const heatNames: Record<string,string> = {'Polars · 计算7日成交额基线':'Polars · Seven-day volume baseline','Polars · 计算7日相对放量RVOL':'Polars · Seven-day relative volume','CoinGecko · 最热榜候选快照':'CoinGecko · Latest heat candidates'};
   if(language!=='zh-CN' && heatNames[name]) return heatNames[name];
   if (name === '榜单与信号首页') return language === 'zh-CN' ? name : 'Boards and signals home';

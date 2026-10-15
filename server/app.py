@@ -47,6 +47,7 @@ from hottest_warmup import ensure_hottest_warmup
 from hottest_round_trigger import ensure_hottest_round_trigger
 from coingecko_warming import ensure_coingecko_warming
 from card_corrections import ensure_card_corrections
+from worth_reading_translation import ensure_worth_reading_translation
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -93,6 +94,7 @@ ensure_card_corrections(service)
 ensure_hottest_warmup(service)
 ensure_hottest_round_trigger(service)
 ensure_coingecko_warming(service)
+ensure_worth_reading_translation(service)
 
 
 class Handler(BaseHTTPRequestHandler):

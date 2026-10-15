@@ -1,0 +1,864 @@
+{
+  "version": "worth-reading-translation.v1",
+  "rationale_url": "https://app.notion.com/p/3fa038a63d5a81bfbc58c4f5f326e207",
+  "delivery_scope": "studio_mapping_only",
+  "implementation_reference": {
+    "repository": "cyberight-cap/fewunderstand",
+    "commit": "848a64f8e8d1ff7e4c19ab5ef003cfc46eb1d329",
+    "paths": [
+      "consumer/content_translator/config.testnet.yaml",
+      "consumer/content_translator/README.md",
+      "consumer/content_translator/llm.py",
+      "infrastructure/postgres/migrations/20261015120000_content_translations.sql",
+      "supabase/migrations/20261015120000_add_app_worth_reading_translations.sql",
+      "web/domain/worth-reading.ts"
+    ]
+  },
+  "evidence": {
+    "code": "Inspected fixed commit; not executed by Studio.",
+    "testnet": "Fewunderstand FEW-88 reports testnet delivery; not independently revalidated by Studio.",
+    "production": "Not verified; no production publication in this task."
+  },
+  "cards": [
+    {
+      "key": "items",
+      "name": "content.items",
+      "name_en": "Content items",
+      "kind": "table",
+      "description_zh": "Worth Reading 已收集内容的内部存储。",
+      "description_en": "Internal storage of collected Worth Reading items.",
+      "rule_zh": "由既有 content-store 写入；本卡只列翻译使用的字段，不代表完整物理表结构。",
+      "rule_en": "Written by existing content-store. Listed fields are a translation subset, not the full table schema.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "summary",
+          "data_type": "string",
+          "label_zh": "原文摘要",
+          "label_en": "Original summary"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "updated_at",
+          "label_en": "updated_at"
+        }
+      ],
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "key": "bodies",
+      "name": "content.bodies",
+      "name_en": "Fetched bodies",
+      "kind": "table",
+      "description_zh": "已抓取正文及内容版本。",
+      "description_en": "Fetched bodies and their source versions.",
+      "rule_zh": "只翻译 status=ok 正文；body_id 是完整正文 SHA-256，前端正文可能被截断，不重新从展示文本计算。",
+      "rule_en": "Translate status=ok only; body_id hashes full text. Never derive it from truncated display text.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "body_id",
+          "data_type": "string",
+          "label_zh": "body_id",
+          "label_en": "body_id"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "正文或译文文本；含义随表而定",
+          "label_en": "Body or translation text, according to table"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        }
+      ],
+      "position": [
+        0,
+        380
+      ]
+    },
+    {
+      "key": "summary_hash",
+      "name": "值得读 · 摘要指纹",
+      "name_en": "Worth Reading · Summary fingerprint",
+      "kind": "process",
+      "description_zh": "保存摘要对应的 SHA-256，供译文匹配。",
+      "description_en": "Save a summary fingerprint for translation matching.",
+      "rule_zh": "content-store 写入/投影摘要时计算 summary_hash；无摘要则为空。指纹不作为内容身份。",
+      "rule_en": "content-store calculates summary_hash on summary projection; absent summary gives null. A fingerprint is not content identity.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "summary",
+          "data_type": "string",
+          "label_zh": "原文摘要",
+          "label_en": "Original summary"
+        },
+        {
+          "name": "summary_hash",
+          "data_type": "string | null",
+          "label_zh": "摘要指纹",
+          "label_en": "Summary fingerprint"
+        },
+        {
+          "name": "item_id",
+          "data_type": "string",
+          "label_zh": "不透明公开条目 ID；不等于 content_id",
+          "label_en": "Opaque public ID; not content_id"
+        }
+      ],
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "key": "body_hash",
+      "name": "值得读 · 正文指纹",
+      "name_en": "Worth Reading · Body fingerprint",
+      "kind": "process",
+      "description_zh": "将成功正文的完整版本投影到前端库。",
+      "description_en": "Project the successful full-body version to the frontend store.",
+      "rule_zh": "content-body-fetcher 成功时以 body_id 写 body_hash；旧记录缺哈希仅检查当前看板并重推。",
+      "rule_en": "content-body-fetcher uses body_id for body_hash on success; missing legacy hashes are republished for current-board items only.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "body_id",
+          "data_type": "string",
+          "label_zh": "body_id",
+          "label_en": "body_id"
+        },
+        {
+          "name": "body_hash",
+          "data_type": "string | null",
+          "label_zh": "完整正文指纹；不是截断展示文本哈希",
+          "label_en": "Full-body fingerprint, not hash of truncated display text"
+        },
+        {
+          "name": "item_id",
+          "data_type": "string",
+          "label_zh": "不透明公开条目 ID；不等于 content_id",
+          "label_en": "Opaque public ID; not content_id"
+        }
+      ],
+      "position": [
+        480,
+        380
+      ]
+    },
+    {
+      "key": "summary",
+      "name": "值得读 · 摘要翻译",
+      "name_en": "Worth Reading · Translate summary",
+      "kind": "process",
+      "description_zh": "后台领取摘要任务并生成简体中文。",
+      "description_en": "Claim summary jobs and translate into Simplified Chinese.",
+      "rule_zh": "同一 content-translator 每3分钟调度；最近48小时条目排队，摘要优先，按 content_id/field/source_hash/target_lang 去重并租约领取。所有语种均交模型，原样返回记 same_language。",
+      "rule_en": "One content-translator service runs every 3 minutes, queues items seen within 48 hours, prioritizes summaries, deduplicates by content_id/field/source_hash/target_lang and leases claims. All languages go to the model; identical output is same_language.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "summary",
+          "data_type": "string",
+          "label_zh": "原文摘要",
+          "label_en": "Original summary"
+        },
+        {
+          "name": "source_hash",
+          "data_type": "string",
+          "label_zh": "被翻译原文的 SHA-256",
+          "label_en": "SHA-256 of translated source"
+        },
+        {
+          "name": "field",
+          "data_type": "summary | body",
+          "label_zh": "翻译字段",
+          "label_en": "Translated field"
+        },
+        {
+          "name": "target_lang",
+          "data_type": "zh",
+          "label_zh": "目标语言",
+          "label_en": "Target language"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        }
+      ],
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "key": "body",
+      "name": "值得读 · 正文翻译",
+      "name_en": "Worth Reading · Translate body",
+      "kind": "process",
+      "description_zh": "同一翻译服务分块处理成功正文。",
+      "description_en": "The same translator service processes fetched bodies in chunks.",
+      "rule_zh": "body 按最多2000字符分块（代码配置，修正回写1000字），最长20000字符，顺序翻译；每块和合并全文校验链接/地址/$TICKER的种类与次数，任一失败整篇不发布。译文超过40000字符失败。",
+      "rule_en": "Bodies up to 20,000 characters split into chunks of at most 2,000 characters (code configuration, correcting reported 1,000). Translate sequentially and validate protected-token counts per chunk and whole text. Any failed chunk fails the body; output over 40,000 characters fails.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "正文或译文文本；含义随表而定",
+          "label_en": "Body or translation text, according to table"
+        },
+        {
+          "name": "source_hash",
+          "data_type": "string",
+          "label_zh": "被翻译原文的 SHA-256",
+          "label_en": "SHA-256 of translated source"
+        },
+        {
+          "name": "field",
+          "data_type": "summary | body",
+          "label_zh": "翻译字段",
+          "label_en": "Translated field"
+        },
+        {
+          "name": "target_lang",
+          "data_type": "zh",
+          "label_zh": "目标语言",
+          "label_en": "Target language"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        }
+      ],
+      "position": [
+        960,
+        380
+      ]
+    },
+    {
+      "key": "quota",
+      "name": "content.translator_usage",
+      "name_en": "Translation call budget",
+      "kind": "table",
+      "description_zh": "按 UTC 日持久记录 API 调用预留次数。",
+      "description_en": "Durable API-call reservations per UTC day.",
+      "rule_zh": "每次HTTP请求前原子预留1次，默认每日1000次；分块每块单独扣减。用完不发请求、不消耗任务重试次数，次日再试；这不是已核验的供应商免费额度。",
+      "rule_en": "Reserve one call atomically before every HTTP request; default daily cap 1,000. Each chunk reserves separately. Exhaustion defers without consuming retry attempts. This is an application cap, not verified provider quota.",
+      "fields": [
+        {
+          "name": "day",
+          "data_type": "UTC date",
+          "label_zh": "day",
+          "label_en": "day"
+        },
+        {
+          "name": "calls",
+          "data_type": "integer",
+          "label_zh": "calls",
+          "label_en": "calls"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "updated_at",
+          "label_en": "updated_at"
+        }
+      ],
+      "position": [
+        960,
+        760
+      ]
+    },
+    {
+      "key": "translations",
+      "name": "content.translations",
+      "name_en": "Versioned translations",
+      "kind": "table",
+      "description_zh": "版本化翻译队列、租约和结果。",
+      "description_en": "Versioned translation queue, leases and results.",
+      "rule_zh": "主键(content_id,field,source_hash,target_lang)。状态pending/translating/ok/same_language/failed。失败最多6次，退避1分/5分/30分/2小时/6小时；401/403放回且本轮停止，30分钟后重试。",
+      "rule_en": "Primary key (content_id,field,source_hash,target_lang). States pending/translating/ok/same_language/failed. At most 6 attempts, backoff 1m/5m/30m/2h/6h. 401/403 defers and stops the run for 30m.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "field",
+          "data_type": "summary | body",
+          "label_zh": "翻译字段",
+          "label_en": "Translated field"
+        },
+        {
+          "name": "source_hash",
+          "data_type": "string",
+          "label_zh": "被翻译原文的 SHA-256",
+          "label_en": "SHA-256 of translated source"
+        },
+        {
+          "name": "target_lang",
+          "data_type": "zh",
+          "label_zh": "目标语言",
+          "label_en": "Target language"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "正文或译文文本；含义随表而定",
+          "label_en": "Body or translation text, according to table"
+        },
+        {
+          "name": "attempts",
+          "data_type": "integer",
+          "label_zh": "attempts",
+          "label_en": "attempts"
+        },
+        {
+          "name": "next_attempt_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "next_attempt_at",
+          "label_en": "next_attempt_at"
+        },
+        {
+          "name": "locked_until",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "locked_until",
+          "label_en": "locked_until"
+        },
+        {
+          "name": "last_error",
+          "data_type": "string | null",
+          "label_zh": "last_error",
+          "label_en": "last_error"
+        },
+        {
+          "name": "request_model",
+          "data_type": "string",
+          "label_zh": "request_model",
+          "label_en": "request_model"
+        },
+        {
+          "name": "response_model",
+          "data_type": "string",
+          "label_zh": "response_model",
+          "label_en": "response_model"
+        },
+        {
+          "name": "translated_at",
+          "data_type": "UTC timestamp | null",
+          "label_zh": "translated_at",
+          "label_en": "translated_at"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "updated_at",
+          "label_en": "updated_at"
+        }
+      ],
+      "position": [
+        1440,
+        190
+      ]
+    },
+    {
+      "key": "sync",
+      "name": "值得读 · 译文同步",
+      "name_en": "Worth Reading · Project translations",
+      "kind": "process",
+      "description_zh": "将终态译文同步到 Supabase。",
+      "description_en": "Project final translation outcomes into Supabase.",
+      "rule_zh": "同一服务同步ok/same_language/最终failed，content_id映射公开item_id；source_version取译文/条目更新时间较新者（Unix微秒），旧版本不能覆盖新版本。仅清理不在当前看板且超过7天译文。",
+      "rule_en": "The same service projects ok/same_language/final failed, mapping internal content_id to public item_id. source_version is the newer translation/item update in Unix microseconds; older writes cannot replace newer. Cleanup excludes current-board items and retains 7 days.",
+      "fields": [
+        {
+          "name": "content_id",
+          "data_type": "string",
+          "label_zh": "内部内容 ID",
+          "label_en": "Internal content ID"
+        },
+        {
+          "name": "item_id",
+          "data_type": "string",
+          "label_zh": "不透明公开条目 ID；不等于 content_id",
+          "label_en": "Opaque public ID; not content_id"
+        },
+        {
+          "name": "field",
+          "data_type": "summary | body",
+          "label_zh": "翻译字段",
+          "label_en": "Translated field"
+        },
+        {
+          "name": "source_hash",
+          "data_type": "string",
+          "label_zh": "被翻译原文的 SHA-256",
+          "label_en": "SHA-256 of translated source"
+        },
+        {
+          "name": "target_lang",
+          "data_type": "zh",
+          "label_zh": "目标语言",
+          "label_en": "Target language"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "正文或译文文本；含义随表而定",
+          "label_en": "Body or translation text, according to table"
+        },
+        {
+          "name": "source_version",
+          "data_type": "integer",
+          "label_zh": "source_version",
+          "label_en": "source_version"
+        }
+      ],
+      "position": [
+        1920,
+        190
+      ]
+    },
+    {
+      "key": "board",
+      "name": "app_worth_reading",
+      "name_en": "Worth Reading summary projection",
+      "kind": "table",
+      "description_zh": "前端摘要与当前指纹。",
+      "description_en": "Frontend summary and current fingerprint.",
+      "rule_zh": "既有看板投影；这里是字段子集，不新增采集或改变排名。",
+      "rule_en": "Existing board projection; field subset only. No new collection or ranking changes.",
+      "fields": [
+        {
+          "name": "item_id",
+          "data_type": "string",
+          "label_zh": "不透明公开条目 ID；不等于 content_id",
+          "label_en": "Opaque public ID; not content_id"
+        },
+        {
+          "name": "summary",
+          "data_type": "string",
+          "label_zh": "原文摘要",
+          "label_en": "Original summary"
+        },
+        {
+          "name": "summary_hash",
+          "data_type": "string | null",
+          "label_zh": "摘要指纹",
+          "label_en": "Summary fingerprint"
+        }
+      ],
+      "position": [
+        1920,
+        -190
+      ]
+    },
+    {
+      "key": "body_projection",
+      "name": "app_worth_reading_bodies",
+      "name_en": "Worth Reading body projection",
+      "kind": "table",
+      "description_zh": "前端正文与完整原文指纹。",
+      "description_en": "Frontend body and full-source fingerprint.",
+      "rule_zh": "既有正文投影；body_hash仅成功正文有效，不能从截断body_text计算。",
+      "rule_en": "Existing body projection. body_hash is valid for successful bodies and cannot be computed from truncated body_text.",
+      "fields": [
+        {
+          "name": "item_id",
+          "data_type": "string",
+          "label_zh": "不透明公开条目 ID；不等于 content_id",
+          "label_en": "Opaque public ID; not content_id"
+        },
+        {
+          "name": "body_text",
+          "data_type": "string",
+          "label_zh": "body_text",
+          "label_en": "body_text"
+        },
+        {
+          "name": "body_hash",
+          "data_type": "string | null",
+          "label_zh": "完整正文指纹；不是截断展示文本哈希",
+          "label_en": "Full-body fingerprint, not hash of truncated display text"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        }
+      ],
+      "position": [
+        1920,
+        570
+      ]
+    },
+    {
+      "key": "projection",
+      "name": "app_worth_reading_translations",
+      "name_en": "Frontend translations",
+      "kind": "table",
+      "description_zh": "按条目、字段、语言保存最新译文。",
+      "description_en": "Latest translation by public item, field and language.",
+      "rule_zh": "主键(item_id,field,lang)，仅ok/same_language/failed；text最多40000字符，带source_hash和source_version；不用于评分或信号。",
+      "rule_en": "Key (item_id,field,lang); only ok/same_language/failed. Text limit 40,000 characters; includes source_hash/source_version. Never used for scoring or signals.",
+      "fields": [
+        {
+          "name": "item_id",
+          "data_type": "string",
+          "label_zh": "不透明公开条目 ID；不等于 content_id",
+          "label_en": "Opaque public ID; not content_id"
+        },
+        {
+          "name": "field",
+          "data_type": "summary | body",
+          "label_zh": "翻译字段",
+          "label_en": "Translated field"
+        },
+        {
+          "name": "lang",
+          "data_type": "zh",
+          "label_zh": "lang",
+          "label_en": "lang"
+        },
+        {
+          "name": "source_hash",
+          "data_type": "string",
+          "label_zh": "被翻译原文的 SHA-256",
+          "label_en": "SHA-256 of translated source"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "正文或译文文本；含义随表而定",
+          "label_en": "Body or translation text, according to table"
+        },
+        {
+          "name": "source_version",
+          "data_type": "integer",
+          "label_zh": "source_version",
+          "label_en": "source_version"
+        },
+        {
+          "name": "translated_at",
+          "data_type": "UTC timestamp",
+          "label_zh": "translated_at",
+          "label_en": "translated_at"
+        }
+      ],
+      "position": [
+        2400,
+        190
+      ]
+    },
+    {
+      "key": "ui",
+      "name": "值得读 · 中文阅读界面",
+      "name_en": "Worth Reading · Chinese reading UI",
+      "kind": "interface",
+      "description_zh": "中文模式读取匹配当前指纹的机器译文。",
+      "description_en": "Chinese mode reads machine translations matching current fingerprints.",
+      "rule_zh": "中文只显示译文；哈希不匹配或尚未完成显示“译文生成中”，最终失败显示“翻译失败”；same_language显示模型确认的原文，标机器翻译。详情可查看原文，英文/Origin不变。页面不调用模型。",
+      "rule_en": "Chinese mode shows matching translations only; missing/mismatched versions show translation pending, final failure shows translation failed. same_language uses model-confirmed unchanged text. Mark machine translation. Details allow original text; English/Origin stay unchanged. Page never calls the model.",
+      "fields": [
+        {
+          "name": "item_id",
+          "data_type": "string",
+          "label_zh": "不透明公开条目 ID；不等于 content_id",
+          "label_en": "Opaque public ID; not content_id"
+        },
+        {
+          "name": "field",
+          "data_type": "summary | body",
+          "label_zh": "翻译字段",
+          "label_en": "Translated field"
+        },
+        {
+          "name": "source_hash",
+          "data_type": "string",
+          "label_zh": "被翻译原文的 SHA-256",
+          "label_en": "SHA-256 of translated source"
+        },
+        {
+          "name": "summary_hash",
+          "data_type": "string | null",
+          "label_zh": "摘要指纹",
+          "label_en": "Summary fingerprint"
+        },
+        {
+          "name": "body_hash",
+          "data_type": "string | null",
+          "label_zh": "完整正文指纹；不是截断展示文本哈希",
+          "label_en": "Full-body fingerprint, not hash of truncated display text"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "处理状态，取值按本卡规则",
+          "label_en": "Status; see this card"
+        },
+        {
+          "name": "text",
+          "data_type": "string",
+          "label_zh": "正文或译文文本；含义随表而定",
+          "label_en": "Body or translation text, according to table"
+        }
+      ],
+      "position": [
+        2880,
+        190
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "items",
+      "target": "summary_hash",
+      "fields": [
+        "content_id",
+        "summary"
+      ],
+      "kind": "read",
+      "note": ""
+    },
+    {
+      "source": "bodies",
+      "target": "body_hash",
+      "fields": [
+        "content_id",
+        "body_id"
+      ],
+      "kind": "read",
+      "note": ""
+    },
+    {
+      "source": "summary_hash",
+      "target": "board",
+      "fields": [
+        "item_id",
+        "summary",
+        "summary_hash"
+      ],
+      "kind": "write",
+      "note": ""
+    },
+    {
+      "source": "body_hash",
+      "target": "body_projection",
+      "fields": [
+        "item_id",
+        "body_hash"
+      ],
+      "kind": "write",
+      "note": ""
+    },
+    {
+      "source": "items",
+      "target": "summary",
+      "fields": [
+        "content_id",
+        "summary"
+      ],
+      "kind": "read",
+      "note": ""
+    },
+    {
+      "source": "bodies",
+      "target": "body",
+      "fields": [
+        "content_id",
+        "text"
+      ],
+      "kind": "read",
+      "note": ""
+    },
+    {
+      "source": "quota",
+      "target": "summary",
+      "fields": [],
+      "kind": "read",
+      "note": "Call reservation happens inside this service; no automatic graph execution."
+    },
+    {
+      "source": "quota",
+      "target": "body",
+      "fields": [],
+      "kind": "read",
+      "note": ""
+    },
+    {
+      "source": "summary",
+      "target": "translations",
+      "fields": [
+        "content_id",
+        "field",
+        "source_hash",
+        "target_lang",
+        "status"
+      ],
+      "kind": "write",
+      "note": ""
+    },
+    {
+      "source": "body",
+      "target": "translations",
+      "fields": [
+        "content_id",
+        "field",
+        "source_hash",
+        "target_lang",
+        "status",
+        "text"
+      ],
+      "kind": "write",
+      "note": ""
+    },
+    {
+      "source": "translations",
+      "target": "sync",
+      "fields": [
+        "content_id",
+        "field",
+        "source_hash",
+        "status",
+        "text"
+      ],
+      "kind": "read",
+      "note": ""
+    },
+    {
+      "source": "items",
+      "target": "sync",
+      "fields": [
+        "content_id",
+        "updated_at"
+      ],
+      "kind": "read",
+      "note": ""
+    },
+    {
+      "source": "sync",
+      "target": "projection",
+      "fields": [
+        "item_id",
+        "field",
+        "source_hash",
+        "status",
+        "text",
+        "source_version"
+      ],
+      "kind": "write",
+      "note": ""
+    },
+    {
+      "source": "board",
+      "target": "ui",
+      "fields": [
+        "item_id",
+        "summary_hash"
+      ],
+      "kind": "reference",
+      "note": ""
+    },
+    {
+      "source": "body_projection",
+      "target": "ui",
+      "fields": [
+        "item_id",
+        "body_hash"
+      ],
+      "kind": "reference",
+      "note": ""
+    },
+    {
+      "source": "projection",
+      "target": "ui",
+      "fields": [
+        "item_id",
+        "field",
+        "source_hash",
+        "status",
+        "text"
+      ],
+      "kind": "reference",
+      "note": ""
+    }
+  ],
+  "service": {
+    "name": "content-translator",
+    "model": "songkey-auto",
+    "base_url": "https://key.bigsong.site/v1",
+    "interval_seconds": 180,
+    "batch_size": 20,
+    "run_seconds": 150,
+    "timeout_seconds": 90,
+    "max_tokens": 4096,
+    "chunk_chars": 2000,
+    "daily_call_cap": 1000,
+    "runtime_secret": "CONTENT_TRANSLATE_API_KEY",
+    "redpanda": "not used by translator; existing collection remains separate"
+  }
+}
