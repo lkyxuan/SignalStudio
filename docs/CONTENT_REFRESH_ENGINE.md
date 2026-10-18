@@ -1,7 +1,7 @@
-# Asset webpage preparation and refresh design
+# Asset webpage refresh and Grokbot boundary
 
-Current user decisions and implementation record: [SS-116](https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524),
-2026-10-19. Current contracts are `catalog/asset-webpage-flow.v1.json` and
+Current user decisions: [SS-120](https://app.notion.com/p/3fd038a63d5a81468d9aef141cac8f3f),
+2026-10-19, following [SS-116](https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524). Current contracts are `catalog/asset-grokbot-flow.v1.json` and
 `catalog/asset-pages.v1.json`. Delivery is Studio design only, with no crawler, webpage
 reader, generator, scheduler or production business storage deployed by these cards.
 
@@ -14,12 +14,28 @@ reader, generator, scheduler or production business storage deployed by these ca
    with the configured whole-page interval. The daily versus three-day interval is undecided
    and remains null; an existing page cannot be classified as expired without a configured
    interval. Unknown, malformed or future times and failed/partial reads need review.
-3. Only first-creation or due-update items proceed to #3045 reading available materials.
-   #4004 identifies gaps, #3046 supplements by search, #1024 retains search materials and
-   #3047 assembles the same asset's materials with source references and current webpage location.
-   The current search-required policy is retained; material readers and search tools are unbound.
-4. Preparation currently ends at #3047. A Grokbot webpage creation/update step is planned but
-   has not been created or assigned a reference number. There is no live generation or write-back.
+3. Only first-creation or due-update items enter #3045 **Grokbot · 制作或更新资产网页**.
+   Its existing UUID, number and display positions are preserved. Input contains the asset UUID,
+   action, reason, page age and existing webpage reference. The identifiers table is a non-triggering
+   identity lookup, not an execution event.
+4. Grokbot owns research and subsequent execution of the internal production workflow, including
+   gathering token information, finding gaps, organizing content, generating the page and self-checks.
+   These are responsibilities, not a fixed sequence. The two required tool paths are **external APIs/search**
+   and **SignalStudio reads of existing entity/material/business data**, both explicitly unconnected.
+   Declared catalog fields do not establish collected data or API coverage. Providers, permissions,
+   budgets, data interfaces, validation criteria and prompt/skill details await research.
+5. A design-only write relation maps `asset_id`, `saved_page_ref → page_ref`, `saved_at → updated_at`
+   to #1039. It requires a confirmed successful save for the same asset with nonempty saved reference
+   and time. Failed/unconnected/unconfirmed results do not write. Runtime validation, stale-completion
+   rejection and atomic saving remain unimplemented; the binding guard describes required behavior.
+
+The old #4004 gap decision, #3046 search, #1024 search cache and #3047 material assembly are removed
+from the active graph. Their former responsibilities are absorbed into Grokbot, and their particular
+schemas, realtime-search policy and ordering are not imposed on its future research. The current
+example returns `unconnected` with no saved location/time and cannot update the record table.
+`workflow_version` identifies the production specification actually used and is null until defined;
+it does not restore a webpage-version ledger. Future workflow revisions should be evaluated on fixed
+samples before adoption. This batch neither writes that workflow nor invokes Grokbot.
 
 #1039 holds one current record per asset: `asset_id`, `page_ref`, `updated_at`. The successful
 webpage writer should upsert this row after saving the page; failures preserve its previous
@@ -37,17 +53,15 @@ all existing constraints, including incomplete-reader and identity-coverage limi
 
 ## Materials and limitations
 
-Materials are separate from webpage update records. Keep original source URLs, known source
-publication times, collection times and source attribution. Unknown source time stays unknown;
-collection time does not replace it. A successful empty search and a search failure are distinct.
-Failures must not silently erase previously successful search materials. Freshness expiry is
-not a storage-deletion policy. Incremental webpage generation is a future implementation
-choice, not a delivered capability or a consequence of choosing a daily refresh interval.
+Materials remain separate from webpage update records. Preserve source attribution, evidence and
+known source times; unknown coverage and timestamps stay explicit. External APIs and internal
+system reads are both needed, but no real reader, search tool, generator, writer or publication
+integration has been verified. Internal workflow decomposition and material/cache schemas belong
+to subsequent Grokbot research. Incremental generation is not an implemented capability.
 
-The examples use hypothetical UUIDs, source URLs and results; observed result tables remain
-empty. The pure page-decision evaluator assumes a complete successful read for its examples;
-it does not perform actual queries. Storage, source freshness parameters, output validation,
-Grokbot integration, writer concurrency and webpage publication remain unverified.
+The examples contain hypothetical UUIDs and URLs. Observed business records are not supplied.
+The pure page-decision evaluator assumes a complete successful read for examples; it does not query
+storage. Page interval, output validation, concurrency and actual runtime behavior remain unverified.
 
 ## Upgrade and verification
 
@@ -58,8 +72,15 @@ and updates active definition references. Unknown outside connections, imported 
 unrelated field usages stop cleanup instead of silently discarding work. Partial changes roll
 back. Successful upgrade markers prevent reinstating retired cards on restart.
 
+`server/asset_grokbot_flow.py` then applies SS-120: it reuses #3045, removes the four internal cards,
+replaces their edges with the Grokbot boundary and guarded record write, and updates active definition
+references. Unknown external edges/field references, requirements or imported cache data stop the
+transaction for review. Other cards and saved display positions remain intact. A one-time description
+upgrade adds both data-access requirements to hosts that loaded the initial boundary before that
+clarification. `asset-webpage-flow.v1.json` is now a historical installation input.
+
 ```sh
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_asset_pages server.test_asset_page_refresh_link server.test_asset_webpage_flow server.test_card_model
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_asset_grokbot_flow server.test_asset_pages server.test_asset_page_refresh_link server.test_asset_webpage_flow server.test_card_model
 npx tsx --test src/assetWebpageDesign.test.ts src/cardDetailModel.test.ts
 npm run build
 node scripts/check_card_details.mjs /absolute/path/to/current-graph.json

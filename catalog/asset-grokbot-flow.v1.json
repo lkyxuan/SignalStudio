@@ -1,0 +1,450 @@
+{
+  "version": 1,
+  "approval_date": "2026-10-19",
+  "rationale_url": "https://app.notion.com/p/3fd038a63d5a81468d9aef141cac8f3f",
+  "delivery_scope": "studio_design_only",
+  "retired_cards": [
+    "判断资料缺口",
+    "搜索补缺",
+    "搜索资料暂存",
+    "组装生成资料"
+  ],
+  "cards": [
+    {
+      "key": "candidates",
+      "name": "候选代币筛选",
+      "kind": "process",
+      "description_zh": "合并升温、最热、新发现UUID三榜有效结果；仅已确认代币进入内容维护。",
+      "algorithm_zh": "各榜先校验完整有效批次并过滤已确认代币，再按本榜排序取前20，按asset_id合并去重；新发现按created_at倒序，其他两榜按score降序。保留本榜引用，缺榜独立跳过，不回退旧total_heat。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "calculated_at",
+          "type": "string",
+          "label_zh": "榜单计算时间"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "label_zh": "未舍入榜单分数"
+        },
+        {
+          "name": "algorithm_version",
+          "type": "string",
+          "label_zh": "榜单算法版本"
+        },
+        {
+          "name": "asset_kind",
+          "type": "string",
+          "label_zh": "只将coin交代币内容链"
+        },
+        {
+          "name": "created_at",
+          "type": "UTC timestamp",
+          "label_zh": "首次建档时间；新榜排序依据"
+        }
+      ],
+      "output_fields": [
+        "asset_id"
+      ]
+    },
+    {
+      "key": "decision",
+      "name": "刷新判断",
+      "kind": "decision",
+      "description_zh": "接收候选 UUID，查询 #1039 当前网页记录，判断首次制作或到期更新；一天/三天周期待定。",
+      "algorithm_zh": "按候选 asset_id 完整查询当前网页记录。无记录为首次制作；查询失败或不完整则待核对。有网页时，以网页最后成功更新时间判断年龄；未知、无效或未来时间不可猜测。有有效时间且达到已配置整页周期才更新，未到期跳过。当前周期未配置，不对已有网页作过期结论。只有首次制作或到期更新交给 Grokbot 整体制作。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "候选资产 UUID"
+        },
+        {
+          "name": "page_ref",
+          "type": "TEXT",
+          "label_zh": "当前网页位置；无网页可空"
+        },
+        {
+          "name": "page_updated_at",
+          "type": "TEXT",
+          "label_zh": "#1039.updated_at，网页最后成功更新时间"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "首次制作 / 更新 / 跳过 / 待核对"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "label_zh": "本次判定原因"
+        },
+        {
+          "name": "age_minutes",
+          "type": "number | null",
+          "label_zh": "网页自上次成功更新经过分钟；未知为空"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "reason",
+        "age_minutes",
+        "page_ref"
+      ]
+    },
+    {
+      "key": "grokbot",
+      "name": "Grokbot · 制作或更新资产网页",
+      "kind": "process",
+      "description_zh": "承接首次制作或到期更新，整体交由 Grokbot 制作资产网站；内部流程待研究和版本迭代。",
+      "algorithm_zh": "仅接收 #3029 首次制作或到期更新的资产 UUID、原因和旧网页位置，可按 UUID 读取外部身份。Grokbot 同时需要两类数据入口：通过 SignalStudio 系统工具读取已有实体、已收集资料与业务数据；通过外部 API / 搜索工具补充代币信息。不得把已有字段定义当作已采集数据。Grokbot 负责研究并执行资料读取、必要搜索、内容组织、网页制作与自检；这些是职责范围，不是固定顺序或已验证方案。后续由 Grokbot 研究拆分内部流程及 prompt / skill，制作规范可版本化迭代。系统确认同一资产网页已成功保存后，才以 saved_page_ref → page_ref、saved_at → updated_at 更新 #1039；失败、未接入或结果未确认时保留旧记录。工具、保存位置、验收细则及实际接入均待确定，本卡只描述整体边界。",
+      "trigger_zh": "仅由 #3029 的首次制作或到期更新分支进入；跳过、待核对不执行。读取身份、打开卡片或回写 #1039 不自动启动新任务。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一实体 UUID；输入与输出必须一致"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "来自 #3029 的 generate 首次制作或 refresh 到期更新"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "label_zh": "来自 #3029 的制作原因"
+        },
+        {
+          "name": "age_minutes",
+          "type": "number | null",
+          "label_zh": "网页年龄；首次或未知为空"
+        },
+        {
+          "name": "page_ref",
+          "type": "TEXT | null",
+          "label_zh": "输入的当前网页位置；首次可空"
+        },
+        {
+          "name": "source_namespace",
+          "type": "string",
+          "label_zh": "按资产读取的外部身份命名空间"
+        },
+        {
+          "name": "external_identifier",
+          "type": "string",
+          "label_zh": "按资产读取的外部稳定身份"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "label_zh": "unconnected / success / failed；success 须确认网页已保存"
+        },
+        {
+          "name": "saved_page_ref",
+          "type": "TEXT | null",
+          "label_zh": "输出的已成功保存网页位置；失败/未接入为空"
+        },
+        {
+          "name": "saved_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "输出的网页成功保存完成时间；失败/未接入为空"
+        },
+        {
+          "name": "workflow_version",
+          "type": "string | null",
+          "label_zh": "实际采用的制作规范版本；未确定留空，不等于网页历史版本"
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "label_zh": "失败或未接入的原因；不刷新旧成功时间"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "status",
+        "saved_page_ref",
+        "saved_at",
+        "workflow_version",
+        "error"
+      ],
+      "data_access": [
+        {
+          "id": "signalstudio",
+          "label_zh": "连接 SignalStudio 读取已有数据",
+          "label_en": "Read existing data through SignalStudio",
+          "description_zh": "按同一资产 UUID 查询系统已有实体、来源映射、已收集资料与业务数据；接口和覆盖待核验。",
+          "description_en": "Query existing entity, source mappings, collected materials and business data by asset UUID; interfaces and coverage await verification.",
+          "binding": null
+        },
+        {
+          "id": "external",
+          "label_zh": "调用外部 API / 搜索工具",
+          "label_en": "Call external APIs / search tools",
+          "description_zh": "查找并补充系统缺少的代币信息；具体 API、搜索服务、权限、预算和调用方式待研究。",
+          "description_en": "Find and supplement token information missing from the system; providers, permissions, budget and invocation await research.",
+          "binding": null
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "source": "候选代币筛选",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id"
+      ],
+      "note_zh": "候选资产 UUID 交给刷新判断。",
+      "branch": ""
+    },
+    {
+      "source": "asset_pages",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id",
+        "page_ref",
+        "updated_at"
+      ],
+      "mapping": {
+        "updated_at": "page_updated_at"
+      },
+      "note_zh": "按候选 UUID 查询当前网页位置及最后成功更新时间。",
+      "branch": ""
+    },
+    {
+      "source": "刷新判断",
+      "target": "Grokbot · 制作或更新资产网页",
+      "fields": [
+        "asset_id",
+        "action",
+        "reason",
+        "age_minutes",
+        "page_ref"
+      ],
+      "note_zh": "只将首次制作或到期更新交给 Grokbot；传入实体、动作、原因、网页年龄和旧网页位置。跳过/待核对为终止分支。",
+      "branch": "",
+      "branches": [
+        "first",
+        "due"
+      ]
+    },
+    {
+      "source": "asset_identifiers",
+      "target": "Grokbot · 制作或更新资产网页",
+      "fields": [
+        "asset_id",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "note_zh": "按 asset_id 读取外部身份映射供 Grokbot 使用；读取不触发制作，真实读取工具尚未接入。",
+      "branch": ""
+    },
+    {
+      "source": "Grokbot · 制作或更新资产网页",
+      "target": "asset_pages",
+      "fields": [
+        "asset_id",
+        "saved_page_ref",
+        "saved_at"
+      ],
+      "mapping": {
+        "saved_page_ref": "page_ref",
+        "saved_at": "updated_at"
+      },
+      "note_zh": "仅同一资产网页确认保存成功后，由系统更新当前网页位置和成功时间；失败/未接入不写入，保留旧成功行。设计关系，非运行证据。",
+      "kind": "write",
+      "config": {
+        "trigger": "none",
+        "completion": "success",
+        "role": "confirmed_asset_page_save",
+        "write_guard": {
+          "status": "success",
+          "require_same_asset": true,
+          "required_nonempty": [
+            "saved_page_ref",
+            "saved_at"
+          ],
+          "reject_stale_completion": true
+        }
+      }
+    }
+  ],
+  "candidate_sources": [
+    {
+      "source": "leaderboard_hottest",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_warming",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_new_uuid",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "asset_kind",
+        "created_at",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    }
+  ],
+  "page_refresh_interval_seconds": null,
+  "branches": [
+    {
+      "id": "first",
+      "label_zh": "首次制作",
+      "label_en": "First creation",
+      "condition": "成功完整查询确认没有当前网页。",
+      "terminal": false
+    },
+    {
+      "id": "due",
+      "label_zh": "到期更新",
+      "label_en": "Update due",
+      "condition": "网页最后成功更新时间达到已配置整页周期。",
+      "terminal": false
+    },
+    {
+      "id": "skip",
+      "label_zh": "跳过",
+      "label_en": "Skip",
+      "condition": "当前网页尚未到期。",
+      "terminal": true
+    },
+    {
+      "id": "blocked",
+      "label_zh": "待核对",
+      "label_en": "Needs review",
+      "condition": "读取失败/不完整、时间未知/无效，或已有网页但整页周期未配置。",
+      "terminal": true
+    }
+  ],
+  "example_clock": "2026-10-18T10:00:00Z",
+  "example_rows": {
+    "候选代币筛选": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c"
+      }
+    ],
+    "刷新判断": [],
+    "asset_pages": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "page_ref": "https://example.invalid/pages/a.html",
+        "updated_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "page_ref": "https://example.invalid/pages/c.html",
+        "updated_at": null
+      }
+    ],
+    "asset_identifiers": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "source_namespace": "example",
+        "external_identifier": "example-entity"
+      }
+    ],
+    "leaderboard_hottest": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_warming": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_new_uuid": [
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "Grokbot · 制作或更新资产网页": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "status": "unconnected",
+        "saved_page_ref": null,
+        "saved_at": null,
+        "workflow_version": null,
+        "error": "假设案例：Grokbot 与保存工具未接入，不能回写网页记录。"
+      }
+    ]
+  },
+  "provenance_zh": "工作台整体流程与假设输入输出，不是实际制作或业务记录。Grokbot、资料/搜索/保存工具未接入；内部流程、prompt / skill 及规范版本待 Grokbot 研究迭代，整页周期仍未配置。",
+  "provenance_en": "Studio boundary design and fictional input/output, not generated pages or observed business records. Grokbot and read/search/save tools are unconnected. Internal workflow, prompt/skill and versioning await research; the whole-page interval is unset.",
+  "reused_card": "读取已有资料"
+}

@@ -296,7 +296,8 @@
       "catalog/market-current.v1.json",
       "catalog/market-scoring.v1.json",
       "catalog/content-refresh.v1.json",
-      "catalog/asset-webpage-flow.v1.json"
+      "catalog/asset-webpage-flow.v1.json",
+      "catalog/asset-grokbot-flow.v1.json"
     ]
   },
   "asset_pages": {
@@ -322,7 +323,8 @@
     "origin": "internal_compute",
     "definition_paths": [
       "catalog/content-refresh.v1.json",
-      "catalog/asset-webpage-flow.v1.json"
+      "catalog/asset-webpage-flow.v1.json",
+      "catalog/asset-grokbot-flow.v1.json"
     ]
   },
   "数据采集与内容生成": {
@@ -772,6 +774,14 @@
     "origin": "shared",
     "definition_paths": [
       "catalog/dynamic-weights.v1.json"
+    ]
+  },
+  "Grokbot · 制作或更新资产网页": {
+    "kind": "process",
+    "subtype": "generate",
+    "origin": "internal_compute",
+    "definition_paths": [
+      "catalog/asset-grokbot-flow.v1.json"
     ]
   }
 }

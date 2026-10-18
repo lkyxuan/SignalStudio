@@ -1,3 +1,4 @@
+import {AssetWebpageFlowCard, currentWebpageCard} from './AssetWebpageFlowCard';
 import {WorthReadingTranslationCard, translationCard} from './WorthReadingTranslationCard';
 import React, { useEffect, useState } from 'react';
 import { detailKind, cardRelations, decisionBranches, decisionActor, executionSummary, cardExplanation, resourceSettings, isCatalogSource } from './cardDetailModel';
@@ -149,7 +150,7 @@ export function CardDetails(props) {
     <CardDetailContext.Provider value={true}>
       {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? translationCard(node) ? <><WorthReadingTranslationCard {...props}/><CardConnections {...props}/></> : <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
         {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
-        {translationCard(node) ? <WorthReadingTranslationCard {...props}/> : warmingCard(node) ? <WarmingDesignPreview {...props}/> : hottestCard(node) ? <HottestDesignPreview {...props}/> : hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
+        {currentWebpageCard(node) ? <AssetWebpageFlowCard {...props}/> : translationCard(node) ? <WorthReadingTranslationCard {...props}/> : warmingCard(node) ? <WarmingDesignPreview {...props}/> : hottestCard(node) ? <HottestDesignPreview {...props}/> : hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
         {kind === 'state' && leaderboardCard(node.name) && <section className="card-detail-execution"><h3>{words(language,'窗口与保留规则','Window and retention')}</h3><p>{node.definition}</p><p>{words(language,'业务比较窗口见上述定义；存储 TTL、更新时间索引及丢失后的重建绑定尚未核验，不能按业务窗口推断。','See the definition for the business window. TTL, update time index and recovery bindings remain unverified.')}</p></section>}
         {kind === 'decision' && <Branches {...props}/>}
         <CardConnections {...props}/>

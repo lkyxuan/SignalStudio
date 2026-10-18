@@ -53,6 +53,7 @@ from asset_page_versions import ensure_asset_page_versions
 from asset_page_refresh_link import ensure_asset_page_refresh_link
 from asset_pages import ensure_asset_pages
 from asset_webpage_flow import ensure_asset_webpage_flow
+from asset_grokbot_flow import ensure_asset_grokbot_flow
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -105,6 +106,7 @@ ensure_asset_page_versions(service)
 ensure_asset_page_refresh_link(service)
 ensure_asset_pages(service)
 ensure_asset_webpage_flow(service)
+ensure_asset_grokbot_flow(service)
 
 
 class Handler(BaseHTTPRequestHandler):

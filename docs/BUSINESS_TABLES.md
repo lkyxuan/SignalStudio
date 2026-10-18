@@ -36,7 +36,13 @@ removes the version field, renames its time field, and updates the three read ma
 version-pinned definitions transactionally. Unrelated references or imported records block
 unsafe conversion; partial upgrades roll back. `server/asset_webpage_flow.py` then removes
 the retired #1019/#3030/#3031 cards and their old field/edge cases, while preserving the
-current candidates, page decision and material-preparation cards and their positions.
+then-current candidates, page decision and material-preparation cards and their positions.
+[SS-120](https://app.notion.com/p/3fd038a63d5a81468d9aef141cac8f3f) subsequently consolidates
+production into #3045 Grokbot, removes the internal preparation/cache cards, and adds the design-only
+success-guarded write to #1039. Its mappings are `asset_id → asset_id`,
+`saved_page_ref → page_ref`, `saved_at → updated_at`; failed or unconfirmed saves preserve the old row.
+Grokbot needs both external API/search tools and reads of existing SignalStudio data; both await
+actual integration. See `catalog/asset-grokbot-flow.v1.json` and `server/asset_grokbot_flow.py`.
 The shared table UI shows three columns and one explicitly fictional current-page row.
 
 Delivery is Studio design only: observed rows remain empty, physical storage and real
