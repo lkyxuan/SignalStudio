@@ -1,9 +1,10 @@
-# Canvas rendering (SS-97)
+# Canvas rendering (SS-97, SS-118)
 
 Approved 2026-10-14: [SS-97](https://app.notion.com/p/3f8038a63d5a81d9a3a5d9d49f86fedf).
 
-The complete graph remains authoritative for search, fitView, relationships, persistence and the
-minimap. Viewport rendering never edits node positions or hides entities from those operations.
+The complete saved graph remains authoritative for search, relationships and persistence. In full
+canvas mode it also supplies fitView and the minimap. Scoped canvases fit and map only their mounted
+entities. Viewport rendering never edits saved positions or relationships.
 
 Cards and group labels outside the viewport plus 180 screen pixels use CSS visibility rather than
 unmounting. Their measured dimensions and handles remain available to ReactFlow, preserving edge
@@ -20,7 +21,7 @@ parent updates. During viewport movement, edge hover changes are suppressed and 
 hover is cleared; normal hover resumes afterward. Card clicks, editing and position saving retain
 their existing handlers and protections.
 
-The minimap keeps the complete graph and supports click-to-center, dragging and wheel zoom.
+Each minimap keeps its mounted graph and supports click-to-center, dragging and wheel zoom.
 Viewport/node notifications coalesce into at most one scheduled update per 120ms; releasing a pointer
 flushes the final viewport, and cleanup cancels pending updates. Minimap drawing uses the actual
 node dimensions and positions; screen-to-map coordinates follow the SVG viewBox aspect ratio.
@@ -36,3 +37,38 @@ Native interaction/frame measurements depend on access to the actual App. Preser
 in delivery records if the desktop control tool cannot bind its window; browser success is not native
 runtime proof. Existing bundled fallback pages acquire frontend changes only through a later App
 build/update; this frontend delivery updates the online workspace without publishing a Release.
+
+## Functional workspace and editing (SS-118)
+
+Approved 2026-10-19: [SS-118](https://app.notion.com/p/3fd038a63d5a812fa3b9f9ae8cc626f9).
+
+The default view is feature summaries → subfeature summaries → cards. Summary levels mount no
+ReactFlow canvas. A subfeature passes only its member display occurrences and internal edges to
+ReactFlow; it does not merely hide the other full cards. Initial memberships are declared in
+`src/featureTree.ts` by exact saved names, with six business features and a shared resource library.
+Unknown, renamed or newly created cards remain discoverable in the library; IDs are never guessed
+from historical reference numbers. This version does not provide a feature-organization editor.
+
+Scoping changes presentation only: saved logical/display identities, original coordinates, edge
+meaning, field bindings and backend contracts remain unchanged. Cross-boundary saved relationships
+are shown as input/output summaries; open the original connection editor or navigate to the other
+subfeature. Full canvas remains available. Double-clicking a card opens its complete route in the
+full canvas. Existing field editing remains the mechanism for connecting data; summaries do not
+create execution edges or a new universal connector.
+
+Search covers the complete saved graph, including hidden feature cards, fields and requirements.
+Card, L-connection and R-usage references can navigate to their endpoints. Type filters emphasize
+matching features/cards; workflow lanes still control membership, with search retaining global
+reach. Navigation does not replace the active editor or its draft; existing conflict/save protection
+continues to govern writes. Scoped drag saving uses original display-position identities.
+
+The canvas receives stable event proxies that read the latest committed handlers. Memoized canvas,
+saved-card details and field catalogs do not rebuild on unrelated draft keystrokes. Graph search
+indexes rebuild when saved data/language changes, and expensive search results use deferred input;
+the textbox itself updates immediately. Edge semantic presentation is cached independently of
+drag positions. Saved data, language and relevant selection changes still invalidate their displays.
+
+Verification includes feature coverage, unknown-card fallback, immutable scoping and hidden-field
+search tests in `featureTree.test.ts`, plus the existing contract/layout/build checks. Use an isolated
+copy of current data for drag/save tests. DOM mount counts and Chromium main-thread diagnostics
+show reduced work, not universal smoothness or native WKWebView frame guarantees.
