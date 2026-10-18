@@ -2,6 +2,40 @@
 
 These are SignalStudio product table contracts. The saved #2030 call returned 100 accounts; two actual account records supply the X IDs below. The #1001/#1002 rows specify what the backend should produce for those inputs when #1002 has no prior mapping. The repeated-input case specifies ID reuse. The table lookup, write, AI decision, and approval have not been executed here.
 
+## asset_page_versions · 资产网页制作记录
+
+Approved 2026-10-19 in [SS-116](https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524).
+The standalone contract is `catalog/asset-page-versions.v1.json`. One successful whole-page
+creation or update adds one immutable version row, independently of the existing #1019
+per-information content/refresh table. It does not store page bodies, materials or material times.
+
+| Field | Meaning | Constraint |
+| --- | --- | --- |
+| `page_version_id` | Stable ID for this created webpage version; retries reuse it | Primary key, required |
+| `asset_id` | Same UUID as the existing entity in `assets` | Foreign key, required |
+| `page_ref` | Stable location of this exact saved webpage version | Required; not a continually overwritten latest-page URL |
+| `generated_at` | Actual successful creation completion time in UTC | Required for new pages; null only for legacy pages whose time is unknown |
+
+Retain all earlier versions, including when later generation fails. Failed attempts do not write
+success rows; the generator owns failure logs. Retries with the same ID must preserve the
+identical record and reject conflicting replacements. Read history by `asset_id`; the latest
+known completion sorts by `generated_at DESC, page_version_id ASC` after timestamp
+normalization to UTC. Unknown-time rows cannot establish the latest version. This is the
+latest creation record, not a publication pointer or a concurrency lock for generation tasks.
+An entity may have no page. No new Entity ID, material store or page generator is introduced.
+
+`server/asset_page_versions.py` installs a single shared table card, four fields and an
+`assets.asset_id` reference edge with no execution trigger. It preserves existing nodes,
+positions and #1019, rejects name conflicts and rolls back partial installations. Reference
+numbers use the normal allocator. The UI uses the shared horizontal table and field settings;
+two clearly fictional versions illustrate history. Observed rows remain empty and physical
+storage/generation/read bindings are unconnected; the SQLite contract is checked only in a
+disposable test database, not installed as a live business table.
+
+Verification: `PYTHONPATH=server python3 -m unittest server.test_asset_page_versions` and
+`npm run build`; `node scripts/check_card_details.mjs <saved graph JSON>` checks the shared
+card renderer in both languages. Business persistence and actual page retrieval remain unverified.
+
 ## assets · 统一对象
 
 一个 `asset_id` 对应一个独立跟踪对象。人物、项目、代币和社交账号统一登记在此，不另建人物主表；人物与人名币即使同名，也分别建档。#1001 新建对象时由系统生成 UUIDv7，后续名称、类别或身份状态改变时也不改这个 ID；只有 X 账号时可暂用账号名称，并保持身份待确认。#1001 第一稿只保留五个字段；审核记录和更多追踪信息留待审核流程定义。

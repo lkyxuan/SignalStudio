@@ -16,6 +16,7 @@ import { FieldCatalog } from './FieldPanels';
 import { nodeRef } from './graphRefs';
 import { displayNodeName } from './i18n';
 import businessTables from '../catalog/business-tables.v1.json';
+import pageVersions from '../catalog/asset-page-versions.v1.json';
 import initial from '../catalog/asset-initial-score-sources.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import './card-details.css';
@@ -31,6 +32,7 @@ import { ApplicationInterfaceCard } from './ApplicationInterfaceCard';
 const words = (language, zh, en) => language === 'zh-CN' ? zh : en;
 const relationLabels = {data:['传递数据','Data'],control:['执行顺序','Sequence'],read:['读取','Read'],write:['写入','Write'],publish:['发布消息','Publish'],consume:['消费消息','Consume'],error:['失败路径','Error'],reference:['设计引用 · 未建立自动同步','Design reference · no automatic sync']};
 const relationRoleLabels = {
+  asset_page_identity_reference: ['网页所属资产 · UUID 引用', 'Page owner · asset UUID reference'],
   human_review_surface: ['人工审核界面 · 不自动触发', 'Human review surface · no automatic trigger'],
   module_shared_input: ['模块共享输入 · 无独立消费者', 'Shared module input · no independent consumer'],
   module_result: ['模块内部结果 · 统一组装', 'Internal module result · assembled together'],
@@ -113,11 +115,12 @@ function ExistingTableReference({ active, language, children }) {
 }
 function TableDetails(props) {
   const {node,graph,language,mutate,busy}=props;
+  const businessTable = Boolean(businessTables.tables[node.name]) || node.name === pageVersions.table.name;
   const special=contentRefreshCard(node.name)||leaderboardCard(node.name);
   return <>
     <p className="card-detail-provenance">{node.name === initial.table_name
       ? words(language,'规则配置 · 不是业务运行记录','Rule configuration · not business execution records')
-      : businessTables.tables[node.name] && !special
+      : businessTable && !special
         ? words(language,'主表为设计案例 · 真实快照另列于回填模块（如有）','Main table: design cases · imported snapshots are separate, when available')
         : words(language,'表结构 · 未回填的真实记录不等于线上表为空','Table structure · missing imported records do not establish empty live storage')}</p>
     {warmingCard(node) && <WarmingDesignPreview {...props}/>}
@@ -125,13 +128,13 @@ function TableDetails(props) {
     {!warmingCard(node) && hasCoinGeckoPreview(node) && <CoinGeckoDesignPreview {...props}/>}
     {!warmingCard(node) && !hottestCard(node) && <ExistingTableReference active={hasCoinGeckoPreview(node)} language={language}>
     {translationCard(node) ? <WorthReadingTranslationCard {...props}/> : special ? contentRefreshCard(node.name) ? <ContentRefreshCard {...props}/> : <LeaderboardScaffoldCard {...props}/>
-      : businessTables.tables[node.name] ? <BusinessTableCard {...props}/> : <GenericTableCard {...props}/>}
+      : businessTable ? <BusinessTableCard {...props}/> : <GenericTableCard {...props}/>}
     </ExistingTableReference>}
     <CardConnections {...props}/>
     <details className="processing-advanced"><summary>{words(language,'其他设置 · 存储与表字段','Other settings · storage and fields')}</summary>
       <p>{words(language,'逻辑表定义与物理数据库分别核对；连线不证明已经写入或同步。','Logical table and physical database are checked separately; connections do not establish writes or synchronization.')}</p>
       {Object.keys(resourceSettings(node)).length ? <pre>{JSON.stringify(resourceSettings(node),null,2)}</pre> : <p>{words(language,'物理存储绑定与规则尚未回填。','Physical storage binding and rules have not been imported.')}</p>}
-      {!businessTables.tables[node.name] && !special && <FieldCatalog node={node} fields={graph.fields.filter(field=>field.node_id===node.id)} mutate={mutate} busy={busy} language={language}/>}
+      {!businessTable && !special && <FieldCatalog node={node} fields={graph.fields.filter(field=>field.node_id===node.id)} mutate={mutate} busy={busy} language={language}/>}
     </details>
   </>;
 }

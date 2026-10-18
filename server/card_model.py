@@ -502,7 +502,7 @@ class CardModel:
                 issue(node['id'],'schema_missing','数据结构尚未定义。')
         for binding in graph['bindings']:
             edge = next(e for e in graph['edges'] if e['id'] == binding['edge_id'])
-            if (edge['upstream_id'] in selected or edge['downstream_id'] in selected) and binding['kind'] == 'reference' and binding['config'].get('role') not in ('human_review_surface', 'homepage_source_definition'):
+            if (edge['upstream_id'] in selected or edge['downstream_id'] in selected) and binding['kind'] == 'reference' and binding['config'].get('role') not in ('human_review_surface', 'homepage_source_definition', 'asset_page_identity_reference'):
                 issue(edge['downstream_id'],'loader_missing' if 'loader_missing' in binding['config'].get('unresolved',[]) else 'meaning_missing',
                       '表到缓存仅有设计引用，缺少已确认的装载动作。' if 'loader_missing' in binding['config'].get('unresolved',[]) else '连接含义尚未确认。')
         for node in self.cycles():

@@ -298,6 +298,14 @@
       "catalog/content-refresh.v1.json"
     ]
   },
+  "asset_page_versions": {
+    "kind": "table",
+    "subtype": "content",
+    "origin": "multi",
+    "definition_paths": [
+      "catalog/asset-page-versions.v1.json"
+    ]
+  },
   "asset_information_content": {
     "kind": "table",
     "subtype": "content",

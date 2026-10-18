@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "rationale_url": "https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524",
+  "approval_date": "2026-10-19",
+  "delivery_scope": "studio_design_only",
+  "table": {
+    "name": "asset_page_versions",
+    "label_zh": "资产网页制作记录",
+    "purpose_zh": "记录每个资产专属网页的版本、位置和制作完成时间；一次成功制作或更新一行。",
+    "purpose_en": "Record each successful asset webpage version, its location and completion time.",
+    "primary_key": [
+      "page_version_id"
+    ],
+    "columns": [
+      {
+        "name": "page_version_id",
+        "type": "TEXT",
+        "label_zh": "网页制作记录/版本的稳定唯一 ID；重试沿用",
+        "required": true
+      },
+      {
+        "name": "asset_id",
+        "type": "TEXT",
+        "format": "uuidv7",
+        "label_zh": "引用 assets.asset_id 的同一 UUID",
+        "required": true
+      },
+      {
+        "name": "page_ref",
+        "type": "TEXT",
+        "label_zh": "该版本网页的稳定地址或文件引用",
+        "required": true
+      },
+      {
+        "name": "generated_at",
+        "type": "TEXT",
+        "format": "utc timestamp",
+        "label_zh": "成功制作完成时间；无法核验的历史时间留空",
+        "required": false
+      }
+    ],
+    "create_sql": "CREATE TABLE asset_page_versions (page_version_id TEXT PRIMARY KEY NOT NULL, asset_id TEXT NOT NULL REFERENCES assets(asset_id), page_ref TEXT NOT NULL CHECK (length(trim(page_ref)) > 0), generated_at TEXT)",
+    "index_sql": [
+      "CREATE INDEX asset_page_versions_asset_time ON asset_page_versions (asset_id, generated_at DESC, page_version_id)"
+    ]
+  },
+  "relation_zh": "资产身份引用：一个 assets UUID 可有零条或多条网页版本记录；连线不触发网页生成或数据库写入。",
+  "provenance_zh": "工作台表结构与假设案例；不是实际网页、生成结果或业务数据库记录。物理存储、生成器与网页读取端未接入。",
+  "provenance_en": "Studio schema and fictional examples, not actual webpages, generation results or business records. Storage, generation and page readers are unconnected.",
+  "rules_zh": [
+    "每次成功制作或更新整张资产网页新增一行，不以 asset_id 覆盖旧版本；一个实体可以还没有网页。",
+    "asset_id 复用 assets 的 UUID；page_version_id 标识这次网页制作版本，重试必须沿用同一 ID 和相同记录，冲突不得静默覆盖。",
+    "page_ref 必须指向该版本的网页产物；指向会不断覆盖的单一地址不足以找回历史。正文、JSON 素材及素材时间不存本表。",
+    "新制作的网页在产物保存成功后记录真实 UTC 完成时间；无法核验时间的旧网页可留空，不能用登记或重试时间冒充。",
+    "本表仅记录成功版本，失败不新增成功行、不删除或改写旧可用版本；失败日志由生成程序负责。",
+    "按 asset_id 查询历史；最新已知制作时间倒序、同时间 page_version_id 升序确定最近成功制作记录。空时间记录排在已知时间之后；全部时间未知时只展示历史，不推断最新。",
+    "最近制作记录不等于实际发布指针；本卡不执行发布、并发任务锁、网页生成、素材采集或自动重做。",
+    "#1019 仍负责既有分信息类型的内容刷新设计，本表单独记录整页制作历史，不修改它的字段或触发流程。"
+  ],
+  "rules_en": [
+    "Append one row per successfully produced whole-page version; preserve earlier versions. An asset may have no webpage.",
+    "Reuse assets.asset_id. Retries reuse the version ID and identical record; reject conflicting replacements.",
+    "page_ref locates the exact saved version. Do not store page bodies, materials or material timestamps here.",
+    "Use the actual UTC completion time after saving the artifact. Unknown legacy completion times remain null.",
+    "Failed attempts do not add success rows or replace earlier working pages; generation owns failure logs.",
+    "Read history by asset ID. Latest known completion first, then version ID ascending; null times come last. All-null history does not establish a latest version.",
+    "Latest creation is not a deployment pointer. Generation, publication, task fencing and automatic regeneration are outside this card.",
+    "The existing #1019 per-information content refresh contract remains unchanged."
+  ],
+  "case_note_zh": "以下两行完全是假设的同一资产两次网页制作；使用既有 Bitcoin 格式案例的 UUID，仅说明关联方式。example.invalid 地址不可访问，不代表真实网页。第二行是本例最近成功制作版本，第一行仍保留。",
+  "case_note_en": "Two fictional creations for the same asset using the existing Bitcoin format-case UUID. example.invalid references are placeholders, not working pages. The second row is the latest successful creation in this example; the first is retained.",
+  "example_rows": [
+    {
+      "page_version_id": "example-btc-page-v1",
+      "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+      "page_ref": "https://example.invalid/pages/bitcoin/v1.html",
+      "generated_at": "2026-10-18T08:00:00Z"
+    },
+    {
+      "page_version_id": "example-btc-page-v2",
+      "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+      "page_ref": "https://example.invalid/pages/bitcoin/v2.html",
+      "generated_at": "2026-10-19T00:00:00Z"
+    }
+  ],
+  "observed_rows": [],
+  "physical_binding": null
+}

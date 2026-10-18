@@ -368,6 +368,7 @@ export function displayNodeName(language: Language, name: string = '') {
   const weightNames: Record<string, [string, string]> = { weight_topics: ['权重话题目录', 'Weight topics'], weight_rules_current: ['当前权重规则', 'Current weight rules'], weight_rule_versions: ['权重版本历史', 'Weight rule versions'], weight_evaluations: ['权重表现评价记录', 'Weight evaluations'] };
   if (weightNames[name]) return weightNames[name][language === 'zh-CN' ? 0 : 1];
   if (name === 'asset_initial_score_sources') return language === 'zh-CN' ? '首次建档来源评分配置' : 'Initial score source configuration';
+  if (name === 'asset_page_versions') return language === 'zh-CN' ? '资产网页制作记录' : 'Asset webpage versions';
   if (name === 'supabase_asset_scores') return language === 'zh-CN' ? 'Supabase 资产得分表' : 'Supabase asset scores';
   if (name === '同步资产得分到 Supabase') return language === 'zh-CN' ? name : 'Sync asset scores to Supabase';
   return language === 'zh-CN' && (name === 'Asset Registry' || name === 'Rule Registry' || name === 'Bind source asset' || name === 'Look up related assets' || name === 'Evaluate monitoring rules') ? zh[name] || name : name;
