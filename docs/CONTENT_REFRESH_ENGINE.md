@@ -21,7 +21,9 @@ reader, generator, scheduler or production business storage deployed by these ca
 4. Grokbot owns research and subsequent execution of the internal production workflow, including
    gathering token information, finding gaps, organizing content, generating the page and self-checks.
    These are responsibilities, not a fixed sequence. The two required tool paths are **external APIs/search**
-   and **SignalStudio reads of existing entity/material/business data**, both explicitly unconnected.
+   and **Few Understand reads of existing entity/material/business data**, both explicitly unconnected.
+   SignalStudio supplies the design workspace and contracts, not the business-data query service.
+   Few Understand's actual interfaces, asset identity mapping and coverage must be verified.
    Declared catalog fields do not establish collected data or API coverage. Providers, permissions,
    budgets, data interfaces, validation criteria and prompt/skill details await research.
 5. A design-only write relation maps `asset_id`, `saved_page_ref → page_ref`, `saved_at → updated_at`
@@ -76,8 +78,8 @@ back. Successful upgrade markers prevent reinstating retired cards on restart.
 replaces their edges with the Grokbot boundary and guarded record write, and updates active definition
 references. Unknown external edges/field references, requirements or imported cache data stop the
 transaction for review. Other cards and saved display positions remain intact. A one-time description
-upgrade adds both data-access requirements to hosts that loaded the initial boundary before that
-clarification. `asset-webpage-flow.v1.json` is now a historical installation input.
+upgrade corrects the business-data entry to Few Understand on hosts that loaded the earlier
+SignalStudio wording, per [SS-121](https://app.notion.com/p/3fd038a63d5a8127831ec33d4483da21). `asset-webpage-flow.v1.json` is now a historical installation input.
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_asset_grokbot_flow server.test_asset_pages server.test_asset_page_refresh_link server.test_asset_webpage_flow server.test_card_model

@@ -41,7 +41,7 @@ then-current candidates, page decision and material-preparation cards and their 
 production into #3045 Grokbot, removes the internal preparation/cache cards, and adds the design-only
 success-guarded write to #1039. Its mappings are `asset_id → asset_id`,
 `saved_page_ref → page_ref`, `saved_at → updated_at`; failed or unconfirmed saves preserve the old row.
-Grokbot needs both external API/search tools and reads of existing SignalStudio data; both await
+Grokbot needs both external API/search tools and reads of existing Few Understand data; both await
 actual integration. See `catalog/asset-grokbot-flow.v1.json` and `server/asset_grokbot_flow.py`.
 The shared table UI shows three columns and one explicitly fictional current-page row.
 

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PATH = 'catalog/asset-grokbot-flow.v1.json'
 MARKER = 'asset_grokbot_flow_ss120_v1'
 ACTOR = 'ss120-grokbot-webpage-boundary'
-ACCESS_MARKER = 'asset_grokbot_access_ss120_v1'
+ACCESS_MARKER = 'asset_grokbot_access_ss121_fewunderstand_v1'
 
 
 def ensure_asset_grokbot_flow(service):
@@ -134,7 +134,7 @@ def ensure_asset_grokbot_flow(service):
 
 
 def _ensure_data_access_description(service):
-    """Complete the two tool boundaries on hosts that loaded the initial SS-120 card."""
+    """Correct the business-data boundary to Few Understand on existing hosts."""
     db = service.db
     if db.execute('SELECT 1 FROM schema_meta WHERE key=?', (ACCESS_MARKER,)).fetchone():
         return

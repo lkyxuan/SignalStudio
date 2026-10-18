@@ -105,7 +105,7 @@
       "name": "Grokbot · 制作或更新资产网页",
       "kind": "process",
       "description_zh": "承接首次制作或到期更新，整体交由 Grokbot 制作资产网站；内部流程待研究和版本迭代。",
-      "algorithm_zh": "仅接收 #3029 首次制作或到期更新的资产 UUID、原因和旧网页位置，可按 UUID 读取外部身份。Grokbot 同时需要两类数据入口：通过 SignalStudio 系统工具读取已有实体、已收集资料与业务数据；通过外部 API / 搜索工具补充代币信息。不得把已有字段定义当作已采集数据。Grokbot 负责研究并执行资料读取、必要搜索、内容组织、网页制作与自检；这些是职责范围，不是固定顺序或已验证方案。后续由 Grokbot 研究拆分内部流程及 prompt / skill，制作规范可版本化迭代。系统确认同一资产网页已成功保存后，才以 saved_page_ref → page_ref、saved_at → updated_at 更新 #1039；失败、未接入或结果未确认时保留旧记录。工具、保存位置、验收细则及实际接入均待确定，本卡只描述整体边界。",
+      "algorithm_zh": "仅接收 #3029 首次制作或到期更新的资产 UUID、原因和旧网页位置，可按 UUID 读取外部身份。Grokbot 同时需要两类数据入口：通过 Few Understand 的已授权工具或接口读取已有实体、已收集资料与业务数据；通过外部 API / 搜索工具补充代币信息。不得把已有字段定义当作已采集数据。Grokbot 负责研究并执行资料读取、必要搜索、内容组织、网页制作与自检；这些是职责范围，不是固定顺序或已验证方案。后续由 Grokbot 研究拆分内部流程及 prompt / skill，制作规范可版本化迭代。系统确认同一资产网页已成功保存后，才以 saved_page_ref → page_ref、saved_at → updated_at 更新 #1039；失败、未接入或结果未确认时保留旧记录。工具、保存位置、验收细则及实际接入均待确定，本卡只描述整体边界。 SignalStudio 负责流程设计与契约参考，不作为这条制作流程的业务数据查询服务。",
       "trigger_zh": "仅由 #3029 的首次制作或到期更新分支进入；跳过、待核对不执行。读取身份、打开卡片或回写 #1039 不自动启动新任务。",
       "fields": [
         {
@@ -179,11 +179,11 @@
       ],
       "data_access": [
         {
-          "id": "signalstudio",
-          "label_zh": "连接 SignalStudio 读取已有数据",
-          "label_en": "Read existing data through SignalStudio",
-          "description_zh": "按同一资产 UUID 查询系统已有实体、来源映射、已收集资料与业务数据；接口和覆盖待核验。",
-          "description_en": "Query existing entity, source mappings, collected materials and business data by asset UUID; interfaces and coverage await verification.",
+          "id": "fewunderstand",
+          "label_zh": "连接 Few Understand 读取已有数据",
+          "label_en": "Read existing data through Few Understand",
+          "description_zh": "按同一资产 UUID 查询 Few Understand 已有实体、来源映射、已收集资料与业务数据；真实接口、身份映射和覆盖待核验。SignalStudio 仅提供设计契约。",
+          "description_en": "Query existing entities, source mappings, collected materials and business data through Few Understand by asset UUID; actual interfaces, identity mapping and coverage await verification. SignalStudio supplies design contracts only.",
           "binding": null
         },
         {

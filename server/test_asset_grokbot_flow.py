@@ -95,7 +95,7 @@ class GrokbotBoundaryTest(unittest.TestCase):
         self.s.db.commit()
         ensure_asset_grokbot_flow(self.s)
         access = self.model.contract(node['id'])['config']['resource']['data_access']
-        self.assertEqual({a['id'] for a in access}, {'signalstudio', 'external'})
+        self.assertEqual({a['id'] for a in access}, {'fewunderstand', 'external'})
         self.assertTrue(all(a['binding'] is None for a in access))
         before = self.snapshot()
         ensure_asset_grokbot_flow(self.s)
