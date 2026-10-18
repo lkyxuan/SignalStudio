@@ -39,3 +39,31 @@ test('directory cache reuses its independent revision and refetches corrupted or
   await cachedSourceContracts(read,store); assert.equal(reads,3);
   await assert.rejects(cachedSourceContracts(async(path)=>path.endsWith('/meta')?{revision:'sha256:'+'0'.repeat(64)}:directory,store),/changed/);
 });
+
+test('validated deltas reuse unchanged entities across reordering without mutating a baseline', () => {
+  const raw=serverGraph();
+  const base=decodeGraph({...raw,revision:'a',transport:'canvas.v1'});
+  const before=JSON.stringify(base);
+  const updated={...base.nodes[0]!,name:'new title'};
+  const delta={transport:'delta.v1',base_revision:'a',revision:'b',changes:Object.fromEntries(collections.map(key=>[key,{upsert:key==='nodes'?[updated]:[],delete:[]}])) ,order:{nodes:base.nodes.map(n=>n.id).reverse()}};
+  const next=decodeGraph(delta,base);
+  assert.equal(JSON.stringify(base),before);
+  const changed=next.nodes.find(n=>n.id===updated.id)!;
+  assert.notEqual(changed,base.nodes[0]);assert.equal(changed.name,'new title');
+  assert.equal(changed.card_contract,base.nodes[0]!.card_contract);
+  assert.equal(next.nodes.find(n=>n.id===base.nodes[1]!.id),base.nodes[1]);
+  assert.equal(next.fields,base.fields);assert.equal(next.edges,base.edges);
+  assert.deepEqual(next.nodes.map(n=>n.id),delta.order.nodes);
+  const bad={...delta,changes:{...delta.changes,edges:{upsert:[{...base.edges[0]!,upstream_id:'missing'}],delete:[]}}};
+  assert.throws(()=>decodeGraph(bad,base),/reference/);
+  assert.equal(JSON.stringify(base),before);
+});
+
+test('detail hydration replaces only changed entities and keeps unrelated collections stable', () => {
+  const raw=serverGraph();const node=raw.nodes[0]!;
+  const base=decodeGraph({...raw,revision:'a',transport:'canvas.v1',nodes:raw.nodes.map(n=>({...n,detail_revision:n.id,detail_loaded:false}))});
+  const loaded=mergeDetails(base,{revision:'a',workspace:{project_root:'/test',database_path:'/test/db'},nodes:[{...node,notes:'loaded',detail_revision:node.id,detail_loaded:true}],fields:[],field_usages:[],requirements:[]});
+  assert.notEqual(loaded.nodes[0],base.nodes[0]);assert.equal(loaded.nodes[1],base.nodes[1]);
+  assert.equal(loaded.edges,base.edges);assert.equal(loaded.fields,base.fields);
+  assert.equal(base.nodes[0]!.detail_loaded,false);
+});

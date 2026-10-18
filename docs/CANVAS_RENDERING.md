@@ -36,3 +36,33 @@ Native interaction/frame measurements depend on access to the actual App. Preser
 in delivery records if the desktop control tool cannot bind its window; browser success is not native
 runtime proof. Existing bundled fallback pages acquire frontend changes only through a later App
 build/update; this frontend delivery updates the online workspace without publishing a Release.
+
+## Card synchronization and startup (SS-117)
+
+Approved 2026-10-19: [SS-117](https://app.notion.com/p/3fd038a63d5a81c98c70e6633eb84209).
+The top bar's **Sync cards / 同步卡片** performs the existing serialized, coalesced graph read.
+It does not navigate, reload the UI, clear drafts, or change the viewport/selection. Its busy state
+covers a queued or active read; failures use the connection/retry banner. External revisions still
+wait behind a draft/drag and use the existing explicit conflict controls. Successful writes still
+read back the authoritative graph; identity checks, If-Match, timeout behavior and full-snapshot
+fallback remain unchanged. Normal connected workspaces do not gain periodic graph polling.
+New UI code or card components still require the separate save-before-**Refresh workspace** action.
+
+An empty locator skips search-text construction. Nonempty search lazily indexes field/requirement
+text and caches each node's text for the current inputs/language/source labels. A changed node uses
+its new object, and changed fields/requirements replace the index. Edge bindings are indexed by the
+immutable binding array. The source-directory read waits until the graph provides its contract
+revision, avoiding the duplicate empty-graph initialization request.
+
+Full graphs, deltas and detail merges pass the complete graph schema before equal entities and
+metadata reuse prior immutable references. Entity identity follows IDs even if order changes.
+Invalid references remain errors, and deferred details still follow their hashes. Canvas data
+reconciliation retains unchanged card/edge objects, measured sizes and selection; changed data,
+geometry, ports, labels and deletions continue to invalidate their affected objects. This reduces
+unrelated component work, not every graph derivation or DOM node. It does not change stored layout,
+long-curve visibility, minimap behavior or the database/API write contract.
+
+Regression checks include `src/graphSearch.test.ts`, `src/referenceReuse.test.ts` and
+`src/graphTransport.test.ts` through `npm run test:contracts`. Compare cached startup and single-card
+sync with the same graph and viewport; browser diagnostics alone do not establish native FPS or
+cross-device network speed.

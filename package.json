@@ -10,7 +10,7 @@
     "test:layout": "tsx --test src/autoLayout.test.ts src/crawlerPresentation.test.ts src/edgeRouting.test.ts src/graphEmphasis.test.ts src/edgePresentation.test.ts src/processFlows.test.ts",
     "preview": "python3 server/app.py",
     "typecheck": "tsc --noEmit",
-    "test:contracts": "tsx --test src/cardProgressModel.test.ts src/contracts.test.ts src/api.test.ts src/cardDetailModel.test.ts src/liveGraph.test.ts src/liveGraphSession.test.ts src/refreshQueue.test.ts src/graphRecovery.test.ts src/canvasViewport.test.ts src/refreshWorkspace.test.ts src/cardClicks.test.ts src/graphTransport.test.ts src/applicationInterface.test.tsx src/cardTypeFilters.test.ts",
+    "test:contracts": "tsx --test src/cardProgressModel.test.ts src/contracts.test.ts src/api.test.ts src/cardDetailModel.test.ts src/liveGraph.test.ts src/liveGraphSession.test.ts src/refreshQueue.test.ts src/graphRecovery.test.ts src/canvasViewport.test.ts src/refreshWorkspace.test.ts src/cardClicks.test.ts src/graphTransport.test.ts src/applicationInterface.test.tsx src/cardTypeFilters.test.ts src/graphSearch.test.ts src/referenceReuse.test.ts",
     "desktop:dev:build": "npm run desktop:build",
     "check:details": "node scripts/check_card_details.mjs"
   },

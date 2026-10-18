@@ -141,3 +141,9 @@ back to a fresh fetch. Directory metadata failure is surfaced; this cache does n
 Actual cellular latency, two physical clients and the existing Tailscale relay bottleneck remain
 unmeasured here; compression and deltas do not fix that path. The user removed additional field
 coverage as a task-closure prerequisite on 2026-10-11; it is not reported as passed.
+
+Per [SS-117](https://app.notion.com/p/3fd038a63d5a81c98c70e6633eb84209) (approved 2026-10-19),
+connected workspaces also expose **Sync cards / 同步卡片**. This joins the same read queue as focus
+and recovery, preserving drafts and the current viewport; it is distinct from reloading UI code.
+Validated graph/detail results reuse equal entities without weakening schema or revision checks.
+See [canvas rendering](CANVAS_RENDERING.md#card-synchronization-and-startup-ss-117).

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { reuseEntities, reuseValue } from './referenceReuse';
 import { graphSchema, nodeSchema, fieldSchema, usageSchema, requirementSchema, type Graph } from './contracts';
 
 export const collections = ['nodes', 'edges', 'fields', 'field_usages', 'requirements', 'ports', 'bindings', 'data_schemas'] as const;
@@ -28,8 +29,20 @@ export function preserveDetails(next: Graph, previous?: Graph | null): Graph {
   }
   return next;
 }
+function reuseGraph(next: Graph, previous?: Graph | null): Graph {
+  if (!previous) return next;
+  for (const key of collections) {
+    if (next[key]) (next as Record<string, unknown>)[key] = reuseEntities<{id:string}>(next[key]!, previous[key] ?? []);
+  }
+  const current = next as Record<string, unknown>, old = previous as Record<string, unknown>;
+  for (const key of Object.keys(current)) {
+    if (!(collections as readonly string[]).includes(key)) current[key] = reuseValue(current[key], old[key]);
+  }
+  return Object.keys(current).length === Object.keys(old).length &&
+    Object.keys(current).every(key => Object.hasOwn(old, key) && current[key] === old[key]) ? previous : next;
+}
 export function decodeGraph(value: unknown, base?: Graph | null): Graph {
-  if ((value as Record<string, unknown>)?.transport !== 'delta.v1') return preserveDetails(graphSchema.parse(value), base);
+  if ((value as Record<string, unknown>)?.transport !== 'delta.v1') return reuseGraph(preserveDetails(graphSchema.parse(value), base), base);
   const delta = deltaSchema.parse(value);
   if (!base || base.revision !== delta.base_revision || base.transport !== 'canvas.v1') throw Error('Invalid delta base');
   const result: Record<string, unknown> = { ...base, ...delta, transport: 'canvas.v1' };
@@ -43,7 +56,7 @@ export function decodeGraph(value: unknown, base?: Graph | null): Graph {
     if (entities.size !== order.length || order.some(id => !entities.has(id))) throw Error('Invalid delta order');
     result[key] = order.map(id => entities.get(id));
   }
-  return preserveDetails(graphSchema.parse(result), base);
+  return reuseGraph(preserveDetails(graphSchema.parse(result), base), base);
 }
 export function mergeDetails(graph: Graph, value: z.infer<typeof detailsSchema>): Graph {
   const next = { ...graph };
@@ -54,7 +67,7 @@ export function mergeDetails(graph: Graph, value: z.infer<typeof detailsSchema>)
       return detail?.detail_loaded === true && detail.detail_revision === item.detail_revision ? withDetails(key, item, detail) : item;
     });
   }
-  return graphSchema.parse(next);
+  return reuseGraph(graphSchema.parse(next), graph);
 }
 export function detailsReady(graph: Graph | null, nodeIds: string[]): boolean {
   if (!graph) return false;

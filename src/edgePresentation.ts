@@ -14,8 +14,19 @@ const words: Record<string, [string, string]> = {
   control: ['分支控制', 'Branch control'], publish: ['发布消息', 'Publish'],
   consume: ['消费消息', 'Consume'], error: ['失败处理', 'Handle failure'], reference: ['引用', 'Reference'],
 };
+const bindingIndexes = new WeakMap<NonNullable<Graph['bindings']>, Map<string, Binding[]>>();
+const noBindings: Binding[] = [];
 export function edgeBindings(graph: RelationGraph, edge: GraphEdge): Binding[] {
-  return (graph.bindings || []).filter(binding => binding.edge_id === edge.id);
+  if (!graph.bindings) return noBindings;
+  let index = bindingIndexes.get(graph.bindings);
+  if (!index) {
+    index = new Map();
+    for (const binding of graph.bindings) {
+      const entries = index.get(binding.edge_id) ?? []; entries.push(binding); index.set(binding.edge_id, entries);
+    }
+    bindingIndexes.set(graph.bindings, index);
+  }
+  return index.get(edge.id) ?? noBindings;
 }
 
 // A read belongs to its reader, a write to its writer. Never walk across shared storage.

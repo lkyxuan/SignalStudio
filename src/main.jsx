@@ -1,3 +1,5 @@
+import { reuseEntities, reuseCanvasNodes } from './referenceReuse';
+import { createNodeSearch } from './graphSearch';
 import { detailsReady } from './graphTransport';
 import { CardDetails } from './CardDetails';
 import { detailKind } from './cardDetailModel';
@@ -159,7 +161,7 @@ const DirectArcEdge = React.memo(function DirectArcEdge({ id, sourceX, sourceY, 
   const [a, b, c, d] = bezierControls(link);
   if (!visible) return null;
   const midpoint = axis => (a[axis] + 3 * b[axis] + 3 * c[axis] + d[axis]) / 8;
-  return <g onClick={event => { event.stopPropagation(); data.onSelect?.(); }}><title>{data.meaning}</title><BaseEdge id={id} path={bezierRoute(link)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth}
+  return <g onClick={event => { event.stopPropagation(); data.onSelect?.(data.logicalId); }}><title>{data.meaning}</title><BaseEdge id={id} path={bezierRoute(link)} style={style} markerEnd={markerEnd} markerStart={markerStart} interactionWidth={interactionWidth}
     label={data.meaning} labelX={midpoint(0)} labelY={midpoint(1)} labelStyle={{ fill: style.stroke, fontSize: 11, fontWeight: 600 }}
     labelBgStyle={{ fill: 'var(--ss-surface)', stroke: 'var(--ss-border)' }} labelBgPadding={[7, 5]} labelBgBorderRadius={5} className="edge-meaning-path" /></g>;
 });
@@ -215,8 +217,9 @@ function App() {
   }, [language]);
 
   const flash = (message, error = false) => { setNotice({ message, error }); setTimeout(() => setNotice(null), 4200); };
-  const presentation = useMemo(() => processGraph(graph), [graph]);
-  const towerView = useMemo(() => crawlerPresentation(graph.nodes, graph.edges, presentation.edges), [graph, presentation]);
+  const relations = useMemo(() => processGraph({ nodes: graph.nodes, edges: graph.edges, bindings: graph.bindings }), [graph.nodes, graph.edges, graph.bindings]);
+  const presentation = useMemo(() => ({ ...graph, ...relations }), [graph, relations]);
+  const towerView = useMemo(() => crawlerPresentation(graph.nodes, graph.edges, presentation.edges), [graph.nodes, graph.edges, presentation.edges]);
   const visualNodes = new Map(towerView.nodes.map(node => [node.id, node]));
   const visualEdges = new Map(towerView.edges.map(edge => [edge.id, edge]));
   const logicalNodeId = id => visualNodes.get(id)?.logicalId || id;
@@ -230,6 +233,7 @@ function App() {
   }, [live, busy, showCreate, showPrompt]);
   useEffect(() => { live.resetEdited(); }, [selectedId, selectedEdgeId]);
   useEffect(() => {
+    if (!graph.contract_revision) return;
     request('/source-contracts/v1')
       .then(contracts => {
         setContractSummary({ entries: contracts.operation_count + contracts.resource_count,
@@ -262,12 +266,12 @@ function App() {
       nodePorts.outputPorts.sort((a, b) => (nodeById.get(towerView.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(towerView.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}`;
     }
-    setNodes(towerView.nodes.map(n => ({ id: n.id, draggable: true, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, id: n.logicalId, progress: graph.card_progress?.[n.logicalId], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.logicalId) || 0, pendingNeedNames: pendingNeedNames.get(n.logicalId) || [] } })));
-    setEdges(towerView.edges.map(e => { const color = 'var(--ss-edge)';
+    setNodes(previous => reuseCanvasNodes(towerView.nodes.map(n => ({ id: n.id, draggable: true, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, id: n.logicalId, progress: graph.card_progress?.[n.logicalId], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.logicalId) || 0, pendingNeedNames: pendingNeedNames.get(n.logicalId) || [] } })), previous));
+    setEdges(previous => reuseEntities(towerView.edges.map(e => { const color = 'var(--ss-edge)';
       return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: 'directArc', data: arcs.get(e.id), animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
-        style: { stroke: color, strokeWidth: 1.5, strokeDasharray: arcs.get(e.id)?.dashed ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }));
-  }, [graph, towerView, language, catalogEntityInfo, setNodes, setEdges]);
+        style: { stroke: color, strokeWidth: 1.5, strokeDasharray: arcs.get(e.id)?.dashed ? '6 4' : undefined }, markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } }; }), previous));
+  }, [towerView, graph.fields, graph.field_usages, graph.requirements, graph.card_progress, language, catalogEntityInfo, setNodes, setEdges]);
 
   const selected = graph.nodes.find(n => n.id === selectedId);
   const isSignal = selected && SIGNAL_TYPES.has(selected.type) && selected.name !== scoreRollup.node.name;
@@ -302,7 +306,7 @@ function App() {
       }
       return [node.id, node.type === 'Product Module' ? [node] : result];
     }));
-  }, [graph]);
+  }, [graph.nodes, graph.edges]);
   const products = selected ? productUsage.get(selected.id) || [] : [];
   const cardClicks = useRef(null);
   if (!cardClicks.current) cardClicks.current = createCardClickDispatcher();
@@ -333,8 +337,11 @@ function App() {
     edgePresentation(presentation, edge, language).displayLabel.split(' · ')[0].toLowerCase() === query ||
     (graph.field_usages || []).some(usage => usage.edge_id === edge.id && usageRef(usage).toLowerCase() === query)) : [];
   const referenceMatchNodes = new Set(referenceMatchEdges.flatMap(edge => [edge.upstream_id, edge.downstream_id]));
-  const matchesQuery = n => referenceMatchNodes.has(n.id) || `${nodeRef(n)} ${n.name} ${displayName(n.name)} ${sourcePurpose(n.name, language) || ''} ${n.definition} ${n.decision_question || ''} ${n.trigger_rule || ''} ${t(n.type)} ${(graph.fields || []).filter(field => field.node_id === n.id).map(field => `${field.name} ${field.definition}`).join(' ')} ${(graph.requirements || []).filter(item => item.node_id === n.id).map(item => `${item.name} ${item.purpose}`).join(' ')}`.toLowerCase().includes(query);
-  const typeGroups = cardTypeGroups(graph.nodes, language);
+  const nodeSearch = useMemo(() => createNodeSearch(graph, n =>
+    `${nodeRef(n)} ${n.name} ${language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name)} ${sourcePurpose(n.name, language) || ''} ${n.definition} ${n.decision_question || ''} ${n.trigger_rule || ''} ${translate(language, n.type)}`),
+    [graph.fields, graph.requirements, language, catalogEntityInfo]);
+  const matchesQuery = n => referenceMatchNodes.has(n.id) || nodeSearch(n, query);
+  const typeGroups = useMemo(() => cardTypeGroups(graph.nodes, language), [graph.nodes, language]);
   const filtered = graph.nodes.filter(n => (visibleInView(n) || referenceMatchNodes.has(n.id) || isNodeReferenceQuery) &&
     (matchesCardType(n, typeFilter) || referenceMatchNodes.has(n.id) || isNodeReferenceQuery) &&
     matchesQuery(n)).sort((a, b) => a.reference_number - b.reference_number);
@@ -344,12 +351,12 @@ function App() {
   const searchMatches = locatingCard ? graph.nodes.filter(node => cardReferenceQuery
     ? nodeRef(node).toLowerCase() === cardReferenceQuery : matchesQuery(node)) : [];
   const searchMatchIds = new Set(searchMatches.map(node => node.id));
-  const searchMatchKey = searchMatches.map(node => node.id).join(',');
   const searchTarget = searchMatches.length === 1 ? searchMatches[0] : null;
   const searchOccurrences = searchTarget ? towerView.nodes.filter(node => node.logicalId === searchTarget.id) : [];
   const searchOccurrence = searchOccurrences[searchOccurrenceIndex % (searchOccurrences.length || 1)];
   const focusEdge = useCallback(id => { setFlowFocusId(null); cardClicks.current.cancel(); setSelectedId(null); setSelectedEdgeId(null); setFocusedEdgeId(id); setFocusNodeId(null); }, []);
   const movingCanvas = useRef(false);
+  const displayCache = useRef({ nodes: [], edges: [] });
   const { canvasNodes, highlightingType, typeMatchIds, typeChoice, filteredIds, localFocus, focusConnection, flowChoices, relationOwner, currentFlow, triggerTrace, relatedNodeIds, relatedEdgeIds, routeStart, hasGraphFocus, displayNodes, displayEdges } = useMemo(() => {
   // Category navigation emphasizes the full canvas; only table rows are filtered.
   const canvasNodes = locatingCard ? graph.nodes : graph.nodes.filter(visibleInView);
@@ -404,11 +411,12 @@ function App() {
     return { ...e,
       hidden: !filteredIds.has(logicalNodeId(e.source)) || !filteredIds.has(logicalNodeId(e.target)),
       className: hasGraphFocus ? (occurrenceRoute ? occurrenceRoute.edgeIds.has(e.id) : relatedEdgeIds.has(logicalEdgeId(e.id))) ? 'graph-related' : 'graph-dimmed' : referenceMatchEdges.some(edge => edge.id === logicalEdgeId(e.id)) ? 'graph-related' : '',
-      data: { ...e.data, meaning: meaning.displayLabel, onSelect: () => focusEdge(logicalEdgeId(e.id)) }, ariaLabel: `${e.ariaLabel} · ${meaning.displayLabel}`,
+      data: { ...e.data, meaning: meaning.displayLabel, logicalId: logicalEdgeId(e.id), onSelect: focusEdge }, ariaLabel: `${e.ariaLabel} · ${meaning.displayLabel}`,
       style: { ...e.style, stroke: color }, markerEnd: { ...e.markerEnd, color },
     };
   });
-    return { canvasNodes, highlightingType, typeMatchIds, typeChoice, filteredIds, localFocus, focusConnection, flowChoices, relationOwner, currentFlow, triggerTrace, relatedNodeIds, relatedEdgeIds, routeStart, hasGraphFocus, displayNodes, displayEdges };
+    displayCache.current = { nodes: reuseEntities(displayNodes, displayCache.current.nodes), edges: reuseEntities(displayEdges, displayCache.current.edges) };
+    return { canvasNodes, highlightingType, typeMatchIds, typeChoice, filteredIds, localFocus, focusConnection, flowChoices, relationOwner, currentFlow, triggerTrace, relatedNodeIds, relatedEdgeIds, routeStart, hasGraphFocus, displayNodes: displayCache.current.nodes, displayEdges: displayCache.current.edges };
   }, [graph, towerView, nodes, edges, presentation, language, laneView, view, graphDisplayMode, filter, typeFilter, focusNodeId, selectedId, selectedEdgeId, focusedEdgeId, flowFocusId, hoveredEdgeId, routeOccurrenceId, searchOccurrenceIndex, catalogEntityInfo, focusEdge]);
   const miniMapColor = useCallback(node => typeMatchIds.has(node.data.id) ? 'var(--ss-accent)' : ({ source: 'var(--ss-blue)', raw: 'var(--ss-neutral)', evidence: 'var(--ss-blue)', identity: 'var(--ss-blue)', relationship: 'var(--ss-blue)', review: 'var(--ss-purple)', derived: 'var(--ss-purple)', metric: 'var(--ss-success)', score: 'var(--ss-accent)', ranking: 'var(--ss-pink)', rule: 'var(--ss-warning)', event: 'var(--ss-warning)', product: 'var(--ss-error)', state: 'var(--ss-blue)', topic: 'var(--ss-purple)', cache: 'var(--ss-pink)' })[KIND[node.data.type]] || 'var(--ss-neutral)', [typeMatchIds]);
   const visibleNodeIds = towerView.nodes.filter(node => filteredIds.has(node.logicalId)).map(node => node.id).join(',');
@@ -431,13 +439,14 @@ function App() {
       });
       return () => cancelAnimationFrame(frame);
     }
+    // Data-only sync does not navigate an active locator; only input/view changes do.
     // Clearing the locator removes its highlight without moving or fitting the viewport.
     if ((leavingCardSearch && !query) || !visibleNodeIds) return;
     const frame = requestAnimationFrame(() => flowInstance.fitView({
       nodes: visibleNodeIds.split(',').map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 250,
     }));
     return () => cancelAnimationFrame(frame);
-  }, [filter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchMatchKey, searchOccurrenceIndex]);
+  }, [filter, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchOccurrenceIndex]);
 
   const mutate = async (path, method, body, success, saveMain = false) => {
     try { setBusy(true); const preserve = !saveMain && draft && selected && JSON.stringify(draft) !== JSON.stringify(selected); const result = await live.write(path, method, body, preserve); if (success) flash(success); return result; }
@@ -537,7 +546,7 @@ function App() {
         {live.confirmedAt && <small> {language === 'zh-CN' ? '上次确认：' : 'Last confirmed: '}{new Date(live.confirmedAt).toLocaleString(language)}</small>}</span><button onClick={live.reconnect} disabled={live.retryPhase !== 'idle'} aria-busy={live.retryPhase !== 'idle'}>{live.retryPhase !== 'idle' && <span className="connection-spinner" aria-hidden="true" />}{live.retryPhase === 'queued' ? (language === 'zh-CN' ? '等待重新连接…' : 'Waiting to reconnect…') : live.retryPhase === 'connecting' ? (language === 'zh-CN' ? '重新连接中…' : 'Reconnecting…') : (language === 'zh-CN' ? '重新连接' : 'Retry connection')}</button></div>}
       {live.conflict && <div className={`live-update-banner ${showCreate || showPrompt ? 'modal-conflict' : ''}`} role="alert"><span>{language === 'zh-CN' ? '工作台有外部更新，已保留未保存编辑。' : 'External changes detected. Your unsaved edits are preserved.'}</span><button onClick={discardEdits}>{language === 'zh-CN' ? '放弃草稿，载入最新' : 'Discard drafts and load latest'}</button><button onClick={live.accept}>{language === 'zh-CN' ? '保留编辑，允许覆盖后保存' : 'Keep edits and allow overwrite on save'}</button></div>}
 
-      <header className="topbar"><div className="breadcrumb">{t('Workspace')} <span>/</span> {t('Signal design graph')} <span>/</span> <strong>{view === 'translations' ? language === 'zh-CN' ? '字段用途与案例' : 'Field guide and examples' : t(view === 'graph' ? 'Graph' : 'Table')}</strong></div><div className="top-actions"><span className="top-meta">{t('LOCAL PROJECT')}</span>{view !== 'translations' && <button className="button-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> {t('New node')}</button>}</div></header>
+      <header className="topbar"><div className="breadcrumb">{t('Workspace')} <span>/</span> {t('Signal design graph')} <span>/</span> <strong>{view === 'translations' ? language === 'zh-CN' ? '字段用途与案例' : 'Field guide and examples' : t(view === 'graph' ? 'Graph' : 'Table')}</strong></div><div className="top-actions"><span className="top-meta">{t('LOCAL PROJECT')}</span><button className="button-secondary" onClick={() => live.reconnect()} disabled={live.retryPhase !== 'idle'} aria-busy={live.retryPhase !== 'idle'} title={language === 'zh-CN' ? '同步卡片数据，保留当前画布和未保存编辑' : 'Sync card data; keep the current canvas and drafts'}>{live.retryPhase !== 'idle' && <span className="connection-spinner" aria-hidden="true" />}{language === 'zh-CN' ? live.retryPhase === 'queued' ? '等待同步…' : live.retryPhase === 'connecting' ? '同步中…' : '同步卡片' : live.retryPhase !== 'idle' ? 'Syncing…' : 'Sync cards'}</button>{view !== 'translations' && <button className="button-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> {t('New node')}</button>}</div></header>
       {view === 'translations' ? <CatalogTranslationTable language={language} /> : <>
       <section className="workspace-head"><div><div className="eyebrow"><span className="eyebrow-line" /> {t('DESIGN STUDIO')}</div><h1>{t('Signal design graph')}</h1><p>{language === 'zh-CN' ? '按数据来源、处理、判断、数据表、消息通道、缓存／窗口和应用界面组织。历史编号保持不变，可按编号搜索。' : 'Seven card types: source, process, decision, table, channel, cache / window and application interface. Historical reference numbers remain unchanged.'}</p></div><div className="workspace-stats"><div><strong>{contractSummary?.entries ?? '—'}</strong><span>{language === 'zh-CN' ? '上游入口' : 'UPSTREAM ENTRIES'}</span></div><i /><div><strong>{contractSummary?.fields ?? '—'}</strong><span title={language === 'zh-CN' ? '当前已列出的样本字段和文档计划字段；并非完整返回字段总数' : 'Sample paths and planned documented fields; not a complete output schema'}>{language === 'zh-CN' ? '已列字段定义' : 'LISTED FIELD DEFINITIONS'}</span></div><i /><div><strong>{graph.edges.length}</strong><span>{t('CONNECTIONS')}</span></div></div></section>
       <section className="work-card">
