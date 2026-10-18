@@ -750,5 +750,37 @@
     "definition_paths": [
       "catalog/worth-reading-translation.v1.json"
     ]
+  },
+  "weight_topics": {
+    "kind": "table",
+    "subtype": "base",
+    "origin": "shared",
+    "definition_paths": [
+      "catalog/dynamic-weights.v1.json"
+    ]
+  },
+  "weight_rules_current": {
+    "kind": "table",
+    "subtype": "config",
+    "origin": "shared",
+    "definition_paths": [
+      "catalog/dynamic-weights.v1.json"
+    ]
+  },
+  "weight_rule_versions": {
+    "kind": "table",
+    "subtype": "history",
+    "origin": "shared",
+    "definition_paths": [
+      "catalog/dynamic-weights.v1.json"
+    ]
+  },
+  "weight_evaluations": {
+    "kind": "table",
+    "subtype": "history",
+    "origin": "shared",
+    "definition_paths": [
+      "catalog/dynamic-weights.v1.json"
+    ]
   }
 }

@@ -6,7 +6,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 一个 `asset_id` 对应一个独立跟踪对象。人物、项目、代币和社交账号统一登记在此，不另建人物主表；人物与人名币即使同名，也分别建档。#1001 新建对象时由系统生成 UUIDv7，后续名称、类别或身份状态改变时也不改这个 ID；只有 X 账号时可暂用账号名称，并保持身份待确认。#1001 第一稿只保留五个字段；审核记录和更多追踪信息留待审核流程定义。
 
-主键：`asset_id`。按真实输入规定的目标行数：**2**；面板另有三个原有代币格式案例，以及四个明确虚构的人物、项目、主题币和账号案例，共 **9** 行。虚构行的 `confirmed` 是格式示例，不是实际审核。
+主键：`asset_id`。按真实输入规定的目标行数：**2**；面板另有三个原有代币格式案例，以及六个明确虚构的人物、项目、主题币和账号案例，共 **11** 行。虚构行的 `confirmed` 是格式示例，不是实际审核。
 
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 用来源范围和外部稳定 ID 找到 #1001 的内部资产 ID。三项是核心含义，不限制后台保留必要辅助字段；同范围歧义别名的承载仍待细化，不能直接唯一绑定。每行只保存一条对应关系；#1002 的 `asset_id` 引用 #1001 已创建的 ID，不另生成编号。
 
-主键：`source_namespace + external_identifier`。真实 #2030 输入对应 **2** 行目标结果；连同别名和其他资产，面板展示 **11** 行案例，包括四个 `case:` 命名空间下的假设标识。
+主键：`source_namespace + external_identifier`。真实 #2030 输入对应 **2** 行目标结果；连同别名和其他资产，面板展示 **13** 行案例，包括六个 `case:` 命名空间下的假设标识。
 
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
@@ -67,7 +67,7 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 
 只保留一个系统记录时间，不设关系开始、结束时间。新增关系可按记录时间回看；纠错、撤销和追加证据的历史修订机制尚未定义或实现，七字段不等于完整历史引擎。证据和审核引用在未来运行时须可追溯解析，不能只留下无法查询的文本。
 
-当前展示 **6** 行完全虚构的格式案例：人物投资项目、账号属于人物、主题币以人物为主题，以及各自反向记录。名称含“示例”，标识范围为 `case:`；人物、账号、投资、代币、证据、审核和时间都不是真实观测。主题关系不意味着官方发行或授权。关系类型字典、自动生成反向行和去重实现仍待后续定义，不因这六行就声称已有后台关系或审批。
+当前展示 **10** 行完全虚构的格式案例：人物投资项目、账号属于人物、主题币以人物为主题、同一项目的两个独立账号，以及各自反向记录。名称含“示例”，标识范围为 `case:`；人物、账号、投资、代币、证据、审核和时间都不是真实观测。主题关系不意味着官方发行或授权。关系类型字典、自动生成反向行和去重实现仍待后续定义，不因这些行就声称已有后台关系或审批。
 
 ## asset_monitoring_rules · 资产监控规则
 
@@ -224,3 +224,11 @@ These are SignalStudio product table contracts. The saved #2030 call returned 10
 新增 `leaderboard_warming`、`leaderboard_hottest`、`leaderboard_emerging`、`leaderboard_cooling`、`leaderboard_divergence` 五张设计表卡片。共同预留 `asset_id`（逻辑主键）、`asset_name`（可空展示名称）、`score`（各榜独立分数）、`calculated_at`（UTC 实际计算时间）、`algorithm_version`（计算版本）。定义保存在 `catalog/leaderboard-scaffolds.v1.json`。
 
 用户授权先建结构，算法、输入、加分规则与部署后续补齐。卡片不含虚构结果行，空白不等于远端空表；未创建实际业务表或 Redis key。各榜的计算与数据区分别独立成卡，物理存储方案未定。现有 `asset_scores_current` / `supabase_asset_scores` 演示定义不受影响。
+
+## Dynamic weight library · 动态权重库（SS-113）
+
+四张逻辑表：`weight_topics`、`weight_rules_current`、`weight_rule_versions`、`weight_evaluations`。
+当前交付为 Studio 设计卡与虚构结构案例，不创建真实权重业务表或自动评价程序。
+账号权重以 `subject_asset_id` 引用 #1001 的独立账号 UUID；账号与项目的所属关系仍在 #1003，
+不合并身份或自动传分。当前权重关联准确版本，评价未知时保留 pending。
+完整约束、批量读取和未验证边界见 [DYNAMIC_WEIGHTS](DYNAMIC_WEIGHTS.md)。

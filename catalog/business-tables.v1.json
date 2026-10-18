@@ -325,6 +325,316 @@
       ],
       "create_sql": "CREATE TABLE asset_initial_score_sources (source_id TEXT PRIMARY KEY, source_name TEXT NOT NULL, initial_score REAL NOT NULL CHECK(initial_score > 0), rule_version TEXT NOT NULL, half_life_minutes REAL NOT NULL CHECK(half_life_minutes > 0))"
     }
+,
+    "weight_topics": {
+      "label_zh": "权重话题目录",
+      "label_en": "Weight topics",
+      "purpose_zh": "统一话题身份；DeFi、游戏不因名称写法不同重复建档。",
+      "purpose_en": "Stable topic identities shared by weight rules and evaluations.",
+      "columns": [
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "稳定话题 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "label_zh": "话题名称",
+          "required": true
+        },
+        {
+          "name": "definition",
+          "type": "TEXT",
+          "label_zh": "话题边界说明",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "label_zh": "active / retired",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "topic_id"
+      ],
+      "create_sql": "CREATE TABLE weight_topics (topic_id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL UNIQUE, definition TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('active','retired')))",
+      "index_sql": []
+    },
+    "weight_evaluations": {
+      "label_zh": "权重表现评价记录",
+      "label_en": "Weight evaluations",
+      "purpose_zh": "保存一次判断的评价依据；结果未知时保留待评价，不推定正确或错误。",
+      "purpose_en": "Retain evidence for evaluating a judgment; unknown outcomes stay pending.",
+      "columns": [
+        {
+          "name": "evaluation_id",
+          "type": "TEXT",
+          "label_zh": "独立评价记录 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "source_ref",
+          "type": "TEXT",
+          "label_zh": "原始消息/判断的稳定引用",
+          "required": true
+        },
+        {
+          "name": "subject_asset_id",
+          "type": "TEXT",
+          "label_zh": "被评价对象→assets.asset_id",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "评价话题→weight_topics.topic_id",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "evaluation_key",
+          "type": "TEXT",
+          "label_zh": "评价目标；影响力与判断质量必须分开",
+          "required": true
+        },
+        {
+          "name": "window_start",
+          "type": "TEXT",
+          "label_zh": "观察窗口开始时间",
+          "required": true
+        },
+        {
+          "name": "window_end",
+          "type": "TEXT",
+          "label_zh": "观察窗口结束时间",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "label_zh": "pending / evaluated / inconclusive",
+          "required": true
+        },
+        {
+          "name": "result",
+          "type": "REAL",
+          "label_zh": "评价值；含义与方法尚未确定",
+          "required": false
+        },
+        {
+          "name": "evidence_ref",
+          "type": "TEXT",
+          "label_zh": "结果证据引用",
+          "required": false
+        },
+        {
+          "name": "method_version",
+          "type": "TEXT",
+          "label_zh": "评价方法版本；尚未确定",
+          "required": false
+        },
+        {
+          "name": "evaluated_at",
+          "type": "TEXT",
+          "label_zh": "实际完成评价时间",
+          "required": false
+        }
+      ],
+      "primary_key": [
+        "evaluation_id"
+      ],
+      "create_sql": "CREATE TABLE weight_evaluations (evaluation_id TEXT PRIMARY KEY NOT NULL, source_ref TEXT NOT NULL, subject_asset_id TEXT NOT NULL REFERENCES assets(asset_id), topic_id TEXT REFERENCES weight_topics(topic_id), evaluation_key TEXT NOT NULL, window_start TEXT NOT NULL, window_end TEXT NOT NULL CHECK(window_end>window_start), status TEXT NOT NULL CHECK(status IN ('pending','evaluated','inconclusive')), result REAL, evidence_ref TEXT, method_version TEXT, evaluated_at TEXT, CHECK ((status='pending' AND result IS NULL AND evaluated_at IS NULL) OR (status='evaluated' AND result IS NOT NULL AND evidence_ref IS NOT NULL AND method_version IS NOT NULL AND evaluated_at IS NOT NULL AND evaluated_at>=window_end) OR (status='inconclusive' AND result IS NULL AND evidence_ref IS NOT NULL AND evaluated_at IS NOT NULL AND evaluated_at>=window_end)))",
+      "index_sql": [
+        "CREATE UNIQUE INDEX weight_evaluation_scope ON weight_evaluations(source_ref,subject_asset_id,COALESCE(topic_id,''),evaluation_key,window_start,window_end)"
+      ]
+    },
+    "weight_rule_versions": {
+      "label_zh": "权重版本历史",
+      "label_en": "Weight rule versions",
+      "purpose_zh": "保留规则范围和系数的不可变版本；同一个账号不因调权重生成新身份。",
+      "purpose_en": "Immutable rule scope and coefficient versions; changing weights does not create a new account identity.",
+      "columns": [
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "label_zh": "独立版本 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "rule_id",
+          "type": "TEXT",
+          "label_zh": "稳定规则 ID；不同于被加权对象 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "purpose_key",
+          "type": "TEXT",
+          "label_zh": "评分用途，如 project_heat",
+          "required": true
+        },
+        {
+          "name": "weight_layer",
+          "type": "TEXT",
+          "label_zh": "权重层：signal / source / subject",
+          "required": true
+        },
+        {
+          "name": "signal_type",
+          "type": "TEXT",
+          "label_zh": "信号类型；不是来源平台",
+          "required": true
+        },
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "label_zh": "来源 ID；NULL 表示此层不限来源",
+          "required": false
+        },
+        {
+          "name": "subject_asset_id",
+          "type": "TEXT",
+          "label_zh": "对象外键→assets.asset_id；账号权重必须引用账号 UUID",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "话题外键；NULL 表示默认话题范围",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "coefficient",
+          "type": "REAL",
+          "label_zh": "此版本系数；有限且非负",
+          "required": true
+        },
+        {
+          "name": "version_number",
+          "type": "INTEGER",
+          "label_zh": "同一规则内递增版本号",
+          "required": true
+        },
+        {
+          "name": "effective_at",
+          "type": "TEXT",
+          "label_zh": "UTC 生效时间",
+          "required": true
+        },
+        {
+          "name": "change_reason",
+          "type": "TEXT",
+          "label_zh": "变更原因",
+          "required": true
+        },
+        {
+          "name": "evaluation_refs_json",
+          "type": "TEXT",
+          "label_zh": "评价记录 ID 数组；手工设置可为空",
+          "required": true
+        },
+        {
+          "name": "method_version",
+          "type": "TEXT",
+          "label_zh": "人工/算法更新方法版本",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "version_id"
+      ],
+      "create_sql": "CREATE TABLE weight_rule_versions (version_id TEXT PRIMARY KEY NOT NULL, rule_id TEXT NOT NULL, purpose_key TEXT NOT NULL, weight_layer TEXT NOT NULL, signal_type TEXT NOT NULL, source_id TEXT, subject_asset_id TEXT REFERENCES assets(asset_id), topic_id TEXT REFERENCES weight_topics(topic_id), coefficient REAL NOT NULL CHECK(coefficient>=0 AND coefficient<=1e308), version_number INTEGER NOT NULL CHECK(version_number>0), effective_at TEXT NOT NULL, change_reason TEXT NOT NULL, evaluation_refs_json TEXT NOT NULL, method_version TEXT NOT NULL, UNIQUE(rule_id,version_number), UNIQUE(version_id,rule_id,coefficient,effective_at), CHECK ((weight_layer='signal' AND source_id IS NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='source' AND source_id IS NOT NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='subject' AND subject_asset_id IS NOT NULL)))",
+      "index_sql": []
+    },
+    "weight_rules_current": {
+      "label_zh": "当前权重规则",
+      "label_en": "Current weight rules",
+      "purpose_zh": "按用途与范围保存当前权重；账号规则直接引用 #1001 的账号 UUID，不使用所属项目替代。",
+      "purpose_en": "Current rules by purpose and scope; account weights directly reference the account asset UUID, not its project.",
+      "columns": [
+        {
+          "name": "rule_id",
+          "type": "TEXT",
+          "label_zh": "稳定规则 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "current_version_id",
+          "type": "TEXT",
+          "label_zh": "引用同一 rule_id 的准确版本",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "purpose_key",
+          "type": "TEXT",
+          "label_zh": "评分用途，如 project_heat",
+          "required": true
+        },
+        {
+          "name": "weight_layer",
+          "type": "TEXT",
+          "label_zh": "权重层：signal / source / subject",
+          "required": true
+        },
+        {
+          "name": "signal_type",
+          "type": "TEXT",
+          "label_zh": "信号类型；不是来源平台",
+          "required": true
+        },
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "label_zh": "来源 ID；NULL 表示此层不限来源",
+          "required": false
+        },
+        {
+          "name": "subject_asset_id",
+          "type": "TEXT",
+          "label_zh": "对象外键→assets.asset_id；账号权重必须引用账号 UUID",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "话题外键；NULL 表示默认话题范围",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "coefficient",
+          "type": "REAL",
+          "label_zh": "当前系数；须与引用版本完全一致",
+          "required": true
+        },
+        {
+          "name": "effective_at",
+          "type": "TEXT",
+          "label_zh": "当前版本生效时间",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "rule_id"
+      ],
+      "create_sql": "CREATE TABLE weight_rules_current (rule_id TEXT PRIMARY KEY NOT NULL, current_version_id TEXT NOT NULL, purpose_key TEXT NOT NULL, weight_layer TEXT NOT NULL, signal_type TEXT NOT NULL, source_id TEXT, subject_asset_id TEXT REFERENCES assets(asset_id), topic_id TEXT REFERENCES weight_topics(topic_id), coefficient REAL NOT NULL CHECK(coefficient>=0 AND coefficient<=1e308), effective_at TEXT NOT NULL, FOREIGN KEY(current_version_id,rule_id,coefficient,effective_at) REFERENCES weight_rule_versions(version_id,rule_id,coefficient,effective_at), CHECK ((weight_layer='signal' AND source_id IS NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='source' AND source_id IS NOT NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='subject' AND subject_asset_id IS NOT NULL)))",
+      "index_sql": [
+        "CREATE UNIQUE INDEX weight_current_scope ON weight_rules_current(purpose_key,weight_layer,signal_type,COALESCE(source_id,''),COALESCE(subject_asset_id,''),COALESCE(topic_id,''))",
+        "CREATE INDEX weight_current_subject_topic ON weight_rules_current(purpose_key,subject_asset_id,topic_id)"
+      ]
+    }
   },
   "decision_ref": "https://app.notion.com/p/3f7038a63d5a811d8f3eec4d5b92cf7d"
 }

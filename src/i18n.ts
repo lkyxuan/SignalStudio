@@ -365,6 +365,8 @@ export function displayNodeName(language: Language, name: string = '') {
   const boardNames = { warming: '升温', hottest: '最热', emerging: '新发现', cooling: '降温', divergence: '分歧' };
   const boardKey = name.replace(/^leaderboard_/, '') as keyof typeof boardNames;
   if (name.startsWith('leaderboard_') && boardNames[boardKey]) return language === 'zh-CN' ? `${boardNames[boardKey]}榜结果表` : `${boardKey} leaderboard results`;
+  const weightNames: Record<string, [string, string]> = { weight_topics: ['权重话题目录', 'Weight topics'], weight_rules_current: ['当前权重规则', 'Current weight rules'], weight_rule_versions: ['权重版本历史', 'Weight rule versions'], weight_evaluations: ['权重表现评价记录', 'Weight evaluations'] };
+  if (weightNames[name]) return weightNames[name][language === 'zh-CN' ? 0 : 1];
   if (name === 'asset_initial_score_sources') return language === 'zh-CN' ? '首次建档来源评分配置' : 'Initial score source configuration';
   if (name === 'supabase_asset_scores') return language === 'zh-CN' ? 'Supabase 资产得分表' : 'Supabase asset scores';
   if (name === '同步资产得分到 Supabase') return language === 'zh-CN' ? name : 'Sync asset scores to Supabase';

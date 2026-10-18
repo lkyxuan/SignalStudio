@@ -56,6 +56,20 @@
         "asset_kind": "social_account",
         "identity_status": "confirmed",
         "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "asset_id": "01a14de8-731b-7abc-8def-000000000001",
+        "name": "示例项目 P 官方 X 账号",
+        "asset_kind": "social_account",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "asset_id": "01a14de8-731b-7abc-8def-000000000002",
+        "name": "示例项目 P 中文 X 账号",
+        "asset_kind": "social_account",
+        "identity_status": "confirmed",
+        "created_at": "2026-10-18T08:00:00Z"
       }
     ],
     "asset_identifiers": [
@@ -103,6 +117,16 @@
         "source_namespace": "case:x_user_id",
         "external_identifier": "900000000000000001",
         "asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b44"
+      },
+      {
+        "source_namespace": "case:x_user_id",
+        "external_identifier": "900000000000000113",
+        "asset_id": "01a14de8-731b-7abc-8def-000000000001"
+      },
+      {
+        "source_namespace": "case:x_user_id",
+        "external_identifier": "900000000000000114",
+        "asset_id": "01a14de8-731b-7abc-8def-000000000002"
       }
     ],
     "asset_relationships": [
@@ -159,6 +183,42 @@
         "evidence_ref": "case:ss66:relationship:3",
         "review_id": "case_review_ss66_3",
         "created_at": "2026-10-12T01:00:00Z"
+      },
+      {
+        "row_id": "case:ss113:01a14de8-731b-7abc-8def-000000000001:account_of",
+        "from_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+        "relationship_type": "account_of",
+        "evidence_ref": "case:ss113:project-accounts",
+        "review_id": "case:ss113:review",
+        "created_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "row_id": "case:ss113:01a14de8-731b-7abc-8def-000000000001:has_account",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+        "to_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+        "relationship_type": "has_account",
+        "evidence_ref": "case:ss113:project-accounts",
+        "review_id": "case:ss113:review",
+        "created_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "row_id": "case:ss113:01a14de8-731b-7abc-8def-000000000002:account_of",
+        "from_asset_id": "01a14de8-731b-7abc-8def-000000000002",
+        "to_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+        "relationship_type": "account_of",
+        "evidence_ref": "case:ss113:project-accounts",
+        "review_id": "case:ss113:review",
+        "created_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "row_id": "case:ss113:01a14de8-731b-7abc-8def-000000000002:has_account",
+        "from_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+        "to_asset_id": "01a14de8-731b-7abc-8def-000000000002",
+        "relationship_type": "has_account",
+        "evidence_ref": "case:ss113:project-accounts",
+        "review_id": "case:ss113:review",
+        "created_at": "2026-10-18T08:00:00Z"
       }
     ],
     "asset_monitoring_rules": [

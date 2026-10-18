@@ -212,7 +212,7 @@ Each defined flow should carry at least one concrete case that a person can foll
 
 On 2026-10-08 the user required implementation requests to live under their module, not in a separate handoff document. #3005 now renders its pending event-trigger requirements directly from `catalog/score-rollup.v1.json` → `implementation_request`, including timer retention, calculation responsibilities and acceptance criteria. The historical minute-only configuration is superseded by the approved dual-trigger target. The 2026-10-10 Few report claims both triggers are running, while event-only scope and full acceptance remain unverified here. Implementing agents should read this module source together with its inputs, outputs and formula.
 
-`src/ProcessingIOCard.jsx` implements the shared processing-card pattern. `src/BusinessTableCard.jsx` presents #1001/#1002 with two target rows based on real #2030 Kaito MCP account inputs, plus three named-token format rows and four explicitly fictional person/project/token/account rows in #1001. #1002 has five original identifier/alias cases and four fictional case-scoped mappings. #1003 has six fictional directed relationship rows, each with an independent row_id; #1004 keeps its three rule format cases unchanged. The intended first lookup, paired asset and identifier write, and repeated-input behavior are specified in `catalog/identity-flow-case.v1.json`. Those lookup and write outcomes have not been observed in a deployed backend; neither has a Redpanda message, AI naming, asset verification, or merge.
+`src/ProcessingIOCard.jsx` implements the shared processing-card pattern. `src/BusinessTableCard.jsx` presents #1001/#1002 with two target rows based on real #2030 Kaito MCP account inputs, plus three named-token format rows and six explicitly fictional person/project/token/account rows in #1001. #1002 has five original identifier/alias cases and six fictional case-scoped mappings. #1003 has ten fictional directed relationship rows, each with an independent row_id; SS-113 adds two distinct accounts of one project and their ownership mappings. #1004 keeps its three rule format cases unchanged. The intended first lookup, paired asset and identifier write, and repeated-input behavior are specified in `catalog/identity-flow-case.v1.json`. Those lookup and write outcomes have not been observed in a deployed backend; neither has a Redpanda message, AI naming, asset verification, or merge.
 
 The #1002 Bitcoin case adds two proposed alias rows: `alias_name_zh=比特币` and `alias_ticker=BTC`. Both reuse the #1001 Bitcoin `asset_id`, alongside the existing `coingecko_coin_id=bitcoin` row. A ticker alone is not sufficient evidence to bind a previously unseen source record; ambiguous or conflicting names need source context and review.
 
@@ -402,3 +402,19 @@ The translator is one Prefect service, running every 180 seconds; the three proc
 Chinese mode uses only a matching source hash: missing or obsolete translations show pending, final failure shows failure, and details allow the original. The model-confirmed `same_language` outcome uses the unchanged text. English and Origin behavior remain unchanged. Pending summaries do not silently fall back to another language. Full-body hashes come from the fetched full text rather than the possibly truncated frontend body. Public `item_id` and internal `content_id` remain distinct.
 
 `server/worth_reading_translation.py` installs the mapping transactionally once, refuses conflicting names, preserves existing cards and positions, and gives new cards a separate clear area. All dependency bindings use `trigger=none` and have no Studio action ID. `WorthReadingTranslationCard` supplies bilingual content within the shared `CardDetails` template. No live rows are fabricated. Verify migration rollback, idempotency and data preservation with `PYTHONPATH=server python3 -m unittest server.test_worth_reading_translation`; run contracts, layout, build and `check:details` against an isolated or saved graph. Production release, long-running translation health and provider availability require separate evidence.
+
+## Dynamic weight library cards (SS-113)
+
+The approved four table cards define a topic directory, current weights, immutable
+weight versions and evaluation records. Account rules directly reference the
+account UUID in #1001, while #1003 expresses project ownership without merging
+identities or propagating scores. Two additional fictional project-owned accounts
+appear in #1001/#1002/#1003; their contracts remain unchanged.
+
+`catalog/dynamic-weights.v1.json` owns the bilingual examples and table rules.
+The shared table inspector displays the current/version/evidence distinction and
+batch lookup requirements. The additive installer preserves saved cards and
+positions, rejects conflicts and creates reference-only edges with no execution
+trigger. No business database, weight updater, topic classifier or live cache is
+provisioned. See [DYNAMIC_WEIGHTS](DYNAMIC_WEIGHTS.md) for identity, publication,
+performance boundaries and verification.

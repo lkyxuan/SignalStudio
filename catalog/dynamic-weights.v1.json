@@ -1,0 +1,785 @@
+{
+  "version": 1,
+  "rationale_url": "https://app.notion.com/p/3fd038a63d5a818c8e04d003e04b7b61",
+  "delivery": "studio_design_only",
+  "provenance_zh": "全部为虚构结构与版本案例；系数不是已验证参数，无真实业务表、评价或调权重运行。",
+  "provenance_en": "All rows are fictional schema/version cases; coefficients are unvalidated. No live business tables, evaluations or weight updates are claimed.",
+  "cards": [
+    {
+      "name": "weight_topics",
+      "label_zh": "权重话题目录",
+      "label_en": "Weight topics",
+      "description_zh": "统一话题身份；DeFi、游戏不因名称写法不同重复建档。",
+      "description_en": "Stable topic identities shared by weight rules and evaluations.",
+      "rules_zh": [
+        "话题有独立 ID，不自动成为 #1001 的资产类别。",
+        "消息如何识别话题、多话题分配和话题合并待定义；不是账号的永久身份标签。"
+      ],
+      "rules_en": [
+        "Topics have their own IDs; they are not automatically assets.",
+        "Message classification, multi-topic allocation and merges remain undefined."
+      ]
+    },
+    {
+      "name": "weight_rules_current",
+      "label_zh": "当前权重规则",
+      "label_en": "Current weight rules",
+      "description_zh": "按用途与范围保存当前权重；账号规则直接引用 #1001 的账号 UUID，不使用所属项目替代。",
+      "description_en": "Current rules by purpose and scope; account weights directly reference the account asset UUID, not its project.",
+      "rules_zh": [
+        "同一用途/层级/范围只有一条当前规则；NULL 表示默认范围，不等于缺失匹配结果。",
+        "subject_asset_id 引用独立账号；所属项目用 #1003 表达，不自动继承或传分。",
+        "同层使用更具体规则覆盖默认；多条件冲突需拒绝发布，不重复相乘。跨层公式与系数仅演示。",
+        "发布前核对当前行全部范围及系数与版本快照一致，批次固定完整快照；更新不混新旧层。"
+      ],
+      "rules_en": [
+        "One current rule per purpose/layer/scope; NULL denotes a default scope.",
+        "subject_asset_id references the independent account; project ownership does not propagate scores.",
+        "A more specific rule overrides its default within a layer; ambiguous matches must block publication. Cross-layer math remains illustrative.",
+        "Validate scope/value equality against the referenced version before publication; each batch pins a complete snapshot."
+      ]
+    },
+    {
+      "name": "weight_rule_versions",
+      "label_zh": "权重版本历史",
+      "label_en": "Weight rule versions",
+      "description_zh": "保留规则范围和系数的不可变版本；同一个账号不因调权重生成新身份。",
+      "description_en": "Immutable rule scope and coefficient versions; changing weights does not create a new account identity.",
+      "rules_zh": [
+        "手工规则允许没有评价引用；自动调整必须有可追溯评价依据，方法尚未确定。",
+        "示例 A 的 DeFi 从 1.5 到 1.8，仅演示版本；账号 UUID 与 rule_id 均保持不变。",
+        "追加版本，不覆盖旧版；重试保留原决定。历史回放按当时可知证据和版本，不能套用当前值。"
+      ],
+      "rules_en": [
+        "Manual rules may have no evaluations; automatic updates require traceable evaluated evidence and a defined method.",
+        "The fictional DeFi change from 1.5 to 1.8 keeps account and rule identity.",
+        "Append versions; retries keep their original decision. Historical replay must use evidence and versions available then."
+      ]
+    },
+    {
+      "name": "weight_evaluations",
+      "label_zh": "权重表现评价记录",
+      "label_en": "Weight evaluations",
+      "description_zh": "保存一次判断的评价依据；结果未知时保留待评价，不推定正确或错误。",
+      "description_en": "Retain evidence for evaluating a judgment; unknown outcomes stay pending.",
+      "rules_zh": [
+        "原文引用、对象、话题、评价目标与窗口定义评价范围；去重不得把转述算独立成功。",
+        "未到观察时间或无结果不算错误；结果不明确使用 inconclusive。",
+        "自动评价、观察窗口、数值含义、更新频率和历史证据回填尚未实施。"
+      ],
+      "rules_en": [
+        "Deduplicate evaluation scope; reposts are not independent successes.",
+        "Do not mark pending judgments wrong; inconclusive is a separate outcome.",
+        "Automatic evaluation, scoring semantics, cadence and evidence backfill remain unimplemented."
+      ]
+    }
+  ],
+  "tables": {
+    "weight_topics": {
+      "label_zh": "权重话题目录",
+      "label_en": "Weight topics",
+      "purpose_zh": "统一话题身份；DeFi、游戏不因名称写法不同重复建档。",
+      "purpose_en": "Stable topic identities shared by weight rules and evaluations.",
+      "columns": [
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "稳定话题 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "label_zh": "话题名称",
+          "required": true
+        },
+        {
+          "name": "definition",
+          "type": "TEXT",
+          "label_zh": "话题边界说明",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "label_zh": "active / retired",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "topic_id"
+      ],
+      "create_sql": "CREATE TABLE weight_topics (topic_id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL UNIQUE, definition TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('active','retired')))",
+      "index_sql": [],
+      "rows": [
+        {
+          "topic_id": "01a14de8-731b-7abc-8def-000000000010",
+          "name": "DeFi（示例）",
+          "definition": "去中心化金融话题；仅为分类格式示例",
+          "status": "active"
+        },
+        {
+          "topic_id": "01a14de8-731b-7abc-8def-000000000011",
+          "name": "游戏（示例）",
+          "definition": "游戏话题；不是项目所属关系",
+          "status": "active"
+        }
+      ]
+    },
+    "weight_evaluations": {
+      "label_zh": "权重表现评价记录",
+      "label_en": "Weight evaluations",
+      "purpose_zh": "保存一次判断的评价依据；结果未知时保留待评价，不推定正确或错误。",
+      "purpose_en": "Retain evidence for evaluating a judgment; unknown outcomes stay pending.",
+      "columns": [
+        {
+          "name": "evaluation_id",
+          "type": "TEXT",
+          "label_zh": "独立评价记录 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "source_ref",
+          "type": "TEXT",
+          "label_zh": "原始消息/判断的稳定引用",
+          "required": true
+        },
+        {
+          "name": "subject_asset_id",
+          "type": "TEXT",
+          "label_zh": "被评价对象→assets.asset_id",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "评价话题→weight_topics.topic_id",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "evaluation_key",
+          "type": "TEXT",
+          "label_zh": "评价目标；影响力与判断质量必须分开",
+          "required": true
+        },
+        {
+          "name": "window_start",
+          "type": "TEXT",
+          "label_zh": "观察窗口开始时间",
+          "required": true
+        },
+        {
+          "name": "window_end",
+          "type": "TEXT",
+          "label_zh": "观察窗口结束时间",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "label_zh": "pending / evaluated / inconclusive",
+          "required": true
+        },
+        {
+          "name": "result",
+          "type": "REAL",
+          "label_zh": "评价值；含义与方法尚未确定",
+          "required": false
+        },
+        {
+          "name": "evidence_ref",
+          "type": "TEXT",
+          "label_zh": "结果证据引用",
+          "required": false
+        },
+        {
+          "name": "method_version",
+          "type": "TEXT",
+          "label_zh": "评价方法版本；尚未确定",
+          "required": false
+        },
+        {
+          "name": "evaluated_at",
+          "type": "TEXT",
+          "label_zh": "实际完成评价时间",
+          "required": false
+        }
+      ],
+      "primary_key": [
+        "evaluation_id"
+      ],
+      "create_sql": "CREATE TABLE weight_evaluations (evaluation_id TEXT PRIMARY KEY NOT NULL, source_ref TEXT NOT NULL, subject_asset_id TEXT NOT NULL REFERENCES assets(asset_id), topic_id TEXT REFERENCES weight_topics(topic_id), evaluation_key TEXT NOT NULL, window_start TEXT NOT NULL, window_end TEXT NOT NULL CHECK(window_end>window_start), status TEXT NOT NULL CHECK(status IN ('pending','evaluated','inconclusive')), result REAL, evidence_ref TEXT, method_version TEXT, evaluated_at TEXT, CHECK ((status='pending' AND result IS NULL AND evaluated_at IS NULL) OR (status='evaluated' AND result IS NOT NULL AND evidence_ref IS NOT NULL AND method_version IS NOT NULL AND evaluated_at IS NOT NULL AND evaluated_at>=window_end) OR (status='inconclusive' AND result IS NULL AND evidence_ref IS NOT NULL AND evaluated_at IS NOT NULL AND evaluated_at>=window_end)))",
+      "index_sql": [
+        "CREATE UNIQUE INDEX weight_evaluation_scope ON weight_evaluations(source_ref,subject_asset_id,COALESCE(topic_id,''),evaluation_key,window_start,window_end)"
+      ],
+      "rows": [
+        {
+          "evaluation_id": "01a14de8-731b-7abc-8def-000000000020",
+          "source_ref": "case:ss113:message-1",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000010",
+          "evaluation_key": "judgment_quality",
+          "window_start": "2026-10-17T08:00:00Z",
+          "window_end": "2026-10-18T08:00:00Z",
+          "status": "pending",
+          "result": null,
+          "evidence_ref": null,
+          "method_version": null,
+          "evaluated_at": null
+        }
+      ]
+    },
+    "weight_rule_versions": {
+      "label_zh": "权重版本历史",
+      "label_en": "Weight rule versions",
+      "purpose_zh": "保留规则范围和系数的不可变版本；同一个账号不因调权重生成新身份。",
+      "purpose_en": "Immutable rule scope and coefficient versions; changing weights does not create a new account identity.",
+      "columns": [
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "label_zh": "独立版本 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "rule_id",
+          "type": "TEXT",
+          "label_zh": "稳定规则 ID；不同于被加权对象 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "purpose_key",
+          "type": "TEXT",
+          "label_zh": "评分用途，如 project_heat",
+          "required": true
+        },
+        {
+          "name": "weight_layer",
+          "type": "TEXT",
+          "label_zh": "权重层：signal / source / subject",
+          "required": true
+        },
+        {
+          "name": "signal_type",
+          "type": "TEXT",
+          "label_zh": "信号类型；不是来源平台",
+          "required": true
+        },
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "label_zh": "来源 ID；NULL 表示此层不限来源",
+          "required": false
+        },
+        {
+          "name": "subject_asset_id",
+          "type": "TEXT",
+          "label_zh": "对象外键→assets.asset_id；账号权重必须引用账号 UUID",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "话题外键；NULL 表示默认话题范围",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "coefficient",
+          "type": "REAL",
+          "label_zh": "此版本系数；有限且非负",
+          "required": true
+        },
+        {
+          "name": "version_number",
+          "type": "INTEGER",
+          "label_zh": "同一规则内递增版本号",
+          "required": true
+        },
+        {
+          "name": "effective_at",
+          "type": "TEXT",
+          "label_zh": "UTC 生效时间",
+          "required": true
+        },
+        {
+          "name": "change_reason",
+          "type": "TEXT",
+          "label_zh": "变更原因",
+          "required": true
+        },
+        {
+          "name": "evaluation_refs_json",
+          "type": "TEXT",
+          "label_zh": "评价记录 ID 数组；手工设置可为空",
+          "required": true
+        },
+        {
+          "name": "method_version",
+          "type": "TEXT",
+          "label_zh": "人工/算法更新方法版本",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "version_id"
+      ],
+      "create_sql": "CREATE TABLE weight_rule_versions (version_id TEXT PRIMARY KEY NOT NULL, rule_id TEXT NOT NULL, purpose_key TEXT NOT NULL, weight_layer TEXT NOT NULL, signal_type TEXT NOT NULL, source_id TEXT, subject_asset_id TEXT REFERENCES assets(asset_id), topic_id TEXT REFERENCES weight_topics(topic_id), coefficient REAL NOT NULL CHECK(coefficient>=0 AND coefficient<=1e308), version_number INTEGER NOT NULL CHECK(version_number>0), effective_at TEXT NOT NULL, change_reason TEXT NOT NULL, evaluation_refs_json TEXT NOT NULL, method_version TEXT NOT NULL, UNIQUE(rule_id,version_number), UNIQUE(version_id,rule_id,coefficient,effective_at), CHECK ((weight_layer='signal' AND source_id IS NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='source' AND source_id IS NOT NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='subject' AND subject_asset_id IS NOT NULL)))",
+      "index_sql": [],
+      "rows": [
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000200",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000100",
+          "purpose_key": "project_heat",
+          "weight_layer": "signal",
+          "signal_type": "social_discussion",
+          "source_id": null,
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 1,
+          "version_number": 1,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000201",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000101",
+          "purpose_key": "project_heat",
+          "weight_layer": "signal",
+          "signal_type": "price_change",
+          "source_id": null,
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 0.5,
+          "version_number": 1,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000202",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000102",
+          "purpose_key": "project_heat",
+          "weight_layer": "source",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 0.8,
+          "version_number": 1,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000203",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000103",
+          "purpose_key": "project_heat",
+          "weight_layer": "source",
+          "signal_type": "social_discussion",
+          "source_id": "reddit",
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 0.6,
+          "version_number": 1,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000204",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000104",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": null,
+          "coefficient": 1,
+          "version_number": 1,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000250",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000105",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000010",
+          "coefficient": 1.5,
+          "version_number": 1,
+          "effective_at": "2026-10-17T08:00:00Z",
+          "change_reason": "虚构前一版本；非实际表现变化",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000205",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000105",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000010",
+          "coefficient": 1.8,
+          "version_number": 2,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000206",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000106",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000011",
+          "coefficient": 0.6,
+          "version_number": 1,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        },
+        {
+          "version_id": "01a14de8-731b-7abc-8def-000000000207",
+          "rule_id": "01a14de8-731b-7abc-8def-000000000107",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000002",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000010",
+          "coefficient": 1.2,
+          "version_number": 1,
+          "effective_at": "2026-10-18T08:00:00Z",
+          "change_reason": "虚构手工设置；非自动评价结果",
+          "evaluation_refs_json": [],
+          "method_version": "case:manual/v1"
+        }
+      ]
+    },
+    "weight_rules_current": {
+      "label_zh": "当前权重规则",
+      "label_en": "Current weight rules",
+      "purpose_zh": "按用途与范围保存当前权重；账号规则直接引用 #1001 的账号 UUID，不使用所属项目替代。",
+      "purpose_en": "Current rules by purpose and scope; account weights directly reference the account asset UUID, not its project.",
+      "columns": [
+        {
+          "name": "rule_id",
+          "type": "TEXT",
+          "label_zh": "稳定规则 ID",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "current_version_id",
+          "type": "TEXT",
+          "label_zh": "引用同一 rule_id 的准确版本",
+          "required": true,
+          "format": "uuidv7"
+        },
+        {
+          "name": "purpose_key",
+          "type": "TEXT",
+          "label_zh": "评分用途，如 project_heat",
+          "required": true
+        },
+        {
+          "name": "weight_layer",
+          "type": "TEXT",
+          "label_zh": "权重层：signal / source / subject",
+          "required": true
+        },
+        {
+          "name": "signal_type",
+          "type": "TEXT",
+          "label_zh": "信号类型；不是来源平台",
+          "required": true
+        },
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "label_zh": "来源 ID；NULL 表示此层不限来源",
+          "required": false
+        },
+        {
+          "name": "subject_asset_id",
+          "type": "TEXT",
+          "label_zh": "对象外键→assets.asset_id；账号权重必须引用账号 UUID",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "topic_id",
+          "type": "TEXT",
+          "label_zh": "话题外键；NULL 表示默认话题范围",
+          "required": false,
+          "format": "uuidv7"
+        },
+        {
+          "name": "coefficient",
+          "type": "REAL",
+          "label_zh": "当前系数；须与引用版本完全一致",
+          "required": true
+        },
+        {
+          "name": "effective_at",
+          "type": "TEXT",
+          "label_zh": "当前版本生效时间",
+          "required": true
+        }
+      ],
+      "primary_key": [
+        "rule_id"
+      ],
+      "create_sql": "CREATE TABLE weight_rules_current (rule_id TEXT PRIMARY KEY NOT NULL, current_version_id TEXT NOT NULL, purpose_key TEXT NOT NULL, weight_layer TEXT NOT NULL, signal_type TEXT NOT NULL, source_id TEXT, subject_asset_id TEXT REFERENCES assets(asset_id), topic_id TEXT REFERENCES weight_topics(topic_id), coefficient REAL NOT NULL CHECK(coefficient>=0 AND coefficient<=1e308), effective_at TEXT NOT NULL, FOREIGN KEY(current_version_id,rule_id,coefficient,effective_at) REFERENCES weight_rule_versions(version_id,rule_id,coefficient,effective_at), CHECK ((weight_layer='signal' AND source_id IS NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='source' AND source_id IS NOT NULL AND subject_asset_id IS NULL AND topic_id IS NULL) OR (weight_layer='subject' AND subject_asset_id IS NOT NULL)))",
+      "index_sql": [
+        "CREATE UNIQUE INDEX weight_current_scope ON weight_rules_current(purpose_key,weight_layer,signal_type,COALESCE(source_id,''),COALESCE(subject_asset_id,''),COALESCE(topic_id,''))",
+        "CREATE INDEX weight_current_subject_topic ON weight_rules_current(purpose_key,subject_asset_id,topic_id)"
+      ],
+      "rows": [
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000100",
+          "purpose_key": "project_heat",
+          "weight_layer": "signal",
+          "signal_type": "social_discussion",
+          "source_id": null,
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 1,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000200",
+          "effective_at": "2026-10-18T08:00:00Z"
+        },
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000101",
+          "purpose_key": "project_heat",
+          "weight_layer": "signal",
+          "signal_type": "price_change",
+          "source_id": null,
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 0.5,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000201",
+          "effective_at": "2026-10-18T08:00:00Z"
+        },
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000102",
+          "purpose_key": "project_heat",
+          "weight_layer": "source",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 0.8,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000202",
+          "effective_at": "2026-10-18T08:00:00Z"
+        },
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000103",
+          "purpose_key": "project_heat",
+          "weight_layer": "source",
+          "signal_type": "social_discussion",
+          "source_id": "reddit",
+          "subject_asset_id": null,
+          "topic_id": null,
+          "coefficient": 0.6,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000203",
+          "effective_at": "2026-10-18T08:00:00Z"
+        },
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000104",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": null,
+          "coefficient": 1,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000204",
+          "effective_at": "2026-10-18T08:00:00Z"
+        },
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000105",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000010",
+          "coefficient": 1.8,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000205",
+          "effective_at": "2026-10-18T08:00:00Z"
+        },
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000106",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000011",
+          "coefficient": 0.6,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000206",
+          "effective_at": "2026-10-18T08:00:00Z"
+        },
+        {
+          "rule_id": "01a14de8-731b-7abc-8def-000000000107",
+          "purpose_key": "project_heat",
+          "weight_layer": "subject",
+          "signal_type": "social_discussion",
+          "source_id": "x",
+          "subject_asset_id": "01a14de8-731b-7abc-8def-000000000002",
+          "topic_id": "01a14de8-731b-7abc-8def-000000000010",
+          "coefficient": 1.2,
+          "current_version_id": "01a14de8-731b-7abc-8def-000000000207",
+          "effective_at": "2026-10-18T08:00:00Z"
+        }
+      ]
+    }
+  },
+  "identity": {
+    "project_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+    "account_asset_ids": [
+      "01a14de8-731b-7abc-8def-000000000001",
+      "01a14de8-731b-7abc-8def-000000000002"
+    ]
+  },
+  "edges": [
+    {
+      "source": "assets",
+      "target": "weight_rules_current",
+      "fields": {
+        "asset_id": "subject_asset_id"
+      },
+      "note": "账号权重直接引用对象表账号 UUID；非所属项目 UUID。"
+    },
+    {
+      "source": "assets",
+      "target": "weight_evaluations",
+      "fields": {
+        "asset_id": "subject_asset_id"
+      },
+      "note": "评价对象复用独立对象 ID。"
+    },
+    {
+      "source": "assets",
+      "target": "weight_rule_versions",
+      "fields": {
+        "asset_id": "subject_asset_id"
+      },
+      "note": "版本快照中的对象引用。"
+    },
+    {
+      "source": "asset_relationships",
+      "target": "weight_rules_current",
+      "fields": {},
+      "note": "只解释账号与项目的关系；不参与自动继承、传分或匹配。"
+    },
+    {
+      "source": "weight_topics",
+      "target": "weight_rules_current",
+      "fields": {
+        "topic_id": "topic_id"
+      },
+      "note": "共享稳定话题 ID；不是项目归属。"
+    },
+    {
+      "source": "weight_topics",
+      "target": "weight_rule_versions",
+      "fields": {
+        "topic_id": "topic_id"
+      },
+      "note": "共享稳定话题 ID；不是项目归属。"
+    },
+    {
+      "source": "weight_topics",
+      "target": "weight_evaluations",
+      "fields": {
+        "topic_id": "topic_id"
+      },
+      "note": "共享稳定话题 ID；不是项目归属。"
+    },
+    {
+      "source": "weight_evaluations",
+      "target": "weight_rule_versions",
+      "fields": {
+        "evaluation_id": "evaluation_refs_json"
+      },
+      "note": "可追溯评价引用；当前手工示例无自动评价结果。"
+    },
+    {
+      "source": "weight_rule_versions",
+      "target": "weight_rules_current",
+      "fields": {
+        "version_id": "current_version_id",
+        "rule_id": "rule_id"
+      },
+      "note": "当前规则选择确切版本；不是自动同步绑定。"
+    }
+  ],
+  "examples": [
+    {
+      "label_zh": "同一项目，两个账号",
+      "label_en": "Two accounts of one project",
+      "project_asset_id": "01a12db1-2a3b-7c63-93a6-da1f94065b42",
+      "accounts": [
+        {
+          "asset_id": "01a14de8-731b-7abc-8def-000000000001",
+          "name": "示例项目 P 官方 X 账号",
+          "topic": "DeFi",
+          "coefficient": 1.8
+        },
+        {
+          "asset_id": "01a14de8-731b-7abc-8def-000000000002",
+          "name": "示例项目 P 中文 X 账号",
+          "topic": "DeFi",
+          "coefficient": 1.2
+        }
+      ],
+      "note_zh": "账号 A/B 与项目 P 是三个独立 UUID；所属关系不合并身份，不自动把消息计给 P。",
+      "note_en": "Accounts A/B and project P have three distinct UUIDs. Ownership neither merges identities nor assigns every message to P."
+    }
+  ],
+  "performance_zh": [
+    "当前权重按键批量加载到内存；每批固定完整版本快照，缺失键合并读取，不按消息逐条远程查询。",
+    "只为默认和例外建行，不预生成账号×话题×项目全组合；工作集过大分块关联，避免多对多匹配倍增。",
+    "评价依据与完整历史不进入打分热路径；增量更新及窗口过期维护需配合所选算法。",
+    "热度衰减使用已冻结贡献，不再次查作者当前权重。真实吞吐、缓存刷新和故障政策未验证。"
+  ],
+  "performance_en": [
+    "Batch-load keyed current weights into memory and pin a complete snapshot per batch; coalesce missing keys rather than querying per message.",
+    "Store defaults and exceptions, not every account/topic/project combination. Chunk large working sets; prevent join fan-out.",
+    "Keep evaluation evidence and full history off the scoring path; incremental/expiry maintenance depends on the eventual algorithm.",
+    "Decay frozen contributions without looking up current author weights. Throughput, cache refresh and failure policies remain unverified."
+  ],
+  "unknowns_zh": [
+    "评价目标与方法、自动更新算法/频率、话题识别与多话题处理尚未确定。",
+    "生产数据库、消费者、权重缓存与发布服务尚未接入；卡片引用不触发执行。"
+  ],
+  "unknowns_en": [
+    "Evaluation targets/methods, automatic update algorithms/cadence and topic classification/allocation remain undefined.",
+    "No production database, consumer, weight cache or publication service is connected; reference edges never execute."
+  ]
+}
