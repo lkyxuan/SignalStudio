@@ -13,6 +13,9 @@ import indicatorSignals from '../catalog/coingecko-indicator-signals.v1.json';
 import sync from '../catalog/supabase-score-sync.v1.json';
 import sources from '../catalog/source-contracts.v1.json';
 import rollup from '../catalog/score-rollup.v1.json';
+import webpageFlow from '../catalog/asset-webpage-flow.v1.json';
+
+const currentWebpageStep = node => node.card_contract?.config.resource?.asset_webpage_flow && webpageFlow.cards.find(card => card.name === node.name);
 
 export const isCatalogSource = name => sources.operations.some(item => item.id === name) || sources.resources.some(item => item.id === name);
 
@@ -33,6 +36,8 @@ function acceptedCopy(node) {
 }
 export function cardExplanation(node, language) {
   const zh = language === 'zh-CN';
+  const webpageStep = currentWebpageStep(node);
+  if (webpageStep) return webpageStep.algorithm_zh;
   const warmingCard=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);
   if (warmingCard) return zh?warmingCard.algorithm_zh:warmingCard.algorithm_en;
   const heatCard=hottest.cards.find(c=>c.key===node.card_contract?.config.resource?.hottest_key);
@@ -55,6 +60,8 @@ export function cardExplanation(node, language) {
 }
 export function executionSummary(node, language) {
   const zh = language === 'zh-CN';
+  const webpageStep = currentWebpageStep(node);
+  if (webpageStep) return webpageStep.trigger_zh;
   const entry=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);
   if(entry) return zh?entry.trigger_zh:'Inside the warming program: one healthy complete round, frozen daily baseline; no independent hourly scheduler.';
   const stage = refresh.stages.find(item => item.name === node.name);

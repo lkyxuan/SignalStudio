@@ -16,7 +16,7 @@ import { FieldCatalog } from './FieldPanels';
 import { nodeRef } from './graphRefs';
 import { displayNodeName } from './i18n';
 import businessTables from '../catalog/business-tables.v1.json';
-import pageVersions from '../catalog/asset-page-versions.v1.json';
+import currentPages from '../catalog/asset-pages.v1.json';
 import initial from '../catalog/asset-initial-score-sources.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import './card-details.css';
@@ -32,7 +32,7 @@ import { ApplicationInterfaceCard } from './ApplicationInterfaceCard';
 const words = (language, zh, en) => language === 'zh-CN' ? zh : en;
 const relationLabels = {data:['传递数据','Data'],control:['执行顺序','Sequence'],read:['读取','Read'],write:['写入','Write'],publish:['发布消息','Publish'],consume:['消费消息','Consume'],error:['失败路径','Error'],reference:['设计引用 · 未建立自动同步','Design reference · no automatic sync']};
 const relationRoleLabels = {
-  asset_page_identity_reference: ['网页所属资产 · UUID 引用', 'Page owner · asset UUID reference'],
+  asset_page_refresh_read: ['按候选 UUID 查询网页制作记录', 'Read webpage history by candidate UUID'],
   human_review_surface: ['人工审核界面 · 不自动触发', 'Human review surface · no automatic trigger'],
   module_shared_input: ['模块共享输入 · 无独立消费者', 'Shared module input · no independent consumer'],
   module_result: ['模块内部结果 · 统一组装', 'Internal module result · assembled together'],
@@ -115,7 +115,7 @@ function ExistingTableReference({ active, language, children }) {
 }
 function TableDetails(props) {
   const {node,graph,language,mutate,busy}=props;
-  const businessTable = Boolean(businessTables.tables[node.name]) || node.name === pageVersions.table.name;
+  const businessTable = Boolean(businessTables.tables[node.name]) || node.name === currentPages.table.name;
   const special=contentRefreshCard(node.name)||leaderboardCard(node.name);
   return <>
     <p className="card-detail-provenance">{node.name === initial.table_name

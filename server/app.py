@@ -50,6 +50,9 @@ from card_corrections import ensure_card_corrections
 from worth_reading_translation import ensure_worth_reading_translation
 from dynamic_weights import ensure_dynamic_weights
 from asset_page_versions import ensure_asset_page_versions
+from asset_page_refresh_link import ensure_asset_page_refresh_link
+from asset_pages import ensure_asset_pages
+from asset_webpage_flow import ensure_asset_webpage_flow
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -99,6 +102,9 @@ ensure_coingecko_warming(service)
 ensure_worth_reading_translation(service)
 ensure_dynamic_weights(service)
 ensure_asset_page_versions(service)
+ensure_asset_page_refresh_link(service)
+ensure_asset_pages(service)
+ensure_asset_webpage_flow(service)
 
 
 class Handler(BaseHTTPRequestHandler):

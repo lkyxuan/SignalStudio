@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "approval_date": "2026-10-19",
+  "rationale_url": "https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524",
+  "delivery_scope": "studio_design_only",
+  "source": "asset_page_versions",
+  "target": "刷新判断",
+  "candidates": "候选代币筛选",
+  "read_fields": [
+    "asset_id",
+    "page_version_id",
+    "page_ref",
+    "generated_at"
+  ],
+  "page_refresh_interval_seconds": null,
+  "rules_zh": [
+    "#3027 只筛选候选资产并传递 asset_id；#3029 收到候选后按同一 UUID 查询 #1039 的网页制作记录。",
+    "按 generated_at 的有效 UTC 完成时间倒序、同时间 page_version_id 升序选最近成功制作记录，不以素材时间或 #1019.last_success_at 代替。",
+    "成功查询确认无网页记录时为首次制作；有有效制作时间且达到已配置整页过期时长时需重做，未到期则跳过。",
+    "整页过期时长尚未配置，不能从分信息类型的 30 分钟规则推定；已有网页暂不能作过期决定。",
+    "查询失败或不完整不能当作无网页；只有未知时间、无效时间或未来时间时显示待核对，不猜测是否过期。",
+    "#1039 → #3029 是读取返回关系，不触发任务；反向查询请求由同一读取关系展示。assets UUID 的关联只保留在字段定义，不另画身份传递线。",
+    "#1019 保留现有分信息类型的内容与任务状态职责；其旧演算不代表已执行整页网页判定。本次仅补读取设计，不接入真实读取器、生成器或调度。"
+  ],
+  "rules_en": [
+    "#3027 selects candidates and hands their asset IDs to #3029, which queries #1039 by that UUID.",
+    "Choose the latest valid UTC completion, breaking ties by version ID ascending. Material times and #1019.last_success_at do not establish webpage age.",
+    "A successful complete empty lookup means first generation; an existing webpage is due only when its age reaches the configured whole-page interval, otherwise skip.",
+    "The whole-page interval is unset; do not inherit the per-information 30-minute interval. Existing pages cannot yet be classified as expired.",
+    "Failed or partial reads are not missing pages. Unknown, invalid or future times require review.",
+    "This is a read, without an execution trigger. The same relation displays the reverse query request. Asset identity remains a field reference, without an assets-to-history graph edge.",
+    "Keep the existing #1019 per-information content/task-state contract. Its old case is not a whole-page decision. Runtime readers, generation and scheduling remain unconnected."
+  ]
+}

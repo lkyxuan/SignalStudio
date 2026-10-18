@@ -295,23 +295,16 @@
     "definition_paths": [
       "catalog/market-current.v1.json",
       "catalog/market-scoring.v1.json",
-      "catalog/content-refresh.v1.json"
+      "catalog/content-refresh.v1.json",
+      "catalog/asset-webpage-flow.v1.json"
     ]
   },
-  "asset_page_versions": {
+  "asset_pages": {
     "kind": "table",
     "subtype": "content",
     "origin": "multi",
     "definition_paths": [
-      "catalog/asset-page-versions.v1.json"
-    ]
-  },
-  "asset_information_content": {
-    "kind": "table",
-    "subtype": "content",
-    "origin": "multi",
-    "definition_paths": [
-      "catalog/business-tables.v1.json"
+      "catalog/asset-pages.v1.json"
     ]
   },
   "CoinGecko · 热榜上榜加分": {
@@ -328,20 +321,13 @@
     "subtype": "automatic",
     "origin": "internal_compute",
     "definition_paths": [
-      "catalog/content-refresh.v1.json"
+      "catalog/content-refresh.v1.json",
+      "catalog/asset-webpage-flow.v1.json"
     ]
   },
   "数据采集与内容生成": {
     "kind": "process",
     "subtype": "generate",
-    "origin": "internal_compute",
-    "definition_paths": [
-      "catalog/content-refresh.v1.json"
-    ]
-  },
-  "验证与保存": {
-    "kind": "process",
-    "subtype": "save",
     "origin": "internal_compute",
     "definition_paths": [
       "catalog/content-refresh.v1.json"
@@ -551,20 +537,13 @@
       "catalog/new-uuid-board.v1.json"
     ]
   },
-  "根据资料生成内容": {
-    "kind": "process",
-    "subtype": "generate",
-    "origin": "internal_compute",
-    "definition_paths": [
-      "catalog/content-refresh.v1.json"
-    ]
-  },
   "读取已有资料": {
     "kind": "process",
     "subtype": "generate",
     "origin": "internal_compute",
     "definition_paths": [
-      "catalog/search-preparation.v1.json"
+      "catalog/search-preparation.v1.json",
+      "catalog/asset-webpage-flow.v1.json"
     ]
   },
   "判断资料缺口": {
@@ -572,7 +551,8 @@
     "subtype": "automatic",
     "origin": "internal_compute",
     "definition_paths": [
-      "catalog/search-preparation.v1.json"
+      "catalog/search-preparation.v1.json",
+      "catalog/asset-webpage-flow.v1.json"
     ]
   },
   "搜索补缺": {
@@ -580,7 +560,8 @@
     "subtype": "generate",
     "origin": "internal_compute",
     "definition_paths": [
-      "catalog/search-preparation.v1.json"
+      "catalog/search-preparation.v1.json",
+      "catalog/asset-webpage-flow.v1.json"
     ]
   },
   "搜索资料暂存": {
@@ -588,7 +569,8 @@
     "subtype": "content",
     "origin": "internal_compute",
     "definition_paths": [
-      "catalog/search-preparation.v1.json"
+      "catalog/search-preparation.v1.json",
+      "catalog/asset-webpage-flow.v1.json"
     ]
   },
   "组装生成资料": {
@@ -596,7 +578,8 @@
     "subtype": "generate",
     "origin": "internal_compute",
     "definition_paths": [
-      "catalog/search-preparation.v1.json"
+      "catalog/search-preparation.v1.json",
+      "catalog/asset-webpage-flow.v1.json"
     ]
   },
   "生成基础最热榜": {

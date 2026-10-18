@@ -12,7 +12,7 @@ import { BusinessTableRows } from './BusinessTableRows';
 import { TableBackfillCard } from './TableBackfillCard';
 import weightDesign from '../catalog/dynamic-weights.v1.json';
 import { DynamicWeightsNotes } from './DynamicWeightsNotes';
-import pageVersions from '../catalog/asset-page-versions.v1.json';
+import currentPages from '../catalog/asset-pages.v1.json';
 
 const number = index => String(index + 1).padStart(2, '0');
 
@@ -39,6 +39,7 @@ const notesEn = {
 export function BusinessTableCard({ node, language }) {
   const zh = language === 'zh-CN';
   const [caseIndex, setCaseIndex] = useState(0);
+  const pageVersions = currentPages;
   const pageHistory = node.name === pageVersions.table.name;
   const table = pageHistory ? pageVersions.table : contract.tables[node.name];
   const caseRows = ['assets', 'asset_identifiers'].includes(node.name) ? identityCase.tables[node.name].rows : [];

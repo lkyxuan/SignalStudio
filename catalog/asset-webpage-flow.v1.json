@@ -1,0 +1,881 @@
+{
+  "version": 1,
+  "approval_date": "2026-10-19",
+  "rationale_url": "https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524",
+  "delivery_scope": "studio_design_only",
+  "retired_cards": [
+    "asset_information_content",
+    "根据资料生成内容",
+    "验证与保存"
+  ],
+  "cards": [
+    {
+      "key": "candidates",
+      "name": "候选代币筛选",
+      "kind": "process",
+      "description_zh": "合并升温、最热、新发现UUID三榜有效结果；仅已确认代币进入内容维护。",
+      "algorithm_zh": "各榜先校验完整有效批次并过滤已确认代币，再按本榜排序取前20，按asset_id合并去重；新发现按created_at倒序，其他两榜按score降序。保留本榜引用，缺榜独立跳过，不回退旧total_heat。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "calculated_at",
+          "type": "string",
+          "label_zh": "榜单计算时间"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "label_zh": "未舍入榜单分数"
+        },
+        {
+          "name": "algorithm_version",
+          "type": "string",
+          "label_zh": "榜单算法版本"
+        },
+        {
+          "name": "asset_kind",
+          "type": "string",
+          "label_zh": "只将coin交代币内容链"
+        },
+        {
+          "name": "created_at",
+          "type": "UTC timestamp",
+          "label_zh": "首次建档时间；新榜排序依据"
+        }
+      ],
+      "output_fields": [
+        "asset_id"
+      ]
+    },
+    {
+      "key": "decision",
+      "name": "刷新判断",
+      "kind": "decision",
+      "description_zh": "接收候选 UUID，查询 #1039 当前网页记录，判断首次制作或到期更新；一天/三天周期待定。",
+      "algorithm_zh": "按候选 asset_id 完整查询当前网页记录。无记录为首次制作；查询失败或不完整则待核对。有网页时，以网页最后成功更新时间判断年龄；未知、无效或未来时间不可猜测。有有效时间且达到已配置整页周期才更新，未到期跳过。当前周期未配置，不对已有网页作过期结论。只有首次制作或到期更新进入资料准备。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "候选资产 UUID"
+        },
+        {
+          "name": "page_ref",
+          "type": "TEXT",
+          "label_zh": "当前网页位置；无网页可空"
+        },
+        {
+          "name": "page_updated_at",
+          "type": "TEXT",
+          "label_zh": "#1039.updated_at，网页最后成功更新时间"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "首次制作 / 更新 / 跳过 / 待核对"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "label_zh": "本次判定原因"
+        },
+        {
+          "name": "age_minutes",
+          "type": "number | null",
+          "label_zh": "网页自上次成功更新经过分钟；未知为空"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "reason",
+        "age_minutes",
+        "page_ref"
+      ]
+    },
+    {
+      "key": "read",
+      "name": "读取已有资料",
+      "kind": "process",
+      "description_zh": "按候选资产读取已收集的资料与现有网页位置，整理可用素材和缺口。",
+      "algorithm_zh": "接收刷新判断交付的资产 UUID 与当前网页位置，按真实来源读取已有业务资料和搜索缓存，输出带来源的材料及缺口；不生成网页，不假装已接通数据源。",
+      "trigger_zh": "收到当前资产的上一步有效结果后处理；打开卡片不执行。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "首次生成 / 到期刷新 / 跳过 / 等待 / 阻塞"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "label_zh": "判断原因"
+        },
+        {
+          "name": "age_minutes",
+          "type": "number | null",
+          "label_zh": "成功内容年龄（分钟）；首次为空"
+        },
+        {
+          "name": "source_namespace",
+          "type": "string",
+          "label_zh": "来源命名空间"
+        },
+        {
+          "name": "external_identifier",
+          "type": "string",
+          "label_zh": "来源稳定外部标识"
+        },
+        {
+          "name": "query_key",
+          "type": "string",
+          "label_zh": "稳定对象、类型、查询条件与工作流版本组成的需求键"
+        },
+        {
+          "name": "query_json",
+          "type": "JSON",
+          "label_zh": "搜索条件及时间范围"
+        },
+        {
+          "name": "results_json",
+          "type": "JSON array",
+          "label_zh": "本次成功搜索的可追溯结果"
+        },
+        {
+          "name": "search_status",
+          "type": "string",
+          "label_zh": "success / empty / failed / unconnected"
+        },
+        {
+          "name": "fetched_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "本次成功抓取时间；失败不刷新"
+        },
+        {
+          "name": "expires_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "资料可用截止；不等于存储删除时间"
+        },
+        {
+          "name": "attempt_error",
+          "type": "string | null",
+          "label_zh": "本次搜索或生成错误"
+        },
+        {
+          "name": "materials_json",
+          "type": "JSON array",
+          "label_zh": "已有资料；保留原始来源与时间"
+        },
+        {
+          "name": "gaps_json",
+          "type": "JSON array",
+          "label_zh": "缺少或不满足时效的资料需求"
+        },
+        {
+          "name": "search_policy",
+          "type": "string",
+          "label_zh": "当前默认实时补搜；未来可按覆盖判断"
+        },
+        {
+          "name": "page_ref",
+          "type": "TEXT",
+          "label_zh": "当前网页位置；无网页可空"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "materials_json",
+        "gaps_json",
+        "search_policy",
+        "page_ref"
+      ]
+    },
+    {
+      "key": "gap",
+      "name": "判断资料缺口",
+      "kind": "decision",
+      "description_zh": "判断资料是否够用，决定补搜、继续组装或阻塞。",
+      "algorithm_zh": "按材料范围与新鲜度判断缺口；当前沿用需要本次实时补搜的策略。资料不足或证据不可用时阻塞；将选择交给补搜或组装，不读取已删除的内容状态表。",
+      "trigger_zh": "收到当前资产的上一步有效结果后处理；打开卡片不执行。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "materials_json",
+          "type": "JSON array",
+          "label_zh": "已有资料；保留原始来源与时间"
+        },
+        {
+          "name": "gaps_json",
+          "type": "JSON array",
+          "label_zh": "缺少或不满足时效的资料需求"
+        },
+        {
+          "name": "search_policy",
+          "type": "string",
+          "label_zh": "当前默认实时补搜；未来可按覆盖判断"
+        },
+        {
+          "name": "route",
+          "type": "string",
+          "label_zh": "need_search / enough / blocked"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "route",
+        "gaps_json",
+        "search_policy"
+      ]
+    },
+    {
+      "key": "search",
+      "name": "搜索补缺",
+      "kind": "process",
+      "description_zh": "为该资产查找本次所需资料，记录来源与时间。",
+      "algorithm_zh": "根据资产 UUID 与缺口调用已绑定搜索工具，返回来源、原始URL、已知发布时间、抓取时间及结果。工具未接通、失败与成功空结果分别表达，不伪造资料。",
+      "trigger_zh": "收到当前资产的上一步有效结果后处理；打开卡片不执行。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "route",
+          "type": "string",
+          "label_zh": "need_search / enough / blocked"
+        },
+        {
+          "name": "gaps_json",
+          "type": "JSON array",
+          "label_zh": "缺少或不满足时效的资料需求"
+        },
+        {
+          "name": "search_policy",
+          "type": "string",
+          "label_zh": "当前默认实时补搜；未来可按覆盖判断"
+        },
+        {
+          "name": "query_key",
+          "type": "string",
+          "label_zh": "稳定对象、类型、查询条件与工作流版本组成的需求键"
+        },
+        {
+          "name": "query_json",
+          "type": "JSON",
+          "label_zh": "搜索条件及时间范围"
+        },
+        {
+          "name": "results_json",
+          "type": "JSON array",
+          "label_zh": "本次成功搜索的可追溯结果"
+        },
+        {
+          "name": "search_status",
+          "type": "string",
+          "label_zh": "success / empty / failed / unconnected"
+        },
+        {
+          "name": "fetched_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "本次成功抓取时间；失败不刷新"
+        },
+        {
+          "name": "expires_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "资料可用截止；不等于存储删除时间"
+        },
+        {
+          "name": "attempt_error",
+          "type": "string | null",
+          "label_zh": "本次搜索或生成错误"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ]
+    },
+    {
+      "key": "cache",
+      "name": "搜索资料暂存",
+      "kind": "table",
+      "description_zh": "保存已查到的素材与搜索时间，不存资产网页正文。",
+      "algorithm_zh": "按资产与查询键保存搜索结果和来源时间；失败保留上次成功素材，失败原因独立表达。资料有效期不是删除期限。",
+      "trigger_zh": "收到当前资产的上一步有效结果后处理；打开卡片不执行。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "query_key",
+          "type": "string",
+          "label_zh": "稳定对象、类型、查询条件与工作流版本组成的需求键"
+        },
+        {
+          "name": "query_json",
+          "type": "JSON",
+          "label_zh": "搜索条件及时间范围"
+        },
+        {
+          "name": "results_json",
+          "type": "JSON array",
+          "label_zh": "本次成功搜索的可追溯结果"
+        },
+        {
+          "name": "search_status",
+          "type": "string",
+          "label_zh": "success / empty / failed / unconnected"
+        },
+        {
+          "name": "fetched_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "本次成功抓取时间；失败不刷新"
+        },
+        {
+          "name": "expires_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "资料可用截止；不等于存储删除时间"
+        },
+        {
+          "name": "attempt_error",
+          "type": "string | null",
+          "label_zh": "本次搜索或生成错误"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ]
+    },
+    {
+      "key": "assemble",
+      "name": "组装生成资料",
+      "kind": "process",
+      "description_zh": "合并已有资料与本次补搜，准备网页制作所需材料。",
+      "algorithm_zh": "按同一资产合并已有资料和当前选择的补搜结果，去重保留来源，保留冲突与未知数据时间。缺少必要资料时输出错误；成功时输出材料包及当前网页位置，网页制作步骤尚待创建。",
+      "trigger_zh": "收到当前资产的上一步有效结果后处理；打开卡片不执行。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "materials_json",
+          "type": "JSON array",
+          "label_zh": "已有资料；保留原始来源与时间"
+        },
+        {
+          "name": "route",
+          "type": "string",
+          "label_zh": "need_search / enough / blocked"
+        },
+        {
+          "name": "gaps_json",
+          "type": "JSON array",
+          "label_zh": "缺少或不满足时效的资料需求"
+        },
+        {
+          "name": "search_policy",
+          "type": "string",
+          "label_zh": "当前默认实时补搜；未来可按覆盖判断"
+        },
+        {
+          "name": "query_key",
+          "type": "string",
+          "label_zh": "稳定对象、类型、查询条件与工作流版本组成的需求键"
+        },
+        {
+          "name": "query_json",
+          "type": "JSON",
+          "label_zh": "搜索条件及时间范围"
+        },
+        {
+          "name": "results_json",
+          "type": "JSON array",
+          "label_zh": "本次成功搜索的可追溯结果"
+        },
+        {
+          "name": "search_status",
+          "type": "string",
+          "label_zh": "success / empty / failed / unconnected"
+        },
+        {
+          "name": "fetched_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "本次成功抓取时间；失败不刷新"
+        },
+        {
+          "name": "expires_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "资料可用截止；不等于存储删除时间"
+        },
+        {
+          "name": "attempt_error",
+          "type": "string | null",
+          "label_zh": "本次搜索或生成错误"
+        },
+        {
+          "name": "prepared_materials_json",
+          "type": "JSON array",
+          "label_zh": "已有资料与本次补搜合并后的生成输入"
+        },
+        {
+          "name": "source_refs_json",
+          "type": "JSON array",
+          "label_zh": "原始证据来源引用"
+        },
+        {
+          "name": "data_as_of",
+          "type": "UTC timestamp | null",
+          "label_zh": "可信源数据时间；未知为空"
+        },
+        {
+          "name": "preparation_error",
+          "type": "string | null",
+          "label_zh": "资料不满足需求则阻塞生成"
+        },
+        {
+          "name": "page_ref",
+          "type": "TEXT",
+          "label_zh": "当前网页位置；无网页可空"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "prepared_materials_json",
+        "source_refs_json",
+        "data_as_of",
+        "preparation_error",
+        "page_ref"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "source": "候选代币筛选",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id"
+      ],
+      "note_zh": "候选资产 UUID 交给刷新判断。",
+      "branch": ""
+    },
+    {
+      "source": "asset_pages",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id",
+        "page_ref",
+        "updated_at"
+      ],
+      "mapping": {
+        "updated_at": "page_updated_at"
+      },
+      "note_zh": "按候选 UUID 查询当前网页位置及最后成功更新时间。",
+      "branch": ""
+    },
+    {
+      "source": "刷新判断",
+      "target": "读取已有资料",
+      "fields": [
+        "asset_id",
+        "action",
+        "reason",
+        "age_minutes",
+        "page_ref"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": "",
+      "branches": [
+        "first",
+        "due"
+      ]
+    },
+    {
+      "source": "asset_identifiers",
+      "target": "读取已有资料",
+      "fields": [
+        "asset_id",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": ""
+    },
+    {
+      "source": "搜索资料暂存",
+      "target": "读取已有资料",
+      "fields": [
+        "asset_id",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": ""
+    },
+    {
+      "source": "读取已有资料",
+      "target": "判断资料缺口",
+      "fields": [
+        "asset_id",
+        "materials_json",
+        "gaps_json",
+        "search_policy"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": ""
+    },
+    {
+      "source": "读取已有资料",
+      "target": "组装生成资料",
+      "fields": [
+        "asset_id",
+        "materials_json",
+        "page_ref"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": ""
+    },
+    {
+      "source": "判断资料缺口",
+      "target": "搜索补缺",
+      "fields": [
+        "asset_id",
+        "route",
+        "gaps_json",
+        "search_policy"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": "need_search"
+    },
+    {
+      "source": "判断资料缺口",
+      "target": "组装生成资料",
+      "fields": [
+        "asset_id",
+        "route",
+        "gaps_json",
+        "search_policy"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": "enough"
+    },
+    {
+      "source": "搜索补缺",
+      "target": "搜索资料暂存",
+      "fields": [
+        "asset_id",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": ""
+    },
+    {
+      "source": "搜索补缺",
+      "target": "组装生成资料",
+      "fields": [
+        "asset_id",
+        "query_key",
+        "query_json",
+        "results_json",
+        "search_status",
+        "fetched_at",
+        "expires_at",
+        "attempt_error"
+      ],
+      "note_zh": "按同一资产传递本步骤需要的资料；设计连接，不代表真实执行。",
+      "branch": ""
+    }
+  ],
+  "candidate_sources": [
+    {
+      "source": "leaderboard_hottest",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_warming",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_new_uuid",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "asset_kind",
+        "created_at",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    }
+  ],
+  "page_refresh_interval_seconds": null,
+  "branches": [
+    {
+      "id": "first",
+      "label_zh": "首次制作",
+      "label_en": "First creation",
+      "condition": "成功完整查询确认没有当前网页。",
+      "terminal": false
+    },
+    {
+      "id": "due",
+      "label_zh": "到期更新",
+      "label_en": "Update due",
+      "condition": "网页最后成功更新时间达到已配置整页周期。",
+      "terminal": false
+    },
+    {
+      "id": "skip",
+      "label_zh": "跳过",
+      "label_en": "Skip",
+      "condition": "当前网页尚未到期。",
+      "terminal": true
+    },
+    {
+      "id": "blocked",
+      "label_zh": "待核对",
+      "label_en": "Needs review",
+      "condition": "读取失败/不完整、时间未知/无效，或已有网页但整页周期未配置。",
+      "terminal": true
+    }
+  ],
+  "example_clock": "2026-10-18T10:00:00Z",
+  "example_rows": {
+    "候选代币筛选": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c"
+      }
+    ],
+    "刷新判断": [],
+    "读取已有资料": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "page_ref": null,
+        "materials_json": [
+          {
+            "source_url": "https://example.invalid/material/project",
+            "text": "假设的项目资料",
+            "fetched_at": "2026-10-18T10:00:00Z"
+          }
+        ],
+        "gaps_json": [
+          "近期公开动态"
+        ],
+        "search_policy": "realtime_search_required"
+      }
+    ],
+    "判断资料缺口": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "materials_json": [
+          {
+            "source_url": "https://example.invalid/material/project",
+            "text": "假设的项目资料",
+            "fetched_at": "2026-10-18T10:00:00Z"
+          }
+        ],
+        "gaps_json": [
+          "近期公开动态"
+        ],
+        "search_policy": "realtime_search_required",
+        "route": "need_search"
+      }
+    ],
+    "搜索补缺": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "query_key": "example-current-project",
+        "query_json": {
+          "topic": "近期公开动态"
+        },
+        "results_json": [
+          {
+            "source_url": "https://example.invalid/material/project",
+            "text": "假设的项目资料",
+            "fetched_at": "2026-10-18T10:00:00Z"
+          }
+        ],
+        "search_status": "success",
+        "fetched_at": "2026-10-18T10:00:00Z",
+        "expires_at": null,
+        "attempt_error": null
+      }
+    ],
+    "搜索资料暂存": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "query_key": "example-current-project",
+        "query_json": {
+          "topic": "近期公开动态"
+        },
+        "results_json": [
+          {
+            "source_url": "https://example.invalid/material/project",
+            "text": "假设的项目资料",
+            "fetched_at": "2026-10-18T10:00:00Z"
+          }
+        ],
+        "search_status": "success",
+        "fetched_at": "2026-10-18T10:00:00Z",
+        "expires_at": null,
+        "attempt_error": null
+      }
+    ],
+    "组装生成资料": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "page_ref": null,
+        "prepared_materials_json": [
+          {
+            "source_url": "https://example.invalid/material/project",
+            "text": "假设的项目资料",
+            "fetched_at": "2026-10-18T10:00:00Z"
+          }
+        ],
+        "source_refs_json": [
+          "https://example.invalid/material/project"
+        ],
+        "data_as_of": null,
+        "preparation_error": null
+      }
+    ],
+    "asset_pages": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "page_ref": "https://example.invalid/pages/a.html",
+        "updated_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "page_ref": "https://example.invalid/pages/c.html",
+        "updated_at": null
+      }
+    ],
+    "asset_identifiers": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "source_namespace": "example",
+        "external_identifier": "example-entity"
+      }
+    ],
+    "leaderboard_hottest": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_warming": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_new_uuid": [
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ]
+  },
+  "provenance_zh": "假设的资产与资料流转例，不是实际爬取、生成或业务数据库记录。整页周期、真实资料读取、搜索工具和 Grokbot 网页制作尚未接入。",
+  "provenance_en": "Fictional asset/material examples, not actual crawls, generation or business records. The whole-page interval, data readers, search tools and Grokbot page creation remain unconnected."
+}

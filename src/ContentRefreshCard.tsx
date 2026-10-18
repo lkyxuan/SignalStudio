@@ -6,6 +6,7 @@ import { buildDesignPipeline, type DesignScenario } from './contentRefreshDesign
 import type { Graph, GraphNode, Language } from './contracts';
 import {SearchPreparationCard, searchPreparationCard} from './SearchPreparationCard';
 import {NewUuidBoardCard, newUuidBoardCard} from './NewUuidBoardCard';
+import {AssetWebpageFlowCard, currentWebpageCard} from './AssetWebpageFlowCard';
 
 type Props = { node: GraphNode; graph?: Graph; openNode?: (id: string) => void; language: Language };
 export const contentRefreshCard = (name: string) =>
@@ -21,6 +22,7 @@ function FieldRows({ rows }: { rows: [string, string][] }) {
 export function ContentRefreshCard({ node, graph, openNode, language }: Props) {
   const zh = language === 'zh-CN';
   const [scenario, setScenario] = useState<DesignScenario>('check');
+  if (currentWebpageCard(node)) return <AssetWebpageFlowCard node={node} graph={graph} openNode={openNode} language={language}/>;
   if (searchPreparationCard(node.name)) return <SearchPreparationCard node={node} graph={graph} openNode={openNode} language={language}/>;
   if (newUuidBoardCard(node.name)) return <NewUuidBoardCard node={node} graph={graph} openNode={openNode} language={language}/>;
   const pipeline = buildDesignPipeline(scenario);

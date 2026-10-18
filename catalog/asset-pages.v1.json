@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "approval_date": "2026-10-19",
+  "rationale_url": "https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524",
+  "delivery_scope": "studio_design_only",
+  "table": {
+    "name": "asset_pages",
+    "label_zh": "资产当前网页记录",
+    "purpose_zh": "每个资产一条当前网页记录，保存网页位置与最后成功更新时间；不累积逐次版本。",
+    "purpose_en": "One current webpage record per asset, with its location and last successful update time.",
+    "primary_key": [
+      "asset_id"
+    ],
+    "columns": [
+      {
+        "name": "asset_id",
+        "type": "TEXT",
+        "format": "uuidv7",
+        "label_zh": "引用 assets.asset_id 的同一 UUID；每资产一行",
+        "required": true
+      },
+      {
+        "name": "page_ref",
+        "type": "TEXT",
+        "label_zh": "当前可用网页的地址或文件引用",
+        "required": true
+      },
+      {
+        "name": "updated_at",
+        "type": "TEXT",
+        "format": "utc timestamp",
+        "label_zh": "网页最后成功制作或更新完成时间；旧时间未知可空",
+        "required": false
+      }
+    ],
+    "create_sql": "CREATE TABLE asset_pages (asset_id TEXT PRIMARY KEY NOT NULL REFERENCES assets(asset_id), page_ref TEXT NOT NULL CHECK (length(trim(page_ref)) > 0), updated_at TEXT)"
+  },
+  "provenance_zh": "工作台结构与一行假设案例，不是实际网页或业务记录；物理存储、网页生成与读取器未接入。",
+  "provenance_en": "Studio schema and one fictional row, not an actual webpage or business record; storage, generation and readers are unconnected.",
+  "rules_zh": [
+    "按 asset_id 唯一定位当前网页；没有网页的资产可以没有这一行。",
+    "网页成功制作或更新后新增/更新该资产这一行的 page_ref 和 updated_at，不追加逐次版本，不保存 page_version_id。",
+    "updated_at 是网页成功更新完成时间，不是素材时间、检查时间或失败重试时间；失败保留旧网页与旧成功时间。",
+    "本表不存正文、JSON 素材、素材发布时间或历史网页快照；素材管理与增量生成属于其他流程。",
+    "资产 UUID 的关联保留在字段定义，不画 #1001 → #1039 身份线；#3029 按候选 UUID 读取当前网页记录。",
+    "一天或三天的整页更新周期尚未选定，保持未配置，不沿用 #1019 的分栏目30分钟。",
+    "工作台不执行实际网页更新或原子写入；真实保存器须防止迟到的旧结果覆盖较新的成功记录。"
+  ],
+  "rules_en": [
+    "The asset UUID is the primary key; an asset without a webpage may have no row.",
+    "After successful creation/update, upsert that asset’s page_ref and updated_at. Do not append versions or store a page_version_id.",
+    "updated_at is the actual successful page completion time, not material time, check time or failed retry time. Failures preserve the prior successful row.",
+    "Page bodies, materials, material timestamps and historical snapshots belong outside this table. Incremental generation is a separate workflow.",
+    "Keep the assets UUID reference in the field definition, without an assets-to-page graph line; #3029 reads by candidate UUID.",
+    "The daily versus three-day whole-page interval is undecided. Do not inherit #1019’s per-information 30-minute interval.",
+    "Studio does not execute page generation or atomic writes; runtime writers must reject stale completions."
+  ],
+  "case_note_zh": "本行是同一资产当前网页的假设格式；example.invalid 不可访问。再次成功更新时覆盖这一行的位置与成功时间，不再添加第二行。",
+  "case_note_en": "A fictional current webpage record. example.invalid is not a working page. A subsequent successful update replaces this asset’s location/time, without adding another row.",
+  "example_rows": [
+    {
+      "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+      "page_ref": "https://example.invalid/pages/bitcoin/index.html",
+      "updated_at": "2026-10-18T08:00:00Z"
+    }
+  ],
+  "observed_rows": [],
+  "physical_binding": null,
+  "refresh_read": {
+    "source": "asset_pages",
+    "target": "刷新判断",
+    "candidates": "候选代币筛选",
+    "read_fields": [
+      "asset_id",
+      "page_ref",
+      "updated_at"
+    ],
+    "target_fields": {
+      "asset_id": "asset_id",
+      "page_ref": "page_ref",
+      "updated_at": "page_updated_at"
+    },
+    "page_refresh_interval_seconds": null,
+    "rules_zh": [
+      "#3027 筛选候选资产并传递 UUID；#3029 再按 asset_id 查 #1039 的当前网页记录。",
+      "成功完整查询无记录时需首次制作；有有效 updated_at 且达到已配置整页间隔时需更新，否则跳过。",
+      "整页间隔尚未选定一天还是三天；未配置时不对已有网页作过期结论，不套用 #1019 的30分钟。",
+      "查询失败或不完整不当作无网页；时间未知、无效或在未来则待核对，不伪造年龄。",
+      "将 #1039.updated_at 映射为 #3029.page_updated_at，与 #1019.last_success_at 的分栏目内容时间分开。",
+      "读取不触发生成；本次仅交付工作台连接定义。增量更新、真实读取器及写入器尚未实施。"
+    ],
+    "rules_en": [
+      "#3027 selects asset UUIDs; #3029 looks up each current webpage record in #1039.",
+      "A successful complete empty lookup requires first generation. An existing page is due only when its valid updated_at reaches the configured whole-page interval; otherwise skip.",
+      "Daily versus three-day timing is undecided. With no interval, do not classify existing pages as expired or inherit #1019’s 30 minutes.",
+      "Failed/partial reads are not missing pages. Unknown, invalid or future times need review.",
+      "Map #1039.updated_at to #3029.page_updated_at, separately from #1019.last_success_at for per-information content.",
+      "Reading does not trigger generation. This is design wiring; incremental updates and real readers/writers remain unimplemented."
+    ]
+  }
+}

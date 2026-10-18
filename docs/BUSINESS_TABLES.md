@@ -2,39 +2,52 @@
 
 These are SignalStudio product table contracts. The saved #2030 call returned 100 accounts; two actual account records supply the X IDs below. The #1001/#1002 rows specify what the backend should produce for those inputs when #1002 has no prior mapping. The repeated-input case specifies ID reuse. The table lookup, write, AI decision, and approval have not been executed here.
 
-## asset_page_versions · 资产网页制作记录
+## asset_pages · 资产当前网页记录（#1039）
 
 Approved 2026-10-19 in [SS-116](https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524).
-The standalone contract is `catalog/asset-page-versions.v1.json`. One successful whole-page
-creation or update adds one immutable version row, independently of the existing #1019
-per-information content/refresh table. It does not store page bodies, materials or material times.
+The current contract is `catalog/asset-pages.v1.json`. Each asset has at most one current
+webpage record. The user replaced the initial append-only webpage version design with this
+single-record design; the #1039 card ID, reference number and position are preserved.
 
 | Field | Meaning | Constraint |
 | --- | --- | --- |
-| `page_version_id` | Stable ID for this created webpage version; retries reuse it | Primary key, required |
-| `asset_id` | Same UUID as the existing entity in `assets` | Foreign key, required |
-| `page_ref` | Stable location of this exact saved webpage version | Required; not a continually overwritten latest-page URL |
-| `generated_at` | Actual successful creation completion time in UTC | Required for new pages; null only for legacy pages whose time is unknown |
+| `asset_id` | Same UUID as the entity in `assets` | Primary/foreign key, required; one current row per asset |
+| `page_ref` | Current available webpage address or file reference | Required |
+| `updated_at` | Actual last successful webpage creation/update completion, UTC | Known for new successes; unknown legacy times remain null |
 
-Retain all earlier versions, including when later generation fails. Failed attempts do not write
-success rows; the generator owns failure logs. Retries with the same ID must preserve the
-identical record and reject conflicting replacements. Read history by `asset_id`; the latest
-known completion sorts by `generated_at DESC, page_version_id ASC` after timestamp
-normalization to UTC. Unknown-time rows cannot establish the latest version. This is the
-latest creation record, not a publication pointer or a concurrency lock for generation tasks.
-An entity may have no page. No new Entity ID, material store or page generator is introduced.
+Successful generation upserts the asset's current location and completion time instead of
+appending versions. Failure preserves the previous successful row. No `page_version_id`,
+page body, material content, material time or history snapshot belongs in this table.
+A missing webpage may have no row. The foreign-key meaning is documented in `asset_id`;
+there is no assets → #1039 data-transfer or execution line.
 
-`server/asset_page_versions.py` installs a single shared table card, four fields and an
-`assets.asset_id` reference edge with no execution trigger. It preserves existing nodes,
-positions and #1019, rejects name conflicts and rolls back partial installations. Reference
-numbers use the normal allocator. The UI uses the shared horizontal table and field settings;
-two clearly fictional versions illustrate history. Observed rows remain empty and physical
-storage/generation/read bindings are unconnected; the SQLite contract is checked only in a
-disposable test database, not installed as a live business table.
+The design flow is #3027 candidates → #3029 refresh decision ← #1039 current webpages.
+The `read` relation has no execution trigger and maps `asset_id → asset_id`,
+`page_ref → page_ref`, and `updated_at → page_updated_at`. The page time is the successful completion time of the current webpage, independently of material timestamps. A successful complete missing-row lookup means
+first generation; an existing webpage needs updating when its age reaches the configured
+whole-page interval. Daily versus three-day timing is undecided: the interval stays unset,
+without inheriting the per-information 30-minute default. Failed/partial reads and
+unknown/invalid/future timestamps do not imply a missing or expired page. Real writers
+must prevent stale completions from replacing newer successes; this is not a runtime lock.
 
-Verification: `PYTHONPATH=server python3 -m unittest server.test_asset_page_versions` and
-`npm run build`; `node scripts/check_card_details.mjs <saved graph JSON>` checks the shared
-card renderer in both languages. Business persistence and actual page retrieval remain unverified.
+`server/asset_page_versions.py` and `server/asset_page_refresh_link.py` retain the historical
+installation steps. The final `server/asset_pages.py` upgrade preserves #1039's identity,
+removes the version field, renames its time field, and updates the three read mappings and
+version-pinned definitions transactionally. Unrelated references or imported records block
+unsafe conversion; partial upgrades roll back. `server/asset_webpage_flow.py` then removes
+the retired #1019/#3030/#3031 cards and their old field/edge cases, while preserving the
+current candidates, page decision and material-preparation cards and their positions.
+The shared table UI shows three columns and one explicitly fictional current-page row.
+
+Delivery is Studio design only: observed rows remain empty, physical storage and real
+webpage readers/generators are unconnected, and incremental generation is not implemented.
+The SQL contract is verified only in disposable test databases, not installed as a live
+business table. Historical definition files are migration inputs, not a second current schema.
+
+Verification: `PYTHONPATH=server python3 -m unittest server.test_asset_pages
+server.test_asset_page_refresh_link server.test_asset_page_versions server.test_card_model`
+(on one shell line), `npm run build`, and
+`node scripts/check_card_details.mjs <saved graph JSON>` for the shared bilingual renderer.
 
 ## assets · 统一对象
 
