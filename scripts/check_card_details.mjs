@@ -21,6 +21,15 @@ try {
       if (kind==='decision') assert.ok(html.includes('判断分支与去向'));
       if (['process','decision'].includes(kind)) assert.ok(html.includes('何时运行'));
     }
+    if (kind === 'table') {
+      for (const label of language === 'zh-CN' ? ['设计字段','真实数据','数据流向','技术说明'] : ['Designed fields','Actual data','Data flow','Technology']) {
+        assert.ok(html.includes(`aria-label="${label}"`),`#${node.reference_number} missing ${label}`);
+      }
+      assert.ok(!html.includes('<select'),`#${node.reference_number} has a scenario selector`);
+      assert.ok(!html.includes('data-design-preview='),`#${node.reference_number} has a scenario overlay`);
+      assert.ok(!html.includes('card-definition-settings'),`#${node.reference_number} has technical configuration`);
+      assert.ok(!html.includes('模拟案例') && !html.includes('贯通案例'),`#${node.reference_number} has simulation content`);
+    }
     return html;
   };
   for (const node of graph.nodes) { verify(node,'zh-CN'); verify(node,'en');counts[node.kind]=(counts[node.kind]||0)+1; }

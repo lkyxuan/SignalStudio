@@ -1,14 +1,12 @@
+import { UnifiedTableCard } from './UnifiedTableCard';
+import { leaderboardCard } from './LeaderboardScaffoldCard';
 import {AssetWebpageFlowCard, currentWebpageCard} from './AssetWebpageFlowCard';
 import {WorthReadingTranslationCard, translationCard} from './WorthReadingTranslationCard';
 import React, { useEffect, useState } from 'react';
 import { detailKind, cardRelations, decisionBranches, decisionActor, executionSummary, cardExplanation, resourceSettings, isCatalogSource } from './cardDetailModel';
 import { CardDetailContext } from './CardDetailContext';
 import { ProcessingIOCard, ScoreRollupExplanation } from './ProcessingIOCard';
-import { BusinessTableCard } from './BusinessTableCard';
-import { ContentRefreshCard, contentRefreshCard } from './ContentRefreshCard';
-import { LeaderboardScaffoldCard, leaderboardCard } from './LeaderboardScaffoldCard';
 import { trendDesign } from './TrendDesignCard';
-import { GenericTableCard } from './CardDefinitionSettings';
 import { SourceCaseInspector } from './SourceCaseInspector';
 import { OtherSourceCaseInspector } from './OtherSourceCaseInspector';
 import { SourceCollectionSettings } from './SourceCollectionSettings';
@@ -16,9 +14,6 @@ import { SourceUsageGuide, sourcePurpose } from './SourceUsageGuide';
 import { FieldCatalog } from './FieldPanels';
 import { nodeRef } from './graphRefs';
 import { displayNodeName } from './i18n';
-import businessTables from '../catalog/business-tables.v1.json';
-import currentPages from '../catalog/asset-pages.v1.json';
-import initial from '../catalog/asset-initial-score-sources.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import './card-details.css';
 import './application-interface.css';
@@ -112,30 +107,6 @@ function SourceDetails(props) {
     </details>
   </>;
 }
-function TableDetails(props) {
-  const {node,graph,language,mutate,busy}=props;
-  const businessTable = Boolean(businessTables.tables[node.name]) || node.name === currentPages.table.name;
-  const special=contentRefreshCard(node.name)||leaderboardCard(node.name);
-  return <>
-    <p className="card-detail-provenance">{node.name === initial.table_name
-      ? words(language,'规则配置 · 不是业务运行记录','Rule configuration · not business execution records')
-      : businessTable && !special
-        ? words(language,'主表为设计案例 · 真实快照另列于回填模块（如有）','Main table: design cases · imported snapshots are separate, when available')
-        : words(language,'表结构 · 未回填的真实记录不等于线上表为空','Table structure · missing imported records do not establish empty live storage')}</p>
-    {warmingCard(node) && <WarmingDesignPreview {...props}/>}
-    {hottestCard(node) && <HottestDesignPreview {...props}/>}
-    {!warmingCard(node) && !hottestCard(node) && <>
-    {translationCard(node) ? <WorthReadingTranslationCard {...props}/> : special ? contentRefreshCard(node.name) ? <ContentRefreshCard {...props}/> : <LeaderboardScaffoldCard {...props}/>
-      : businessTable ? <BusinessTableCard {...props}/> : <GenericTableCard {...props}/>}
-    </>}
-    <CardConnections {...props}/>
-    <details className="processing-advanced"><summary>{words(language,'其他设置 · 存储与表字段','Other settings · storage and fields')}</summary>
-      <p>{words(language,'逻辑表定义与物理数据库分别核对；连线不证明已经写入或同步。','Logical table and physical database are checked separately; connections do not establish writes or synchronization.')}</p>
-      {Object.keys(resourceSettings(node)).length ? <pre>{JSON.stringify(resourceSettings(node),null,2)}</pre> : <p>{words(language,'物理存储绑定与规则尚未回填。','Physical storage binding and rules have not been imported.')}</p>}
-      {!businessTable && !special && <FieldCatalog node={node} fields={graph.fields.filter(field=>field.node_id===node.id)} mutate={mutate} busy={busy} language={language}/>}
-    </details>
-  </>;
-}
 export function CardDetails(props) {
   const {node,language}=props;
   const kind=detailKind(node);
@@ -145,7 +116,7 @@ export function CardDetails(props) {
   const explanation=translation ? translation[language === 'zh-CN' ? 'rule_zh' : 'rule_en'] : cardExplanation(node,language);
   return <div className={`card-details card-details-${kind}`} data-card-detail-kind={kind}>
     <CardDetailContext.Provider value={true}>
-      {stocksCard(node) ? <><StocksDesignCard {...props}/><CardConnections {...props}/></> : kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? translationCard(node) ? <><WorthReadingTranslationCard {...props}/><CardConnections {...props}/></> : <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
+      {kind === 'table' ? <UnifiedTableCard {...props}/> : stocksCard(node) ? <><StocksDesignCard {...props}/><CardConnections {...props}/></> : kind === 'source' ? <SourceDetails {...props}/> : kind === 'interface' ? translationCard(node) ? <><WorthReadingTranslationCard {...props}/><CardConnections {...props}/></> : <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
         {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
         {currentWebpageCard(node) ? <AssetWebpageFlowCard {...props}/> : translationCard(node) ? <WorthReadingTranslationCard {...props}/> : warmingCard(node) ? <WarmingDesignPreview {...props}/> : hottestCard(node) ? <HottestDesignPreview {...props}/> : hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
         {kind === 'state' && leaderboardCard(node.name) && <section className="card-detail-execution"><h3>{words(language,'窗口与保留规则','Window and retention')}</h3><p>{node.definition}</p><p>{words(language,'业务比较窗口见上述定义；存储 TTL、更新时间索引及丢失后的重建绑定尚未核验，不能按业务窗口推断。','See the definition for the business window. TTL, update time index and recovery bindings remain unverified.')}</p></section>}

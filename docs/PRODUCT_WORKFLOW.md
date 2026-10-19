@@ -82,9 +82,30 @@ are preserved; opening details must never execute a graph action.
 | source | Paired request/response and provenance; resource reads show resource content and unverified read evidence; downstream navigation | Source contract, fields, collection settings |
 | process | Used inputs and corresponding output; sources/destinations; trigger; natural-language processing rule at bottom | Parameters, mappings, technical execution settings |
 | decision | Object/evidence and illustrative result; all declared branches with conditions and destinations; automatic/human mode; decision rule | Detailed configuration and readiness |
-| table | Provenance label and original horizontal rows/schema; meaning; writers/readers | Fields, constraints and known physical binding |
+| table | Designed fields; actual data; writers → current table → readers; plain-language technology notes | Field editing within designed fields when not managed by a catalog; no definition/readiness or raw JSON panels |
 | channel | Message fields/case; delivery/dedupe/retention/replay rules; producers/consumers | Envelope, headers, topic/key, groups and code reference |
 | state | Stored or intended data/schema; business window and retention separately; writers/readers | Keys/indexes, dedupe/recovery and detailed configuration |
+
+[SS-130](https://app.notion.com/p/3fe038a63d5a8180a06fe3d3117d3919), approved 2026-10-20,
+unifies **all** table details, including Stocks, in `UnifiedTableCard` before
+business-specific routing. Designed fields show names, types, meanings and known
+constraints using the canonical business/page/weight catalogs or saved graph
+fields. Actual data uses an existing observed-table interface only: currently
+`GET /api/table-backfills/1006` supplies a historical database snapshot with source
+and capture time. No other table row interface is connected. No interface, no
+returned rows, loading and request failure are distinct states; offline replay
+and synthetic cases never appear as actual rows. Field declarations or source
+crawler responses do not establish stored table records. This batch does not add
+business writers or live database queries; the existing snapshot import API remains.
+
+Data flow groups validated read/write bindings by other card, deduplicates request
+and result edges, and preserves cards that both read and write in both columns.
+Reference-only/unclassified links remain separately labeled within data flow.
+These are planned relations, not observed reads/writes. Technical notes show only
+named storage choices and table names with a short explanation; unspecified
+storage stays unknown. They do not expose readiness warnings, definition editors,
+or package JSON. Table inspector progress notes are hidden; graph progress
+records, underlying definitions and non-table editors remain available.
 
 Display graph relationships using validated endpoint bindings and stable branch
 IDs, including multiple branches on one visual edge. Missing bindings or routes
@@ -208,7 +229,7 @@ On 2026-10-08 the user explicitly extended the focused #3005 layout to **all pro
 
 Applied coverage: #3001 drops unused price data, #3002/#4001 show only ID/name and relevant matching fields, #3004 shows existing-asset handoff fields, #3009 removes upstream account metadata and fields generated later by #3006, and #3006/#3007/#3008 retain fields required for publishing/persistence. #3003/#4002/#4003 share an explicitly hypothetical insufficient-evidence → hold → no-write example; it is not an AI finding, real human approval or execution result. Their execution rules are unchanged. For future nodes, the generic input renderer uses edge field usages rather than dumping observed upstream objects; absent mappings or rules are explicitly shown as undefined rather than guessed.
 
-CoinGecko design previews (SS-83, approved 2026-10-13) use the fixed synthetic inputs in `catalog/coingecko-design-preview.v1.json` and the pure presentation evaluator `src/coingeckoPreviewModel.js`. The detail panel shows concrete values first for the market source, Topic, archive/history/coverage, Polars children and assembly, identity creation, alerts, contribution/event/cache and score projection cards; the independent trending branch has its own clearly separated +10 example. The raw turnover candidate uses its existing unvalidated design thresholds; final score sync assumes the changed asset ranks first and source version 1, and does not perform a Supabase write. Eight selectable cases preserve selection across non-table card navigation in the current page session. Source/storage cards show complete declared records; processing inputs are focused subsets with producer links. Tables keep horizontal backend columns. Actual source samples and imported backfills remain separate references below the design preview. Under [SS-129](https://app.notion.com/p/3fe038a63d5a812ab124e6bdec38efed), approved 2026-10-20, tables have no scenario selector: shared business tables show their existing rows and backfill modules directly, without the additional CoinGecko scenario overlay or score-event scenario section. Dedicated hottest/warming tables retain a fixed normal synthetic sample, independent of scenario selections on processing cards. Provenance labels remain required; removing the selector does not establish live data integration.
+CoinGecko design previews (SS-83, approved 2026-10-13) use the fixed synthetic inputs in `catalog/coingecko-design-preview.v1.json` and the pure presentation evaluator `src/coingeckoPreviewModel.js`. The detail panel shows concrete values first for the market source, Topic, archive/history/coverage, Polars children and assembly, identity creation, alerts, contribution/event/cache and score projection cards; the independent trending branch has its own clearly separated +10 example. The raw turnover candidate uses its existing unvalidated design thresholds; final score sync assumes the changed asset ranks first and source version 1, and does not perform a Supabase write. Eight selectable cases preserve selection across non-table card navigation in the current page session. Source/storage cards show complete declared records; processing inputs are focused subsets with producer links. Tables keep horizontal backend columns. Actual source samples and imported backfills remain separate references below the design preview. Under [SS-129](https://app.notion.com/p/3fe038a63d5a812ab124e6bdec38efed), approved 2026-10-20, tables have no scenario selector. SS-130 subsequently replaces all table details with the unified schema/actual-data/flow/technology view above; original fixture rows remain available to processing previews but are no longer displayed as table data.
 
 Preview UUIDs, times, successful creation and messages are hypothetical. Only the `new` case creates an asset and emits discovery; its frozen original indicator retains null identity, while the `next` observation uses the created UUID. Lookup errors/conflicts never become creation candidates. Missing history affects only the relative-volume metric and contribution. CoinGecko initial-score configuration remains absent and produces no score decision; Kaito configuration is not reused. Score projections assume only the displayed market events, at a fixed minute after hypothetical acceptance, with full precision per-event decay. This is workspace presentation, with no business writes or change to execution contracts. Unknown Topic envelope/retention details and backend adaptation stay unverified. Rationale: [SS-83](https://app.notion.com/p/3f8038a63d5a8140ab0dc660248bcdaa).
 

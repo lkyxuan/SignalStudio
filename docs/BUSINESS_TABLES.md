@@ -1,5 +1,7 @@
 # Business table contracts
 
+Under [SS-130](https://app.notion.com/p/3fe038a63d5a8180a06fe3d3117d3919) (approved 2026-10-20), table details show designed fields, actual data, data flow and plain-language technology notes. The illustrative rows documented below remain design/reference fixtures; they are no longer rendered in table details. Only #1006 currently has a connected observed-row API, reading a saved historical database snapshot. Other tables show that their actual-data interface is not connected. See [the table UI standard](PRODUCT_WORKFLOW.md#card-ui-standard).
+
 These are SignalStudio product table contracts. The saved #2030 call returned 100 accounts; two actual account records supply the X IDs below. The #1001/#1002 rows specify what the backend should produce for those inputs when #1002 has no prior mapping. The repeated-input case specifies ID reuse. The table lookup, write, AI decision, and approval have not been executed here.
 
 ## asset_pages · 资产当前网页记录（#1039）
@@ -43,7 +45,7 @@ success-guarded write to #1039. Its mappings are `asset_id → asset_id`,
 `saved_page_ref → page_ref`, `saved_at → updated_at`; failed or unconfirmed saves preserve the old row.
 Grokbot needs both external API/search tools and reads of existing Few Understand data; both await
 actual integration. [SS-124](https://app.notion.com/p/3fe038a63d5a8135be54e95ca97366db) now expands this into nine independent writer cards, reusing #3045 for identity verification. The final save card owns the same guarded write to #1039. Few owns the upstream task mechanism; only asset_id/action/page_ref are business inputs to Grokbot. See `catalog/asset-webpage-board.v1.json`, `server/asset_webpage_board.py` and [the current workflow](CONTENT_REFRESH_ENGINE.md). The earlier Grokbot aggregate is a historical migration input.
-The shared table UI shows three columns and one explicitly fictional current-page row.
+The shared table UI shows the three designed columns and an unconnected actual-data state; the fictional current-page row remains a design fixture.
 
 Delivery is Studio design only: observed rows remain empty, physical storage and real
 webpage readers/generators are unconnected, and incremental generation is not implemented.
@@ -59,7 +61,7 @@ server.test_asset_page_refresh_link server.test_asset_page_versions server.test_
 
 一个 `asset_id` 对应一个独立跟踪对象。人物、项目、代币和社交账号统一登记在此，不另建人物主表；人物与人名币即使同名，也分别建档。#1001 新建对象时由系统生成 UUIDv7，后续名称、类别或身份状态改变时也不改这个 ID；只有 X 账号时可暂用账号名称，并保持身份待确认。#1001 第一稿只保留五个字段；审核记录和更多追踪信息留待审核流程定义。
 
-主键：`asset_id`。按真实输入规定的目标行数：**2**；面板另有三个原有代币格式案例，以及六个明确虚构的人物、项目、主题币和账号案例，共 **11** 行。虚构行的 `confirmed` 是格式示例，不是实际审核。
+主键：`asset_id`。按真实输入规定的目标行数：**2**；设计夹具另有三个原有代币格式案例，以及六个明确虚构的人物、项目、主题币和账号案例，共 **11** 行。虚构行的 `confirmed` 是格式示例，不是实际审核。
 
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
@@ -80,7 +82,7 @@ server.test_asset_page_refresh_link server.test_asset_page_versions server.test_
 
 用来源范围和外部稳定 ID 找到 #1001 的内部资产 ID。三项是核心含义，不限制后台保留必要辅助字段；同范围歧义别名的承载仍待细化，不能直接唯一绑定。每行只保存一条对应关系；#1002 的 `asset_id` 引用 #1001 已创建的 ID，不另生成编号。
 
-主键：`source_namespace + external_identifier`。真实 #2030 输入对应 **2** 行目标结果；连同别名和其他资产，面板展示 **13** 行案例，包括六个 `case:` 命名空间下的假设标识。
+主键：`source_namespace + external_identifier`。真实 #2030 输入对应 **2** 行目标结果；连同别名和其他资产，设计夹具保留 **13** 行案例，包括六个 `case:` 命名空间下的假设标识。
 
 | # | 字段 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- | --- |
