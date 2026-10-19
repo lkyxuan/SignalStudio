@@ -189,3 +189,17 @@ test('a replaced graph drops stale ReactFlow edges until occurrence state catche
  assert.deepEqual(currentPresentationEdges([retained,fresh],visuals,meanings),[retained,fresh]);
  assert.deepEqual(currentPresentationEdges([fresh],visuals,new Map()),[]);
 });
+
+test('Stocks forms one independent group, keeps legacy towers and shares identity cards', () => {
+  const base=example(), before=crawlerLayout(base.nodes,base.edges);
+  const stocks=[node('stock-list','source','coingecko.stocks.rwa_list'),node('stock-markets','source','coingecko.stocks.token_markets'),node('stock-identity','process','coingecko.stocks.identity')];
+  const edges=[...base.edges,edge('stock-list','stock-identity'),edge('stock-markets','stock-identity'),edge('stock-identity','table')];
+  const after=crawlerLayout([...base.nodes,...stocks],edges);
+  assert.deepEqual(after.positions.filter(p=>!stocks.some(s=>s.id===p.id)),before.positions);
+  assert.equal(after.occurrences.filter(p=>p.logicalId==='stock-identity').length,1);
+  assert.equal(new Set(after.occurrences.filter(p=>stocks.some(s=>s.id===p.logicalId)).map(p=>p.towerId)).size,1);
+  const view=crawlerPresentation([...base.nodes,...stocks],edges);
+  const identityEdge=view.edges.find(e=>e.logicalEdgeId==='stock-identity-table')!;
+  assert.equal(view.nodes.find(n=>n.id===identityEdge.upstream_id)!.towerId,view.nodes.find(n=>n.id===identityEdge.downstream_id)!.towerId);
+  assert.equal(after.occurrences.filter(p=>p.logicalId==='table').length,before.occurrences.filter(p=>p.logicalId==='table').length+1);
+});

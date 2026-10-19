@@ -18,6 +18,7 @@ import { AlarmClock, Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Check, 
 import { EdgeMappingPanel, FieldCatalog } from './FieldPanels';
 import { LocalFlowView } from './LocalFlowView';
 import businessTables from '../catalog/business-tables.v1.json';
+import stocksSpec from '../catalog/coingecko-stocks.v1.json';
 import scoreRollup from '../catalog/score-rollup.v1.json';
 import { CatalogTranslationTable } from './CatalogTranslationTable';
 import { SignalDesignGuide } from './SignalDesignGuide';
@@ -257,8 +258,8 @@ function App() {
   useEffect(() => {
     request('/source-contracts/v1')
       .then(contracts => {
-        setContractSummary({ entries: contracts.operation_count + contracts.resource_count,
-          fields: contracts.operations.reduce((total, operation) => total + operation.fields.length, 0) });
+        setContractSummary({ entries: contracts.operation_count + contracts.resource_count + stocksSpec.operations.length,
+          fields: [...contracts.operations, ...stocksSpec.operations].reduce((total, operation) => total + operation.fields.length, 0) });
         setCatalogEntityInfo(Object.fromEntries(
           [...contracts.operations, ...contracts.resources].map(entry => [entry.id, {
             label_cn: entry.label_zh, source: sourceBadgeId(entry.source_id),
@@ -412,7 +413,8 @@ function App() {
   for (const towerId of new Set(towerView.nodes.map(node => node.towerId))) {
     const members = towerView.nodes.filter(node => node.towerId === towerId && filteredIds.has(node.logicalId));
     const ids = new Set(members.map(node => node.id));
-    const stages = coinGeckoProductStages(graph.nodes.find(node => node.id === towerId)?.name, members)
+    const stockTower = graph.nodes.find(node => node.id === towerId)?.name === 'coingecko.stocks.rwa_list';
+    const stages = stockTower && members.length ? [{id:'stocks-design-group', title:'CoinGecko Stocks · 全量股票与代币', titleEn:'CoinGecko Stocks · full stock and token discovery', count:`${members.length}`, x:Math.min(...members.map(n=>n.position_x)), y:Math.min(...members.map(n=>n.position_y))-60}] : coinGeckoProductStages(graph.nodes.find(node => node.id === towerId)?.name, members)
       ?? layoutStages(members, towerView.edges.filter(edge => ids.has(edge.upstream_id) && ids.has(edge.downstream_id)));
     groupLabels.push(...stages.map(stage => ({
       id: `${stage.id}:${towerId || 'shared-area'}`, type: 'groupLabel', position: { x: stage.x, y: stage.y },
