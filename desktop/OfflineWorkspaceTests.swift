@@ -79,7 +79,9 @@ import WebKit
                         document.querySelector('.top-actions .button-primary').click();
                         await new Promise(resolve => setTimeout(resolve, 100));
                         if (window.signalstudioCanQuit() !== false) throw Error('Open draft did not block quit');
+                        window.dispatchEvent(new Event('signalstudio-reveal-draft'));
                         const input = document.querySelector('.modal input');
+                        if(document.activeElement !== input) throw Error('New-node editor was not focused');
                         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
                         setter.call(input, 'SS-59 unsaved draft');
                         input.dispatchEvent(new Event('input', {bubbles: true}));

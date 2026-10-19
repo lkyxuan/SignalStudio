@@ -10,7 +10,8 @@ export function workspaceQuitHint(create: boolean, prompt: boolean, language: st
 export function revealWorkspaceEdit(doc: Document, last: HTMLElement | null) {
   // A modal is above the inspector and must be handled first.
   const modal = doc.querySelector<HTMLElement>('.modal-backdrop');
-  const target = modal?.querySelector<HTMLElement>('input, textarea, button')
+  const target = modal?.querySelector<HTMLElement>('input, textarea, select')
+    ?? modal?.querySelector<HTMLElement>('button')
     ?? (last?.isConnected ? last : doc.querySelector<HTMLElement>('.inspector [data-workspace-editor]'));
   if (!target) return;
   // Save controls can live inside collapsed technical settings.
