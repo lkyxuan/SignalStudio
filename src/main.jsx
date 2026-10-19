@@ -1,3 +1,5 @@
+import { DraftControl } from './DraftControl';
+import { EditorDraft } from './editorDraft';
 import { detailsReady } from './graphTransport';
 import { CardDetails } from './CardDetails';
 import { detailKind } from './cardDetailModel';
@@ -211,7 +213,14 @@ function App() {
   const [proposal, setProposal] = useState(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
-  const [draft, setDraft] = useState(null);
+  const [draft, publishDraft] = useState(null);
+  const editorDraft = useRef(new EditorDraft());
+  const setDraft = useCallback(next => {
+    const value = typeof next === 'function' ? next(editorDraft.current.value) : next;
+    editorDraft.current.reset(value); publishDraft(value);
+  }, []);
+  const editDraft = useCallback((field, value) => editorDraft.current.edit(field, value), []);
+  const commitDraft = useCallback(() => publishDraft(editorDraft.current.value), []);
   const [detailError, setDetailError] = useState(null);
   const [detailAttempt, setDetailAttempt] = useState(0);
   const [newNode, setNewNode] = useState({ name: '', kind: 'process', workflow_lane: 'signal', definition: '' });
@@ -220,6 +229,8 @@ function App() {
   const [case016Index, setCase016Index] = useState(0);
   const [otherSourceCase, setOtherSourceCase] = useState(null);
   const [flowInstance, setFlowInstance] = useState(null);
+  const [flowReady, setFlowReady] = useState(false);
+  const [canvasSize, setCanvasSize] = useState([0, 0]);
   const pendingRoute = useRef(null);
   useEffect(() => {
     document.documentElement.lang = language;
@@ -287,7 +298,7 @@ function App() {
       nodePorts.outputPorts.sort((a, b) => (nodeById.get(towerView.edges.find(edge => edge.id === a.id)?.downstream_id)?.position_x ?? 0) - (nodeById.get(towerView.edges.find(edge => edge.id === b.id)?.downstream_id)?.position_x ?? 0) || a.id.localeCompare(b.id));
       nodePorts.portSignature = `${id}:${nodePorts.inputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}/${nodePorts.outputPorts.map(port => `${port.id}:${port.side}:${JSON.stringify(port.paired)}`).join(',')}`;
     }
-    setNodes(towerView.nodes.map(n => ({ id: n.id, draggable: true, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, id: n.logicalId, progress: graph.card_progress?.[n.logicalId], ...ports.get(n.id), language, isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.logicalId) || 0, pendingNeedNames: pendingNeedNames.get(n.logicalId) || [] } })));
+    setNodes(towerView.nodes.map(n => ({ id: n.id, draggable: true, type: 'logic', ariaLabel: language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || displayNodeName(language, n.name) : displayNodeName(language, n.name), position: { x: n.position_x, y: n.position_y }, data: { ...n, id: n.logicalId, progress: graph.card_progress?.[n.logicalId], ...ports.get(n.id), language, motionTitle: contractSourceName(n.name) && language === 'zh-CN' ? catalogEntityInfo[n.name]?.label_cn || n.name : displayNodeName(language, n.name), motionSummary: contractSourceName(n.name) ? sourcePurpose(n.name, language) : t(n.definition || ''), isContractSource: contractSourceName(n.name), isReferenceResource: isReferenceResource(n.name), catalogSourceId: catalogEntityInfo[n.name]?.source, catalogRecordLabel: catalogEntityInfo[n.name]?.label_cn, fieldCount: BUSINESS_TABLE_NAMES.has(n.name) ? businessTables.tables[n.name].columns.length : contractSourceName(n.name) ? catalogEntityInfo[n.name]?.field_count ?? 0 : fieldCounts.get(n.logicalId) || 0, pendingNeedNames: pendingNeedNames.get(n.logicalId) || [] } })));
     setEdges(towerView.edges.map(e => { const color = 'var(--ss-edge)';
       return { id: e.id, source: e.upstream_id, target: e.downstream_id, sourceHandle: `source:${e.id}`, targetHandle: `target:${e.id}`, type: 'directArc', data: arcs.get(e.id), animated: false,
         ariaLabel: `${displayNodeName(language, nodeNameById.get(e.upstream_id))} → ${displayNodeName(language, nodeNameById.get(e.downstream_id))}`,
@@ -453,7 +464,7 @@ function App() {
   useEffect(() => {
     const leavingCardSearch = wasLocatingCard.current;
     wasLocatingCard.current = locatingCard;
-    if (view !== 'graph' || graphDisplayMode !== 'full' || !flowInstance) return;
+    if (view !== 'graph' || graphDisplayMode !== 'full' || !flowInstance || !flowReady) return;
     if (locatingCard) {
       if (!searchMatches.length) return;
       const frame = requestAnimationFrame(() => {
@@ -474,14 +485,14 @@ function App() {
       nodes: visibleNodeIds.split(',').map(id => ({ id })), padding: 0.2, maxZoom: 0.85, duration: 250,
     }));
     return () => cancelAnimationFrame(frame);
-  }, [query, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, searchMatchKey, searchOccurrenceIndex]);
+  }, [query, Boolean(visibleNodeIds), view, graphDisplayMode, flowInstance, flowReady, locatingCard ? canvasSize[0] : 0, locatingCard ? canvasSize[1] : 0, searchMatchKey, searchOccurrenceIndex]);
 
   const mutate = async (path, method, body, success, saveMain = false) => {
-    try { setBusy(true); const preserve = !saveMain && draft && selected && JSON.stringify(draft) !== JSON.stringify(selected); const result = await live.write(path, method, body, preserve); if (success) flash(success); return result; }
+    try { setBusy(true); const currentDraft = editorDraft.current.value; const preserve = !saveMain && currentDraft && selected && JSON.stringify(currentDraft) !== JSON.stringify(selected); const result = await live.write(path, method, body, preserve); if (success) flash(success); return result; }
     catch (error) { flash(error.message, true); return null; }
     finally { setBusy(false); }
   };
-  const saveNode = async () => { if (!draft) return; const saved = await mutate(`/nodes/${draft.id}`, 'PATCH', Object.fromEntries(Object.entries(draft).filter(([key, value]) => !['kind', 'card_contract', 'detail_loaded', 'detail_revision', 'id', 'reference_number', 'created_at', 'updated_at', 'position_x', 'position_y', 'is_catalog_source', 'is_system_state', 'signal_key'].includes(key) && value !== selected?.[key])), 'Node saved', true); if (saved) { const latest = live.getGraph().nodes.find(node => node.id === saved.id); draftBase.current = latest; setDraft(latest ? { ...latest } : null); } };
+  const saveNode = async () => { const draft = editorDraft.current.value; if (!draft) return; const saved = await mutate(`/nodes/${draft.id}`, 'PATCH', Object.fromEntries(Object.entries(draft).filter(([key, value]) => !['kind', 'card_contract', 'detail_loaded', 'detail_revision', 'id', 'reference_number', 'created_at', 'updated_at', 'position_x', 'position_y', 'is_catalog_source', 'is_system_state', 'signal_key'].includes(key) && value !== selected?.[key])), 'Node saved', true); if (saved) { const latest = live.getGraph().nodes.find(node => node.id === saved.id); draftBase.current = latest; setDraft(latest ? { ...latest } : null); } };
   const deleteNode = async () => { if (!selected || !confirm(language === 'zh-CN' ? `删除“${displayName(selected.name)}”及其所有连接？` : `Delete “${selected.name}” and its connections?`)) return;
     const result = await mutate(`/nodes/${selected.id}`, 'DELETE', null, 'Node deleted'); if (result) setSelectedId(null); };
   const addNode = async () => { const result = await mutate('/nodes', 'POST', newNode, 'Node created');
@@ -538,8 +549,10 @@ function App() {
   };
   const canvasActions = useCanvasActions({
     nodesChange: onNodesChange, edgesChange: onEdgesChange,
+    mount: () => setFlowReady(false),
+    resize: (width, height) => setCanvasSize(previous => previous[0] === width && previous[1] === height ? previous : [width, height]),
     init: instance => setFlowInstance(instance),
-    ready: instance => { if (pendingRoute.current) { const route = traceRoute(towerView.nodes, towerView.edges, pendingRoute.current); pendingRoute.current = null; instance.fitView({ nodes: [...route.nodeIds].map(id => ({id})), padding: 0.2, maxZoom: 0.85, duration: 250 }); } else instance.fitView({ padding: 0.16, maxZoom: 0.75 }); },
+    ready: instance => { setFlowReady(true); if (pendingRoute.current) { const route = traceRoute(towerView.nodes, towerView.edges, pendingRoute.current); pendingRoute.current = null; instance.fitView({ nodes: [...route.nodeIds].map(id => ({id})), padding: 0.2, maxZoom: 0.85, duration: 250 }); } else instance.fitView({ padding: 0.16, maxZoom: 0.75 }); },
     nodeClick: (event, node) => { if (node.type === 'logic') cardClicks.current.single(() => openNode(node.id), event.detail); },
     nodeDoubleClick: (_, node) => { if (node.type === 'logic') showRoute(node.id); },
     edgeEnter: (_, edge) => { if (!movingCanvas.current) setHoveredEdgeId(logicalEdgeId(edge.id)); },
@@ -617,36 +630,36 @@ function App() {
       {!detailReady && <div className="inspector-scroll" role="status"><p>{detailError || (language === 'zh-CN' ? '正在加载卡片详情…' : 'Loading card details…')}</p>{detailError && <button onClick={() => setDetailAttempt(value => value + 1)}>{language === 'zh-CN' ? '重新加载详情' : 'Retry details'}</button>}</div>}
       {detailReady && selected && draft && <><div className="inspector-title"><span className={`inspector-icon ${kindStyle(selected)}`}><GitBranch size={20} /></span><div><span className="small-label">{isReferenceResource(selected.name) ? language === 'zh-CN' ? 'MCP 参考资源' : 'MCP RESOURCE' : contractSourceName(selected.name) ? language === 'zh-CN' ? '本产品上游操作' : 'UPSTREAM OPERATION' : kindLabel(cardKind(selected),language)}</span><h2><span className="inspector-node-ref">{nodeRef(selected)}</span>{displayName(selected.name)}</h2><button className="inspector-focus-relations" onClick={focusSelectedRelations} disabled={busy} title={language === 'zh-CN' ? '在完整画布中拉近直接上下游卡片，并保存新位置' : 'Move direct upstream and downstream cards closer on the full canvas and save their positions'}><GitBranch size={14} />{language === 'zh-CN' ? '拉近上下游' : 'Bring neighbors closer'}</button></div></div><div className="inspector-scroll" key={selected.id}><CardProgressNote progress={graph.card_progress?.[selected.id]} language={language}/><MemoCardDetails key={selected.id} node={selected} graph={graph} openNode={canvasActions.openNode} language={language} mutate={canvasActions.mutate} busy={busy} nodeLabel={canvasActions.nodeLabel} purpose={selected.definition} onOpenSource={canvasActions.openSource}/>{['process','decision'].includes(detailKind(selected)) && ![3006,3009].includes(selected.reference_number) && !selected.card_contract?.config.read_only ? selected.type === 'Asset Resolution' ? <>
         <details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>
-          <label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<textarea data-workspace-editor="node" value={draft.definition} onChange={e => setDraft({ ...draft, definition: e.target.value })} rows={3} /></label>
+          <label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<DraftControl multiline field="definition" value={draft.definition} reset={draft} edit={editDraft} commit={commitDraft} rows={3} /></label>
           <details className="processing-technical"><summary>{language === 'zh-CN' ? '节点设置' : 'Node settings'}</summary>
-            <label>{t('Name')}<input data-workspace-editor="node" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>
+            <label>{t('Name')}<DraftControl field="name" value={draft.name} reset={draft} edit={editDraft} commit={commitDraft} /></label>
             <label>{t('Type')}<input readOnly value={kindLabel(cardKind(selected), language)} /></label>
-            <label>{t('Workflow path')}<select data-workspace-editor="node" value={draft.workflow_lane || defaultLane(draft.type)} onChange={e => setDraft({ ...draft, workflow_lane: e.target.value })}><option value="shared">{t('Both paths')}</option><option value="signal">{t('Signal path')}</option><option value="knowledge">{t('Asset knowledge path')}</option></select></label>
+            <label>{t('Workflow path')}<select data-workspace-editor="node" value={draft.workflow_lane || defaultLane(draft.type)} onChange={e => setDraft({ ...editorDraft.current.value, workflow_lane: e.target.value })}><option value="shared">{t('Both paths')}</option><option value="signal">{t('Signal path')}</option><option value="knowledge">{t('Asset knowledge path')}</option></select></label>
           </details>
           <details className="processing-technical"><summary>{language === 'zh-CN' ? `本步骤新增字段 · ${addedOutputFields.length}` : `Fields added by this step · ${addedOutputFields.length}`}</summary>
             <p>{language === 'zh-CN' ? '来源字段按输入原样保留；这里只编辑本步骤新增的输出字段。' : 'Source fields pass through unchanged; edit only fields added by this step here.'}</p>
             <MemoFieldCatalog node={selected} fields={addedOutputFields} mutate={canvasActions.mutate} busy={busy} language={language} />
           </details>
         </details>
-      </> : <><details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary><label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<textarea data-workspace-editor="node" value={isSignal ? draft.decision_question || '' : draft.definition} placeholder={language === 'zh-CN' ? '用一句话描述目的' : 'Describe the goal in one sentence'} onChange={e => setDraft({ ...draft, [isSignal ? 'decision_question' : 'definition']: e.target.value })} rows={3} /></label><label>{t('Name')}<input data-workspace-editor="node" value={language === 'zh-CN' && draft.name === selected.name ? displayName(draft.name) : draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>{t('Type')}<input readOnly value={kindLabel(cardKind(selected), language)} /></label><label>{t('Workflow path')}<select data-workspace-editor="node" value={draft.workflow_lane || defaultLane(draft.type)} onChange={e => setDraft({ ...draft, workflow_lane: e.target.value })}><option value="shared">{t('Both paths')}</option><option value="signal">{t('Signal path')}</option><option value="knowledge">{t('Asset knowledge path')}</option></select></label>
+      </> : <><details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary><label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<DraftControl multiline field={isSignal ? 'decision_question' : 'definition'} value={isSignal ? draft.decision_question || '' : draft.definition} reset={draft} edit={editDraft} commit={commitDraft} placeholder={language === 'zh-CN' ? '用一句话描述目的' : 'Describe the goal in one sentence'} rows={3} /></label><label>{t('Name')}<DraftControl field="name" value={language === 'zh-CN' && draft.name === selected.name ? displayName(draft.name) : draft.name} reset={draft} edit={editDraft} commit={commitDraft} /></label><label>{t('Type')}<input readOnly value={kindLabel(cardKind(selected), language)} /></label><label>{t('Workflow path')}<select data-workspace-editor="node" value={draft.workflow_lane || defaultLane(draft.type)} onChange={e => setDraft({ ...editorDraft.current.value, workflow_lane: e.target.value })}><option value="shared">{t('Both paths')}</option><option value="signal">{t('Signal path')}</option><option value="knowledge">{t('Asset knowledge path')}</option></select></label>
         {isSignal && <SignalDesignGuide node={draft} graph={graph} fields={nodeFields} language={language} />}
         {isSignal && draft.signal_key && <p className="signal-package-link"><a href={`/api/signals/${encodeURIComponent(draft.signal_key)}/package`} target="_blank" rel="noreferrer">{language === 'zh-CN' ? '查看版本化执行包 JSON ↗' : 'Open versioned execution package JSON ↗'}</a><small>{language === 'zh-CN' ? '图中文字与执行包不一致时，接口会列出待修正项。' : 'The API lists mismatches between graph text and the execution package.'}</small></p>}
         {isSignal && <div className="signal-stage-heading">{language === 'zh-CN' ? '1 · 要判断什么' : '1 · What should this signal tell you?'}</div>}
-        {isSignal && <label>{language === 'zh-CN' ? '限制说明' : 'Limitations'}<textarea data-workspace-editor="node" value={draft.definition} onChange={e => setDraft({ ...draft, definition: e.target.value })} rows={2} /></label>}
+        {isSignal && <label>{language === 'zh-CN' ? '限制说明' : 'Limitations'}<DraftControl multiline field="definition" value={draft.definition} reset={draft} edit={editDraft} commit={commitDraft} rows={2} /></label>}
         {TYPE_HELP[draft.type] && <p className="node-type-help">{t(TYPE_HELP[draft.type])}</p>}
         {RESOURCE_REFERENCES[draft.type] && <p className="state-reference"><Database size={14} /> {t(RESOURCE_REFERENCES[draft.type])}</p>}
 
-        {isSignal && <label>{language === 'zh-CN' ? '观察窗口与更新频率' : 'Observation window and cadence'}<input data-workspace-editor="node" value={draft.observation_window || ''} placeholder={language === 'zh-CN' ? '例如：滚动 24 小时，每小时更新' : 'e.g. rolling 24 hours, refreshed hourly'} onChange={e => setDraft({ ...draft, observation_window: e.target.value })} /></label>}
+        {isSignal && <label>{language === 'zh-CN' ? '观察窗口与更新频率' : 'Observation window and cadence'}<DraftControl field="observation_window" value={draft.observation_window || ''} reset={draft} edit={editDraft} commit={commitDraft} placeholder={language === 'zh-CN' ? '例如：滚动 24 小时，每小时更新' : 'e.g. rolling 24 hours, refreshed hourly'} /></label>}
         {isSignal && <div className="signal-stage-heading">{language === 'zh-CN' ? '2 · 需要哪些数据' : '2 · Which data is needed?'}</div>}
         {selected.type !== 'Source' && <SignalNeedsPanel node={draft} graph={graph} mutate={mutate} busy={busy} language={language} />}
         {isSignal && <div className="signal-stage-heading">{language === 'zh-CN' ? '3 · 怎样计算与判断' : '3 · How is it calculated and interpreted?'}</div>}
-        <label>{t('Formula')}<textarea data-workspace-editor="node" value={draft.formula} placeholder={t('Math, pseudocode, SQL, or a natural language formula')} onChange={e => setDraft({ ...draft, formula: e.target.value })} rows={3} /></label>
-        {isSignal && <label>{language === 'zh-CN' ? '触发条件 / 分档解释' : 'Trigger rule or interpretation'}<textarea data-workspace-editor="node" value={draft.trigger_rule || ''} placeholder={language === 'zh-CN' ? '例如：相对历史基线超过 2 倍，且至少持续 3 小时' : 'e.g. above 2× baseline for at least 3 hours'} onChange={e => setDraft({ ...draft, trigger_rule: e.target.value })} rows={3} /></label>}
+        <label>{t('Formula')}<DraftControl multiline field="formula" value={draft.formula} reset={draft} edit={editDraft} commit={commitDraft} placeholder={t('Math, pseudocode, SQL, or a natural language formula')} rows={3} /></label>
+        {isSignal && <label>{language === 'zh-CN' ? '触发条件 / 分档解释' : 'Trigger rule or interpretation'}<DraftControl multiline field="trigger_rule" value={draft.trigger_rule || ''} reset={draft} edit={editDraft} commit={commitDraft} placeholder={language === 'zh-CN' ? '例如：相对历史基线超过 2 倍，且至少持续 3 小时' : 'e.g. above 2× baseline for at least 3 hours'} rows={3} /></label>}
         <MemoFieldCatalog node={selected} fields={addedOutputFields} mutate={canvasActions.mutate} busy={busy} language={language} />
         {isSignal && <div className="signal-stage-heading">{language === 'zh-CN' ? '4 · 怎样检验效果' : '4 · How will it be validated?'}</div>}
-        {isSignal && <label>{language === 'zh-CN' ? '验证方法' : 'Validation plan'}<textarea data-workspace-editor="node" value={draft.validation_plan || ''} placeholder={language === 'zh-CN' ? '例如：对照历史事件与人工标注，统计误报和漏报' : 'e.g. compare with historical events and review false positives'} onChange={e => setDraft({ ...draft, validation_plan: e.target.value })} rows={3} /></label>}
-        {isSignal && <label>{language === 'zh-CN' ? '验证记录' : 'Validation observations'}<textarea data-workspace-editor="node" value={draft.validation_evidence || ''} placeholder={language === 'zh-CN' ? '实际测试后记录样本、结果和仍存在的问题' : 'Record the sample, results, and remaining issues after testing'} onChange={e => setDraft({ ...draft, validation_evidence: e.target.value })} rows={3} /></label>}
-        {[['rationale', 'Design rationale', 'Why is it designed this way?'], ['caveats', 'Caveats', 'Limits and special cases'], ['notes', 'Research notes', 'Additional context']].map(([key, label, placeholder]) => <label key={key}>{t(label)}<textarea data-workspace-editor="node" value={draft[key]} placeholder={t(placeholder)} onChange={e => setDraft({ ...draft, [key]: e.target.value })} rows={3} /></label>)}
+        {isSignal && <label>{language === 'zh-CN' ? '验证方法' : 'Validation plan'}<DraftControl multiline field="validation_plan" value={draft.validation_plan || ''} reset={draft} edit={editDraft} commit={commitDraft} placeholder={language === 'zh-CN' ? '例如：对照历史事件与人工标注，统计误报和漏报' : 'e.g. compare with historical events and review false positives'} rows={3} /></label>}
+        {isSignal && <label>{language === 'zh-CN' ? '验证记录' : 'Validation observations'}<DraftControl multiline field="validation_evidence" value={draft.validation_evidence || ''} reset={draft} edit={editDraft} commit={commitDraft} placeholder={language === 'zh-CN' ? '实际测试后记录样本、结果和仍存在的问题' : 'Record the sample, results, and remaining issues after testing'} rows={3} /></label>}
+        {[['rationale', 'Design rationale', 'Why is it designed this way?'], ['caveats', 'Caveats', 'Limits and special cases'], ['notes', 'Research notes', 'Additional context']].map(([key, label, placeholder]) => <label key={key}>{t(label)}<DraftControl multiline field={key} value={draft[key]} reset={draft} edit={editDraft} commit={commitDraft} placeholder={t(placeholder)} rows={3} /></label>)}
         <div className="relations"><div className="relation-heading"><ArrowDownRight size={16} /> {t('UPSTREAM')} <span>{upstream.length}</span></div>{upstream.length ? upstream.map(n => <button key={n.id} onClick={() => openNode(n.id)}>{displayName(n.name)}<ArrowRight size={14} /></button>) : <em>{t('No upstream nodes')}</em>}</div>
         <div className="relations"><div className="relation-heading"><ArrowUpRight size={16} /> {t('DOWNSTREAM')} <span>{downstream.length}</span></div>{downstream.length ? downstream.map(n => <button key={n.id} onClick={() => openNode(n.id)}>{displayName(n.name)}<ArrowRight size={14} /></button>) : <em>{t('No downstream nodes')}</em>}</div>
         <div className="relations"><div className="relation-heading"><LayoutGrid size={16} /> {t('USED BY PRODUCT')} <span>{products.length}</span></div>{products.length ? products.map(n => <button key={n.id} onClick={() => openNode(n.id)}>{displayName(n.name)}<ArrowRight size={14} /></button>) : <em>{t('No product module downstream')}</em>}</div></details></> : null}

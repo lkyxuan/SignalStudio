@@ -1,16 +1,20 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { MotionContext } from './MotionGate';
+import React, { memo, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, useStore, useStoreApi, useReactFlow } from '@xyflow/react';
 import { canvasRenderMode, inCanvasView, frameThrottle, type Rect } from './canvasViewport';
 export function useCanvasNodeMode(id: string) {
+  const gate = useContext(MotionContext), previous = useRef('overview');
   return useStore(useCallback(s => {
+    if (gate.active) return previous.current;
     const node = s.nodeLookup.get(id);
     if (!node) return 'overview';
-    return canvasRenderMode({ ...node.internals.positionAbsolute,
+    return previous.current = canvasRenderMode({ ...node.internals.positionAbsolute,
       width: node.measured?.width ?? 300, height: node.measured?.height ?? 160 }, s);
-  }, [id]));
+  }, [id, gate]));
 }
 export function useCanvasEdgeMode(rect: Rect) {
-  return useStore(useCallback(s => canvasRenderMode(rect, s), [rect.x, rect.y, rect.width, rect.height]));
+  const gate = useContext(MotionContext), previous = useRef('overview');
+  return useStore(useCallback(s => gate.active ? previous.current : (previous.current = canvasRenderMode(rect, s)), [rect.x, rect.y, rect.width, rect.height, gate]));
 }
 export function useCanvasNodeVisible(id: string) {
   return useStore(useCallback(s => {
@@ -23,7 +27,7 @@ const MapNode = memo(function MapNode({x,y,width,height,color}: Rect & {color:st
   return <rect x={x} y={y} width={width} height={height} rx={5} fill={color} />;
 });
 export const CanvasMiniMap = memo(function CanvasMiniMap({nodeColor}: {nodeColor:(node:any)=>string}) {
-  const store = useStoreApi(), flow = useReactFlow();
+  const store = useStoreApi(), flow = useReactFlow(), gate = useContext(MotionContext);
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{x:number;y:number;view:ReturnType<typeof flow.getViewport>;bounds:Rect} | null>(null);
   const snapshot = useCallback(() => {
@@ -38,8 +42,16 @@ export const CanvasMiniMap = memo(function CanvasMiniMap({nodeColor}: {nodeColor
     return {view,nodes,bounds};
   },[store,nodeColor]);
   const [map,setMap] = useState(snapshot);
+  const currentMap = useRef(map); currentMap.current = map;
   useEffect(()=>{
-    const update=()=>setMap(snapshot());
+    const update=()=>{
+      if(!gate.active){setMap(snapshot());return;}
+      // During GPU motion only the mask moves; cached node rectangles do not
+      // require a React render or a complete bounds/node-array reconstruction.
+      const s=store.getState(),[x,y,z]=s.transform,b=currentMap.current.bounds;
+      const view={x:-x/z,y:-y/z,width:s.width/z,height:s.height/z};
+      svg.current?.querySelector('.react-flow__minimap-mask')?.setAttribute('d',`M${b.x},${b.y}h${b.width}v${b.height}h${-b.width}z M${view.x},${view.y}h${view.width}v${view.height}h${-view.width}z`);
+    };
     const throttled=frameThrottle(update);
     update();
     const unsubscribe=store.subscribe((next,prev)=>{
@@ -49,7 +61,7 @@ export const CanvasMiniMap = memo(function CanvasMiniMap({nodeColor}: {nodeColor
     const root=store.getState().domNode;
     root?.addEventListener('pointerup',done); root?.addEventListener('touchend',done);
     return ()=>{unsubscribe();throttled.cancel();root?.removeEventListener('pointerup',done);root?.removeEventListener('touchend',done);};
-  },[store,snapshot]);
+  },[store,snapshot,gate]);
   useEffect(()=>{
     const element=svg.current;
     const wheel=(event:WheelEvent)=>{

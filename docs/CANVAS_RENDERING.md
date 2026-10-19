@@ -50,6 +50,49 @@ in delivery records if the desktop control tool cannot bind its window; browser 
 runtime proof. Existing bundled fallback pages acquire frontend changes only through a later App
 build/update; this frontend delivery updates the online workspace without publishing a Release.
 
+## Interactive camera and text editing (SS-128)
+
+Approved 2026-10-20: [SS-128](https://app.notion.com/p/3fe038a63d5a817cac66d276c6e50205).
+The deliverable is an integrated usable workspace; a prototype or DOM-count reduction alone
+is not acceptance. Preserve original identities, positions, relationship semantics and writes.
+
+While the camera pans/zooms, a prebuilt WebGL scene draws the map in one GPU batch. Card text
+and surfaces are cached in a bounded 4096×4096 texture (at most 64 MiB of RGBA texture per
+mounted canvas), and cubic paths use the original measured handle positions and routing controls.
+Only the camera uniform changes per frame. Node/edge content selectors retain their last mode
+during motion, avoiding repeated detailed-content mounting while crossing boundaries. The minimap
+continues updating its viewport mask on the existing 120ms schedule without rebuilding its node list.
+
+The GPU scene is a simplified motion preview, not the complete editor: cards retain title/type,
+field count and summary; detailed badges/ports and precise HTML text are restored when motion ends.
+ReactFlow remains the interaction and geometry owner. It continues to provide idle selection,
+keyboard access, dragging, ports, edge actions and the original detail panels. At motion end one
+store notification refreshes visible content, then the overlay retires after two animation frames.
+Search waits for complete initial geometry. This is a hybrid renderer, not a wholesale replacement
+of ReactFlow or an adoption of Figma's internal engine.
+
+Snapshot building is deferred and yields between short chunks; text widths and colors are cached.
+Hover/selection changes update GPU opacity separately, without rebuilding the texture. Data, language,
+visibility, routing and display-position changes invalidate the scene. If it is not ready, texture
+capacity is exceeded, WebGL is unavailable, upload fails or the context is lost, the original
+rendering path remains usable. A lost context uses the original renderer until reload. Resources,
+subscriptions and scheduled work are released on unmount. No periodic network polling is added.
+This bound is deliberately not a guarantee for arbitrary graph sizes or hardware.
+
+Node text controls buffer their per-character React state locally. Every input synchronously updates
+an immutable current draft, so save, auxiliary-write preservation and quit/conflict protection read
+the latest text even before blur. Blur publishes a workspace snapshot for dependent previews; discard,
+selection changes and save acknowledgements replace buffered values. Composition text is not
+translated, debounced or rewritten during input. Existing dirty tracking remains synchronous.
+
+Verify `editorDraft.test.ts` and `motionScene.test.ts` alongside contract/layout/build checks. On an
+isolated current DB, verify continuous text input, composition behavior, immediate save/refresh,
+auxiliary writes, draft/conflict/quit protection, pan/zoom/end-of-motion interaction, long arcs,
+minimap and WebGL-loss fallback. Compare identical data, camera, window and input paths; record
+frame distributions and long frames separately from total task time. Chromium input-to-next-frame
+measurements are not native hardware input latency or proof of paint completion. Native checks on
+the available host are not measurements on the user's separately reported M1 Max.
+
 ## Functional workspace and editing (SS-118)
 
 Approved 2026-10-19: [SS-118](https://app.notion.com/p/3fd038a63d5a812fa3b9f9ae8cc626f9).

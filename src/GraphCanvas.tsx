@@ -1,5 +1,8 @@
+import { CanvasMotion } from './CanvasMotion';
+import { MotionContext } from './MotionGate';
+import { newMotionGate } from './motionScene';
 import React, { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { ReactFlow, Background, Controls, useNodesInitialized, useReactFlow } from '@xyflow/react';
+import { ReactFlow, Background, Controls, useNodesInitialized, useReactFlow, useStore } from '@xyflow/react';
 import { CanvasMiniMap } from './CanvasRendering';
 
 // Stable event bridge keeps memoized canvases independent of inspector drafts.
@@ -11,6 +14,8 @@ export function useCanvasActions(handlers: Record<string, (...args:any[])=>any>)
 }
 function InitialCanvasFit({actions}: {actions:Record<string, (...args:any[])=>any>}) {
   const initialized = useNodesInitialized(), flow = useReactFlow(), fitted = useRef(false);
+  const width = useStore(s => s.width), height = useStore(s => s.height);
+  useEffect(() => { if(width && height) actions.resize?.(width,height); }, [width,height,actions]);
   useEffect(() => {
     if (!initialized || fitted.current) return;
     fitted.current = true;
@@ -25,19 +30,22 @@ export const GraphCanvas = memo(function GraphCanvas({ nodes, edges, nodeTypes, 
   nodes:any[]; edges:any[]; nodeTypes:any; edgeTypes:any; labels:any;
   actions:Record<string, (...args:any[])=>any>; miniMapColor:(node:any)=>string;
 }) {
-  return <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+  const motion = useRef(newMotionGate()).current;
+  useLayoutEffect(() => { actions.mount?.(); }, [actions]);
+  return <MotionContext.Provider value={motion}><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
     ariaLabelConfig={labels} proOptions={{hideAttribution:true}}
     onNodesChange={actions.nodesChange} onEdgesChange={actions.edgesChange}
     onNodeClick={actions.nodeClick} onNodeDoubleClick={actions.nodeDoubleClick}
     onEdgeMouseEnter={actions.edgeEnter} onEdgeMouseLeave={actions.edgeLeave}
-    onMoveStart={actions.moveStart} onMoveEnd={actions.moveEnd} onPaneClick={actions.paneClick}
+    onMoveStart={(...args) => { motion.begin(); actions.moveStart?.(...args); }} onMoveEnd={(...args) => { motion.end(); actions.moveEnd?.(...args); }} onPaneClick={actions.paneClick}
     onNodeDragStart={actions.dragStart} onNodeDragStop={actions.dragStop}
     onConnect={actions.connect} onEdgeClick={actions.edgeClick} onEdgeDoubleClick={actions.edgeDoubleClick}
     onInit={actions.init} deleteKeyCode={null} zoomOnDoubleClick={false}
     minZoom={0.03} maxZoom={1.5}>
+    <CanvasMotion nodes={nodes} edges={edges}/>
     <InitialCanvasFit actions={actions}/>
     <Background variant={'dots' as any} color="var(--ss-grid)" gap={22} size={1}/>
     <Controls showInteractive={false}/>
     {nodes.length > 0 && <CanvasMiniMap nodeColor={miniMapColor}/>}
-  </ReactFlow>;
+  </ReactFlow></MotionContext.Provider>;
 });
