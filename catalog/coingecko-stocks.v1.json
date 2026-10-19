@@ -1,0 +1,4090 @@
+{
+  "version": "coingecko-stocks.v1",
+  "task": "SS-127",
+  "approval_date": "2026-10-20",
+  "delivery": "studio_design_only",
+  "policy": {
+    "scope_zh": "全量发现 CoinGecko stock 类型 RWA 与 tokenized-stock 分类；以各自稳定 ID 去重并对账，不设市值门槛。stock 类型不自动代表已上市美股；ETF、商品不并入股票目录。",
+    "scope_en": "Discover every supported stock RWA and tokenized-stock member, reconcile stable IDs, with no market-cap floor. Stock type does not establish US listing status. ETFs and commodities are separate.",
+    "identity_zh": "底层 RWA ID、代币 coin ID 与网络/合约分层记录；股票到代币可一对多。标签只是发现依据，未验证的上市市场与映射标为未知。",
+    "identity_en": "Keep underlying RWA IDs, coin IDs and network/contracts separate; one stock can map to many tokens. Unverified listing markets and identity links remain unknown.",
+    "collection_zh": "目录完整扫描；分页到末页，按稳定 ID 去重，重页/漏页/429 不得标成全量成功。保留本轮 ID 集、页数、去重数、截止时间及失败原因；完整对账后才确认新增/移除。目录/元数据低频更新，行情按分页批量更新，历史按 ID 与范围分批补齐。实际频率待 key 权限、缓存与预算核验，不启动定时器。",
+    "collection_en": "Scan through the last page and deduplicate stable IDs. Missing/duplicate pages and 429 never establish complete coverage. Freeze IDs, page counts, cutoff and errors per round; reconcile before accepting removals. Refresh metadata less often than batched markets; backfill history by ID/range. Cadence requires quota/cache validation; no timer is started.",
+    "history_zh": "保留来源、实体层级、USD、上游时间、请求/接收时间与覆盖版本；prices / market_caps / total_volumes 是时间点序列，不是 OHLCV。滚动24小时成交额不能跨点相加；聚合 RWA 与单代币序列不可混算。",
+    "history_en": "Retain source, entity level, USD, source/request/receive time and coverage version. Chart series are not OHLCV; rolling 24-hour volume points cannot be summed. Never mix aggregate and individual-token series.",
+    "limits_zh": "真实采集、全量历史回填、Stocks App 与榜单运行链尚未实现。代币行情不代表原股行情，代币市值不代表公司市值。历史套餐、映射全覆盖、实际延迟和成本未验证。",
+    "limits_en": "No live crawler, full historical backfill, Stocks app or ranking runtime is delivered. Token metrics are not underlying stock metrics. Plan permissions, full mapping, latency and cost remain unverified."
+  },
+  "operations": [
+    {
+      "key": "rwa_list",
+      "name": "coingecko.stocks.rwa_list",
+      "kind": "source",
+      "label_zh": "Stocks · 底层股票目录",
+      "label_en": "Stocks · Underlying stock directory",
+      "group_zh": "目录与分类",
+      "endpoint": "/rwas/list",
+      "documentation_url": "https://docs.coingecko.com/reference/rwas-list",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "75c4b29d74b8878386603900675431202449bff9af767af5fdd77119905cd189",
+      "inputs": [
+        {
+          "name": "asset_type",
+          "location": "query",
+          "required": false,
+          "description": "Filter by RWA asset type.",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "stock",
+              "commodity",
+              "etf"
+            ]
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "[]",
+          "type": "object",
+          "label_zh": "[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "[].id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "RWA ID",
+          "nullable": false
+        },
+        {
+          "path": "[].symbol",
+          "type": "string",
+          "label_zh": "代码",
+          "description": "RWA symbol",
+          "nullable": false
+        },
+        {
+          "path": "[].name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "RWA name",
+          "nullable": false
+        },
+        {
+          "path": "[].asset_type",
+          "type": "string",
+          "label_zh": "资产类型",
+          "description": "RWA asset type",
+          "nullable": false
+        }
+      ],
+      "sample_request": {
+        "asset_type": "stock"
+      },
+      "notes": "* Use this endpoint to get RWA IDs for other endpoints that require an `id` parameter.\n* Returns all RWAs by default. Use `asset_type` to filter for a single type.\n* No pagination required — the full list is returned in a single response.\n* Equivalent page on [CoinGecko Real World Assets](https://www.coingecko.com/en/real-world-assets).\n\n<CacheInfo paidRate=\"5 minutes\" publicRate=\"30 minutes\" />",
+      "position": [
+        0,
+        0
+      ],
+      "purpose_zh": "全量底层目录；一次返回，无分页。",
+      "purpose_en": "Full underlying directory, returned without pagination."
+    },
+    {
+      "key": "rwa_markets",
+      "name": "coingecko.stocks.rwa_markets",
+      "kind": "source",
+      "label_zh": "Stocks · 股票聚合行情",
+      "label_en": "Stocks · Aggregated tokenized stock markets",
+      "group_zh": "当前行情",
+      "endpoint": "/rwas/markets",
+      "documentation_url": "https://docs.coingecko.com/reference/rwas-markets",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "391e9b2862ced177ae63774e971ee1efbab6079b1b184888da9b04b8ee768873",
+      "inputs": [
+        {
+          "name": "asset_type",
+          "location": "query",
+          "required": false,
+          "description": "Filter by RWA asset type.",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "stock",
+              "commodity",
+              "etf"
+            ]
+          }
+        },
+        {
+          "name": "ids",
+          "location": "query",
+          "required": false,
+          "description": "RWAs' IDs, comma-separated if querying more than 1 RWA. \n*refers to [`/rwas/list`](/reference/rwas-list)",
+          "schema": {
+            "type": "string",
+            "default": "gold"
+          }
+        },
+        {
+          "name": "names",
+          "location": "query",
+          "required": false,
+          "description": "RWAs' names, comma-separated if querying more than 1 RWA.",
+          "schema": {
+            "type": "string",
+            "default": "Gold"
+          }
+        },
+        {
+          "name": "symbols",
+          "location": "query",
+          "required": false,
+          "description": "RWAs' symbols, comma-separated if querying more than 1 RWA.",
+          "schema": {
+            "type": "string",
+            "default": "xau"
+          }
+        },
+        {
+          "name": "issuer",
+          "location": "query",
+          "required": false,
+          "description": "Filter based on RWAs' issuer. \n*refers to [`/rwas/issuers/list`](/reference/rwas-issuers-list)",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "order",
+          "location": "query",
+          "required": false,
+          "description": "Sort result by field. \nDefault: market_cap_desc",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "market_cap_asc",
+              "market_cap_desc",
+              "volume_asc",
+              "volume_desc",
+              "id_asc",
+              "id_desc"
+            ]
+          }
+        },
+        {
+          "name": "per_page",
+          "location": "query",
+          "required": false,
+          "description": "Total results per page. \nDefault: 100 \nValid values: 1...250",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "page",
+          "location": "query",
+          "required": false,
+          "description": "Page through results. \nDefault: 1",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "sparkline",
+          "location": "query",
+          "required": false,
+          "description": "Include sparkline 7-day data. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "price_change_percentage",
+          "location": "query",
+          "required": false,
+          "description": "Include price change percentage timeframe, comma-separated if querying more than 1 timeframe. \nValid values: `1h`, `24h`, `7d`, `14d`, `30d`, `200d`, `1y`",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "precision",
+          "location": "query",
+          "required": false,
+          "description": "Decimal places for currency price value",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "full",
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18"
+            ]
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "[]",
+          "type": "object",
+          "label_zh": "[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "[].id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "RWA ID",
+          "nullable": false
+        },
+        {
+          "path": "[].symbol",
+          "type": "string",
+          "label_zh": "代码",
+          "description": "RWA symbol",
+          "nullable": false
+        },
+        {
+          "path": "[].name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "RWA name",
+          "nullable": false
+        },
+        {
+          "path": "[].asset_type",
+          "type": "string",
+          "label_zh": "资产类型",
+          "description": "RWA asset type",
+          "nullable": false
+        },
+        {
+          "path": "[].image",
+          "type": "string",
+          "label_zh": "图像",
+          "description": "Large image URL of the token with the largest market cap",
+          "nullable": false
+        },
+        {
+          "path": "[].tokenized_market_data",
+          "type": "object",
+          "label_zh": "聚合代币行情",
+          "description": "Aggregated tokenized market data",
+          "nullable": false
+        },
+        {
+          "path": "[].tokenized_market_data.current_price",
+          "type": "number",
+          "label_zh": "当前价格",
+          "description": "Current price in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.market_cap",
+          "type": "number",
+          "label_zh": "代币市值",
+          "description": "Market cap in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.total_volume",
+          "type": "number",
+          "label_zh": "滚动成交额",
+          "description": "Total trading volume in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.high_24h",
+          "type": "number",
+          "label_zh": "high_24h",
+          "description": "24-hour price high in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.low_24h",
+          "type": "number",
+          "label_zh": "low_24h",
+          "description": "24-hour price low in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_24h",
+          "type": "number",
+          "label_zh": "price_change_24h",
+          "description": "24-hour price change in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_24h",
+          "type": "number",
+          "label_zh": "24小时涨跌幅",
+          "description": "24-hour price change percentage",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.market_cap_change_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_24h",
+          "description": "24-hour market cap change in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.market_cap_change_percentage_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_percentage_24h",
+          "description": "24-hour market cap change percentage",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.last_updated",
+          "type": "string",
+          "label_zh": "上游更新时间",
+          "description": "Last updated timestamp",
+          "nullable": false
+        },
+        {
+          "path": "[].tokenized_market_data.sparkline_in_7d",
+          "type": "object",
+          "label_zh": "sparkline_in_7d",
+          "description": "Sparkline price data for the last 7 days",
+          "nullable": false
+        },
+        {
+          "path": "[].tokenized_market_data.sparkline_in_7d.price",
+          "type": "array",
+          "label_zh": "price",
+          "description": "Array of price values",
+          "nullable": false
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_1h_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_1h_in_currency",
+          "description": "1-hour price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_24h_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_24h_in_currency",
+          "description": "24-hour price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_7d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_7d_in_currency",
+          "description": "7-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_14d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_14d_in_currency",
+          "description": "14-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_30d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_30d_in_currency",
+          "description": "30-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_200d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_200d_in_currency",
+          "description": "200-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].tokenized_market_data.price_change_percentage_1y_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_1y_in_currency",
+          "description": "1-year price change percentage in target currency",
+          "nullable": true
+        }
+      ],
+      "sample_request": {
+        "asset_type": "stock",
+        "per_page": 2,
+        "page": 1
+      },
+      "notes": "* Filter by `ids`, `names`, or `symbols`. When multiple are provided, priority is: `ids` > `names` > `symbols`.\n* URL-encode spaces in `names` (e.g. `Micron%20Technology`).\n* Maximum of **250** IDs per request. Wildcard searches are not supported.\n* Use `per_page` and `page` to paginate results.\n* Equivalent page on [CoinGecko Real World Assets](https://www.coingecko.com/en/real-world-assets).\n\n<Tip>\n  Filter by issuer using the `issuer` param — refer to [RWA Issuers List](/reference/rwas-issuers-list) for available values.\n</Tip>\n\n<Note>\n  `tokenized_market_data` reflects the aggregated onchain tokenized market, not the underlying asset's spot market. All values are in USD.\n</Note>\n\n<CacheInfo paidRate=\"30 seconds\" publicRate=\"60 seconds\" />",
+      "position": [
+        460,
+        0
+      ],
+      "purpose_zh": "底层资产聚合视角；按 stock 类型分页采集，不能与单代币行情相加。",
+      "purpose_en": "Paginated stock aggregates; never add them to individual-token markets."
+    },
+    {
+      "key": "rwa_detail",
+      "name": "coingecko.stocks.rwa_detail",
+      "kind": "source",
+      "label_zh": "Stocks · 股票与代币映射",
+      "label_en": "Stocks · Stock and token mapping",
+      "group_zh": "身份映射",
+      "endpoint": "/rwas/{id}",
+      "documentation_url": "https://docs.coingecko.com/reference/rwas-id",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "9b20858e10bc90e064b10c1467d573ff52b90fe8ff80c890a7d516f2f06e2c47",
+      "inputs": [
+        {
+          "name": "id",
+          "location": "path",
+          "required": true,
+          "description": "RWA ID. \n*refers to [`/rwas/list`](/reference/rwas-list)",
+          "schema": {
+            "type": "string",
+            "default": "gold"
+          }
+        },
+        {
+          "name": "sparkline",
+          "location": "query",
+          "required": false,
+          "description": "Include sparkline 7-day data. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "tokens",
+          "location": "query",
+          "required": false,
+          "description": "Include tokens data. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "tokenized_market_data",
+          "location": "query",
+          "required": false,
+          "description": "Include tokenized market data. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "perps_market_data",
+          "location": "query",
+          "required": false,
+          "description": "Include perpetuals market data. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "RWA ID",
+          "nullable": false
+        },
+        {
+          "path": "symbol",
+          "type": "string",
+          "label_zh": "代码",
+          "description": "RWA symbol",
+          "nullable": false
+        },
+        {
+          "path": "name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "RWA name",
+          "nullable": false
+        },
+        {
+          "path": "asset_type",
+          "type": "string",
+          "label_zh": "资产类型",
+          "description": "RWA asset type",
+          "nullable": false
+        },
+        {
+          "path": "image",
+          "type": "object",
+          "label_zh": "图像",
+          "description": "Image URLs of the token with the largest market cap",
+          "nullable": false
+        },
+        {
+          "path": "image.thumb",
+          "type": "string",
+          "label_zh": "thumb",
+          "description": "Thumbnail image URL",
+          "nullable": false
+        },
+        {
+          "path": "image.small",
+          "type": "string",
+          "label_zh": "small",
+          "description": "Small image URL",
+          "nullable": false
+        },
+        {
+          "path": "image.large",
+          "type": "string",
+          "label_zh": "large",
+          "description": "Large image URL",
+          "nullable": false
+        },
+        {
+          "path": "web_slug",
+          "type": "string",
+          "label_zh": "web_slug",
+          "description": "RWA web slug",
+          "nullable": false
+        },
+        {
+          "path": "tokens",
+          "type": "array",
+          "label_zh": "代币版本",
+          "description": "Tokens tracking this RWA",
+          "nullable": false
+        },
+        {
+          "path": "tokens[]",
+          "type": "object",
+          "label_zh": "代币版本",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Token ID",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].symbol",
+          "type": "string",
+          "label_zh": "代码",
+          "description": "Token symbol",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Token name",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].platforms",
+          "type": "object",
+          "label_zh": "网络与合约",
+          "description": "Token asset platform and contract address",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].issuer_details",
+          "type": "object",
+          "label_zh": "发行商信息",
+          "description": "Token issuer details",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].issuer_details.id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Issuer ID",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].issuer_details.name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Issuer name",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].perps_market_data",
+          "type": "object",
+          "label_zh": "perps_market_data",
+          "description": "Perpetuals market data of the token",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].perps_market_data.volume_24h",
+          "type": "number",
+          "label_zh": "volume_24h",
+          "description": "24-hour perpetuals trading volume in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokens[].perps_market_data.open_interest_24h",
+          "type": "number",
+          "label_zh": "open_interest_24h",
+          "description": "24-hour perpetuals open interest in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data",
+          "type": "object",
+          "label_zh": "聚合代币行情",
+          "description": "Aggregated tokenized market data",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_market_data.current_price",
+          "type": "number",
+          "label_zh": "当前价格",
+          "description": "Current price in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.market_cap",
+          "type": "number",
+          "label_zh": "代币市值",
+          "description": "Market cap in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.total_volume",
+          "type": "number",
+          "label_zh": "滚动成交额",
+          "description": "Total trading volume in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.high_24h",
+          "type": "number",
+          "label_zh": "high_24h",
+          "description": "24-hour price high in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.low_24h",
+          "type": "number",
+          "label_zh": "low_24h",
+          "description": "24-hour price low in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_24h",
+          "type": "number",
+          "label_zh": "price_change_24h",
+          "description": "24-hour price change in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_24h",
+          "type": "number",
+          "label_zh": "24小时涨跌幅",
+          "description": "24-hour price change percentage",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.market_cap_change_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_24h",
+          "description": "24-hour market cap change in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.market_cap_change_percentage_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_percentage_24h",
+          "description": "24-hour market cap change percentage",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.last_updated",
+          "type": "string",
+          "label_zh": "上游更新时间",
+          "description": "Last updated timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_market_data.sparkline_in_7d",
+          "type": "object",
+          "label_zh": "sparkline_in_7d",
+          "description": "Sparkline price data for the last 7 days",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_market_data.sparkline_in_7d.price",
+          "type": "array",
+          "label_zh": "price",
+          "description": "Array of price values",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_1h_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_1h_in_currency",
+          "description": "1-hour price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_24h_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_24h_in_currency",
+          "description": "24-hour price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_7d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_7d_in_currency",
+          "description": "7-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_14d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_14d_in_currency",
+          "description": "14-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_30d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_30d_in_currency",
+          "description": "30-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_200d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_200d_in_currency",
+          "description": "200-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "tokenized_market_data.price_change_percentage_1y_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_1y_in_currency",
+          "description": "1-year price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "perps_market_data",
+          "type": "object",
+          "label_zh": "perps_market_data",
+          "description": "Aggregated perpetuals market data",
+          "nullable": false
+        },
+        {
+          "path": "perps_market_data.volume_24h",
+          "type": "number",
+          "label_zh": "volume_24h",
+          "description": "24-hour perpetuals trading volume in target currency",
+          "nullable": true
+        },
+        {
+          "path": "perps_market_data.open_interest_24h",
+          "type": "number",
+          "label_zh": "open_interest_24h",
+          "description": "24-hour perpetuals open interest in target currency",
+          "nullable": true
+        },
+        {
+          "path": "last_updated",
+          "type": "string",
+          "label_zh": "上游更新时间",
+          "description": "Last updated timestamp",
+          "nullable": false
+        }
+      ],
+      "sample_request": {
+        "id": "nvidia",
+        "tokens": true,
+        "tokenized_market_data": true
+      },
+      "notes": "* Find an RWA's API ID via [RWA List](/reference/rwas-list).\n* Returns metadata only by default — set `tokens`, `tokenized_market_data` and `perps_market_data` to `true` to include those objects.\n* `perps_market_data` returns both the RWA-level aggregate and, when `tokens` is also `true`, the per-token breakdown.\n* Each `tokens.id` is also a coin ID. Use it with [Coin Data by ID](/reference/coins-id) to query the individual token.\n\n<Note>\n  `tokenized_market_data` reflects the aggregated onchain tokenized market, not the underlying asset's spot market. All values are in USD.\n</Note>\n\n<CacheInfo rate=\"30 seconds\" />",
+      "position": [
+        920,
+        0
+      ],
+      "purpose_zh": "打开 tokens=true 才有股票到各发行商代币的映射；tokenized_market_data=true 返回聚合行情。",
+      "purpose_en": "Enable tokens for issuer-token mapping and tokenized_market_data for aggregate metrics."
+    },
+    {
+      "key": "rwa_tickers",
+      "name": "coingecko.stocks.rwa_tickers",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币交易场所",
+      "label_en": "Stocks · Tokenized stock venues",
+      "group_zh": "交易场所与覆盖",
+      "endpoint": "/rwas/{id}/tickers",
+      "documentation_url": "https://docs.coingecko.com/reference/rwas-id-tickers",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "aa40c547d4834c4857ec7c1ede5eeb81d85aa638eca6536a966c96d7a393a699",
+      "inputs": [
+        {
+          "name": "id",
+          "location": "path",
+          "required": true,
+          "description": "RWA ID. \n*refers to [`/rwas/list`](/reference/rwas-list)",
+          "schema": {
+            "type": "string",
+            "default": "gold"
+          }
+        },
+        {
+          "name": "issuer_ids",
+          "location": "query",
+          "required": false,
+          "description": "Issuer ID. \n*refers to [`/rwas/issuers/list`](/reference/rwas-issuers-list)",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "exchange_ids",
+          "location": "query",
+          "required": false,
+          "description": "Exchange ID. \n*refers to [`/exchanges/list`](/reference/exchanges-list)",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "page",
+          "location": "query",
+          "required": false,
+          "description": "Page through results",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "order",
+          "location": "query",
+          "required": false,
+          "description": "Sort the order of responses. \nDefault: last_traded_at_desc",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "last_traded_at_desc",
+              "last_traded_at_asc",
+              "volume_desc",
+              "volume_asc"
+            ]
+          }
+        },
+        {
+          "name": "depth",
+          "location": "query",
+          "required": false,
+          "description": "Include 2% orderbook depth, i.e. `cost_to_move_up_usd` and `cost_to_move_down_usd`. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "dex_pair_format",
+          "location": "query",
+          "required": false,
+          "description": "Set to `symbol` to display DEX pair base and target as symbols. \nDefault: `contract_address`",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "contract_address",
+              "symbol"
+            ]
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "RWA name",
+          "nullable": false
+        },
+        {
+          "path": "tickers",
+          "type": "array",
+          "label_zh": "tickers",
+          "description": "List of tickers",
+          "nullable": false
+        },
+        {
+          "path": "tickers[]",
+          "type": "object",
+          "label_zh": "tickers[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].base",
+          "type": "string",
+          "label_zh": "基础资产",
+          "description": "Ticker base currency",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].target",
+          "type": "string",
+          "label_zh": "计价资产",
+          "description": "Ticker target currency",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market",
+          "type": "object",
+          "label_zh": "交易场所",
+          "description": "Exchange information",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market.name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Exchange name",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market.identifier",
+          "type": "string",
+          "label_zh": "identifier",
+          "description": "Exchange identifier",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market.has_trading_incentive",
+          "type": "boolean",
+          "label_zh": "has_trading_incentive",
+          "description": "Exchange trading incentive",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market.logo",
+          "type": "string",
+          "label_zh": "logo",
+          "description": "Exchange logo URL",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].last",
+          "type": "number",
+          "label_zh": "最新成交价",
+          "description": "Last price",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].volume",
+          "type": "number",
+          "label_zh": "成交量",
+          "description": "Trading volume",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].cost_to_move_up_usd",
+          "type": "number",
+          "label_zh": "cost_to_move_up_usd",
+          "description": "Cost to move price up by 2% in USD",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].cost_to_move_down_usd",
+          "type": "number",
+          "label_zh": "cost_to_move_down_usd",
+          "description": "Cost to move price down by 2% in USD",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last",
+          "type": "object",
+          "label_zh": "converted_last",
+          "description": "Converted last price",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last.btc",
+          "type": "number",
+          "label_zh": "btc",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last.eth",
+          "type": "number",
+          "label_zh": "eth",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last.usd",
+          "type": "number",
+          "label_zh": "usd",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume",
+          "type": "object",
+          "label_zh": "converted_volume",
+          "description": "Converted trading volume",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume.btc",
+          "type": "number",
+          "label_zh": "btc",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume.eth",
+          "type": "number",
+          "label_zh": "eth",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume.usd",
+          "type": "number",
+          "label_zh": "usd",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].bid_ask_spread_percentage",
+          "type": "number",
+          "label_zh": "bid_ask_spread_percentage",
+          "description": "Bid-ask spread percentage",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].timestamp",
+          "type": "string",
+          "label_zh": "时间戳",
+          "description": "Ticker timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].last_traded_at",
+          "type": "string",
+          "label_zh": "last_traded_at",
+          "description": "Last traded timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].last_fetch_at",
+          "type": "string",
+          "label_zh": "last_fetch_at",
+          "description": "Last fetch timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].is_anomaly",
+          "type": "boolean",
+          "label_zh": "是否异常",
+          "description": "Whether ticker is anomalous",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].is_stale",
+          "type": "boolean",
+          "label_zh": "是否过期",
+          "description": "Whether ticker is stale",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].trade_url",
+          "type": "string",
+          "label_zh": "交易页面",
+          "description": "Trade URL",
+          "nullable": true
+        },
+        {
+          "path": "tickers[].token_info_url",
+          "type": "string",
+          "label_zh": "token_info_url",
+          "description": "Token info URL",
+          "nullable": true
+        },
+        {
+          "path": "tickers[].coin_id",
+          "type": "string",
+          "label_zh": "coin_id",
+          "description": "Base currency coin ID",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].target_coin_id",
+          "type": "string",
+          "label_zh": "target_coin_id",
+          "description": "Target currency coin ID",
+          "nullable": true
+        },
+        {
+          "path": "tickers[].coin_mcap_usd",
+          "type": "number",
+          "label_zh": "coin_mcap_usd",
+          "description": "Coin market cap in USD",
+          "nullable": false
+        }
+      ],
+      "sample_request": {
+        "id": "nvidia"
+      },
+      "notes": "* Find an RWA's API ID via [RWA List](/reference/rwas-list).\n* Returns tickers for every token tracking this RWA. Use `issuer_ids` to filter by issuer — refer to [RWA Issuers List](/reference/rwas-issuers-list) for available values.\n* Tickers are paginated to 100 items per page.\n* Use `exchange_ids` to filter tickers for a specific exchange.\n* When `dex_pair_format=symbol`, DEX pair `base` and `target` display as symbols (e.g. `WETH`, `USDC`) instead of contract addresses.\n* When sorting by `volume`, `converted_volume` is used instead of `volume`.\n\n<PlanExclusivity tier=\"basic_above\" />\n\n<CacheInfo rate=\"60 seconds\" />",
+      "position": [
+        1380,
+        0
+      ],
+      "purpose_zh": "比较各代币交易场所与新鲜度；不是美股交易所成交明细。",
+      "purpose_en": "Inspect token trading venues and freshness, not US stock exchange executions."
+    },
+    {
+      "key": "rwa_history",
+      "name": "coingecko.stocks.rwa_history",
+      "kind": "source",
+      "label_zh": "Stocks · 股票聚合历史",
+      "label_en": "Stocks · Aggregated tokenized stock history",
+      "group_zh": "历史数据",
+      "endpoint": "/rwas/{id}/market_chart",
+      "documentation_url": "https://docs.coingecko.com/reference/rwas-id-market-chart",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "116528efe1ef442f92d19431f0d019246cf97811aeea769b693e07697c6ddde4",
+      "inputs": [
+        {
+          "name": "id",
+          "location": "path",
+          "required": true,
+          "description": "RWA ID. \n*refers to [`/rwas/list`](/reference/rwas-list)",
+          "schema": {
+            "type": "string",
+            "default": "gold"
+          }
+        },
+        {
+          "name": "days",
+          "location": "query",
+          "required": false,
+          "description": "Data up to number of days ago. \nYou may use any integer or `max` for number of days. \nDefault: 1",
+          "schema": {
+            "type": "string",
+            "default": "1"
+          }
+        },
+        {
+          "name": "interval",
+          "location": "query",
+          "required": false,
+          "description": "Data interval, leave empty for auto granularity.",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "5m",
+              "hourly",
+              "daily"
+            ]
+          }
+        },
+        {
+          "name": "precision",
+          "location": "query",
+          "required": false,
+          "description": "Decimal place for currency price value.",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "full",
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18"
+            ]
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "tokenized_prices",
+          "type": "array",
+          "label_zh": "聚合代币价格序列",
+          "description": "Tokenized price data points as [timestamp, price] pairs",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_prices[]",
+          "type": "array",
+          "label_zh": "聚合代币价格序列",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_market_caps",
+          "type": "array",
+          "label_zh": "聚合代币市值序列",
+          "description": "Tokenized market cap data points as [timestamp, market_cap] pairs",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_market_caps[]",
+          "type": "array",
+          "label_zh": "聚合代币市值序列",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_total_volumes",
+          "type": "array",
+          "label_zh": "聚合代币成交额序列",
+          "description": "Tokenized total volume data points as [timestamp, volume] pairs",
+          "nullable": false
+        },
+        {
+          "path": "tokenized_total_volumes[]",
+          "type": "array",
+          "label_zh": "聚合代币成交额序列",
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "sample_request": {
+        "id": "nvidia",
+        "days": 7
+      },
+      "notes": "* Find an RWA's API ID via [RWA List](/reference/rwas-list).\n\n* Auto-granularity when `interval` is not specified:\n\n  | Date range | Granularity |\n  | - | - |\n  | 1 day from current time | **5-minutely** |\n  | 2–90 days | **hourly** |\n  | Above 90 days | **daily** (00:00 UTC) |\n\n* Override with the `interval` parameter:\n\n  | `interval` | Lookback |\n  | - | - |\n  | `daily` | — |\n  | `hourly` | **Past 100 days** |\n  | `5m` | **Past 10 days** (Enterprise only) |\n\n* Data available from 1 July 2025 onwards for stocks and ETFs, and 15 September 2019 onwards for commodities.\n\n<Note>\n  - The last completed UTC day (00:00) is available 10 minutes after midnight (00:10 UTC).\n  - Values reflect the aggregated onchain tokenized market, not the underlying asset's spot market. All values are in USD.\n</Note>\n\n<Warning>\n  Historical data on the **Basic plan** is restricted to the past 2 years. Subscribe to [Analyst plan & above](https://www.coingecko.com/en/api/pricing) for the full range.\n</Warning>\n\n<PlanExclusivity tier=\"basic_above\" />\n\n<CacheInfo rate=\"30 seconds\" />",
+      "position": [
+        1840,
+        0
+      ],
+      "purpose_zh": "聚合代币市场历史；Basic及以上历史权限需按实际key核验，缺权限不回填假数据。",
+      "purpose_en": "Aggregate token history requires plan verification; never fabricate unavailable history."
+    },
+    {
+      "key": "issuer_list",
+      "name": "coingecko.stocks.issuer_list",
+      "kind": "source",
+      "label_zh": "Stocks · 发行商目录",
+      "label_en": "Stocks · Issuer directory",
+      "group_zh": "身份映射",
+      "endpoint": "/rwas/issuers/list",
+      "documentation_url": "https://docs.coingecko.com/reference/rwas-issuers-list",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "10da0815d3855116748a2a3046172be81049dfcc71244e2681714d5c70eb02df",
+      "inputs": [],
+      "fields": [
+        {
+          "path": "[]",
+          "type": "object",
+          "label_zh": "[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "[].id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Issuer ID",
+          "nullable": false
+        },
+        {
+          "path": "[].name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Issuer name",
+          "nullable": false
+        }
+      ],
+      "sample_request": {},
+      "notes": "* Use this endpoint to get issuer IDs for endpoints that require an `issuer` or `issuer_ids` parameter, such as [RWA List with Market Data](/reference/rwas-markets).\n* No pagination required — the full list is returned in a single response.\n\n<CacheInfo rate=\"5 minutes\" />",
+      "position": [
+        0,
+        550
+      ],
+      "purpose_zh": "列出全部RWA发行商；本期只关联股票范围内的发行记录。",
+      "purpose_en": "All RWA issuers; keep only stock-relevant associations for this scope."
+    },
+    {
+      "key": "issuer_detail",
+      "name": "coingecko.stocks.issuer_detail",
+      "kind": "source",
+      "label_zh": "Stocks · 发行商与发行资产",
+      "label_en": "Stocks · Issuer and issued assets",
+      "group_zh": "身份映射",
+      "endpoint": "/rwas/issuers/{id}",
+      "documentation_url": "https://docs.coingecko.com/reference/rwas-issuers-id",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "c2236d8302c30d68925dd39f82f95a3c0cd2c7a8346ae469d098099473706f79",
+      "inputs": [
+        {
+          "name": "id",
+          "location": "path",
+          "required": true,
+          "description": "Issuer ID. \n*refers to [`/rwas/issuers/list`](/reference/rwas-issuers-list)",
+          "schema": {
+            "type": "string",
+            "default": "xstocks-ecosystem"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Issuer ID",
+          "nullable": false
+        },
+        {
+          "path": "name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Issuer name",
+          "nullable": false
+        },
+        {
+          "path": "market_cap",
+          "type": "number",
+          "label_zh": "代币市值",
+          "description": "Issuer market cap in USD",
+          "nullable": true
+        },
+        {
+          "path": "market_cap_change_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_24h",
+          "description": "24-hour issuer market cap change in USD",
+          "nullable": true
+        },
+        {
+          "path": "volume_24h",
+          "type": "number",
+          "label_zh": "volume_24h",
+          "description": "24-hour issuer trading volume in USD",
+          "nullable": true
+        },
+        {
+          "path": "image",
+          "type": "object",
+          "label_zh": "图像",
+          "description": "Issuer image URLs",
+          "nullable": false
+        },
+        {
+          "path": "image.thumb",
+          "type": "string",
+          "label_zh": "thumb",
+          "description": "Thumbnail image URL",
+          "nullable": false
+        },
+        {
+          "path": "image.small",
+          "type": "string",
+          "label_zh": "small",
+          "description": "Small image URL",
+          "nullable": false
+        },
+        {
+          "path": "image.large",
+          "type": "string",
+          "label_zh": "large",
+          "description": "Large image URL",
+          "nullable": false
+        },
+        {
+          "path": "tokens",
+          "type": "array",
+          "label_zh": "代币版本",
+          "description": "Tokens issued by this issuer",
+          "nullable": false
+        },
+        {
+          "path": "tokens[]",
+          "type": "object",
+          "label_zh": "代币版本",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Token ID",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].symbol",
+          "type": "string",
+          "label_zh": "代码",
+          "description": "Token symbol",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Token name",
+          "nullable": false
+        },
+        {
+          "path": "tokens[].platforms",
+          "type": "object",
+          "label_zh": "网络与合约",
+          "description": "Token asset platform and contract address",
+          "nullable": false
+        },
+        {
+          "path": "updated_at",
+          "type": "string",
+          "label_zh": "updated_at",
+          "description": "Issuer last updated timestamp",
+          "nullable": false
+        }
+      ],
+      "sample_request": {
+        "id": "xstocks-ecosystem"
+      },
+      "notes": "* Find an issuer's API ID via [RWA Issuers List](/reference/rwas-issuers-list).\n* Each `tokens.id` is also a coin ID. Use it with [Coin Data by ID](/reference/coins-id) to query the individual token.\n\n<Note>\n  `market_cap`, `market_cap_change_24h`, and `volume_24h` are aggregated across the tokens issued by this issuer. All values are in USD.\n</Note>\n\n<CacheInfo rate=\"60 seconds\" />",
+      "position": [
+        460,
+        550
+      ],
+      "purpose_zh": "核对发行商及其发行资产，不能将其全部产品自动纳入股票池。",
+      "purpose_en": "Inspect issuer assets without admitting every issuer product into the stock universe."
+    },
+    {
+      "key": "token_markets",
+      "name": "coingecko.stocks.token_markets",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币行情",
+      "label_en": "Stocks · Individual stock token markets",
+      "group_zh": "当前行情",
+      "endpoint": "/coins/markets",
+      "documentation_url": "https://docs.coingecko.com/reference/coins-markets",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "b40dc03c083662e38de0030f0bea7b355f44b76ef3a6c961c7e4b6d217f3f1be",
+      "inputs": [
+        {
+          "name": "vs_currency",
+          "location": "query",
+          "required": true,
+          "description": "Target currency of coins and market data. \n*refers to [`/simple/supported_vs_currencies`](/reference/simple-supported-currencies)",
+          "schema": {
+            "type": "string",
+            "default": "usd"
+          }
+        },
+        {
+          "name": "ids",
+          "location": "query",
+          "required": false,
+          "description": "Coins' IDs, comma-separated if querying more than 1 coin. \n*refers to [`/coins/list`](/reference/coins-list)",
+          "schema": {
+            "type": "string",
+            "default": "bitcoin"
+          }
+        },
+        {
+          "name": "names",
+          "location": "query",
+          "required": false,
+          "description": "Coins' names, comma-separated if querying more than 1 coin.",
+          "schema": {
+            "type": "string",
+            "default": "Bitcoin"
+          }
+        },
+        {
+          "name": "symbols",
+          "location": "query",
+          "required": false,
+          "description": "Coins' symbols, comma-separated if querying more than 1 coin.",
+          "schema": {
+            "type": "string",
+            "default": "btc"
+          }
+        },
+        {
+          "name": "include_tokens",
+          "location": "query",
+          "required": false,
+          "description": "For `symbols` lookups, specify `all` to include all matching tokens. \nDefault `top` returns top-ranked tokens by market cap or volume.",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "top",
+              "all"
+            ]
+          }
+        },
+        {
+          "name": "category",
+          "location": "query",
+          "required": false,
+          "description": "Filter based on coins' category. \n*refers to [`/coins/categories/list`](/reference/coins-categories-list)",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "order",
+          "location": "query",
+          "required": false,
+          "description": "Sort result by field. \nDefault: market_cap_desc",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "market_cap_asc",
+              "market_cap_desc",
+              "volume_asc",
+              "volume_desc",
+              "id_asc",
+              "id_desc"
+            ]
+          }
+        },
+        {
+          "name": "per_page",
+          "location": "query",
+          "required": false,
+          "description": "Total results per page. \nDefault: 100 \nValid values: 1...250",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "page",
+          "location": "query",
+          "required": false,
+          "description": "Page through results. \nDefault: 1",
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "sparkline",
+          "location": "query",
+          "required": false,
+          "description": "Include sparkline 7-day data. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "price_change_percentage",
+          "location": "query",
+          "required": false,
+          "description": "Include price change percentage timeframe, comma-separated if querying more than 1 timeframe. \nValid values: `1h`, `24h`, `7d`, `14d`, `30d`, `200d`, `1y`",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "locale",
+          "location": "query",
+          "required": false,
+          "description": "Language background. \nDefault: en",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "bg",
+              "cs",
+              "da",
+              "de",
+              "el",
+              "en",
+              "es",
+              "fi",
+              "fr",
+              "he",
+              "hi",
+              "hr",
+              "hu",
+              "id",
+              "it",
+              "ja",
+              "ko",
+              "lt",
+              "nl",
+              "no",
+              "pl",
+              "pt",
+              "ro",
+              "ru",
+              "sk",
+              "sl",
+              "sv",
+              "th",
+              "tr",
+              "uk",
+              "vi",
+              "zh",
+              "zh-tw"
+            ]
+          }
+        },
+        {
+          "name": "precision",
+          "location": "query",
+          "required": false,
+          "description": "Decimal places for currency price value",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "full",
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18"
+            ]
+          }
+        },
+        {
+          "name": "include_rehypothecated",
+          "location": "query",
+          "required": false,
+          "description": "Include rehypothecated tokens in results. When true, returns `market_cap_rank_with_rehypothecated` field. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "[]",
+          "type": "object",
+          "label_zh": "[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "[].id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Coin ID",
+          "nullable": false
+        },
+        {
+          "path": "[].symbol",
+          "type": "string",
+          "label_zh": "代码",
+          "description": "Coin symbol",
+          "nullable": false
+        },
+        {
+          "path": "[].name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Coin name",
+          "nullable": false
+        },
+        {
+          "path": "[].image",
+          "type": "string",
+          "label_zh": "图像",
+          "description": "Coin image URL",
+          "nullable": false
+        },
+        {
+          "path": "[].current_price",
+          "type": "number",
+          "label_zh": "当前价格",
+          "description": "Current price in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].market_cap",
+          "type": "number",
+          "label_zh": "代币市值",
+          "description": "Market cap in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].market_cap_rank",
+          "type": "integer",
+          "label_zh": "market_cap_rank",
+          "description": "Market cap rank",
+          "nullable": true
+        },
+        {
+          "path": "[].fully_diluted_valuation",
+          "type": "number",
+          "label_zh": "fully_diluted_valuation",
+          "description": "Fully diluted valuation in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].total_volume",
+          "type": "number",
+          "label_zh": "滚动成交额",
+          "description": "Total trading volume in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].high_24h",
+          "type": "number",
+          "label_zh": "high_24h",
+          "description": "24-hour price high in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].low_24h",
+          "type": "number",
+          "label_zh": "low_24h",
+          "description": "24-hour price low in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_24h",
+          "type": "number",
+          "label_zh": "price_change_24h",
+          "description": "24-hour price change in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_percentage_24h",
+          "type": "number",
+          "label_zh": "24小时涨跌幅",
+          "description": "24-hour price change percentage",
+          "nullable": true
+        },
+        {
+          "path": "[].market_cap_change_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_24h",
+          "description": "24-hour market cap change in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].market_cap_change_percentage_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_percentage_24h",
+          "description": "24-hour market cap change percentage",
+          "nullable": true
+        },
+        {
+          "path": "[].circulating_supply",
+          "type": "number",
+          "label_zh": "circulating_supply",
+          "description": "Circulating supply",
+          "nullable": true
+        },
+        {
+          "path": "[].total_supply",
+          "type": "number",
+          "label_zh": "total_supply",
+          "description": "Total supply",
+          "nullable": true
+        },
+        {
+          "path": "[].max_supply",
+          "type": "number",
+          "label_zh": "max_supply",
+          "description": "Max supply",
+          "nullable": true
+        },
+        {
+          "path": "[].ath",
+          "type": "number",
+          "label_zh": "ath",
+          "description": "All-time high price in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].ath_change_percentage",
+          "type": "number",
+          "label_zh": "ath_change_percentage",
+          "description": "All-time high change percentage",
+          "nullable": true
+        },
+        {
+          "path": "[].ath_date",
+          "type": "string",
+          "label_zh": "ath_date",
+          "description": "All-time high date",
+          "nullable": true
+        },
+        {
+          "path": "[].atl",
+          "type": "number",
+          "label_zh": "atl",
+          "description": "All-time low price in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].atl_change_percentage",
+          "type": "number",
+          "label_zh": "atl_change_percentage",
+          "description": "All-time low change percentage",
+          "nullable": true
+        },
+        {
+          "path": "[].atl_date",
+          "type": "string",
+          "label_zh": "atl_date",
+          "description": "All-time low date",
+          "nullable": true
+        },
+        {
+          "path": "[].roi",
+          "type": "object",
+          "label_zh": "roi",
+          "description": "Return on investment data",
+          "nullable": true
+        },
+        {
+          "path": "[].roi.times",
+          "type": "number",
+          "label_zh": "times",
+          "description": "ROI multiplier",
+          "nullable": false
+        },
+        {
+          "path": "[].roi.currency",
+          "type": "string",
+          "label_zh": "currency",
+          "description": "ROI currency",
+          "nullable": false
+        },
+        {
+          "path": "[].roi.percentage",
+          "type": "number",
+          "label_zh": "percentage",
+          "description": "ROI percentage",
+          "nullable": false
+        },
+        {
+          "path": "[].last_updated",
+          "type": "string",
+          "label_zh": "上游更新时间",
+          "description": "Last updated timestamp",
+          "nullable": false
+        },
+        {
+          "path": "[].market_cap_rank_with_rehypothecated",
+          "type": "integer",
+          "label_zh": "market_cap_rank_with_rehypothecated",
+          "description": "Market cap rank including rehypothecated tokens",
+          "nullable": true
+        },
+        {
+          "path": "[].sparkline_in_7d",
+          "type": "object",
+          "label_zh": "sparkline_in_7d",
+          "description": "Sparkline price data for the last 7 days",
+          "nullable": false
+        },
+        {
+          "path": "[].sparkline_in_7d.price",
+          "type": "array",
+          "label_zh": "price",
+          "description": "Array of price values",
+          "nullable": false
+        },
+        {
+          "path": "[].price_change_percentage_1h_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_1h_in_currency",
+          "description": "1-hour price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_percentage_24h_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_24h_in_currency",
+          "description": "24-hour price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_percentage_7d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_7d_in_currency",
+          "description": "7-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_percentage_14d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_14d_in_currency",
+          "description": "14-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_percentage_30d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_30d_in_currency",
+          "description": "30-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_percentage_200d_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_200d_in_currency",
+          "description": "200-day price change percentage in target currency",
+          "nullable": true
+        },
+        {
+          "path": "[].price_change_percentage_1y_in_currency",
+          "type": "number",
+          "label_zh": "price_change_percentage_1y_in_currency",
+          "description": "1-year price change percentage in target currency",
+          "nullable": true
+        }
+      ],
+      "sample_request": {
+        "vs_currency": "usd",
+        "category": "tokenized-stock",
+        "per_page": 2,
+        "page": 1
+      },
+      "notes": "* Filter by `ids`, `names`, `symbols`, or `category`. When multiple are provided, priority is: `category` > `ids` > `names` > `symbols`.\n* URL-encode spaces in `names` (e.g. `Binance%20Coin`).\n* `include_tokens=all` only works with `symbols` lookups, limited to 50 symbols per request.\n* Maximum of **250** IDs per request. Wildcard searches are not supported.\n* Use `per_page` and `page` to paginate results.\n\n<Tip>\n  Filter by category using the `category` param — refer to [Coins Categories List](/reference/coins-categories-list) for available values.\n</Tip>\n\n<CacheInfo paidRate=\"30 seconds\" publicRate=\"60 seconds\" />",
+      "position": [
+        920,
+        550
+      ],
+      "purpose_zh": "按 tokenized-stock 全分页发现；保留小市值与缺行情条目，并记录质量。",
+      "purpose_en": "Discover every tokenized-stock page, retaining small-cap and missing-data members with quality flags."
+    },
+    {
+      "key": "token_detail",
+      "name": "coingecko.stocks.token_detail",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币资料与合约",
+      "label_en": "Stocks · Stock token metadata and contracts",
+      "group_zh": "身份映射",
+      "endpoint": "/coins/{id}",
+      "documentation_url": "https://docs.coingecko.com/reference/coins-id",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "7a0d4e4acf1bcc2a87042de3bc78e25ae2ed8bdb2e89e73696177b6fd69df877",
+      "inputs": [
+        {
+          "name": "id",
+          "location": "path",
+          "required": true,
+          "description": "Coin ID. \n*refers to [`/coins/list`](/reference/coins-list)",
+          "schema": {
+            "type": "string",
+            "example": "bitcoin",
+            "default": "bitcoin"
+          }
+        },
+        {
+          "name": "localization",
+          "location": "query",
+          "required": false,
+          "description": "Include all localized languages in the response. \nDefault: true",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "tickers",
+          "location": "query",
+          "required": false,
+          "description": "Include tickers data. \nDefault: true",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "market_data",
+          "location": "query",
+          "required": false,
+          "description": "Include market data. \nDefault: true",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "community_data",
+          "location": "query",
+          "required": false,
+          "description": "Include community data. \nDeprecated: has no effect as of 28 August 2026; the `community_data` object is no longer returned.",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "developer_data",
+          "location": "query",
+          "required": false,
+          "description": "Include developer data. \nDeprecated: has no effect as of 28 August 2026; the `developer_data` object is no longer returned.",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "sparkline",
+          "location": "query",
+          "required": false,
+          "description": "Include sparkline 7-day data. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "include_categories_details",
+          "location": "query",
+          "required": false,
+          "description": "Include categories details. \nDefault: false",
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "dex_pair_format",
+          "location": "query",
+          "required": false,
+          "description": "Set to `symbol` to display DEX pair base and target as symbols. \nDefault: `contract_address`",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "contract_address",
+              "symbol"
+            ]
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Coin ID",
+          "nullable": false
+        },
+        {
+          "path": "symbol",
+          "type": "string",
+          "label_zh": "代码",
+          "description": "Coin symbol",
+          "nullable": false
+        },
+        {
+          "path": "name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Coin name",
+          "nullable": false
+        },
+        {
+          "path": "web_slug",
+          "type": "string",
+          "label_zh": "web_slug",
+          "description": "Coin web slug",
+          "nullable": false
+        },
+        {
+          "path": "asset_platform_id",
+          "type": "string",
+          "label_zh": "asset_platform_id",
+          "description": "Coin asset platform ID",
+          "nullable": true
+        },
+        {
+          "path": "platforms",
+          "type": "object",
+          "label_zh": "网络与合约",
+          "description": "Coin asset platform and contract address",
+          "nullable": false
+        },
+        {
+          "path": "detail_platforms",
+          "type": "object",
+          "label_zh": "detail_platforms",
+          "description": "Detailed coin asset platform and contract address",
+          "nullable": false
+        },
+        {
+          "path": "block_time_in_minutes",
+          "type": "number",
+          "label_zh": "block_time_in_minutes",
+          "description": "Blockchain block time in minutes",
+          "nullable": false
+        },
+        {
+          "path": "hashing_algorithm",
+          "type": "string",
+          "label_zh": "hashing_algorithm",
+          "description": "Blockchain hashing algorithm",
+          "nullable": true
+        },
+        {
+          "path": "categories",
+          "type": "array",
+          "label_zh": "分类标签",
+          "description": "Coin categories",
+          "nullable": false
+        },
+        {
+          "path": "categories_details",
+          "type": "array",
+          "label_zh": "categories_details",
+          "description": "Detailed coin categories",
+          "nullable": false
+        },
+        {
+          "path": "categories_details[]",
+          "type": "object",
+          "label_zh": "categories_details[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "categories_details[].id",
+          "type": "string",
+          "label_zh": "标识",
+          "description": "Category ID",
+          "nullable": false
+        },
+        {
+          "path": "categories_details[].name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Category name",
+          "nullable": false
+        },
+        {
+          "path": "preview_listing",
+          "type": "boolean",
+          "label_zh": "preview_listing",
+          "description": "Preview listing coin",
+          "nullable": false
+        },
+        {
+          "path": "public_notice",
+          "type": "string",
+          "label_zh": "public_notice",
+          "description": "Public notice",
+          "nullable": true
+        },
+        {
+          "path": "additional_notices",
+          "type": "array",
+          "label_zh": "additional_notices",
+          "description": "Additional notices",
+          "nullable": false
+        },
+        {
+          "path": "has_supply_breakdown",
+          "type": "boolean",
+          "label_zh": "has_supply_breakdown",
+          "description": "Whether detailed supply breakdown data is available via /coins/supply_breakdown",
+          "nullable": false
+        },
+        {
+          "path": "localization",
+          "type": "object",
+          "label_zh": "localization",
+          "description": "Coin name localization",
+          "nullable": false
+        },
+        {
+          "path": "description",
+          "type": "object",
+          "label_zh": "description",
+          "description": "Coin description",
+          "nullable": false
+        },
+        {
+          "path": "links",
+          "type": "object",
+          "label_zh": "links",
+          "description": "Links",
+          "nullable": false
+        },
+        {
+          "path": "links.homepage",
+          "type": "array",
+          "label_zh": "homepage",
+          "description": "Website URL",
+          "nullable": false
+        },
+        {
+          "path": "links.whitepaper",
+          "type": "string",
+          "label_zh": "whitepaper",
+          "description": "Whitepaper URL",
+          "nullable": false
+        },
+        {
+          "path": "links.blockchain_site",
+          "type": "array",
+          "label_zh": "blockchain_site",
+          "description": "Block explorer URL",
+          "nullable": false
+        },
+        {
+          "path": "links.official_forum_url",
+          "type": "array",
+          "label_zh": "official_forum_url",
+          "description": "Official forum URL",
+          "nullable": false
+        },
+        {
+          "path": "links.chat_url",
+          "type": "array",
+          "label_zh": "chat_url",
+          "description": "Chat URL",
+          "nullable": false
+        },
+        {
+          "path": "links.announcement_url",
+          "type": "array",
+          "label_zh": "announcement_url",
+          "description": "Announcement URL",
+          "nullable": false
+        },
+        {
+          "path": "links.snapshot_url",
+          "type": "string",
+          "label_zh": "snapshot_url",
+          "description": "Snapshot URL",
+          "nullable": true
+        },
+        {
+          "path": "links.twitter_screen_name",
+          "type": "string",
+          "label_zh": "twitter_screen_name",
+          "description": "Twitter handle",
+          "nullable": false
+        },
+        {
+          "path": "links.facebook_username",
+          "type": "string",
+          "label_zh": "facebook_username",
+          "description": "Facebook username",
+          "nullable": false
+        },
+        {
+          "path": "links.bitcointalk_thread_identifier",
+          "type": "integer",
+          "label_zh": "bitcointalk_thread_identifier",
+          "description": "Bitcointalk thread identifier",
+          "nullable": true
+        },
+        {
+          "path": "links.telegram_channel_identifier",
+          "type": "string",
+          "label_zh": "telegram_channel_identifier",
+          "description": "Telegram channel identifier",
+          "nullable": false
+        },
+        {
+          "path": "links.subreddit_url",
+          "type": "string",
+          "label_zh": "subreddit_url",
+          "description": "Subreddit URL",
+          "nullable": false
+        },
+        {
+          "path": "links.repos_url",
+          "type": "object",
+          "label_zh": "repos_url",
+          "description": "Repository URL",
+          "nullable": false
+        },
+        {
+          "path": "links.repos_url.github",
+          "type": "array",
+          "label_zh": "github",
+          "description": "GitHub repository URL",
+          "nullable": false
+        },
+        {
+          "path": "links.repos_url.bitbucket",
+          "type": "array",
+          "label_zh": "bitbucket",
+          "description": "Bitbucket repository URL",
+          "nullable": false
+        },
+        {
+          "path": "image",
+          "type": "object",
+          "label_zh": "图像",
+          "description": "Coin image URL",
+          "nullable": false
+        },
+        {
+          "path": "image.thumb",
+          "type": "string",
+          "label_zh": "thumb",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "image.small",
+          "type": "string",
+          "label_zh": "small",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "image.large",
+          "type": "string",
+          "label_zh": "large",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "country_origin",
+          "type": "string",
+          "label_zh": "country_origin",
+          "description": "Country of origin",
+          "nullable": false
+        },
+        {
+          "path": "genesis_date",
+          "type": "string",
+          "label_zh": "genesis_date",
+          "description": "Genesis date",
+          "nullable": true
+        },
+        {
+          "path": "sentiment_votes_up_percentage",
+          "type": "number",
+          "label_zh": "sentiment_votes_up_percentage",
+          "description": "Sentiment votes up percentage",
+          "nullable": true
+        },
+        {
+          "path": "sentiment_votes_down_percentage",
+          "type": "number",
+          "label_zh": "sentiment_votes_down_percentage",
+          "description": "Sentiment votes down percentage",
+          "nullable": true
+        },
+        {
+          "path": "ico_data",
+          "type": "object",
+          "label_zh": "ico_data",
+          "description": "ICO data",
+          "nullable": true
+        },
+        {
+          "path": "ico_data.ico_start_date",
+          "type": "string",
+          "label_zh": "ico_start_date",
+          "description": "ICO start date",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.ico_end_date",
+          "type": "string",
+          "label_zh": "ico_end_date",
+          "description": "ICO end date",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.short_desc",
+          "type": "string",
+          "label_zh": "short_desc",
+          "description": "Short description",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.description",
+          "type": "string",
+          "label_zh": "description",
+          "description": "Detailed description",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.links",
+          "type": "object",
+          "label_zh": "links",
+          "description": "ICO related links",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.softcap_currency",
+          "type": "string",
+          "label_zh": "softcap_currency",
+          "description": "Softcap currency",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.hardcap_currency",
+          "type": "string",
+          "label_zh": "hardcap_currency",
+          "description": "Hardcap currency",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.total_raised_currency",
+          "type": "string",
+          "label_zh": "total_raised_currency",
+          "description": "Total raised currency",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.softcap_amount",
+          "type": "number",
+          "label_zh": "softcap_amount",
+          "description": "Softcap amount",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.hardcap_amount",
+          "type": "number",
+          "label_zh": "hardcap_amount",
+          "description": "Hardcap amount",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.total_raised",
+          "type": "number",
+          "label_zh": "total_raised",
+          "description": "Total raised amount",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.quote_pre_sale_currency",
+          "type": "string",
+          "label_zh": "quote_pre_sale_currency",
+          "description": "Quote pre-sale currency",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.base_pre_sale_amount",
+          "type": "number",
+          "label_zh": "base_pre_sale_amount",
+          "description": "Base pre-sale amount",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.quote_pre_sale_amount",
+          "type": "number",
+          "label_zh": "quote_pre_sale_amount",
+          "description": "Quote pre-sale amount",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.quote_public_sale_currency",
+          "type": "string",
+          "label_zh": "quote_public_sale_currency",
+          "description": "Quote public sale currency",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.base_public_sale_amount",
+          "type": "number",
+          "label_zh": "base_public_sale_amount",
+          "description": "Base public sale amount",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.quote_public_sale_amount",
+          "type": "number",
+          "label_zh": "quote_public_sale_amount",
+          "description": "Quote public sale amount",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.accepting_currencies",
+          "type": "string",
+          "label_zh": "accepting_currencies",
+          "description": "Accepting currencies",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.country_origin",
+          "type": "string",
+          "label_zh": "country_origin",
+          "description": "Country of origin",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.pre_sale_start_date",
+          "type": "string",
+          "label_zh": "pre_sale_start_date",
+          "description": "Pre-sale start date",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.pre_sale_end_date",
+          "type": "string",
+          "label_zh": "pre_sale_end_date",
+          "description": "Pre-sale end date",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.whitelist_url",
+          "type": "string",
+          "label_zh": "whitelist_url",
+          "description": "Whitelist URL",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.whitelist_start_date",
+          "type": "string",
+          "label_zh": "whitelist_start_date",
+          "description": "Whitelist start date",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.whitelist_end_date",
+          "type": "string",
+          "label_zh": "whitelist_end_date",
+          "description": "Whitelist end date",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.bounty_detail_url",
+          "type": "string",
+          "label_zh": "bounty_detail_url",
+          "description": "Bounty detail URL",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.amount_for_sale",
+          "type": "number",
+          "label_zh": "amount_for_sale",
+          "description": "Amount for sale",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.kyc_required",
+          "type": "boolean",
+          "label_zh": "kyc_required",
+          "description": "KYC required",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.whitelist_available",
+          "type": "boolean",
+          "label_zh": "whitelist_available",
+          "description": "Whitelist available",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.pre_sale_available",
+          "type": "boolean",
+          "label_zh": "pre_sale_available",
+          "description": "Pre-sale available",
+          "nullable": false
+        },
+        {
+          "path": "ico_data.pre_sale_ended",
+          "type": "boolean",
+          "label_zh": "pre_sale_ended",
+          "description": "Pre-sale ended",
+          "nullable": false
+        },
+        {
+          "path": "watchlist_portfolio_users",
+          "type": "number",
+          "label_zh": "watchlist_portfolio_users",
+          "description": "Number of users watching this coin in portfolio",
+          "nullable": false
+        },
+        {
+          "path": "market_cap_rank",
+          "type": "integer",
+          "label_zh": "market_cap_rank",
+          "description": "Market cap rank",
+          "nullable": true
+        },
+        {
+          "path": "market_cap_rank_with_rehypothecated",
+          "type": "integer",
+          "label_zh": "market_cap_rank_with_rehypothecated",
+          "description": "Market cap rank including rehypothecated tokens",
+          "nullable": true
+        },
+        {
+          "path": "market_data",
+          "type": "object",
+          "label_zh": "market_data",
+          "description": "Market data",
+          "nullable": false
+        },
+        {
+          "path": "market_data.current_price",
+          "type": "object",
+          "label_zh": "当前价格",
+          "description": "Current price in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.total_value_locked",
+          "type": "number",
+          "label_zh": "total_value_locked",
+          "description": "Total value locked",
+          "nullable": true
+        },
+        {
+          "path": "market_data.mcap_to_tvl_ratio",
+          "type": "number",
+          "label_zh": "mcap_to_tvl_ratio",
+          "description": "Market cap to TVL ratio",
+          "nullable": true
+        },
+        {
+          "path": "market_data.fdv_to_tvl_ratio",
+          "type": "number",
+          "label_zh": "fdv_to_tvl_ratio",
+          "description": "FDV to TVL ratio",
+          "nullable": true
+        },
+        {
+          "path": "market_data.roi",
+          "type": "object",
+          "label_zh": "roi",
+          "description": "Return on investment",
+          "nullable": true
+        },
+        {
+          "path": "market_data.roi.times",
+          "type": "number",
+          "label_zh": "times",
+          "description": "ROI multiplier",
+          "nullable": false
+        },
+        {
+          "path": "market_data.roi.currency",
+          "type": "string",
+          "label_zh": "currency",
+          "description": "ROI currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.roi.percentage",
+          "type": "number",
+          "label_zh": "percentage",
+          "description": "ROI percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.ath",
+          "type": "object",
+          "label_zh": "ath",
+          "description": "All-time high in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.ath_change_percentage",
+          "type": "object",
+          "label_zh": "ath_change_percentage",
+          "description": "All-time high change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.ath_date",
+          "type": "object",
+          "label_zh": "ath_date",
+          "description": "All-time high date",
+          "nullable": false
+        },
+        {
+          "path": "market_data.atl",
+          "type": "object",
+          "label_zh": "atl",
+          "description": "All-time low in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.atl_change_percentage",
+          "type": "object",
+          "label_zh": "atl_change_percentage",
+          "description": "All-time low change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.atl_date",
+          "type": "object",
+          "label_zh": "atl_date",
+          "description": "All-time low date",
+          "nullable": false
+        },
+        {
+          "path": "market_data.market_cap",
+          "type": "object",
+          "label_zh": "代币市值",
+          "description": "Market cap in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.fully_diluted_valuation",
+          "type": "object",
+          "label_zh": "fully_diluted_valuation",
+          "description": "Fully diluted valuation in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.market_cap_fdv_ratio",
+          "type": "number",
+          "label_zh": "market_cap_fdv_ratio",
+          "description": "Market cap to FDV ratio",
+          "nullable": false
+        },
+        {
+          "path": "market_data.market_cap_rank",
+          "type": "integer",
+          "label_zh": "market_cap_rank",
+          "description": "Market cap rank",
+          "nullable": true
+        },
+        {
+          "path": "market_data.outstanding_token_value_usd",
+          "type": "number",
+          "label_zh": "outstanding_token_value_usd",
+          "description": "Outstanding token value in USD",
+          "nullable": true
+        },
+        {
+          "path": "market_data.market_cap_rank_with_rehypothecated",
+          "type": "integer",
+          "label_zh": "market_cap_rank_with_rehypothecated",
+          "description": "Market cap rank including rehypothecated tokens",
+          "nullable": true
+        },
+        {
+          "path": "market_data.total_volume",
+          "type": "object",
+          "label_zh": "滚动成交额",
+          "description": "Total trading volume in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.high_24h",
+          "type": "object",
+          "label_zh": "high_24h",
+          "description": "24h price high in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.low_24h",
+          "type": "object",
+          "label_zh": "low_24h",
+          "description": "24h price low in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_24h",
+          "type": "number",
+          "label_zh": "price_change_24h",
+          "description": "24h price change in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_24h",
+          "type": "number",
+          "label_zh": "24小时涨跌幅",
+          "description": "24h price change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_7d",
+          "type": "number",
+          "label_zh": "price_change_percentage_7d",
+          "description": "7d price change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_14d",
+          "type": "number",
+          "label_zh": "price_change_percentage_14d",
+          "description": "14d price change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_30d",
+          "type": "number",
+          "label_zh": "price_change_percentage_30d",
+          "description": "30d price change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_60d",
+          "type": "number",
+          "label_zh": "price_change_percentage_60d",
+          "description": "60d price change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_200d",
+          "type": "number",
+          "label_zh": "price_change_percentage_200d",
+          "description": "200d price change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_1y",
+          "type": "number",
+          "label_zh": "price_change_percentage_1y",
+          "description": "1y price change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.market_cap_change_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_24h",
+          "description": "24h market cap change in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.market_cap_change_percentage_24h",
+          "type": "number",
+          "label_zh": "market_cap_change_percentage_24h",
+          "description": "24h market cap change percentage",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_24h_in_currency",
+          "type": "object",
+          "label_zh": "price_change_24h_in_currency",
+          "description": "24h price change in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_1h_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_1h_in_currency",
+          "description": "1h price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_24h_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_24h_in_currency",
+          "description": "24h price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_7d_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_7d_in_currency",
+          "description": "7d price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_14d_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_14d_in_currency",
+          "description": "14d price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_30d_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_30d_in_currency",
+          "description": "30d price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_60d_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_60d_in_currency",
+          "description": "60d price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_200d_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_200d_in_currency",
+          "description": "200d price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.price_change_percentage_1y_in_currency",
+          "type": "object",
+          "label_zh": "price_change_percentage_1y_in_currency",
+          "description": "1y price change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.market_cap_change_24h_in_currency",
+          "type": "object",
+          "label_zh": "market_cap_change_24h_in_currency",
+          "description": "24h market cap change in target currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.market_cap_change_percentage_24h_in_currency",
+          "type": "object",
+          "label_zh": "market_cap_change_percentage_24h_in_currency",
+          "description": "24h market cap change percentage per currency",
+          "nullable": false
+        },
+        {
+          "path": "market_data.total_supply",
+          "type": "number",
+          "label_zh": "total_supply",
+          "description": "Total supply",
+          "nullable": false
+        },
+        {
+          "path": "market_data.max_supply",
+          "type": "number",
+          "label_zh": "max_supply",
+          "description": "Max supply",
+          "nullable": true
+        },
+        {
+          "path": "market_data.max_supply_infinite",
+          "type": "boolean",
+          "label_zh": "max_supply_infinite",
+          "description": "Max supply infinite",
+          "nullable": false
+        },
+        {
+          "path": "market_data.circulating_supply",
+          "type": "number",
+          "label_zh": "circulating_supply",
+          "description": "Circulating supply",
+          "nullable": false
+        },
+        {
+          "path": "market_data.outstanding_supply",
+          "type": "number",
+          "label_zh": "outstanding_supply",
+          "description": "Tokens outstanding in the market",
+          "nullable": true
+        },
+        {
+          "path": "market_data.last_updated",
+          "type": "string",
+          "label_zh": "上游更新时间",
+          "description": "Market data last updated timestamp",
+          "nullable": false
+        },
+        {
+          "path": "market_data.sparkline_7d",
+          "type": "array",
+          "label_zh": "sparkline_7d",
+          "description": "Sparkline 7-day price data",
+          "nullable": false
+        },
+        {
+          "path": "status_updates",
+          "type": "array",
+          "label_zh": "status_updates",
+          "description": "Status updates",
+          "nullable": false
+        },
+        {
+          "path": "status_updates[]",
+          "type": "object",
+          "label_zh": "status_updates[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "status_updates[].description",
+          "type": "string",
+          "label_zh": "description",
+          "description": "Status update description",
+          "nullable": false
+        },
+        {
+          "path": "status_updates[].category",
+          "type": "string",
+          "label_zh": "category",
+          "description": "Status update category",
+          "nullable": false
+        },
+        {
+          "path": "status_updates[].created_at",
+          "type": "string",
+          "label_zh": "created_at",
+          "description": "Status update creation time",
+          "nullable": false
+        },
+        {
+          "path": "status_updates[].user",
+          "type": "string",
+          "label_zh": "user",
+          "description": "Status update user",
+          "nullable": false
+        },
+        {
+          "path": "status_updates[].user_title",
+          "type": "string",
+          "label_zh": "user_title",
+          "description": "Status update user title",
+          "nullable": false
+        },
+        {
+          "path": "last_updated",
+          "type": "string",
+          "label_zh": "上游更新时间",
+          "description": "Last updated timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tickers",
+          "type": "array",
+          "label_zh": "tickers",
+          "description": "Tickers",
+          "nullable": false
+        },
+        {
+          "path": "tickers[]",
+          "type": "object",
+          "label_zh": "tickers[]",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].base",
+          "type": "string",
+          "label_zh": "基础资产",
+          "description": "Ticker base currency",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].target",
+          "type": "string",
+          "label_zh": "计价资产",
+          "description": "Ticker target currency",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market",
+          "type": "object",
+          "label_zh": "交易场所",
+          "description": "Ticker exchange",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market.name",
+          "type": "string",
+          "label_zh": "名称",
+          "description": "Exchange name",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market.identifier",
+          "type": "string",
+          "label_zh": "identifier",
+          "description": "Exchange identifier",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].market.has_trading_incentive",
+          "type": "boolean",
+          "label_zh": "has_trading_incentive",
+          "description": "Exchange trading incentive",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].last",
+          "type": "number",
+          "label_zh": "最新成交价",
+          "description": "Ticker last price",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].volume",
+          "type": "number",
+          "label_zh": "成交量",
+          "description": "Ticker volume",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last",
+          "type": "object",
+          "label_zh": "converted_last",
+          "description": "Ticker converted last price",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last.btc",
+          "type": "number",
+          "label_zh": "btc",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last.eth",
+          "type": "number",
+          "label_zh": "eth",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_last.usd",
+          "type": "number",
+          "label_zh": "usd",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume",
+          "type": "object",
+          "label_zh": "converted_volume",
+          "description": "Ticker converted volume",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume.btc",
+          "type": "number",
+          "label_zh": "btc",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume.eth",
+          "type": "number",
+          "label_zh": "eth",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].converted_volume.usd",
+          "type": "number",
+          "label_zh": "usd",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].trust_score",
+          "type": "string",
+          "label_zh": "可信度标签",
+          "description": "Ticker trust score",
+          "nullable": true
+        },
+        {
+          "path": "tickers[].bid_ask_spread_percentage",
+          "type": "number",
+          "label_zh": "bid_ask_spread_percentage",
+          "description": "Ticker bid-ask spread percentage",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].timestamp",
+          "type": "string",
+          "label_zh": "时间戳",
+          "description": "Ticker timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].last_traded_at",
+          "type": "string",
+          "label_zh": "last_traded_at",
+          "description": "Ticker last traded timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].last_fetch_at",
+          "type": "string",
+          "label_zh": "last_fetch_at",
+          "description": "Ticker last fetch timestamp",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].is_anomaly",
+          "type": "boolean",
+          "label_zh": "是否异常",
+          "description": "Ticker anomaly",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].is_stale",
+          "type": "boolean",
+          "label_zh": "是否过期",
+          "description": "Ticker stale",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].trade_url",
+          "type": "string",
+          "label_zh": "交易页面",
+          "description": "Ticker trade URL",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].token_info_url",
+          "type": "string",
+          "label_zh": "token_info_url",
+          "description": "Ticker token info URL",
+          "nullable": true
+        },
+        {
+          "path": "tickers[].coin_id",
+          "type": "string",
+          "label_zh": "coin_id",
+          "description": "Ticker base currency coin ID",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].target_coin_id",
+          "type": "string",
+          "label_zh": "target_coin_id",
+          "description": "Ticker target currency coin ID",
+          "nullable": false
+        },
+        {
+          "path": "tickers[].coin_mcap_usd",
+          "type": "number",
+          "label_zh": "coin_mcap_usd",
+          "description": "Market cap in USD",
+          "nullable": false
+        }
+      ],
+      "sample_request": {
+        "id": "strategy-pp-variable-xstock",
+        "localization": false,
+        "tickers": false,
+        "market_data": false,
+        "community_data": false,
+        "developer_data": false
+      },
+      "notes": "* Find a coin's API ID on its [CoinGecko](https://www.coingecko.com) page, via [Coins List](/reference/coins-list), or this [Google Sheet](https://docs.google.com/spreadsheets/d/1wTTuxXt8n9q7C4NDXqQpI3wpKu1_5bGVmP9Xz0XGSyU/edit?usp=sharing).\n* Tickers are limited to 100 items. Use [Coin Tickers](/reference/coins-id-tickers) for more.\n* Coin descriptions may contain `\\r\\n` escape sequences that require processing for proper formatting.\n* When `dex_pair_format=symbol`, DEX pair `base` and `target` display as symbols (e.g. `WETH`, `USDC`) instead of contract addresses.\n* Use `last_updated` in the response to check whether the price is stale.\n\n<Tip>\n  The `has_supply_breakdown` field indicates whether supply breakdown data is available for this coin. When `true`, use [/coins/\\{id}/supply\\_breakdown](/reference/coins-id-supply-breakdown) to get the full breakdown.\n</Tip>\n\n<Note>\n  As of 28 August 2026, the `community_data` and `developer_data` objects are no longer returned. The `community_data` and `developer_data` query params are kept for backward compatibility but have no effect. See the [changelog](/changelog#upcoming-change-notice-removal-of-community_data-and-developer_data) for details.\n</Note>\n\n<CacheInfo rate=\"30 seconds\" />",
+      "position": [
+        1380,
+        550
+      ],
+      "purpose_zh": "核对 categories、发行资料与 platforms 合约，不能仅用 symbol 合并。",
+      "purpose_en": "Inspect categories and network/contracts; never merge by symbol alone."
+    },
+    {
+      "key": "token_history",
+      "name": "coingecko.stocks.token_history",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币历史",
+      "label_en": "Stocks · Individual stock token history",
+      "group_zh": "历史数据",
+      "endpoint": "/coins/{id}/market_chart",
+      "documentation_url": "https://docs.coingecko.com/reference/coins-id-market-chart",
+      "documentation_checked_at": "2026-10-19T16:50:02.291181+00:00",
+      "documentation_sha256": "0e09df963225b4ec0fad3bf98ab868a99a9e87362864ffd3b30a6856106715c0",
+      "inputs": [
+        {
+          "name": "id",
+          "location": "path",
+          "required": true,
+          "description": "Coin ID. \n*refers to [`/coins/list`](/reference/coins-list).",
+          "schema": {
+            "type": "string",
+            "default": "bitcoin"
+          }
+        },
+        {
+          "name": "vs_currency",
+          "location": "query",
+          "required": true,
+          "description": "Target currency of market data. \n*refers to [`/simple/supported_vs_currencies`](/reference/simple-supported-currencies).",
+          "schema": {
+            "type": "string",
+            "default": "usd"
+          }
+        },
+        {
+          "name": "days",
+          "location": "query",
+          "required": true,
+          "description": "Data up to number of days ago. \nYou may use any integer or `max` for number of days.",
+          "schema": {
+            "type": "string",
+            "default": "1"
+          }
+        },
+        {
+          "name": "interval",
+          "location": "query",
+          "required": false,
+          "description": "Data interval, leave empty for auto granularity.",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "1m",
+              "5m",
+              "hourly",
+              "daily"
+            ]
+          }
+        },
+        {
+          "name": "precision",
+          "location": "query",
+          "required": false,
+          "description": "Decimal place for currency price value.",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "full",
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18"
+            ]
+          }
+        }
+      ],
+      "fields": [
+        {
+          "path": "prices",
+          "type": "array",
+          "label_zh": "价格序列",
+          "description": "Price data points as [timestamp, price] pairs",
+          "nullable": false
+        },
+        {
+          "path": "prices[]",
+          "type": "array",
+          "label_zh": "价格序列",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "market_caps",
+          "type": "array",
+          "label_zh": "市值序列",
+          "description": "Market cap data points as [timestamp, market_cap] pairs",
+          "nullable": false
+        },
+        {
+          "path": "market_caps[]",
+          "type": "array",
+          "label_zh": "市值序列",
+          "description": "",
+          "nullable": false
+        },
+        {
+          "path": "total_volumes",
+          "type": "array",
+          "label_zh": "成交额序列",
+          "description": "Total volume data points as [timestamp, volume] pairs",
+          "nullable": false
+        },
+        {
+          "path": "total_volumes[]",
+          "type": "array",
+          "label_zh": "成交额序列",
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "sample_request": {
+        "id": "strategy-pp-variable-xstock",
+        "vs_currency": "usd",
+        "days": 7
+      },
+      "notes": "* Find a coin's API ID on its [CoinGecko](https://www.coingecko.com) page, via [Coins List](/reference/coins-list), or this [Google Sheet](https://docs.google.com/spreadsheets/d/1wTTuxXt8n9q7C4NDXqQpI3wpKu1_5bGVmP9Xz0XGSyU/edit?usp=sharing).\n\n* Auto-granularity when `interval` is not specified:\n\n  | Date range | Granularity |\n  | - | - |\n  | 1 day from current time | **5-minutely** |\n  | 2–90 days | **hourly** |\n  | Above 90 days | **daily** (00:00 UTC) |\n\n* Override with the `interval` parameter:\n\n  | `interval` | Lookback |\n  | - | - |\n  | `daily` | — |\n  | `hourly` | **Past 100 days** |\n  | `5m` | **Past 10 days** (Enterprise only) |\n  | `1m` | **Past 1 day** (Enterprise only, **Beta**) |\n\n* Data availability: `1m` from 1 Jun 2026, `5m` from 9 Feb 2018, `hourly` from 30 Jan 2018.\n\n<Note>\n  The last completed UTC day (00:00) data is available 10 minutes after midnight (00:10 UTC).\n</Note>\n\n<Warning>\n  Historical data on the **Basic plan** is restricted to the past 2 years. Subscribe to [Analyst plan & above](https://www.coingecko.com/en/api/pricing) for the full range.\n</Warning>\n\n<CacheInfo rate=\"30 seconds\" />",
+      "position": [
+        1840,
+        550
+      ],
+      "purpose_zh": "单代币价格、市值、滚动成交额序列；按key可用历史分批请求。",
+      "purpose_en": "Individual-token chart series, fetched by permitted time range."
+    }
+  ],
+  "cards": [
+    {
+      "key": "rwa_list",
+      "name": "coingecko.stocks.rwa_list",
+      "kind": "source",
+      "label_zh": "Stocks · 底层股票目录",
+      "label_en": "Stocks · Underlying stock directory",
+      "purpose_zh": "全量底层目录；一次返回，无分页。",
+      "purpose_en": "Full underlying directory, returned without pagination.",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "key": "rwa_markets",
+      "name": "coingecko.stocks.rwa_markets",
+      "kind": "source",
+      "label_zh": "Stocks · 股票聚合行情",
+      "label_en": "Stocks · Aggregated tokenized stock markets",
+      "purpose_zh": "底层资产聚合视角；按 stock 类型分页采集，不能与单代币行情相加。",
+      "purpose_en": "Paginated stock aggregates; never add them to individual-token markets.",
+      "position": [
+        460,
+        0
+      ]
+    },
+    {
+      "key": "rwa_detail",
+      "name": "coingecko.stocks.rwa_detail",
+      "kind": "source",
+      "label_zh": "Stocks · 股票与代币映射",
+      "label_en": "Stocks · Stock and token mapping",
+      "purpose_zh": "打开 tokens=true 才有股票到各发行商代币的映射；tokenized_market_data=true 返回聚合行情。",
+      "purpose_en": "Enable tokens for issuer-token mapping and tokenized_market_data for aggregate metrics.",
+      "position": [
+        920,
+        0
+      ]
+    },
+    {
+      "key": "rwa_tickers",
+      "name": "coingecko.stocks.rwa_tickers",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币交易场所",
+      "label_en": "Stocks · Tokenized stock venues",
+      "purpose_zh": "比较各代币交易场所与新鲜度；不是美股交易所成交明细。",
+      "purpose_en": "Inspect token trading venues and freshness, not US stock exchange executions.",
+      "position": [
+        1380,
+        0
+      ]
+    },
+    {
+      "key": "rwa_history",
+      "name": "coingecko.stocks.rwa_history",
+      "kind": "source",
+      "label_zh": "Stocks · 股票聚合历史",
+      "label_en": "Stocks · Aggregated tokenized stock history",
+      "purpose_zh": "聚合代币市场历史；Basic及以上历史权限需按实际key核验，缺权限不回填假数据。",
+      "purpose_en": "Aggregate token history requires plan verification; never fabricate unavailable history.",
+      "position": [
+        1840,
+        0
+      ]
+    },
+    {
+      "key": "issuer_list",
+      "name": "coingecko.stocks.issuer_list",
+      "kind": "source",
+      "label_zh": "Stocks · 发行商目录",
+      "label_en": "Stocks · Issuer directory",
+      "purpose_zh": "列出全部RWA发行商；本期只关联股票范围内的发行记录。",
+      "purpose_en": "All RWA issuers; keep only stock-relevant associations for this scope.",
+      "position": [
+        0,
+        550
+      ]
+    },
+    {
+      "key": "issuer_detail",
+      "name": "coingecko.stocks.issuer_detail",
+      "kind": "source",
+      "label_zh": "Stocks · 发行商与发行资产",
+      "label_en": "Stocks · Issuer and issued assets",
+      "purpose_zh": "核对发行商及其发行资产，不能将其全部产品自动纳入股票池。",
+      "purpose_en": "Inspect issuer assets without admitting every issuer product into the stock universe.",
+      "position": [
+        460,
+        550
+      ]
+    },
+    {
+      "key": "token_markets",
+      "name": "coingecko.stocks.token_markets",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币行情",
+      "label_en": "Stocks · Individual stock token markets",
+      "purpose_zh": "按 tokenized-stock 全分页发现；保留小市值与缺行情条目，并记录质量。",
+      "purpose_en": "Discover every tokenized-stock page, retaining small-cap and missing-data members with quality flags.",
+      "position": [
+        920,
+        550
+      ]
+    },
+    {
+      "key": "token_detail",
+      "name": "coingecko.stocks.token_detail",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币资料与合约",
+      "label_en": "Stocks · Stock token metadata and contracts",
+      "purpose_zh": "核对 categories、发行资料与 platforms 合约，不能仅用 symbol 合并。",
+      "purpose_en": "Inspect categories and network/contracts; never merge by symbol alone.",
+      "position": [
+        1380,
+        550
+      ]
+    },
+    {
+      "key": "token_history",
+      "name": "coingecko.stocks.token_history",
+      "kind": "source",
+      "label_zh": "Stocks · 股票代币历史",
+      "label_en": "Stocks · Individual stock token history",
+      "purpose_zh": "单代币价格、市值、滚动成交额序列；按key可用历史分批请求。",
+      "purpose_en": "Individual-token chart series, fetched by permitted time range.",
+      "position": [
+        1840,
+        550
+      ]
+    },
+    {
+      "key": "discover",
+      "name": "coingecko.stocks.discover",
+      "kind": "process",
+      "label_zh": "Stocks · 目录分页与对账",
+      "label_en": "Stocks · Discover and reconcile",
+      "purpose_zh": "目录完整扫描；分页到末页，按稳定 ID 去重，重页/漏页/429 不得标成全量成功。保留本轮 ID 集、页数、去重数、截止时间及失败原因；完整对账后才确认新增/移除。目录/元数据低频更新，行情按分页批量更新，历史按 ID 与范围分批补齐。实际频率待 key 权限、缓存与预算核验，不启动定时器。",
+      "purpose_en": "Scan through the last page and deduplicate stable IDs. Missing/duplicate pages and 429 never establish complete coverage. Freeze IDs, page counts, cutoff and errors per round; reconcile before accepting removals. Refresh metadata less often than batched markets; backfill history by ID/range. Cadence requires quota/cache validation; no timer is started.",
+      "fields": [
+        {
+          "path": "rwa_ids",
+          "type": "Text",
+          "label_zh": "rwa_ids"
+        },
+        {
+          "path": "coin_ids",
+          "type": "Text",
+          "label_zh": "coin_ids"
+        },
+        {
+          "path": "membership_version",
+          "type": "Text",
+          "label_zh": "membership_version"
+        },
+        {
+          "path": "coverage_status",
+          "type": "Text",
+          "label_zh": "coverage_status"
+        }
+      ],
+      "position": [
+        0,
+        1200
+      ]
+    },
+    {
+      "key": "universe",
+      "name": "coingecko.stocks.universe",
+      "kind": "table",
+      "label_zh": "Stocks · 股票与代币目录",
+      "label_en": "Stocks · Stock and token universe",
+      "purpose_zh": "全量发现 CoinGecko stock 类型 RWA 与 tokenized-stock 分类；以各自稳定 ID 去重并对账，不设市值门槛。stock 类型不自动代表已上市美股；ETF、商品不并入股票目录。",
+      "purpose_en": "Discover every supported stock RWA and tokenized-stock member, reconcile stable IDs, with no market-cap floor. Stock type does not establish US listing status. ETFs and commodities are separate.",
+      "fields": [
+        {
+          "path": "rwa_id",
+          "type": "Text",
+          "label_zh": "rwa_id"
+        },
+        {
+          "path": "coin_id",
+          "type": "Text",
+          "label_zh": "coin_id"
+        },
+        {
+          "path": "asset_type",
+          "type": "Text",
+          "label_zh": "asset_type"
+        },
+        {
+          "path": "listing_market_status",
+          "type": "Text",
+          "label_zh": "listing_market_status"
+        },
+        {
+          "path": "membership_version",
+          "type": "Text",
+          "label_zh": "membership_version"
+        },
+        {
+          "path": "coverage_status",
+          "type": "Text",
+          "label_zh": "coverage_status"
+        }
+      ],
+      "position": [
+        460,
+        1200
+      ]
+    },
+    {
+      "key": "identity",
+      "name": "coingecko.stocks.identity",
+      "kind": "process",
+      "label_zh": "Stocks · 核对股票与代币身份",
+      "label_en": "Stocks · Resolve stock-token identity",
+      "purpose_zh": "底层 RWA ID、代币 coin ID 与网络/合约分层记录；股票到代币可一对多。标签只是发现依据，未验证的上市市场与映射标为未知。",
+      "purpose_en": "Keep underlying RWA IDs, coin IDs and network/contracts separate; one stock can map to many tokens. Unverified listing markets and identity links remain unknown.",
+      "fields": [
+        {
+          "path": "rwa_id",
+          "type": "Text",
+          "label_zh": "rwa_id"
+        },
+        {
+          "path": "coin_id",
+          "type": "Text",
+          "label_zh": "coin_id"
+        },
+        {
+          "path": "issuer_id",
+          "type": "Text",
+          "label_zh": "issuer_id"
+        },
+        {
+          "path": "network",
+          "type": "Text",
+          "label_zh": "network"
+        },
+        {
+          "path": "contract_address",
+          "type": "Text",
+          "label_zh": "contract_address"
+        },
+        {
+          "path": "asset_id",
+          "type": "Text",
+          "label_zh": "asset_id"
+        },
+        {
+          "path": "identity_status",
+          "type": "Text",
+          "label_zh": "identity_status"
+        }
+      ],
+      "position": [
+        920,
+        1200
+      ]
+    },
+    {
+      "key": "mapping",
+      "name": "coingecko.stocks.mapping",
+      "kind": "table",
+      "label_zh": "Stocks · 股票代币映射",
+      "label_en": "Stocks · Stock-token mappings",
+      "purpose_zh": "设计表；一只股票可有多个代币版本，冲突/未映射保留待核对，不冒充已验证身份。",
+      "purpose_en": "Design table: preserve one-to-many identities and unresolved/conflicting mappings.",
+      "fields": [
+        {
+          "path": "rwa_id",
+          "type": "Text",
+          "label_zh": "rwa_id"
+        },
+        {
+          "path": "coin_id",
+          "type": "Text",
+          "label_zh": "coin_id"
+        },
+        {
+          "path": "issuer_id",
+          "type": "Text",
+          "label_zh": "issuer_id"
+        },
+        {
+          "path": "network",
+          "type": "Text",
+          "label_zh": "network"
+        },
+        {
+          "path": "contract_address",
+          "type": "Text",
+          "label_zh": "contract_address"
+        },
+        {
+          "path": "asset_id",
+          "type": "Text",
+          "label_zh": "asset_id"
+        },
+        {
+          "path": "identity_status",
+          "type": "Text",
+          "label_zh": "identity_status"
+        }
+      ],
+      "position": [
+        1380,
+        1200
+      ]
+    },
+    {
+      "key": "normalize",
+      "name": "coingecko.stocks.normalize",
+      "kind": "process",
+      "label_zh": "Stocks · 行情与历史标准化",
+      "label_en": "Stocks · Normalize market data",
+      "purpose_zh": "保留来源、实体层级、USD、上游时间、请求/接收时间与覆盖版本；prices / market_caps / total_volumes 是时间点序列，不是 OHLCV。滚动24小时成交额不能跨点相加；聚合 RWA 与单代币序列不可混算。",
+      "purpose_en": "Retain source, entity level, USD, source/request/receive time and coverage version. Chart series are not OHLCV; rolling 24-hour volume points cannot be summed. Never mix aggregate and individual-token series.",
+      "fields": [
+        {
+          "path": "source",
+          "type": "Text",
+          "label_zh": "source"
+        },
+        {
+          "path": "entity_level",
+          "type": "Text",
+          "label_zh": "entity_level"
+        },
+        {
+          "path": "external_id",
+          "type": "Text",
+          "label_zh": "external_id"
+        },
+        {
+          "path": "currency",
+          "type": "Text",
+          "label_zh": "currency"
+        },
+        {
+          "path": "source_time",
+          "type": "Text",
+          "label_zh": "source_time"
+        },
+        {
+          "path": "requested_at",
+          "type": "Text",
+          "label_zh": "requested_at"
+        },
+        {
+          "path": "received_at",
+          "type": "Text",
+          "label_zh": "received_at"
+        },
+        {
+          "path": "coverage_version",
+          "type": "Text",
+          "label_zh": "coverage_version"
+        },
+        {
+          "path": "raw_payload",
+          "type": "Text",
+          "label_zh": "raw_payload"
+        }
+      ],
+      "position": [
+        0,
+        1800
+      ]
+    },
+    {
+      "key": "history",
+      "name": "coingecko.stocks.history",
+      "kind": "table",
+      "label_zh": "Stocks · Stocks 行情与历史",
+      "label_en": "Stocks · Stocks observations and history",
+      "purpose_zh": "保留来源、实体层级、USD、上游时间、请求/接收时间与覆盖版本；prices / market_caps / total_volumes 是时间点序列，不是 OHLCV。滚动24小时成交额不能跨点相加；聚合 RWA 与单代币序列不可混算。",
+      "purpose_en": "Retain source, entity level, USD, source/request/receive time and coverage version. Chart series are not OHLCV; rolling 24-hour volume points cannot be summed. Never mix aggregate and individual-token series.",
+      "fields": [
+        {
+          "path": "source",
+          "type": "Text",
+          "label_zh": "source"
+        },
+        {
+          "path": "entity_level",
+          "type": "Text",
+          "label_zh": "entity_level"
+        },
+        {
+          "path": "external_id",
+          "type": "Text",
+          "label_zh": "external_id"
+        },
+        {
+          "path": "currency",
+          "type": "Text",
+          "label_zh": "currency"
+        },
+        {
+          "path": "source_time",
+          "type": "Text",
+          "label_zh": "source_time"
+        },
+        {
+          "path": "requested_at",
+          "type": "Text",
+          "label_zh": "requested_at"
+        },
+        {
+          "path": "received_at",
+          "type": "Text",
+          "label_zh": "received_at"
+        },
+        {
+          "path": "coverage_version",
+          "type": "Text",
+          "label_zh": "coverage_version"
+        },
+        {
+          "path": "raw_payload",
+          "type": "Text",
+          "label_zh": "raw_payload"
+        }
+      ],
+      "position": [
+        460,
+        1800
+      ]
+    },
+    {
+      "key": "coverage",
+      "name": "coingecko.stocks.coverage",
+      "kind": "table",
+      "label_zh": "Stocks · Stocks 采集覆盖",
+      "label_en": "Stocks · Stocks collection coverage",
+      "purpose_zh": "设计记录每轮页数、ID 数、响应缺失/限流、重复冲突、零成交与历史不足。失败/未知不得显示为成功空市场；不删除目录成员。",
+      "purpose_en": "Design per-round page/ID counts, missing responses, rate limits, duplicates, zero trades and insufficient history. Unknown coverage is not an empty healthy market.",
+      "fields": [
+        {
+          "path": "round_id",
+          "type": "Text",
+          "label_zh": "round_id"
+        },
+        {
+          "path": "requested_pages",
+          "type": "Text",
+          "label_zh": "requested_pages"
+        },
+        {
+          "path": "received_pages",
+          "type": "Text",
+          "label_zh": "received_pages"
+        },
+        {
+          "path": "unique_ids",
+          "type": "Text",
+          "label_zh": "unique_ids"
+        },
+        {
+          "path": "duplicate_ids",
+          "type": "Text",
+          "label_zh": "duplicate_ids"
+        },
+        {
+          "path": "status",
+          "type": "Text",
+          "label_zh": "status"
+        },
+        {
+          "path": "error",
+          "type": "Text",
+          "label_zh": "error"
+        },
+        {
+          "path": "cutoff",
+          "type": "Text",
+          "label_zh": "cutoff"
+        },
+        {
+          "path": "history_status",
+          "type": "Text",
+          "label_zh": "history_status"
+        }
+      ],
+      "position": [
+        920,
+        1800
+      ]
+    },
+    {
+      "key": "metrics",
+      "name": "coingecko.stocks.metrics",
+      "kind": "process",
+      "label_zh": "Stocks · Stocks 指标适配边界",
+      "label_en": "Stocks · Stocks metric adapter boundary",
+      "purpose_zh": "复用历史读取与指标函数，但以 Stocks 范围和单代币口径独立输入；无全量历史/覆盖不得生成正常榜单。当前仅定义接口，未绑定现有Crypto榜单或执行计算。",
+      "purpose_en": "Reuse history and metric functions with a separate Stocks cohort and token-level inputs. Missing coverage/history blocks normal rankings. Interface only; no Crypto ranking binding or execution.",
+      "fields": [
+        {
+          "path": "external_id",
+          "type": "Text",
+          "label_zh": "external_id"
+        },
+        {
+          "path": "entity_level",
+          "type": "Text",
+          "label_zh": "entity_level"
+        },
+        {
+          "path": "coverage_version",
+          "type": "Text",
+          "label_zh": "coverage_version"
+        },
+        {
+          "path": "history_status",
+          "type": "Text",
+          "label_zh": "history_status"
+        },
+        {
+          "path": "metrics_status",
+          "type": "Text",
+          "label_zh": "metrics_status"
+        }
+      ],
+      "position": [
+        1380,
+        1800
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "source": "rwa_list",
+      "target": "discover",
+      "kind": "reference"
+    },
+    {
+      "source": "token_markets",
+      "target": "discover",
+      "kind": "reference"
+    },
+    {
+      "source": "discover",
+      "target": "universe",
+      "kind": "reference"
+    },
+    {
+      "source": "universe",
+      "target": "identity",
+      "kind": "reference"
+    },
+    {
+      "source": "rwa_detail",
+      "target": "identity",
+      "kind": "reference"
+    },
+    {
+      "source": "token_detail",
+      "target": "identity",
+      "kind": "reference"
+    },
+    {
+      "source": "issuer_list",
+      "target": "identity",
+      "kind": "reference"
+    },
+    {
+      "source": "issuer_detail",
+      "target": "identity",
+      "kind": "reference"
+    },
+    {
+      "source": "identity",
+      "target": "mapping",
+      "kind": "reference"
+    },
+    {
+      "source": "mapping",
+      "target": "normalize",
+      "kind": "reference"
+    },
+    {
+      "source": "rwa_markets",
+      "target": "normalize",
+      "kind": "reference"
+    },
+    {
+      "source": "token_markets",
+      "target": "normalize",
+      "kind": "reference"
+    },
+    {
+      "source": "rwa_history",
+      "target": "normalize",
+      "kind": "reference"
+    },
+    {
+      "source": "token_history",
+      "target": "normalize",
+      "kind": "reference"
+    },
+    {
+      "source": "rwa_tickers",
+      "target": "coverage",
+      "kind": "reference"
+    },
+    {
+      "source": "discover",
+      "target": "coverage",
+      "kind": "reference"
+    },
+    {
+      "source": "normalize",
+      "target": "coverage",
+      "kind": "reference"
+    },
+    {
+      "source": "normalize",
+      "target": "history",
+      "kind": "reference"
+    },
+    {
+      "source": "history",
+      "target": "metrics",
+      "kind": "reference"
+    },
+    {
+      "source": "coverage",
+      "target": "metrics",
+      "kind": "reference"
+    }
+  ],
+  "shared_references": [
+    {
+      "source": "identity",
+      "target": "assets"
+    },
+    {
+      "source": "identity",
+      "target": "asset_identifiers"
+    }
+  ],
+  "verification": {
+    "prior_observation_date": "2026-10-20",
+    "underlying_stock_directory_count": 792,
+    "category_unique_ids_observed": 1000,
+    "category_full_count": null,
+    "category_complete": false,
+    "interruption": "HTTP 429 on page 5; do not claim complete count"
+  },
+  "physical_binding": null
+}

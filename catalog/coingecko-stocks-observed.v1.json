@@ -1,0 +1,370 @@
+{
+  "version": "coingecko-stocks-observed.v1",
+  "evidence": "upstream_api_only_not_crawler_runtime",
+  "cases": {
+    "rwa_list": {
+      "url": "https://api.coingecko.com/api/v3/rwas/list?asset_type=stock",
+      "request": {
+        "asset_type": "stock"
+      },
+      "observed_at": "2026-10-19T16:51:00.599464+00:00",
+      "status": "observed",
+      "http_status": 200,
+      "response_sha256": "1d9fb167b7cc39bcb062319a5bfa3adf650fedc8e08392a3bfe7b78b66729cfd",
+      "response_count": 792,
+      "response": [
+        {
+          "id": "1-800-flowers-com",
+          "symbol": "flws",
+          "name": "1-800-Flowers.Com",
+          "asset_type": "stock"
+        },
+        {
+          "id": "aaon",
+          "symbol": "aaon",
+          "name": "AAON",
+          "asset_type": "stock"
+        },
+        {
+          "id": "abbott",
+          "symbol": "abt",
+          "name": "Abbott",
+          "asset_type": "stock"
+        }
+      ],
+      "response_excerpt": true
+    },
+    "rwa_markets": {
+      "url": "https://api.coingecko.com/api/v3/rwas/markets?asset_type=stock&per_page=2&page=1",
+      "request": {
+        "asset_type": "stock",
+        "per_page": 2,
+        "page": 1
+      },
+      "observed_at": "2026-10-19T16:51:04.665790+00:00",
+      "status": "observed",
+      "http_status": 200,
+      "response_sha256": "1f9fe0cbad0628a706f6d98b8a4b3d85cf6308b3a6dc83fca72264e74398b72d",
+      "response_count": 2,
+      "response": [
+        {
+          "id": "circle-internet-group",
+          "symbol": "crcl",
+          "name": "Circle Internet Group",
+          "asset_type": "stock",
+          "image": "https://coin-images.coingecko.com/coins/images/102173742/large/circle-internet-group-tokenized-bStocks-crclb.png?1781196448",
+          "tokenized_market_data": {
+            "current_price": 82.18,
+            "market_cap": 374265786,
+            "total_volume": 41331352,
+            "high_24h": 85.57,
+            "low_24h": 80.71,
+            "price_change_24h": 0.804117,
+            "price_change_percentage_24h": 0.98811,
+            "market_cap_change_24h": 5930968,
+            "market_cap_change_percentage_24h": 1.61021,
+            "last_updated": "2026-10-19T16:49:20Z"
+          }
+        },
+        {
+          "id": "spacex",
+          "symbol": "spcx",
+          "name": "SpaceX",
+          "asset_type": "stock",
+          "image": "https://coin-images.coingecko.com/coins/images/102173888/large/bstocks_spacex.png?1781280362",
+          "tokenized_market_data": {
+            "current_price": 149.07,
+            "market_cap": 247637209,
+            "total_volume": 115962070,
+            "high_24h": 150.8,
+            "low_24h": 142.08,
+            "price_change_24h": 6.04,
+            "price_change_percentage_24h": 4.22205,
+            "market_cap_change_24h": 11910175,
+            "market_cap_change_percentage_24h": 5.05253,
+            "last_updated": "2026-10-19T16:49:20Z"
+          }
+        }
+      ],
+      "response_excerpt": false
+    },
+    "rwa_detail": {
+      "url": "https://api.coingecko.com/api/v3/rwas/nvidia?tokens=true&tokenized_market_data=true",
+      "request": {
+        "id": "nvidia",
+        "tokens": true,
+        "tokenized_market_data": true
+      },
+      "observed_at": "2026-10-19T16:51:08.765353+00:00",
+      "status": "observed",
+      "http_status": 200,
+      "response_sha256": "63fd428d1ab2016e468d6d47bf8e60f03c0e38ba8a51e358eb1cecfb94173ff3",
+      "response": {
+        "id": "nvidia",
+        "symbol": "nvda",
+        "name": "Nvidia",
+        "asset_type": "stock",
+        "image": {
+          "thumb": "https://coin-images.coingecko.com/coins/images/55633/thumb/Ticker_NVDA__Company_Name_NVIDIA_Corp__size_200x200_2x.png?1746862704",
+          "small": "https://coin-images.coingecko.com/coins/images/55633/small/Ticker_NVDA__Company_Name_NVIDIA_Corp__size_200x200_2x.png?1746862704",
+          "large": "https://coin-images.coingecko.com/coins/images/55633/large/Ticker_NVDA__Company_Name_NVIDIA_Corp__size_200x200_2x.png?1746862704"
+        },
+        "web_slug": "nvidia",
+        "tokens": [
+          {
+            "id": "nvidia-xstock",
+            "symbol": "nvdax",
+            "name": "NVIDIA xStock",
+            "platforms": {
+              "arbitrum-one": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+              "ethereum": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+              "binance-smart-chain": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+              "tron": "TNMR6r9Z4cL7eWNrNQ4e4sm2XPhhifexZU",
+              "ink": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+              "the-open-network": "EQCva-Of7acQdU_piADdlcbzsFtA-xJwZoctz8ZOXBdBoaB8",
+              "solana": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+              "mantle": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+              "x-layer": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+              "hyperliquid": "0x8e3a7531199e3f0d6e616a1f9edae9a3"
+            },
+            "issuer_details": {
+              "id": "xstocks-ecosystem",
+              "name": "xStocks"
+            }
+          },
+          {
+            "id": "nvidia-bstocks",
+            "symbol": "nvdab",
+            "name": "NVIDIA (bStocks Tokenized Stock)",
+            "platforms": {
+              "binance-smart-chain": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"
+            },
+            "issuer_details": {
+              "id": "bstocks-ecosystem",
+              "name": "BTech Holdings Limited"
+            }
+          },
+          {
+            "id": "nvidia-ondo-tokenized-stock",
+            "symbol": "nvdaon",
+            "name": "NVIDIA (Ondo Tokenized Stock)",
+            "platforms": {
+              "ethereum": "0x2d1f7226bd1f780af6b9a49dcc0ae00e8df4bdee",
+              "binance-smart-chain": "0xa9ee28c80f960b889dfbd1902055218cba016f75",
+              "hyperevm": "0xb989ad9b91886b1aaed8daadb26f028b29b40945",
+              "solana": "gEGtLTPNQ7jcg25zTetkbmF7teoDLcrfTnQfmn2ondo"
+            },
+            "issuer_details": {
+              "id": "ondo-tokenized-assets",
+              "name": "Ondo Finance"
+            }
+          },
+          {
+            "id": "nvidia-robinhood-tokenized-stock",
+            "symbol": "nvda",
+            "name": "NVIDIA • Robinhood Token",
+            "platforms": {
+              "robinhood": "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec"
+            },
+            "issuer_details": {
+              "id": "robinhood-chain-stocks-ecosystem",
+              "name": "Robinhood Assets (Jersey) Limited"
+            }
+          },
+          {
+            "id": "nvidia-coinbase-tokenized-stock",
+            "symbol": "nvdac",
+            "name": "NVIDIA (Coinbase Tokenized Stock)",
+            "platforms": {
+              "base": "0xb20000000000000000000078ee7ce2fe4908108c"
+            },
+            "issuer_details": {
+              "id": "coinbase-ecosystem",
+              "name": "Coinbase"
+            }
+          },
+          {
+            "id": "nvidia-rstock-2",
+            "symbol": "rnvda",
+            "name": "Nvidia Tokenized Stock (Reality)",
+            "platforms": {
+              "arbitrum-one": "0x0a85b6ebe3c150a1979a65656e304033d62b1e12",
+              "morph-l2": "0x170e1bcf1224f71132515caf25fded22ec1c50f1"
+            },
+            "issuer_details": {
+              "id": "reality-ecosystem",
+              "name": "Reality"
+            }
+          },
+          {
+            "id": "wrapped-nvidia-xstock",
+            "symbol": "wnvdax",
+            "name": "Wrapped NVIDIA xStock",
+            "platforms": {
+              "arbitrum-one": "0x93e62845c1dd5822ebc807ab71a5fb750decd15a",
+              "x-layer": "0xa8ddb5cd96b5222afe198316e9a57caa642850d5",
+              "ethereum": "0x93e62845c1dd5822ebc807ab71a5fb750decd15a",
+              "mantle": "0x93e62845c1dd5822ebc807ab71a5fb750decd15a"
+            },
+            "issuer_details": {
+              "id": "xstocks-ecosystem",
+              "name": "xStocks"
+            }
+          },
+          {
+            "id": "nvidia-dinari-tokenized-stock",
+            "symbol": "nvda",
+            "name": "NVIDIA (Dinari Tokenized Stock)",
+            "platforms": {
+              "ethereum": "0x62ec03c917face0e6841afdafc166bf571e55e4f",
+              "base": "0x92ecf64fdb76e60b76d78a29ad4bf9d38b7b1b97",
+              "arbitrum-one": "0x4dafffddea93ddf1e0e7b61e844331455053ce5c",
+              "avalanche": "0x4b16f5251cd4c853f28998809dca61cccbcb898b",
+              "hyperevm": "0x4b16f5251cd4c853f28998809dca61cccbcb898b"
+            },
+            "issuer_details": {
+              "id": "dinari-ecosystem",
+              "name": "Dinari"
+            }
+          },
+          {
+            "id": "nvidia-backpack-securities",
+            "symbol": "nvda",
+            "name": "Nvidia (Backpack Securities)",
+            "platforms": {
+              "solana": "NVDAVuiB7hwd3m5Wa1JuHNovPaPG6BH1QNztbKFxNjv"
+            },
+            "issuer_details": {
+              "id": "backpack-securities-ecosystem",
+              "name": "Backpack Securities"
+            }
+          },
+          {
+            "id": "nvidia-st0x-tokenized-stock",
+            "symbol": "wtnvda",
+            "name": "NVIDIA (ST0x Tokenized Stock)",
+            "platforms": {
+              "base": "0xfb5b41acdba20a3230f84be995173cfb98b8d6e7"
+            },
+            "issuer_details": {
+              "id": "st0x-ecosystem",
+              "name": "ST0x"
+            }
+          },
+          {
+            "id": "nvidia-astock",
+            "symbol": "anvda",
+            "name": "NVIDIA aStock",
+            "platforms": {
+              "arbitrum-one": "0x701193374879131f923532987c7ef363a91a80eb",
+              "monad": "0x701193374879131f923532987c7ef363a91a80eb",
+              "ethereum": "0x701193374879131f923532987c7ef363a91a80eb",
+              "base": "0x701193374879131f923532987c7ef363a91a80eb",
+              "robinhood": "0x701193374879131f923532987c7ef363a91a80eb"
+            },
+            "issuer_details": {
+              "id": "anchored-ecosystem",
+              "name": "Anchored Capital Ltd (BVI)"
+            }
+          }
+        ],
+        "tokenized_market_data": {
+          "current_price": 218.38467322420195,
+          "market_cap": 155267947.19059688,
+          "total_volume": 52837292.75896236,
+          "high_24h": 219.62780657094905,
+          "low_24h": 211.27830593976302,
+          "price_change_24h": 6.348764418039622,
+          "price_change_percentage_24h": 2.99419,
+          "market_cap_change_24h": 7647485.474256396,
+          "market_cap_change_percentage_24h": 5.18051,
+          "last_updated": "2026-10-19T16:49:20Z",
+          "price_change_percentage_1h_in_currency": -0.41444,
+          "price_change_percentage_24h_in_currency": 2.99419,
+          "price_change_percentage_7d_in_currency": -3.25929,
+          "price_change_percentage_14d_in_currency": -7.56719,
+          "price_change_percentage_30d_in_currency": -1.44723,
+          "price_change_percentage_200d_in_currency": 24.52804,
+          "price_change_percentage_1y_in_currency": 16.26179
+        },
+        "last_updated": "2026-10-19T16:49:20Z"
+      },
+      "response_excerpt": false
+    },
+    "rwa_tickers": {
+      "url": "https://api.coingecko.com/api/v3/rwas/nvidia/tickers",
+      "request": {
+        "id": "nvidia"
+      },
+      "observed_at": "2026-10-19T16:51:12.899151+00:00",
+      "status": "http_error",
+      "http_status": 401,
+      "response": "{\"status\":{\"timestamp\":\"2026-10-19T16:51:13.884Z\",\"error_code\":401,\"error_message\":\"This request is exclusive to Basic plan or above subscribers only. Upgrade to Basic plan or above to access: https://www.coingecko.com/en/api/pricing.\"}}"
+    },
+    "rwa_history": {
+      "url": "https://api.coingecko.com/api/v3/rwas/nvidia/market_chart?days=7",
+      "request": {
+        "id": "nvidia",
+        "days": 7
+      },
+      "observed_at": "2026-10-19T16:51:16.955964+00:00",
+      "status": "http_error",
+      "http_status": 401,
+      "response": "{\"status\":{\"timestamp\":\"2026-10-19T16:51:17.890Z\",\"error_code\":401,\"error_message\":\"This request is exclusive to Basic plan or above subscribers only. Upgrade to Basic plan or above to access: https://www.coingecko.com/en/api/pricing.\"}}"
+    },
+    "issuer_list": {
+      "url": "https://api.coingecko.com/api/v3/rwas/issuers/list",
+      "request": {},
+      "observed_at": "2026-10-19T16:52:10.861128+00:00",
+      "status": "not_called_rate_limit",
+      "note": "Earlier HTTP 429; remaining samples were not sent."
+    },
+    "issuer_detail": {
+      "url": "https://api.coingecko.com/api/v3/rwas/issuers/xstocks-ecosystem",
+      "request": {
+        "id": "xstocks-ecosystem"
+      },
+      "observed_at": "2026-10-19T16:52:10.861140+00:00",
+      "status": "not_called_rate_limit",
+      "note": "Earlier HTTP 429; remaining samples were not sent."
+    },
+    "token_markets": {
+      "url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=tokenized-stock&per_page=2&page=1",
+      "request": {
+        "vs_currency": "usd",
+        "category": "tokenized-stock",
+        "per_page": 2,
+        "page": 1
+      },
+      "observed_at": "2026-10-19T16:52:09.978567+00:00",
+      "status": "http_error",
+      "http_status": 429,
+      "response": "{\"status\":{\"error_code\":429,\"error_message\":\"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits.\"}}"
+    },
+    "token_detail": {
+      "url": "https://api.coingecko.com/api/v3/coins/strategy-pp-variable-xstock?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false",
+      "request": {
+        "id": "strategy-pp-variable-xstock",
+        "localization": false,
+        "tickers": false,
+        "market_data": false,
+        "community_data": false,
+        "developer_data": false
+      },
+      "observed_at": "2026-10-19T16:52:10.861054+00:00",
+      "status": "not_called_rate_limit",
+      "note": "Earlier HTTP 429; remaining samples were not sent."
+    },
+    "token_history": {
+      "url": "https://api.coingecko.com/api/v3/coins/strategy-pp-variable-xstock/market_chart?vs_currency=usd&days=7",
+      "request": {
+        "id": "strategy-pp-variable-xstock",
+        "vs_currency": "usd",
+        "days": 7
+      },
+      "observed_at": "2026-10-19T16:52:10.861116+00:00",
+      "status": "not_called_rate_limit",
+      "note": "Earlier HTTP 429; remaining samples were not sent."
+    }
+  }
+}

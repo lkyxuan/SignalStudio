@@ -1,11 +1,15 @@
 import { cardKind, cardKinds, kindLabel } from './cardModel';
 import definitions from './cardPresentationData.json';
 import sources from '../catalog/source-contracts.v1.json';
+import stocks from '../catalog/coingecko-stocks.v1.json';
 
 type Node = { id: string; name: string; type: string; kind?: string; reference_number?: number | null; is_system_state?: number; card_contract?: {config: {definition_refs?: {path: string}[]; read_only?: boolean}} | null };
 type Choice = {id:string;label:string;count:number;tone:string};
 export type CardTypeGroup = Choice & {style:string;children:Choice[]};
 const purposes: Record<string,[string,string]> = {
+  'source/stocks':['CoinGecko 股票数据','CoinGecko Stocks data'],
+  'table/stocks':['Stocks 目录、历史与覆盖','Stocks directory, history and coverage'],
+  'process/stocks':['Stocks 采集与适配','Stocks collection and adapters'],
   'source/coingecko':['CoinGecko 数据','CoinGecko data'], 'source/kaito-mcp':['Kaito MCP 数据','Kaito MCP data'],
   'source/kaito-resource':['Kaito 参考目录','Kaito reference lists'], 'source/binance':['Binance 数据','Binance data'],
   'source/dexscreener':['DexScreener 数据','DexScreener data'], 'source/rss':['RSS 新闻','RSS news'],
@@ -33,6 +37,8 @@ const providers: Record<string,string>={'binance-futures':'binance',coingecko:'c
 // Navigation only: explicit module identity, never numbering or transitive graph inference.
 export function cardTypeKey(node: Node): string {
   const kind=cardKind(node);
+  if (stocks.cards.some(card => card.name === node.name && card.kind === kind) &&
+      node.card_contract?.config.definition_refs?.some(ref => ref.path === 'catalog/coingecko-stocks.v1.json')) return `${kind}/stocks`;
   if (kind==='source') {
     const source=sources.operations.find(item=>item.id===node.name) || sources.resources.find(item=>item.id===node.name);
     const provider=source && providers[source.source_id];

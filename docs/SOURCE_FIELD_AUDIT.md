@@ -4,6 +4,8 @@
 
 ## 先区分三层字段
 
+2026-10-20：SS-127 的独立 Stocks 来源以 [`catalog/coingecko-stocks.v1.json`](../catalog/coingecko-stocks.v1.json) 为上游设计契约，十个端点的参数/字段来自各自官方 OpenAPI 页面；成对 HTTP 样本与失败状态另存 [`catalog/coingecko-stocks-observed.v1.json`](../catalog/coingecko-stocks-observed.v1.json)。本次保存三个成功样本，其他端点权限不足、限流或未调用；不是爬虫输出，也不改变下列历史 V2 核对。完整范围和限制见 [Stocks 爬虫](STOCKS_CRAWLER.md)。
+
 1. **上游接口或网页字段**：文档列出的可能响应，与调用参数和版本有关。
 2. **爬虫输出字段**：代码可能过滤、重命名、展开或新增字段。V2 主要描述这一层。
 3. **留存的返回样本字段**：只能证明一次响应出现过什么；不能替代完整输出契约，也不能证明爬虫已发送消息。

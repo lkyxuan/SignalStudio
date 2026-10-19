@@ -29,6 +29,7 @@ import { hottestCard } from './hottestDesign';
 import { WarmingDesignPreview } from './WarmingDesignPreview';
 import { warmingCard } from './warmingDesign';
 import { ApplicationInterfaceCard } from './ApplicationInterfaceCard';
+import { StocksDesignCard, stocksCard } from './StocksDesignCard';
 
 const words = (language, zh, en) => language === 'zh-CN' ? zh : en;
 const relationLabels = {data:['传递数据','Data'],control:['执行顺序','Sequence'],read:['读取','Read'],write:['写入','Write'],publish:['发布消息','Publish'],consume:['消费消息','Consume'],error:['失败路径','Error'],reference:['设计引用 · 未建立自动同步','Design reference · no automatic sync']};
@@ -148,7 +149,7 @@ export function CardDetails(props) {
   const explanation=translation ? translation[language === 'zh-CN' ? 'rule_zh' : 'rule_en'] : cardExplanation(node,language);
   return <div className={`card-details card-details-${kind}`} data-card-detail-kind={kind}>
     <CardDetailContext.Provider value={true}>
-      {kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? translationCard(node) ? <><WorthReadingTranslationCard {...props}/><CardConnections {...props}/></> : <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
+      {stocksCard(node) ? <><StocksDesignCard {...props}/><CardConnections {...props}/></> : kind === 'source' ? <SourceDetails {...props}/> : kind === 'table' ? <TableDetails {...props}/> : kind === 'interface' ? translationCard(node) ? <><WorthReadingTranslationCard {...props}/><CardConnections {...props}/></> : <ApplicationInterfaceCard {...props} connections={<CardConnections {...props}/>}/> : <>
         {!trendDesign(node.name) && ['Redis · 最热榜数据区','计算最热榜得分'].includes(node.name) && <p className="card-detail-provenance">{words(language,'备用设计草案 · 当前热榜沿用 #3005 → #1006，本路径未启用。','Alternate draft · current hot board uses #3005 → #1006; this path is inactive.')}</p>}
         {currentWebpageCard(node) ? <AssetWebpageFlowCard {...props}/> : translationCard(node) ? <WorthReadingTranslationCard {...props}/> : warmingCard(node) ? <WarmingDesignPreview {...props}/> : hottestCard(node) ? <HottestDesignPreview {...props}/> : hasCoinGeckoPreview(node) ? <><CoinGeckoDesignPreview {...props}/><details className="processing-advanced"><summary>{words(language,'其他参考 · 既有样本与规则说明','Other references · saved cases and rule notes')}</summary><ProcessingIOCard {...props}/></details></> : <ProcessingIOCard {...props}/>}
         {kind === 'state' && leaderboardCard(node.name) && <section className="card-detail-execution"><h3>{words(language,'窗口与保留规则','Window and retention')}</h3><p>{node.definition}</p><p>{words(language,'业务比较窗口见上述定义；存储 TTL、更新时间索引及丢失后的重建绑定尚未核验，不能按业务窗口推断。','See the definition for the business window. TTL, update time index and recovery bindings remain unverified.')}</p></section>}

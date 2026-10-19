@@ -1,4 +1,5 @@
 import layoutPolicy from './layoutPolicy.json';
+import stocks from '../catalog/coingecko-stocks.v1.json';
 import { coinGeckoProductLayout, coinGeckoOutputNames } from './coinGeckoProductLayout';
 export const LAYOUT_VERSION = layoutPolicy.version;
 import type { GraphNode, GraphEdge } from './contracts';
@@ -205,7 +206,27 @@ const occurrenceId = (tower: string, logical: string) => `occurrence:${encodeURI
 
 // Each crawler owns a complete reading tree. Repeated cards are occurrences of
 // the same logical node, never new processors, tables, bindings or runtime jobs.
-export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]) {
+export function crawlerLayout(nodes: LayoutNode[], edges: LayoutEdge[]): {positions: NodePosition[]; occurrences: CardOccurrence[]} {
+  const stockNodes = nodes.filter(n => stocks.cards.some(c => c.name === n.name));
+  if (stockNodes.length) {
+    const stockIds = new Set(stockNodes.map(n => n.id));
+    const existing = crawlerLayout(nodes.filter(n => !stockIds.has(n.id)), edges.filter(e => !stockIds.has(e.upstream_id) && !stockIds.has(e.downstream_id)));
+    const left = Math.max(0, ...existing.occurrences.map(p => p.position_x + 300)) + 1000;
+    const towerId = stockNodes.find(n => n.name === 'coingecko.stocks.rwa_list')?.id || stockNodes[0]!.id;
+    for (const node of stockNodes) {
+      const card = stocks.cards.find(c => c.name === node.name)!;
+      const position = {id:node.id, position_x:left + card.position[0]!, position_y:96 + card.position[1]!};
+      existing.positions.push(position);
+      existing.occurrences.push({...position,logicalId:node.id,towerId,shared:false});
+    }
+    for (const [index,name] of ['assets','asset_identifiers'].entries()) {
+      const node = nodes.find(n => n.name === name);
+      if (!node) continue;
+      existing.occurrences.push({id:occurrenceId(towerId,node.id),logicalId:node.id,towerId,shared:true,position_x:left+index*460,position_y:2500});
+      for (const occurrence of existing.occurrences) if (occurrence.logicalId === node.id) occurrence.shared = true;
+    }
+    return existing;
+  }
   const active = layoutGroups(nodes, edges).find(g => g.flow)?.nodes || [];
   const roots = active.filter(isSource).sort((a, b) => textOrder(a.name.split('.')[0]!, b.name.split('.')[0]!) || nodeOrder(a, b));
   if (roots.length < 2 && !roots.some(n => n.name === 'coingecko.coins_markets')) {

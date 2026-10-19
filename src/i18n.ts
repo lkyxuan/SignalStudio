@@ -1,4 +1,5 @@
 import translationSpec from '../catalog/worth-reading-translation.v1.json';
+import stocks from '../catalog/coingecko-stocks.v1.json';
 import type { Language, GraphNode } from './contracts';
 const zh: Record<string, string> = {
   'asset_initial_score_sources': '首次建档来源评分配置',
@@ -346,6 +347,8 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  const stockCard = stocks.cards.find(card => card.name === name);
+  if (stockCard) return (language === 'zh-CN' ? stockCard.label_zh : stockCard.label_en).replace(/^Stocks · Stocks /, 'Stocks · ');
   const translatedCard = translationSpec.cards.find(card => card.name === name);
   if (language !== 'zh-CN' && translatedCard) return translatedCard.name_en;
   const heatNames: Record<string,string> = {'Polars · 计算7日成交额基线':'Polars · Seven-day volume baseline','Polars · 计算7日相对放量RVOL':'Polars · Seven-day relative volume','CoinGecko · 最热榜候选快照':'CoinGecko · Latest heat candidates'};

@@ -1,0 +1,9 @@
+.stocks-design section { margin: 16px 0; }
+.stocks-design p,.stocks-design dd,.stocks-design code { overflow-wrap: anywhere; }
+.stocks-design pre { max-height: 420px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; }
+.stocks-horizontal { overflow-x: auto; max-width: 100%; margin: 12px 0; }
+.stocks-horizontal table { border-collapse: collapse; min-width: 100%; font-size: 12px; }
+.stocks-horizontal th,.stocks-horizontal td { border: 1px solid var(--border, #ddddda); padding: 8px; text-align: left; min-width: 120px; max-width: 280px; vertical-align: top; overflow-wrap: anywhere; }
+.stocks-design dl > div { margin: 10px 0; }
+.stocks-design dd { margin: 5px 0; }
+.stocks-design select { max-width: 100%; }
