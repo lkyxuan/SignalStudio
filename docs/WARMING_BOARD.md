@@ -1,5 +1,10 @@
 # CoinGecko warming board
 
+Quantity revision approved 2026-10-20 in [SS-131](https://app.notion.com/p/3fe038a63d5a81beb4b5fbc40efb9c42):
+publish and display up to 50 eligible rows with scrolling; fewer rows remain valid.
+Scoring and eligibility are unchanged. Content refresh still selects at most 20 per board (60 unique).
+This is the Studio definition and reference evaluator; Few runtime delivery remains unverified.
+
 Approved 2026-10-14 in [SS-102](https://app.notion.com/p/3f9038a63d5a819eac83dde1100f58dc).
 Algorithm `coingecko_warming_growth_v1`. This repository implements Studio contracts,
 guarded migrations and independent synthetic evaluators, not Few consumers or a live
@@ -38,7 +43,7 @@ At request minus 60 minutes, take the latest healthy same-context historical vol
 volume. The current and historical source timestamps are validated and actual sampling
 times retained. Zero latest history must not fall back to an older positive value.
 Compute `R = V/B` and `G = V/H1 - 1`. Require **R > 1 and G > 0**. Sort G descending,
-R descending, then asset ID ascending, take at most ten without padding. Set the
+R descending, then asset ID ascending, take at most 50 without padding. Set the
 existing downstream `score` field to G (fraction, not percentage points or Z score).
 No old accumulation, initial score, price-direction threshold or half-life contributes.
 Allow hottest/warming overlap; no hottest result is required to compute warming.

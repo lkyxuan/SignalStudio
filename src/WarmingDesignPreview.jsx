@@ -16,7 +16,7 @@ export function WarmingDesignPreview({node,graph,language,openNode}) {
   const key=node.kind==='table'?'normal':selectedKey,c=warmingExample(key),entry=warmingCard(node),zh=language==='zh-CN';
   if(!entry)return null;
   const link=name=>{const n=graph.nodes.find(n=>n.name===name);return n?<button type="button" onClick={()=>openNode(n.id)}>#{n.reference_number} {n.name}</button>:<code>{name}</code>;};
-  const table=(rows,fields)=> <BusinessTableRows table={{primary_key:['asset_id'],columns:fields.map(name=>({name,label_zh:labels[name]?.[zh?0:1]??name}))}} rows={rows.map(r=>pretty(r,zh))} language={language}/>;
+  const table=(rows,fields)=> <BusinessTableRows scrollRows table={{primary_key:['asset_id'],columns:fields.map(name=>({name,label_zh:labels[name]?.[zh?0:1]??name}))}} rows={rows.map(r=>pretty(r,zh))} language={language}/>;
   const outputs=entry.key==='baseline'?[{...c.focus,...c.baseline}]:entry.key==='candidates'?c.current:c.batch.rows;
   return <section className="coingecko-design-preview" data-warming-preview={entry.key}>
     {node.kind!=='table' && <label className="source-case-inspector-picker">{zh?'升温榜 · 贯通设计案例':'Warming · through-line design case'}
@@ -55,7 +55,7 @@ export function WarmingDesignPreview({node,graph,language,openNode}) {
     <details className="processing-advanced"><summary>{zh?'完整输出字段与追溯':'Complete output fields and lineage'}</summary>{table(outputs,entry.fields.map(f=>f.name))}</details>
     <details className="processing-advanced"><summary>{zh?'其他设置 · 规则、触发与限制':'Other settings · rules, trigger and limits'}</summary>
       <p>{zh?entry.algorithm_zh:entry.algorithm_en}</p><p>{zh?entry.trigger_zh:'One calculation per complete healthy crawler round; baseline is reused within its UTC day. No separate hourly scheduler.'}</p>
-      <p>{zh?'主排序：增长率降序 → 常态倍数降序 → asset_id升序；最多10名，不凑榜，不排除最热币。':'Order by growth descending, baseline multiple descending, then asset ID ascending. At most ten; no padding or hottest exclusions.'}</p>
+      <p>{zh?'主排序：增长率降序 → 常态倍数降序 → asset_id升序；最多50名，不凑榜，不排除最热币。':'Order by growth descending, baseline multiple descending, then asset ID ascending. At most 50; no padding or hottest exclusions.'}</p>
       <p>{zh?'比较的是滚动24h成交额变化，不能还原新增1h/4h成交额，不能证明巨鲸或内幕。24h价格方向单独展示。连续在榜是一段持续状态；再入榜与事件扩散另行定义。':'Rolling-24h changes cannot reconstruct new 1h/4h volume or prove whales or insider trades. Show 24h price direction separately. Continuous membership is one state; reentry and event diffusion remain separate work.'}</p>
       <pre>{JSON.stringify(spec.parameters,null,2)}</pre><p>{zh?spec.limitations_zh:'Studio design only. Live consumers, physical storage, historical coverage, long-tail coverage and predictive quality remain unverified.'}</p>
       <a href={spec.rationale_url} target="_blank" rel="noreferrer">SS-102</a>

@@ -101,3 +101,7 @@
 .processing-card-frame,.processing-review-case{min-width:0}
 .processing-card-frame .business-table-raw,.score-rollup-numeric-case .business-table-raw{border-collapse:collapse;min-width:100%;font-size:11px}
 .processing-card-frame .business-table-raw th,.processing-card-frame .business-table-raw td,.score-rollup-numeric-case .business-table-raw th,.score-rollup-numeric-case .business-table-raw td{padding:9px 11px;border-bottom:1px solid var(--ss-border);text-align:left;vertical-align:top;white-space:nowrap}
+
+/* SS-131: bounded board results remain scrollable through rank 50. */
+.board-result-scroll{max-height:440px;overflow:auto;overscroll-behavior:contain}
+.board-result-scroll thead th{position:sticky;top:0;background:var(--ss-surface);z-index:1}

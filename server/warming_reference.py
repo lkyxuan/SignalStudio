@@ -192,7 +192,7 @@ def board(rows, history, calculated_at, coverage='healthy', frozen_baselines=Non
         return {**result, 'reason': 'no_valid_current_candidates'}
     result['status'] = 'success'
     ranked.sort(key=lambda x: (-x['growth_1h'], -x['warming_multiple'], x['asset_id']))
-    for i, r in enumerate(ranked[:10]):
+    for i, r in enumerate(ranked[:50]):
         move = r.get('price_change_percentage_24h')
         result['rows'].append({**r, 'rank': i+1, 'score': r['growth_1h'], 'object_key': 'asset/'+r['asset_id'],
             'algorithm_version': VERSION, 'calculation_status': 'success',

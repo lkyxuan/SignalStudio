@@ -5,7 +5,7 @@
   "delivery_scope": "studio_design_only",
   "table_name": "leaderboard_new_uuid",
   "calculator_name": "生成最新UUID榜",
-  "top_n": 20,
+  "top_n": 50,
   "order_by": [
     "created_at DESC",
     "asset_id ASC"
@@ -25,7 +25,7 @@
     "frontend_reader": "unconnected"
   },
   "requirements_zh": [
-    "各渠道统一建档成功后按系统首次created_at倒序取最新20个，同刻asset_id升序；不是项目上线日期，不按UUID字符串判断新旧。",
+    "各渠道统一建档成功后按系统首次created_at倒序取最新50个，同刻asset_id升序；不是项目上线日期，不按UUID字符串判断新旧。",
     "身份确认后才入榜，不设置热度、市值、成交量或涨跌门槛；不改变资产建档准入。",
     "来源新增、重新抓取和身份纠错不得刷新首次建档时间；多渠道同对象沿用原UUID。",
     "批量初始化、迁移、重导入与UUID替换不制造实时新发现；须绑定持久的创建来源判定，未知则该榜不可用。",
@@ -145,5 +145,7 @@
         "source_refs_json": []
       }
     ]
-  }
+  },
+  "display_revision": "ss131-top50",
+  "display_rationale_url": "https://app.notion.com/p/3fe038a63d5a81beb4b5fbc40efb9c42"
 }

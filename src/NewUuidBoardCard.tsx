@@ -11,27 +11,27 @@ export function NewUuidBoardCard({node,graph,openNode,language}: {node: GraphNod
   const table = {columns:spec.columns,primary_key:['asset_id']};
   const caption = <p>{zh ? spec.limitations_zh : 'Studio definitions and fictional inputs only. Runtime registration, creation-origin checks and readers remain unverified.'}</p>;
   const settings = <details><summary>{zh ? '其他设置 · 规则与未接通点' : 'Other settings · rules and unbound facilities'}</summary>
-    <p>{zh ? '排序：首次建档时间倒序，同刻UUID升序；前20个，无上线年龄或行情门槛。' : 'First registration time descending, then UUID ascending; latest 20, without launch age or market thresholds.'}</p>
+    <p>{zh ? '排序：首次建档时间倒序，同刻UUID升序；前50个，无上线年龄或行情门槛。' : 'First registration time descending, then UUID ascending; latest 50, without launch age or market thresholds.'}</p>
     {spec.requirements_zh.map(rule => <p key={rule}>{rule}</p>)}
     <pre>{JSON.stringify(spec.bindings,null,2)}</pre>
     <a href={spec.rationale_url}>{zh ? '批准方案 SS-84' : 'Approved scope SS-84'}</a>
   </details>;
   if (node.name === spec.table_name) return <div className="business-table-card">
-    <BusinessTableRows table={table} rows={spec.observed_rows} language={language}/>
+    <BusinessTableRows scrollRows table={table} rows={spec.observed_rows} language={language}/>
     {caption}<details><summary>{zh ? '虚构结果示例 · 非真实记录' : 'Fictional result example · not observed'}</summary>
-      <BusinessTableRows table={table} rows={output.rows} language={language}/>
+      <BusinessTableRows scrollRows table={table} rows={output.rows} language={language}/>
     </details>{settings}
   </div>;
   if (!graph || !openNode) return null;
   return <ProcessingCardFrame node={node} graph={graph} openNode={openNode} language={language} algorithm={node.formula}>
     <div className="source-case-inspector processing-io-case">
       <section className="source-case-inspector-section"><h3>{zh ? '输入 · 统一建档对象' : 'Input · registered objects'}</h3>
-        <BusinessTableRows table={assets.tables.assets} rows={spec.case.rows} language={language}/>
+        <BusinessTableRows scrollRows table={assets.tables.assets} rows={spec.case.rows} language={language}/>
         <p>{zh ? '案例另外假设创建来源为正常发现、初始化导入或迁移；这是待绑定的判定信息，不是已经采集的资产字段。' : 'The case additionally assumes discovery/import/migration origins. This check is unbound, not an observed asset column.'}</p>
-        <BusinessTableRows table={{primary_key:['asset_id'],columns:[{name:'asset_id'},{name:'creation_origin'},{name:'source_refs_json'}]}} rows={spec.case.rows} language={language}/>
+        <BusinessTableRows scrollRows table={{primary_key:['asset_id'],columns:[{name:'asset_id'},{name:'creation_origin'},{name:'source_refs_json'}]}} rows={spec.case.rows} language={language}/>
       </section>
       <section className="source-case-inspector-section"><h3>{zh ? '输出 · 新资产榜' : 'Output · new assets board'}</h3>
-        <BusinessTableRows table={table} rows={output.rows} language={language}/>
+        <BusinessTableRows scrollRows table={table} rows={output.rows} language={language}/>
         <p>{zh ? '人物也可在新榜；代币内容链仅取coin。旧项目今天首次建档可以入榜；旧UUID新增渠道不刷新时间，导入与待确认对象不入榜。' : 'The board can include a person; token content accepts coin only. An old project newly registered can enter; another source never renews its original creation time. Imports and pending identities are excluded.'}</p>
       </section>
     </div>

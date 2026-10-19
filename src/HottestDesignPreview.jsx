@@ -38,12 +38,12 @@ export function HottestDesignPreview({node,graph,language,openNode}) {
       </div>
     </>:<>
       {entry.key==='rank'&&<section className="source-case-inspector-section"><h3>{zh?'输入 · 同批完整候选':'Input · frozen candidate cohort'}</h3>{link('CoinGecko · 最热榜候选快照')}
-        <BusinessTableRows table={{primary_key:['asset_id'],columns:inputFields.map(name=>({name,label_zh:name}))}} rows={displayRows(c.current)} language={language}/>
+        <BusinessTableRows scrollRows table={{primary_key:['asset_id'],columns:inputFields.map(name=>({name,label_zh:name}))}} rows={displayRows(c.current)} language={language}/>
         <p>{zh?'本例覆盖状态：':'Example coverage: '}<code>{key==='partial'?'partial':'healthy'}</code> · {link('leaderboard_coverage')}</p>
       </section>}
       <h3>{zh?entry.key==='candidates'?'保存的候选 · 设计值':'输出 · 排名设计值':entry.key==='candidates'?'Candidate state · design values':'Output · designed ranks'}</h3>
-      <BusinessTableRows table={entry.key==='rank'?{primary_key:['asset_id'],columns:schema.columns.filter(f=>['rank','asset_name','score','rvol_7d','direction','reason'].includes(f.name))}:schema} rows={displayRows(output)} language={language}/>
-      {entry.key==='rank'&&<details className="processing-advanced"><summary>{zh?'完整输出字段与追溯记录':'Complete output fields and lineage'}</summary><BusinessTableRows table={schema} rows={displayRows(output)} language={language}/></details>}
+      <BusinessTableRows scrollRows table={entry.key==='rank'?{primary_key:['asset_id'],columns:schema.columns.filter(f=>['rank','asset_name','score','rvol_7d','direction','reason'].includes(f.name))}:schema} rows={displayRows(output)} language={language}/>
+      {entry.key==='rank'&&<details className="processing-advanced"><summary>{zh?'完整输出字段与追溯记录':'Complete output fields and lineage'}</summary><BusinessTableRows scrollRows table={schema} rows={displayRows(output)} language={language}/></details>}
       {c.batch.rvol_warmup&&<p className="card-detail-provenance">{zh?'暂按三项排序':'Temporarily ranked by three metrics'}</p>}
       <p>{zh?'批次状态':'Batch status'}: <code>{c.batch.status}</code> · <code>{c.batch.reason||'complete'}</code> · N={c.batch.sample_count}</p>
       {c.batch.excluded.length>0&&<p>{zh?'未入榜及原因：':'Excluded and reasons: '}<code>{JSON.stringify(c.batch.excluded)}</code></p>}
@@ -51,10 +51,10 @@ export function HottestDesignPreview({node,graph,language,openNode}) {
     {['rank','result'].includes(entry.key)&&<>
       <h3>{zh?'分数怎么算出来 · 以本例第一名为例':'Score derivation · first ranked asset'}</h3>
       {c.batch.rows.length?<><p>{c.batch.rows[0].asset_name} · <strong>{c.batch.rows[0].score.toFixed(2)}</strong></p>
-        <BusinessTableRows table={{primary_key:['metric'],columns:['metric','value','log1p','z_raw','z_clipped','weight','contribution','status'].map(name=>({name,label_zh:name}))}}
+        <BusinessTableRows scrollRows table={{primary_key:['metric'],columns:['metric','value','log1p','z_raw','z_clipped','weight','contribution','status'].map(name=>({name,label_zh:name}))}}
           rows={displayRows(Object.entries(c.batch.rows[0].score_components_json).map(([metric,r])=>({metric,...r})))} language={language}/></>:<p>{zh?'本例没有可发布排名，不制造第一名。':'No publishable ranks in this case; no fabricated first place.'}</p>}
       <details className="processing-advanced"><summary>{zh?'本批中位数、MAD和尺度':'Batch medians, MAD and scales'}</summary>
-        <BusinessTableRows table={{primary_key:['metric'],columns:['metric','median','mad','scale','status'].map(name=>({name,label_zh:name}))}} rows={Object.entries(c.batch.normalization_json).map(([metric,n])=>({metric,...n}))} language={language}/>
+        <BusinessTableRows scrollRows table={{primary_key:['metric'],columns:['metric','median','mad','scale','status'].map(name=>({name,label_zh:name}))}} rows={Object.entries(c.batch.normalization_json).map(([metric,n])=>({metric,...n}))} language={language}/>
       </details>
     </>}
     {['result','candidates'].includes(entry.key)&&<p>{zh?entry.algorithm_zh:entry.algorithm_en}</p>}

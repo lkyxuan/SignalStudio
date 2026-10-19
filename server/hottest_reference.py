@@ -184,7 +184,7 @@ def board(rows, calculated_at, coverage_status='healthy'):
         row.update(score=sum(c['contribution'] for c in components.values()), score_components_json=components,
                    rvol_warmup=result['rvol_warmup'], algorithm_version=VERSION, calculated_at=calculated_at, direction='up' if row['price_change_percentage_24h'] > 0 else 'down' if row['price_change_percentage_24h'] < 0 else 'flat')
     selected.sort(key=lambda r: (-r['score'], r['asset_id']))
-    result['rows'] = [dict(row, rank=i+1) for i, row in enumerate(selected[:20])]
+    result['rows'] = [dict(row, rank=i+1) for i, row in enumerate(selected[:50])]
     result.update(status='success', reason=None, excluded_count=len(result['excluded']))
     return result
 

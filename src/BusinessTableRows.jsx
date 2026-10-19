@@ -15,8 +15,8 @@ function CellValue({ name, value, displayDecimalPlaces }) {
   return <code>{String(value)}</code>;
 }
 
-export function BusinessTableRows({ table, rows, language }) {
-  return <div className="business-table-schema-scroll" role="region" aria-label={language === 'zh-CN' ? '表行' : 'Table rows'}><table className="business-table-raw">
+export function BusinessTableRows({ table, rows, language, scrollRows = false }) {
+  return <div className={`business-table-schema-scroll${scrollRows ? " board-result-scroll" : ""}`} role="region" aria-label={language === 'zh-CN' ? '表行' : 'Table rows'}><table className="business-table-raw">
     <thead><tr>{table.columns.map(column => <th key={column.name} title={language === 'zh-CN' ? column.label_zh : column.name}><code>{column.name}</code></th>)}</tr></thead>
     <tbody>{rows.map(row => <tr key={table.primary_key.map(key => row[key]).join(':')}>
       {table.columns.map(column => <td key={column.name}><CellValue name={column.name} value={row[column.name]} displayDecimalPlaces={column.display_decimal_places} /></td>)}

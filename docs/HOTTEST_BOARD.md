@@ -1,5 +1,10 @@
 # CoinGecko trading heat board
 
+Quantity revision approved 2026-10-20 in [SS-131](https://app.notion.com/p/3fe038a63d5a81beb4b5fbc40efb9c42):
+publish and display up to 50 eligible rows with scrolling; fewer rows remain valid.
+Scoring and eligibility are unchanged. Content refresh still selects at most 20 per board (60 unique).
+This is the Studio definition and reference evaluator; Few runtime delivery remains unverified.
+
 Initial design approved 2026-10-13 in [SS-95](https://app.notion.com/p/3f8038a63d5a81069b8ff12d27254eb4).
 Missing-RVOL behavior approved 2026-10-14 in [SS-101](https://app.notion.com/p/3f8038a63d5a816ba17ae8f2fba51bcb), algorithm `coingecko_hottest_z_v2`; indicator messages remain `market_indicators_v2`.
 `catalog/coingecko-hottest.v1.json` overrides only the hottest-board path and adds
@@ -39,7 +44,7 @@ with status `unavailable`; with one valid value or degenerate MAD, its Z is zero
 Other metrics use every qualified candidate. Weights remain .35/.25/.20/.20.
 
 The snapshot sets `rvol_warmup=true` exactly when the nonempty qualified cohort has
-no available RVOL, before top-20 truncation. Mixed, complete and empty cohorts set
+no available RVOL, before top-50 truncation. Mixed, complete and empty cohorts set
 false. Carry this flag on snapshot result rows; a successful empty batch has no rows
 but retains false on its envelope. The frontend displays “暂按三项排序” in warmup and
 “—” in missing RVOL multiples cells. History recovery recomputes the flag each batch.
@@ -68,7 +73,7 @@ use a fixed five-minute schedule or mix rounds. One round corresponds to one fro
 batch; retries use the same snapshot identity and identical inputs. Actual round
 identity, completion notification and durable deduplication remain Few implementation
 requirements, unverified here. Sort full-precision score descending,
-then asset ID ascending, take at most 20, display two decimals. Keep original values,
+then asset ID ascending, take at most 50, display two decimals. Keep original values,
 log1p values, raw/clipped Z, weights/contributions, cohort median/MAD/scale, exclusions,
 input references and timestamps. Age >=900 seconds expires the result. Replaying a
 snapshot ID must use identical frozen inputs/results or reject conflicts. No events,

@@ -86,7 +86,7 @@ export function rankHottest(rows,calculatedAt,coverage='healthy') {
     const components=Object.fromEntries(Object.entries(stats).map(([k,n])=>[k,{value:row[k],log1p:n.transformed[i],z_raw:n.z_raw[i],z_clipped:n.z_clipped[i],weight:weights[k],contribution:weights[k]*n.z_clipped[i],status:row[k]===null?'unavailable_neutral':n.status}]));
     return {...row,rvol_warmup:result.rvol_warmup,score:Object.values(components).reduce((s,c)=>s+c.contribution,0),score_components_json:components,algorithm_version:spec.version,calculated_at:calculatedAt,direction:row.price_change_percentage_24h>0?'up':row.price_change_percentage_24h<0?'down':'flat'};
   }).sort((a,b)=>b.score-a.score||a.asset_id.localeCompare(b.asset_id));
-  return {...result,status:'success',reason:null,excluded_count:result.excluded.length,rows:scored.slice(0,20).map((r,i)=>({...r,rank:i+1}))};
+  return {...result,status:'success',reason:null,excluded_count:result.excluded.length,rows:scored.slice(0,spec.parameters.top_n).map((r,i)=>({...r,rank:i+1}))};
 }
 export const hottestCases=[['normal','完整7日 · 六币排序','Complete seven days · six assets'],['missing','缺一天历史','One historical day missing'],['warmup','全部缺历史 · 三项排序','All history missing · three metrics'],['one_valid','仅一币有历史','Only one valid RVOL'],['zero','当前成交额与涨跌为0','Zero current volume and move'],['baseline_zero','历史成交额全为0','Zero historical baseline'],['degenerate','MAD全部为0','All MAD scales zero'],['partial','采集覆盖不完整','Partial source coverage'],['stale','一币来源过期','One stale observation'],['empty','成功空批次','Successful empty batch']];
 export function hottestExample(key='normal') {

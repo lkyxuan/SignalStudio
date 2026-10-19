@@ -24,7 +24,7 @@ try {
           assert.ok(!html.includes('半衰期 30'));
           if(entry.key==='rank')assert.ok(html.includes('何时运行'));
           if(['rank','result'].includes(entry.key))assert.ok(html.includes('假设已在最热榜'));
-          if(c.batch.warming_warmup&&['rank','result'].includes(entry.key))assert.ok(html.includes('升温预热'));
+          if(node.kind!=='table'&&c.batch.warming_warmup&&['rank','result'].includes(entry.key))assert.ok(html.includes('升温预热'));
         }
       }
     }

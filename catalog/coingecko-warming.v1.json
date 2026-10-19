@@ -21,7 +21,7 @@
     "history_tolerance_seconds": 900,
     "max_source_age_seconds": 900,
     "expiry_seconds": 900,
-    "top_n": 10,
+    "top_n": 50,
     "minimum_multiple_exclusive": 1,
     "minimum_growth_exclusive": 0,
     "growth_change_epsilon_pp": 1e-09
@@ -357,7 +357,7 @@
       "name": "生成基础升温榜",
       "kind": "process",
       "description_zh": "近期增长速度排序，双榜允许重叠，增长是否加快另作解释。",
-      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多10。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
+      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多50。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
       "algorithm_en": "Rank positive 1h growth above the daily seven-day baseline. Allow hottest overlap; acceleration is explanatory, never a ranking weight.",
       "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
       "fields": [
@@ -722,7 +722,7 @@
       "name": "leaderboard_warming",
       "kind": "table",
       "description_zh": "原子升温快照：增长率、常态倍数、是否加快及完整追溯。",
-      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多10。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
+      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多50。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
       "algorithm_en": "Atomic warming rows ordered by growth, baseline multiple, then asset ID; no score ledger or hottest exclusion.",
       "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
       "fields": [
@@ -1117,5 +1117,7 @@
         "window_end"
       ]
     }
-  ]
+  ],
+  "display_revision": "ss131-top50",
+  "display_rationale_url": "https://app.notion.com/p/3fe038a63d5a81beb4b5fbc40efb9c42"
 }

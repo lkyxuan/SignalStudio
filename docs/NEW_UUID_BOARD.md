@@ -1,5 +1,10 @@
 # New UUID board
 
+Quantity revision approved 2026-10-20 in [SS-131](https://app.notion.com/p/3fe038a63d5a81beb4b5fbc40efb9c42):
+publish and display up to 50 eligible rows with scrolling; fewer rows remain valid.
+Scoring and eligibility are unchanged. Content refresh still selects at most 20 per board (60 unique).
+This is the Studio definition and reference evaluator; Few runtime delivery remains unverified.
+
 Approved 2026-10-13 in [SS-84](https://app.notion.com/p/3f8038a63d5a811b8c93dc4d0026804d).
 Portable definition: `catalog/new-uuid-board.v1.json`. This delivery installs Studio
 definitions, lineage, illustrative cases and the homepage source reference; it does not
@@ -13,7 +18,7 @@ The saved identifiers `leaderboard_new_uuid` and `生成最新UUID榜` remain un
 
 All channels converge on the existing unified asset registration. Select confirmed
 objects created through normal discovery, order by immutable `assets.created_at`
-descending then `asset_id` ascending and take the latest 20. `created_at` means first
+descending then `asset_id` ascending and take the latest 50. `created_at` means first
 successful system registration, not project launch, most recent source observation or
 UUID string order. Existing projects first registered today qualify. No project-age,
 market-cap, volume, price-change or heat threshold applies. Do not change registry
