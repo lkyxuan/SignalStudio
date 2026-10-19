@@ -42,7 +42,7 @@ production into #3045 Grokbot, removes the internal preparation/cache cards, and
 success-guarded write to #1039. Its mappings are `asset_id → asset_id`,
 `saved_page_ref → page_ref`, `saved_at → updated_at`; failed or unconfirmed saves preserve the old row.
 Grokbot needs both external API/search tools and reads of existing Few Understand data; both await
-actual integration. See `catalog/asset-grokbot-flow.v1.json` and `server/asset_grokbot_flow.py`.
+actual integration. [SS-124](https://app.notion.com/p/3fe038a63d5a8135be54e95ca97366db) now expands this into nine independent writer cards, reusing #3045 for identity verification. The final save card owns the same guarded write to #1039. Few owns the upstream task mechanism; only asset_id/action/page_ref are business inputs to Grokbot. See `catalog/asset-webpage-board.v1.json`, `server/asset_webpage_board.py` and [the current workflow](CONTENT_REFRESH_ENGINE.md). The earlier Grokbot aggregate is a historical migration input.
 The shared table UI shows three columns and one explicitly fictional current-page row.
 
 Delivery is Studio design only: observed rows remain empty, physical storage and real

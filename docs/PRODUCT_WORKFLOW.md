@@ -350,6 +350,10 @@ The asset-correction review page hosts #4003 human decisions: pending proposals 
 
 Interface details follow the shared 300×160 frame and implementation evidence label. They show purpose, associated cards, required content, read/display rules, human actions, missing bindings and acceptance requirements; no functional business-action controls appear in Studio. Existing graph positions are preserved during installation. Arrange puts the score interface after Supabase and keeps the review interface in the existing maintenance side branch; it does not restore SS-70's withdrawn responsibility backgrounds or labels.
 
+## Current asset webpage board (SS-124, 2026-10-19)
+
+The current board has nine independent Grokbot writer cards under the webpage writer module; #3045 retains its identity and position as the identity-verification entry. Few owns candidate/refresh checks and task dispatch; the business handoff is asset_id/action/page_ref. reason and age_minutes remain upstream diagnostics. Task implementation fields are not fixed Grokbot business inputs. `catalog/asset-webpage-board.v1.json` and [CONTENT_REFRESH_ENGINE](CONTENT_REFRESH_ENGINE.md) supersede the aggregate and earlier preparation descriptions below. The board is design only; no real tool, task or webpage adapter is connected by this delivery.
+
 ## Content preparation split (SS-87, 2026-10-13)
 
 The approved Studio flow expands the former #3030 collection/generation step into five

@@ -239,7 +239,7 @@ export const FEATURE_SPECS: Spec[] = [
   },
   {
     "id": "webpage",
-    "zh": "资产网页准备与更新",
+    "zh": "资产网页制作",
     "en": "Asset webpage preparation",
     "steps": [
       {
@@ -271,7 +271,7 @@ export const FEATURE_SPECS: Spec[] = [
           "组装生成资料"
         ]
       }
-      , {"id":"writer","zh":"制作或更新网页","en":"Create or update the webpage","names":["Grokbot · 制作或更新资产网页"]}
+      , {"id":"writer","zh":"制作或更新网页","en":"Create or update the webpage","names":["Grokbot · 身份核验", "Grokbot · 盘点 FU 已有资料", "Grokbot · 判定研究重点", "Grokbot · 寻找数据来源", "Grokbot · 抓取并留存证据", "Grokbot · 处理冲突、过期与未知", "Grokbot · 组装页面", "Grokbot · 自检", "Grokbot · 保存并回写"]}
     ]
   },
   {

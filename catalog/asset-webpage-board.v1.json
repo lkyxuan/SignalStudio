@@ -1,0 +1,1379 @@
+{
+  "candidate_sources": [
+    {
+      "source": "leaderboard_hottest",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_warming",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_new_uuid",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "asset_kind",
+        "created_at",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    }
+  ],
+  "example_rows": {
+    "候选代币筛选": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c"
+      }
+    ],
+    "刷新判断": [],
+    "asset_pages": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "page_ref": "https://example.invalid/pages/a.html",
+        "updated_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "page_ref": "https://example.invalid/pages/c.html",
+        "updated_at": null
+      }
+    ],
+    "asset_identifiers": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "source_namespace": "example",
+        "external_identifier": "example-entity"
+      }
+    ],
+    "leaderboard_hottest": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_warming": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_new_uuid": [
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ]
+  },
+  "example_clock": "2026-10-18T10:00:00Z",
+  "page_refresh_interval_seconds": null,
+  "branches": [
+    {
+      "id": "first",
+      "label_zh": "首次制作",
+      "label_en": "First creation",
+      "condition": "成功完整查询确认没有当前网页。",
+      "terminal": false
+    },
+    {
+      "id": "due",
+      "label_zh": "到期更新",
+      "label_en": "Update due",
+      "condition": "网页最后成功更新时间达到已配置整页周期。",
+      "terminal": false
+    },
+    {
+      "id": "skip",
+      "label_zh": "跳过",
+      "label_en": "Skip",
+      "condition": "当前网页尚未到期。",
+      "terminal": true
+    },
+    {
+      "id": "blocked",
+      "label_zh": "待核对",
+      "label_en": "Needs review",
+      "condition": "读取失败/不完整、时间未知/无效，或已有网页但整页周期未配置。",
+      "terminal": true
+    }
+  ],
+  "version": "asset-webpage-board.v1",
+  "approval_date": "2026-10-19",
+  "rationale_url": "https://app.notion.com/p/3fe038a63d5a8135be54e95ca97366db",
+  "delivery_scope": "studio_design_only",
+  "reused_card": "Grokbot · 制作或更新资产网页",
+  "provenance_zh": "已确认的工作台设计；真实读取、调度、研究、前端保存和回写均未接入验证。示例是假设，原作者试跑仅是未复核报告。",
+  "provenance_en": "Studio design only. Readers, dispatch, research, page validation, saving and writeback are unverified. Examples are fictional; trial summaries are unverified author reports.",
+  "handoff": {
+    "owner_zh": "Few负责上游；Grokbot负责内部九步制作。",
+    "input_fields": [
+      "asset_id",
+      "action",
+      "page_ref"
+    ],
+    "diagnostic_only": [
+      "reason",
+      "age_minutes"
+    ],
+    "technical_fields_zh": "run_id、领取凭据、并发基线、重试等由Few内部机制设计；不是新增的固定Grokbot业务输入。",
+    "scheduling_zh": "沿用已确认的候选/刷新检查定义；每小时、N=2、任务优先级未批准，不作为默认值。整页更新周期仍为空。",
+    "runtime": "unconnected"
+  },
+  "cards": [
+    {
+      "key": "candidates",
+      "name": "候选代币筛选",
+      "kind": "process",
+      "description_zh": "合并升温、最热、新发现UUID三榜有效结果；仅已确认代币进入内容维护。",
+      "algorithm_zh": "各榜先校验完整有效批次并过滤已确认代币，再按本榜排序取前20，按asset_id合并去重；新发现按created_at倒序，其他两榜按score降序。保留本榜引用，缺榜独立跳过，不回退旧total_heat。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "calculated_at",
+          "type": "string",
+          "label_zh": "榜单计算时间"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "label_zh": "未舍入榜单分数"
+        },
+        {
+          "name": "algorithm_version",
+          "type": "string",
+          "label_zh": "榜单算法版本"
+        },
+        {
+          "name": "asset_kind",
+          "type": "string",
+          "label_zh": "只将coin交代币内容链"
+        },
+        {
+          "name": "created_at",
+          "type": "UTC timestamp",
+          "label_zh": "首次建档时间；新榜排序依据"
+        }
+      ],
+      "output_fields": [
+        "asset_id"
+      ],
+      "owner_zh": "Few Understand",
+      "input_fields": [
+        "asset_id",
+        "calculated_at",
+        "score",
+        "algorithm_version",
+        "asset_kind",
+        "created_at"
+      ],
+      "branches": [],
+      "internal_notes_zh": "Few负责上游筛选、刷新判断、任务派发及重试并发；复用既有任务机制，不要求按草稿新增固定技术字段。策略和真实接口仍待核验。",
+      "input_provenance_zh": "示例为假设，非生产观察；以Few实际代码、接口与记录核验。"
+    },
+    {
+      "key": "decision",
+      "name": "刷新判断",
+      "kind": "decision",
+      "description_zh": "接收候选 UUID，查询 #1039 当前网页记录，判断首次制作或到期更新；一天/三天周期待定。",
+      "algorithm_zh": "按候选 asset_id 完整查询当前网页记录。无记录为首次制作；查询失败或不完整则待核对。有网页时，以网页最后成功更新时间判断年龄；未知、无效或未来时间不可猜测。有有效时间且达到已配置整页周期才更新，未到期跳过。当前周期未配置，不对已有网页作过期结论。只有首次制作或到期更新交给 Grokbot 整体制作。 reason和age_minutes保留为本卡内部诊断，不作为Grokbot必需输入；Few随后负责待办与派发，具体调度策略未定义。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "候选资产 UUID"
+        },
+        {
+          "name": "page_ref",
+          "type": "TEXT",
+          "label_zh": "当前网页位置；无网页可空"
+        },
+        {
+          "name": "page_updated_at",
+          "type": "TEXT",
+          "label_zh": "#1039.updated_at，网页最后成功更新时间"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "首次制作 / 更新 / 跳过 / 待核对"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "label_zh": "本次判定原因；上游内部说明，不交接给Grokbot"
+        },
+        {
+          "name": "age_minutes",
+          "type": "number | null",
+          "label_zh": "网页自上次成功更新经过分钟；未知为空；上游内部说明，不交接给Grokbot"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref"
+      ],
+      "owner_zh": "Few Understand",
+      "input_fields": [
+        "asset_id",
+        "page_ref",
+        "page_updated_at",
+        "action",
+        "reason",
+        "age_minutes"
+      ],
+      "branches": [
+        {
+          "id": "first",
+          "label_zh": "首次制作",
+          "label_en": "First creation",
+          "condition": "成功完整查询确认没有当前网页。",
+          "terminal": false
+        },
+        {
+          "id": "due",
+          "label_zh": "到期更新",
+          "label_en": "Update due",
+          "condition": "网页最后成功更新时间达到已配置整页周期。",
+          "terminal": false
+        },
+        {
+          "id": "skip",
+          "label_zh": "跳过",
+          "label_en": "Skip",
+          "condition": "当前网页尚未到期。",
+          "terminal": true
+        },
+        {
+          "id": "blocked",
+          "label_zh": "待核对",
+          "label_en": "Needs review",
+          "condition": "读取失败/不完整、时间未知/无效，或已有网页但整页周期未配置。",
+          "terminal": true
+        }
+      ],
+      "internal_notes_zh": "Few负责上游筛选、刷新判断、任务派发及重试并发；复用既有任务机制，不要求按草稿新增固定技术字段。策略和真实接口仍待核验。",
+      "input_provenance_zh": "示例为假设，非生产观察；以Few实际代码、接口与记录核验。"
+    },
+    {
+      "key": "identity",
+      "description_zh": "核对输入资产 UUID 与 FU 稳定标识映射，外部证据用于交叉核查，不修改全局资产身份。",
+      "algorithm_zh": "只读核对同一asset_id与FU已有稳定标识；外部证据只作交叉核查，不升级或修改全局身份。映射缺失、未接入或冲突时停止并返回待核对，保留旧页；仅identity_check=confirmed继续。ticker、空platforms或近似供应量不能单独证明身份。",
+      "decision_rules_zh": [
+        "FU 映射已核实且外部核查无未决身份冲突才输出 identity_check=confirmed；它只表示本次网页任务核查，不写 #1001/#1002。",
+        "身份未确认、有歧义、接口未接入：终止，不组装占位页、不保存、不回写。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/bonk/raw/solana_rpc.supply.json",
+          "trial/bonk/raw/cg.coin.json",
+          "trial/sol/raw/cg.coin.json"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "BONK：CoinGecko platforms.solana 的 mint 经 RPC getTokenSupply 核对 87,994,323,898,030 ≈ CoinGecko 87,994,323,900,784，Blockworks 也写同一 mint；SOL：platforms 为空，确认为原生资产。两者 FU 映射均未核对（无数据访问）。"
+      },
+      "name": "Grokbot · 身份核验",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "source_namespace",
+          "type": "string",
+          "label_zh": "已有身份命名空间；只读查询"
+        },
+        {
+          "name": "external_identifier",
+          "type": "string",
+          "label_zh": "已有稳定标识；不以简称匹配"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": []
+    },
+    {
+      "key": "inventory",
+      "description_zh": "读取同资产内部资料和历史证据，按事实时间、来源、覆盖和质量形成可用证据与缺口。",
+      "algorithm_zh": "本次 FU 返回的时效观测只要身份、as_of、覆盖和已配置新鲜度条件合格即可使用；不因来自内部就丢弃，也不因本次读取就视为最新。历史时效缓存不冒充当前观测。基础证据检查 verify_after 和事件失效；策略缺失、时间未知、核实失败时不判为有效，转入缺口。",
+      "decision_rules_zh": [
+        "字段定义不是已采集记录；失败、空结果与不完整读取分别记录。",
+        "只有核验有效的事实进入 evidence_records；缺失或不合格项进入 gaps，必要资料缺失则 needs_review。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/page-script.v2.json",
+          "trial/bonk/page-script.v2.json"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "试运行无 FU 数据访问：heat 版块 omitted，所有资料来自外部免费源；这正是该卡缺失时页面的真实样子。"
+      },
+      "name": "Grokbot · 盘点 FU 已有资料",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": []
+    },
+    {
+      "key": "relevance",
+      "description_zh": "基于身份、已取得资料和明确缺口，提出有证据的页面版块计划。",
+      "algorithm_zh": "用已取得的类型与事实形成初步 section_plan；尚未抓取的新闻不能作为已发现事件。后续新证据可由冲突处理卡返回 revised_section_plan，制作卡优先采用修订计划。",
+      "decision_rules_zh": [
+        "版块顺序由证据决定；类型分类本身也应有出处。",
+        "事件内容和风险结论未经证据支持只能标待核查，不采用试跑摘要作为事实。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/decision-log.md",
+          "trial/bonk/decision-log.md"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "SOL（rank #7, L1）版块顺序：overview → market → 链生态 → tokenomics → events；BONK（rank #156, Meme）发现 2026-07 BonkDAO 治理攻击 + Upbit 下架 → events、risks 放在 market 之前，narrative 只放说明。"
+      },
+      "name": "Grokbot · 判定研究重点",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps",
+        "section_plan"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部版块计划"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": []
+    },
+    {
+      "key": "discovery",
+      "description_zh": "为资料缺口选择内部或外部来源，显式列出权限、预算、用途与获取方式。",
+      "algorithm_zh": "优先检查已有合格内部资料，再按缺口选择一手文档、结构化API与可靠报道。搜索摘要只作线索；免费、无key、可访问性与限流均需在实际环境核验。预算未配置或权限不足则停止对应调用并记录缺口。",
+      "decision_rules_zh": [
+        "不重复抓取已经合格的当前内部观测。",
+        "不自动配置权限、付费访问或部署；来源不可达不伪造成已获取。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/requests.log"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "WebSearch 2 次均给出近 7 天带发布时间的新闻；SOL 用 WebFetch 官方 Alpenglow 页一手确认日期，BONK 用 WebFetch Blockworks 汇编获取分配/治理/攻击时间线。"
+      },
+      "name": "Grokbot · 寻找数据来源",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部版块计划"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "source_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部补充来源计划"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": []
+    },
+    {
+      "key": "fetch",
+      "description_zh": "获取 source_plan 指定资料，产生供后续直接读取的证据记录与抓取结果。",
+      "algorithm_zh": "输出 evidence_records 列表，保留合格内部证据并追加本次原始数据/必要摘录、出处、事实时间和内容哈希。混合响应按被引用的事实分类，避免为了分类重复请求。已过期基础资料核实失败时保留旧审计记录但不作为当前有效输入；记录缺口。此卡留存运行内证据，尚不写生产证据表。",
+      "decision_rules_zh": [
+        "evidence_id 在同一资产/来源/内容版本下唯一，不能只用日期防重。",
+        "retrieved_at 不替代 as_of/published_at；来源日期仅有日/月时保留原值及精度，不伪造精确时间。",
+        "revalidate 最多返回一次；再次无法解决转 needs_review，旧成功页不变。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/raw/evidence.jsonl",
+          "trial/bonk/raw/evidence.jsonl",
+          "trial/fetch.py"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "18 次免费 HTTP（16 成功、2 次 451）+ 6 次工具调用，全部写入 raw/evidence.jsonl；SOL 基础 3 条 / 时效 11 条，BONK 基础 5 条 / 时效 8 条。"
+      },
+      "name": "Grokbot · 抓取并留存证据",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部版块计划"
+        },
+        {
+          "name": "source_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部补充来源计划"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": []
+    },
+    {
+      "key": "reconcile",
+      "description_zh": "对同一事实与口径的证据进行核对，产出可用事实、冲突、未知与必要的计划修订。",
+      "algorithm_zh": "先核对资产、时点、单位、链与字段含义，再判断差异。链上当前供应和历史最大供应等不同口径不能直接比大小。未决冲突并列注明，阻碍身份或关键事实时 needs_review；可补抓的基础事实输出 revalidate_targets；非阻断未知可用 partial 标注继续。",
+      "decision_rules_zh": [
+        "事件可触发相关基础事实重验，但不能仅凭协议更新名称断言旧描述全部失效。",
+        "revalidate 与 ready 互斥，先重验再组装；超过一次转 needs_review。",
+        "有新证据时输出 revised_section_plan，否则沿用初步计划。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/decision-log.md",
+          "trial/bonk/decision-log.md"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "价格三源差 <0.2%；供应链上与 CoinGecko 一致；BONK 最大供应冲突（CoinGecko 87,995,282,867,000 vs Blockworks 所引 88.87T）并列展示；SOL 的 CoinGecko 描述以 PoH 为核心、被 Alpenglow 打成即将过期，页面已标注。"
+      },
+      "name": "Grokbot · 处理冲突、过期与未知",
+      "owner_zh": "Grokbot",
+      "kind": "decision",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "section_plan",
+        "conflicts",
+        "unknowns"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部版块计划"
+        },
+        {
+          "name": "source_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部补充来源计划"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "conflicts",
+          "type": "object[]",
+          "label_zh": "内部未决冲突"
+        },
+        {
+          "name": "unknowns",
+          "type": "object[]",
+          "label_zh": "内部已知缺失"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [
+        {
+          "id": "ready",
+          "label_zh": "可制作",
+          "label_en": "Ready",
+          "condition": "身份及必要资料核查通过，未决未知可明确说明。",
+          "terminal": false
+        },
+        {
+          "id": "revalidate",
+          "label_zh": "补核资料",
+          "label_en": "Revalidate",
+          "condition": "存在可补核的相关基础事实；同一任务内部最多补核一次，不独立调度。",
+          "terminal": false
+        },
+        {
+          "id": "blocked",
+          "label_zh": "待核对",
+          "label_en": "Needs review",
+          "condition": "身份或关键事实冲突、资料不可用或补核仍失败，结束并保留旧页。",
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "key": "compose",
+      "description_zh": "使用当前合格证据与版块计划，组装 Few Understand 现有前端可接收的页面产物。",
+      "algorithm_zh": "从 evidence_records 读取事实，逐项关联 evidence_id；数值由结构化证据提取，推导值记录公式与输入。输出 page_artifact 与产物契约引用。page script v2 只是原作者提出的格式，需有可访问的固定版本 schema/解析器后才能作兼容性判断。缺少实际前端契约时标 unconnected，不声称生成可保存页面。",
+      "decision_rules_zh": [
+        "每项事实保留自己的 as_of，不用最新采集时间代表整页全部事实的新鲜度。",
+        "制作时间 generated_at、采集时间 retrieved_at、源事实时间 as_of/published_at 分开。",
+        "不为每个币另建工程或部署；现有前端目标 surface 和路由仍待接入核验。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/build_scripts.py",
+          "trial/sol/page-script.v2.json",
+          "trial/bonk/page-script.v2.json"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "两页各 12 块；SOL 13 个来源、BONK 11 个来源；generated_at 首版写成了预估时间，复核时改为真实制作时间 2026-10-18T19:37:07Z。"
+      },
+      "name": "Grokbot · 组装页面",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "section_plan",
+        "conflicts",
+        "unknowns",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "page_artifact"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部版块计划"
+        },
+        {
+          "name": "conflicts",
+          "type": "object[]",
+          "label_zh": "内部未决冲突"
+        },
+        {
+          "name": "unknowns",
+          "type": "object[]",
+          "label_zh": "内部已知缺失"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "page_artifact",
+          "type": "object",
+          "label_zh": "Grokbot页面产物；前端格式与绑定尚待核验"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": []
+    },
+    {
+      "key": "selfcheck",
+      "description_zh": "检查身份、证据、内容与目标前端兼容性；保留页面产物和运行上下文交给保存。",
+      "algorithm_zh": "使用与目标前端同版本的解析器/校验器并记录版本、命令、结果。事实身份、来源引用、时效与覆盖规则必须与前卡一致。仅在解析器已核验、无跳块/错误且必要内容检查通过时 check_status=pass；仅格式可修复问题返回 compose 一次，事实问题或缺少解析器转 needs_review/unconnected，不能保存。",
+      "decision_rules_zh": [
+        "结构通过不等于事实正确；报告实际检查范围与未核实项。",
+        "试跑252项测试是原作者报告，不继承为本批通过。",
+        "检查失败不进入 save；超过一次格式修复仍失败则终止。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "fu-local/web/tests/unit/trial-fixture.test.ts",
+          "trial/screenshots/sol-desktop-full.png",
+          "trial/screenshots/bonk-desktop-full.png"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "自检真实抓出 1 个问题：callout tone=warn 不在枚举里导致每页跳过 1 块；修正后 36 个测试文件 / 252 个测试全部通过，渲染出 12/12 块。"
+      },
+      "name": "Grokbot · 自检",
+      "owner_zh": "Grokbot",
+      "kind": "decision",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "page_artifact",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "page_artifact",
+        "check_report"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "page_artifact",
+          "type": "object",
+          "label_zh": "Grokbot页面产物；前端格式与绑定尚待核验"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "check_report",
+          "type": "object",
+          "label_zh": "内部自检报告，未接入不能标通过"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [
+        {
+          "id": "pass",
+          "label_zh": "自检通过",
+          "label_en": "Pass",
+          "condition": "前端同版本解析与必要事实检查实际通过。",
+          "terminal": false
+        },
+        {
+          "id": "revise",
+          "label_zh": "格式修复",
+          "label_en": "Revise",
+          "condition": "仅有可修复格式问题；同一任务内最多修复一次，不独立调度。",
+          "terminal": false
+        },
+        {
+          "id": "blocked",
+          "label_zh": "停止保存",
+          "label_en": "Stop",
+          "condition": "事实错误、缺解析器/未接入或修复失败，不进入保存。",
+          "terminal": true
+        }
+      ]
+    },
+    {
+      "key": "save",
+      "description_zh": "确认同一资产页面成功保存后更新 #1039 当前成功记录，失败保留旧记录。",
+      "algorithm_zh": "仅在同资产身份核查和自检通过后请求保存；确认同一任务已成功保存，才将saved_page_ref/saved_at写入#1039。未接入、失败、结果不确定或旧结果均保留旧页与旧成功时间。幂等、并发和回执由Few现有任务/保存机制实现，不在此预设run_id等具体字段名；实际适配与保护尚未接入验证。",
+      "decision_rules_zh": [
+        "同资产、身份及自检通过、明确成功保存后才回写。",
+        "失败、未接入和保存不确定不修改旧成功记录。",
+        "防重复和旧完成覆盖是实现要求，技术字段由Few复用现有机制确定。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/fixtures-trial.patch"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。",
+        "reported_summary_zh": "试运行没有真实保存：只写入本地 fixture（fu-local 本地提交，未 push），status 视为 unconnected。"
+      },
+      "name": "Grokbot · 保存并回写",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "page_artifact",
+        "check_report"
+      ],
+      "output_fields": [
+        "asset_id",
+        "status",
+        "saved_page_ref",
+        "saved_at",
+        "workflow_version",
+        "error"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "page_artifact",
+          "type": "object",
+          "label_zh": "Grokbot页面产物；前端格式与绑定尚待核验"
+        },
+        {
+          "name": "check_report",
+          "type": "object",
+          "label_zh": "内部自检报告，未接入不能标通过"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "label_zh": "success / failed / unconnected / needs_review"
+        },
+        {
+          "name": "saved_page_ref",
+          "type": "string | null",
+          "label_zh": "已确认保存的同资产网页引用"
+        },
+        {
+          "name": "saved_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "已确认保存完成时间"
+        },
+        {
+          "name": "workflow_version",
+          "type": "string | null",
+          "label_zh": "实际制作规范版本；未确定留空，不作上游必需输入"
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "label_zh": "失败或未接入原因"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": []
+    }
+  ],
+  "connections": [
+    {
+      "source": "Grokbot · 身份核验",
+      "target": "Grokbot · 盘点 FU 已有资料",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。",
+      "guard": {
+        "identity_check": "confirmed"
+      }
+    },
+    {
+      "source": "Grokbot · 盘点 FU 已有资料",
+      "target": "Grokbot · 判定研究重点",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 判定研究重点",
+      "target": "Grokbot · 寻找数据来源",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 寻找数据来源",
+      "target": "Grokbot · 抓取并留存证据",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 抓取并留存证据",
+      "target": "Grokbot · 处理冲突、过期与未知",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 处理冲突、过期与未知",
+      "target": "Grokbot · 组装页面",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "section_plan",
+        "conflicts",
+        "unknowns",
+        "identity_check"
+      ],
+      "kind": "control",
+      "branch": "ready",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 组装页面",
+      "target": "Grokbot · 自检",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "page_artifact",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 自检",
+      "target": "Grokbot · 保存并回写",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "page_artifact",
+        "check_report"
+      ],
+      "kind": "control",
+      "branch": "pass",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 处理冲突、过期与未知",
+      "target": "Grokbot · 抓取并留存证据",
+      "fields": [
+        "asset_id"
+      ],
+      "kind": "reference",
+      "branch": "revalidate",
+      "note_zh": "同一制作任务内最多一次的补核/修复参考路径；不构成图上的即时循环或独立任务。",
+      "internal_retry_limit": 1
+    },
+    {
+      "source": "Grokbot · 自检",
+      "target": "Grokbot · 组装页面",
+      "fields": [
+        "asset_id"
+      ],
+      "kind": "reference",
+      "branch": "revise",
+      "note_zh": "同一制作任务内最多一次的补核/修复参考路径；不构成图上的即时循环或独立任务。",
+      "internal_retry_limit": 1
+    },
+    {
+      "source": "候选代币筛选",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id"
+      ],
+      "note_zh": "候选资产 UUID 交给刷新判断。",
+      "branch": ""
+    },
+    {
+      "source": "asset_pages",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id",
+        "page_ref",
+        "updated_at"
+      ],
+      "mapping": {
+        "updated_at": "page_updated_at"
+      },
+      "note_zh": "按候选 UUID 查询当前网页位置及最后成功更新时间。",
+      "branch": ""
+    },
+    {
+      "source": "刷新判断",
+      "target": "Grokbot · 身份核验",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref"
+      ],
+      "note_zh": "Few上游完成首次制作/更新判断与任务派发后交接同一资产、动作和旧网页引用。reason和age_minutes仅用于上游解释/诊断，不传给Grokbot。",
+      "branch": "",
+      "branches": [
+        "first",
+        "due"
+      ]
+    },
+    {
+      "source": "asset_identifiers",
+      "target": "Grokbot · 身份核验",
+      "fields": [
+        "asset_id",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "note_zh": "按 asset_id 读取外部身份映射供 Grokbot 使用；读取不触发制作，真实读取工具尚未接入。",
+      "branch": ""
+    },
+    {
+      "source": "Grokbot · 保存并回写",
+      "target": "asset_pages",
+      "fields": [
+        "asset_id",
+        "saved_page_ref",
+        "saved_at"
+      ],
+      "mapping": {
+        "saved_page_ref": "page_ref",
+        "saved_at": "updated_at"
+      },
+      "note_zh": "仅同资产身份与自检通过且确认保存成功后回写；失败保留旧成功行。",
+      "kind": "write",
+      "config": {
+        "trigger": "none",
+        "completion": "success",
+        "role": "confirmed_asset_page_save",
+        "write_guard": {
+          "status": "success",
+          "require_same_asset": true,
+          "required_nonempty": [
+            "saved_page_ref",
+            "saved_at"
+          ],
+          "reject_stale_completion": true,
+          "identity_check": "confirmed",
+          "selfcheck": "passed"
+        }
+      }
+    }
+  ]
+}

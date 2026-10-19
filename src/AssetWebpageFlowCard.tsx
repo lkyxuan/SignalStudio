@@ -1,4 +1,4 @@
-import spec from '../catalog/asset-grokbot-flow.v1.json';
+import spec from '../catalog/asset-webpage-board.v1.json';
 import pages from '../catalog/asset-pages.v1.json';
 import {BusinessTableRows} from './BusinessTableRows';
 import {ProcessingCardFrame} from './ProcessingCardFrame';
@@ -24,7 +24,7 @@ export function AssetWebpageFlowCard({node,graph,openNode,language}:{node:GraphN
   const outputs=spec.connections.filter(e=>e.source===node.name);
   const provenance=<p className="processing-io-case-caption">{zh?spec.provenance_zh:spec.provenance_en}</p>;
   const settings=<details className="processing-advanced"><summary>{zh?'其他设置 · 字段与契约':'Other settings · fields and contract'}</summary>
-    <p><code>catalog/asset-grokbot-flow.v1.json</code></p>
+    <p><code>catalog/asset-webpage-board.v1.json</code></p>
     <dl className="source-case-inspector-fields">{card.fields.map(f=><div key={f.name}><dt><code>{f.name}</code></dt><dd>{f.label_zh} · {f.type}</dd></div>)}</dl>
   </details>;
   return <ProcessingCardFrame node={node} graph={graph} openNode={openNode} language={language} algorithm={card.algorithm_zh}>
@@ -37,10 +37,15 @@ export function AssetWebpageFlowCard({node,graph,openNode,language}:{node:GraphN
         {rows(card.output_fields,card.key==='decision'?decisions:examples[node.name]??[])}
         {outputs.map(e=><div className="processing-input-source" key={e.target}><div className="processing-input-source-heading">{link(e.target)}</div><p>{e.note_zh}</p></div>)}
         {card.key==='decision'&&<p>{zh?'示例假设网页查询完整成功：无网页的资产进入首次制作；已有网页因更新周期未定而待配置；时间未知的不猜测过期。一天或三天尚未选定。':'The example assumes complete successful reads: missing pages proceed, existing pages wait for an interval, and unknown times need review. Daily versus three-day timing is undecided.'}</p>}
-        {card.key==='grokbot'&&<p>{zh?'内部流程由后续 Grokbot 研究、拆分与升级；本次只约定整体输入输出。示例为未接入，不能更新 #1039。':'Grokbot will research, decompose and version the internal workflow. Only the outer input/output boundary is defined. This unconnected example cannot update #1039.'}</p>}
+
       </section>
     </div>{provenance}
-    {card.key==='grokbot'&&<section className="source-case-inspector-section"><h3>{zh?'需要的两类数据入口 · 尚未接入':'Two required data access paths · unconnected'}</h3>{spec.cards.find(c=>c.key==='grokbot')?.data_access?.map(access=><div key={access.id}><h4>{zh?access.label_zh:access.label_en}</h4><p>{zh?access.description_zh:access.description_en}</p></div>)}</section>}
+    <section className="source-case-inspector-section"><h3>{zh?'职责与交接边界':'Responsibility and handoff'}</h3>
+      <p>{card.owner_zh} · {spec.handoff.owner_zh}</p>
+      <p>{card.internal_notes_zh}</p>
+      <p>{spec.handoff.technical_fields_zh}</p><p>{spec.handoff.scheduling_zh}</p>
+    </section>
+    {'trial_evidence' in card && card.trial_evidence && <details className="processing-advanced"><summary>{zh?'原作者试跑报告 · 未复核':'Author trial report · unverified'}</summary><p>{String(card.trial_evidence.reported_summary_zh)}</p><p>{String(card.trial_evidence.limitation_zh)}</p></details>}
     <section className="execution-trigger"><h3>{zh?'何时处理':'When to process'}</h3><p>{card.trigger_zh}</p></section>{settings}
   </ProcessingCardFrame>;
 }

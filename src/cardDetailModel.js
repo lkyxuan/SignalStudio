@@ -13,7 +13,7 @@ import indicatorSignals from '../catalog/coingecko-indicator-signals.v1.json';
 import sync from '../catalog/supabase-score-sync.v1.json';
 import sources from '../catalog/source-contracts.v1.json';
 import rollup from '../catalog/score-rollup.v1.json';
-import webpageFlow from '../catalog/asset-grokbot-flow.v1.json';
+import webpageFlow from '../catalog/asset-webpage-board.v1.json';
 
 const currentWebpageStep = node => node.card_contract?.config.resource?.asset_webpage_flow && webpageFlow.cards.find(card => card.name === node.name);
 

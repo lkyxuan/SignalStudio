@@ -1,94 +1,119 @@
-# Asset webpage refresh and Grokbot boundary
+# Asset webpage board and Few/Grokbot boundary
 
-Current user decisions: [SS-120](https://app.notion.com/p/3fd038a63d5a81468d9aef141cac8f3f),
-2026-10-19, following [SS-116](https://app.notion.com/p/3fd038a63d5a81a1bbcacd4423528524). Current contracts are `catalog/asset-grokbot-flow.v1.json` and
-`catalog/asset-pages.v1.json`. Delivery is Studio design only, with no crawler, webpage
-reader, generator, scheduler or production business storage deployed by these cards.
+Current design: [SS-124](https://app.notion.com/p/3fe038a63d5a8135be54e95ca97366db), approved 2026-10-19.
+`catalog/asset-webpage-board.v1.json` is the current board definition. Read the board or its
+`GET /api/graph/package` export, including definition references, before implementing in Few.
+Studio is a design workspace, not the business-data service or job runner.
 
-## Current flow
+## Responsibilities and handoff
 
-1. #3027 selects qualified candidate assets from the existing warming, hottest and new-asset
-   boards, using the existing per-board selection rules and deduplicating stable asset UUIDs.
-2. #3029 reads #1039 `asset_pages` by each candidate UUID. A successful complete missing-row
-   lookup means first creation. For an existing page, compare its last successful `updated_at`
-   with the configured whole-page interval. The daily versus three-day interval is undecided
-   and remains null; an existing page cannot be classified as expired without a configured
-   interval. Unknown, malformed or future times and failed/partial reads need review.
-3. Only first-creation or due-update items enter #3045 **Grokbot · 制作或更新资产网页**.
-   Its existing UUID, number and display positions are preserved. Input contains the asset UUID,
-   action, reason, page age and existing webpage reference. The identifiers table is a non-triggering
-   identity lookup, not an execution event.
-4. Grokbot owns research and subsequent execution of the internal production workflow, including
-   gathering token information, finding gaps, organizing content, generating the page and self-checks.
-   These are responsibilities, not a fixed sequence. The two required tool paths are **external APIs/search**
-   and **Few Understand reads of existing entity/material/business data**, both explicitly unconnected.
-   SignalStudio supplies the design workspace and contracts, not the business-data query service.
-   Few Understand's actual interfaces, asset identity mapping and coverage must be verified.
-   Declared catalog fields do not establish collected data or API coverage. Providers, permissions,
-   budgets, data interfaces, validation criteria and prompt/skill details await research.
-5. A design-only write relation maps `asset_id`, `saved_page_ref → page_ref`, `saved_at → updated_at`
-   to #1039. It requires a confirmed successful save for the same asset with nonempty saved reference
-   and time. Failed/unconnected/unconfirmed results do not write. Runtime validation, stale-completion
-   rejection and atomic saving remain unimplemented; the binding guard describes required behavior.
+Few Understand owns candidate selection, page-refresh decisions, and the task dispatch,
+retry/concurrency and result-tracking mechanisms that implement the upstream boundary.
+Grokbot owns the nine internal research/production steps shown in the webpage writer module.
+The module is navigation, not a tenth executable card. It does not start a scheduler.
 
-The old #4004 gap decision, #3046 search, #1024 search cache and #3047 material assembly are removed
-from the active graph. Their former responsibilities are absorbed into Grokbot, and their particular
-schemas, realtime-search policy and ordering are not imposed on its future research. The current
-example returns `unconnected` with no saved location/time and cannot update the record table.
-`workflow_version` identifies the production specification actually used and is null until defined;
-it does not restore a webpage-version ledger. Future workflow revisions should be evaluated on fixed
-samples before adoption. This batch neither writes that workflow nor invokes Grokbot.
+The business handoff contains only:
 
-#1039 holds one current record per asset: `asset_id`, `page_ref`, `updated_at`. The successful
-webpage writer should upsert this row after saving the page; failures preserve its previous
-successful location/time. No page-version ledger, material timestamps, page bodies or JSON
-materials are stored in this table. Runtime stale-result protection must be bound separately.
-Reading a webpage or opening a Studio card does not trigger generation.
+| Field | Meaning |
+| --- | --- |
+| asset_id | Stable UUID for the same asset; verify the mapping to Few's actual identity system |
+| action | generate for first creation, refresh for a due update |
+| page_ref | Existing webpage reference; null is allowed for a confirmed first creation |
 
-The user explicitly retired #1019 `asset_information_content`, #3030 per-information content
-generation and #3031 per-information validation/saving. These cards and their edges are removed
-from the current graph, rather than retained as unused proposals. The active UI does not show
-their per-information keys, task state or 30-minute demonstrations. `content-refresh.v1.json`
-and `search-preparation.v1.json` remain immutable historical installation inputs; they are not
-second current webpage contracts. Source/board definitions unaffected by this cleanup retain
-all existing constraints, including incomplete-reader and identity-coverage limitations.
+`reason` and `age_minutes` remain upstream diagnostic information on #3029; users do not
+supply a separate reason, and these are not Grokbot's required inputs. Research priorities,
+sources, evidence, page artifacts and self-checks are internal to Grokbot. Their card fields
+explain the internal flow; they are not a list of new fields Few must provide.
 
-## Materials and limitations
+Task IDs, claim credentials, attempts, concurrency baselines and execution policies belong to
+Few's task/adapter implementation. Reuse its existing mechanisms; this board does not impose
+`run_id`, `expected_page_ref`, `expected_updated_at`, `started_at` or `policy` as mandatory
+business inputs. Any actual cross-system protocol must be documented and verified at integration.
+`workflow_version` is an optional output naming the specification actually used; unknown stays null.
 
-Materials remain separate from webpage update records. Preserve source attribution, evidence and
-known source times; unknown coverage and timestamps stay explicit. External APIs and internal
-system reads are both needed, but no real reader, search tool, generator, writer or publication
-integration has been verified. Internal workflow decomposition and material/cache schemas belong
-to subsequent Grokbot research. Incremental generation is not an implemented capability.
+## Upstream requirements
 
-The examples contain hypothetical UUIDs and URLs. Observed business records are not supplied.
-The pure page-decision evaluator assumes a complete successful read for examples; it does not query
-storage. Page interval, output validation, concurrency and actual runtime behavior remain unverified.
+#3027 selects qualified confirmed coins from warming, hottest and new-UUID boards under their
+existing complete-batch and ordering rules: up to 20 per board, deduplicated by asset UUID,
+not a full-registry scan. Existing candidate/refresh design calls for successful complete-board
+submission, startup checks and 60-second checks. These are demand checks, separate from worker
+dispatch cadence and the whole-page update interval. Continuous Few operation is not verified.
 
-## Upgrade and verification
+#3029 reads #1039 by candidate UUID. Only a complete successful missing-row lookup means first
+creation. Existing pages become due only with a valid successful updated_at and a configured
+whole-page interval. That interval remains null; do not choose daily, three-day or the retired
+30-minute per-information policy. Failed/partial reads, duplicate records, unknown/malformed/future
+times need review. Only first/due go to Grokbot; skip/review do not execute.
 
-The startup installers first retain their versioned historical setup, then apply SS-116's
-current-page and current-flow upgrades. The final cleanup transaction preserves retained node
-IDs, numbers and positions, removes the three retired cards, remaps only current field usages,
-and updates active definition references. Unknown outside connections, imported records or
-unrelated field usages stop cleanup instead of silently discarding work. Partial changes roll
-back. Successful upgrade markers prevent reinstating retired cards on restart.
+Few's upstream implementation must avoid duplicate active work, recover interrupted work, keep
+retry/concurrency state separate from successful page records, and prevent late/old results from
+overwriting newer success. The exact storage, APIs, credentials, retry policy and dispatch strategy
+remain unbound. Every-hour, batch size two, and generate-always-first are not approved defaults.
 
-`server/asset_grokbot_flow.py` then applies SS-120: it reuses #3045, removes the four internal cards,
-replaces their edges with the Grokbot boundary and guarded record write, and updates active definition
-references. Unknown external edges/field references, requirements or imported cache data stop the
-transaction for review. Other cards and saved display positions remain intact. A one-time description
-upgrade corrects the business-data entry to Few Understand on hosts that loaded the earlier
-SignalStudio wording, per [SS-121](https://app.notion.com/p/3fd038a63d5a8127831ec33d4483da21). `asset-webpage-flow.v1.json` is now a historical installation input.
+## Nine independent writer cards
+
+1. Identity verification: reuse #3045's identity, reference number and saved display positions.
+   It remains a process card with a confirmed-output guard; an unresolved identity stops without
+   composing/saving a placeholder page or modifying global identity records.
+2. Inventory existing Few materials: distinguish actual usable observations, missing inputs,
+   failed reads and unknown coverage; declarations do not establish collected records.
+3. Determine research focus: make an initial evidence-based section plan.
+4. Find sources: supplement gaps, respecting actual tools, permissions and budget.
+5. Fetch and retain evidence: carry readable evidence and provenance in the same production task.
+6. Resolve conflicts/staleness/unknowns: compare the same asset, metric, units and time horizon;
+   use new evidence to revise the section plan where necessary.
+7. Compose page: reuse Few's frontend framework, not a separate app/deployment per asset.
+8. Self-check: require the actual target frontend contract/parser and necessary content checks.
+9. Save and write back: only a confirmed successful save may update #1039.
+
+Internal evidence is shared within the same production task. The evidence and page containers
+are design descriptions, not deployed storage or a fixed new API. Verified usable current Few
+observations can be used directly. Historical evidence does not become current merely because it
+was read now. Foundational facts may be reused only when valid under an explicit freshness policy
+and not invalidated by new evidence. Failed revalidation preserves audit evidence but does not
+turn it into a verified current fact. Unknown source times remain unknown.
+
+Conflict revalidation and formatting repair are each limited to one internal attempt; the board
+shows non-triggering reference paths, not immediate graph execution loops or separate jobs.
+Blocking identity/fact conflicts, unavailable validators or failed repairs terminate with the old
+successful page intact. The same freshness rules apply in self-check. Runtime enforcement is unbound.
+
+## Current webpage record and saving
+
+#1039 still holds one current successful row per asset: asset_id, page_ref, updated_at.
+It does not store task state, evidence, page bodies or a page-version ledger. Only a confirmed
+save of the same asset after identity and self-check approval maps saved_page_ref to page_ref
+and saved_at to updated_at. Queuing, fetching, failures, uncertain saves and retries must not
+change the old successful location/time. An existing page alone does not prove this task succeeded.
+Actual idempotent saving, concurrency validation and atomic/recoverable storage remain unimplemented.
+
+## Implementation and evidence boundaries
+
+The Studio migration, fields, relationships and shared details implement the board presentation.
+No Few readers, jobs, Grokbot tools, production evidence storage, page renderer/parser, saver or
+writeback adapter are connected or verified by that migration. The old draft page-script v2 and
+C1/C3/C6/C7 paths are not established production interfaces.
+
+The nine cards retain original trial summaries as unverified author reports. Their original
+logs, screenshots, artifacts and reported 252 tests are not available in this delivery; they are
+not runtime evidence. UI examples are fictional, not business records.
+
+`asset-grokbot-flow.v1.json` is now a historical installation input, like the retired
+`asset-webpage-flow.v1.json`, `content-refresh.v1.json` and `search-preparation.v1.json`.
+The PR #2 drafts remain research history, not a competing current execution contract.
+SS-124 transactionally adds eight cards, reuses #3045 and replaces its boundary connections.
+Unexpected user edits/connections or requirements stop migration for review;
+version-pinned historical reports remain unchanged and become stale for changed definitions;
+failures roll back. Other card identities and positions remain intact. Startup does not reset layout.
+
+## Verification
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_asset_grokbot_flow server.test_asset_pages server.test_asset_page_refresh_link server.test_asset_webpage_flow server.test_card_model
-npx tsx --test src/assetWebpageDesign.test.ts src/cardDetailModel.test.ts
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_asset_webpage_board server.test_asset_grokbot_flow server.test_asset_webpage_flow server.test_asset_pages server.test_asset_page_refresh_link server.test_card_model
+npx tsx --test src/assetWebpageDesign.test.ts src/featureTree.test.ts src/cardDetailModel.test.ts
 npm run build
-node scripts/check_card_details.mjs /absolute/path/to/current-graph.json
+node scripts/check_card_details.mjs /absolute/path/to/graph.json
 ```
 
-These checks establish card migration, field/edge integrity, design decision boundaries and
-bilingual rendering, not a deployed webpage pipeline. The old `test_content_refresh.py` has
-two pre-existing graph-versus-node `display_positions` equality failures, reproduced on the
-pre-change c5a0076 baseline; they are not evidence of a new page-flow regression.
+These checks establish design migration, field/edge consistency, module visibility and read-only
+rendering. They do not establish real Few execution, source coverage, webpage success or research validity.
