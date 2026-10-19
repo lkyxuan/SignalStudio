@@ -112,9 +112,6 @@ function SourceDetails(props) {
     </details>
   </>;
 }
-function ExistingTableReference({ active, language, children }) {
-  return active ? <details className="processing-advanced"><summary>{words(language,'其他参考 · 既有表行与真实回填','Other references · existing table cases and imported records')}</summary>{children}</details> : <>{children}</>;
-}
 function TableDetails(props) {
   const {node,graph,language,mutate,busy}=props;
   const businessTable = Boolean(businessTables.tables[node.name]) || node.name === currentPages.table.name;
@@ -127,11 +124,10 @@ function TableDetails(props) {
         : words(language,'表结构 · 未回填的真实记录不等于线上表为空','Table structure · missing imported records do not establish empty live storage')}</p>
     {warmingCard(node) && <WarmingDesignPreview {...props}/>}
     {hottestCard(node) && <HottestDesignPreview {...props}/>}
-    {!warmingCard(node) && hasCoinGeckoPreview(node) && <CoinGeckoDesignPreview {...props}/>}
-    {!warmingCard(node) && !hottestCard(node) && <ExistingTableReference active={hasCoinGeckoPreview(node)} language={language}>
+    {!warmingCard(node) && !hottestCard(node) && <>
     {translationCard(node) ? <WorthReadingTranslationCard {...props}/> : special ? contentRefreshCard(node.name) ? <ContentRefreshCard {...props}/> : <LeaderboardScaffoldCard {...props}/>
       : businessTable ? <BusinessTableCard {...props}/> : <GenericTableCard {...props}/>}
-    </ExistingTableReference>}
+    </>}
     <CardConnections {...props}/>
     <details className="processing-advanced"><summary>{words(language,'其他设置 · 存储与表字段','Other settings · storage and fields')}</summary>
       <p>{words(language,'逻辑表定义与物理数据库分别核对；连线不证明已经写入或同步。','Logical table and physical database are checked separately; connections do not establish writes or synchronization.')}</p>

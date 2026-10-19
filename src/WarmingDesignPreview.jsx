@@ -12,15 +12,16 @@ const statuses={accelerating:['增长加快','Accelerating'],steady:['增长速�
 const labels={asset_name:['币','Asset'],rank:['排名','Rank'],total_volume:['当前24h成交额 USD','Current 24h volume USD'],growth_1h:['近1h目标增长率','1h target growth'],warming_multiple:['7日常态倍数','Daily baseline multiple'],growth_change_pp:['增长率变化（百分点）','Growth change (pp)'],growth_change_status:['是否进一步加快','Growth change'],price_direction:['24h价格方向','24h price direction'],hottest_overlap:['假设已在最热榜','Assumed hottest overlap'],warming_status:['指标状态','Metric status'],history_1h_volume:['1h目标24h成交额','1h target 24h volume'],history_2h_volume:['2h目标24h成交额','2h target 24h volume']};
 const pretty=(r,zh)=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v===null?'—':k==='growth_1h'||k==='previous_growth_1h'?`${(v*100).toFixed(2)}%`:k==='warming_multiple'?`${v.toFixed(2)}×`:k==='growth_change_pp'?`${v>=0?'+':''}${v.toFixed(2)} pp`:k==='growth_change_status'?statuses[v]?.[zh?0:1]??v:typeof v==='number'?Number(v.toPrecision(8)):v]));
 export function WarmingDesignPreview({node,graph,language,openNode}) {
-  const key=useSyncExternalStore(subscribe,()=>selected,()=>selected),c=warmingExample(key),entry=warmingCard(node),zh=language==='zh-CN';
+  const selectedKey=useSyncExternalStore(subscribe,()=>selected,()=>selected);
+  const key=node.kind==='table'?'normal':selectedKey,c=warmingExample(key),entry=warmingCard(node),zh=language==='zh-CN';
   if(!entry)return null;
   const link=name=>{const n=graph.nodes.find(n=>n.name===name);return n?<button type="button" onClick={()=>openNode(n.id)}>#{n.reference_number} {n.name}</button>:<code>{name}</code>;};
   const table=(rows,fields)=> <BusinessTableRows table={{primary_key:['asset_id'],columns:fields.map(name=>({name,label_zh:labels[name]?.[zh?0:1]??name}))}} rows={rows.map(r=>pretty(r,zh))} language={language}/>;
   const outputs=entry.key==='baseline'?[{...c.focus,...c.baseline}]:entry.key==='candidates'?c.current:c.batch.rows;
   return <section className="coingecko-design-preview" data-warming-preview={entry.key}>
-    <label className="source-case-inspector-picker">{zh?'升温榜 · 贯通设计案例':'Warming · through-line design case'}
+    {node.kind!=='table' && <label className="source-case-inspector-picker">{zh?'升温榜 · 贯通设计案例':'Warming · through-line design case'}
       <select aria-label={zh?'升温榜设计案例':'Warming design case'} value={key} onChange={e=>selectWarmingCase(e.target.value)}>{warmingCases.map(([id,cn,en])=><option key={id} value={id}>{zh?cn:en}</option>)}</select>
-    </label>
+    </label>}
     <p className="card-detail-provenance">{zh?'纯虚构输入与演算 · 不是采集行情或已写入榜单。打开卡片不执行后台、评分或提醒。':'Synthetic inputs and evaluation · not observed markets or stored ranks. Opening the card runs no backend, score ledger or alerts.'}</p>
     {entry.key==='baseline'?<>
       <h3>{zh?'输入 · 当天观测与历史日目标':'Input · daily context and historical targets'}</h3>

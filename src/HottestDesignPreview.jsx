@@ -15,7 +15,8 @@ function Values({rows,fields,zh}) {
   return rows.map((r,i)=><dl className="source-case-inspector-fields" key={i}>{fields.map((f,j)=><div key={f}><dt><span className="source-case-field-number">{String(j+1).padStart(2,'0')}</span><code>{f}</code></dt><dd><code>{r[f]===undefined?(zh?'设计缺口':'Design gap'):text(r[f])}</code>{r[f]===null&&<small> · {zh?'不可用或本例不适用；参见状态与规则。':'Unavailable or not applicable; see status and rules.'}</small>}</dd></div>)}</dl>);
 }
 export function HottestDesignPreview({node,graph,language,openNode}) {
-  const key=useSyncExternalStore(subscribe,()=>selected,()=>selected),c=hottestExample(key),entry=hottestCard(node),zh=language==='zh-CN';
+  const selectedKey=useSyncExternalStore(subscribe,()=>selected,()=>selected);
+  const key=node.kind==='table'?'normal':selectedKey,c=hottestExample(key),entry=hottestCard(node),zh=language==='zh-CN';
   if(!entry)return null;
   const link=name=>{const n=graph.nodes.find(n=>n.name===name);return n?<button type="button" onClick={()=>openNode(n.id)}>#{n.reference_number} {n.name}</button>:<code>{name}</code>;};
   const schema={primary_key:['asset_id'],columns:entry.fields.map(f=>({name:f.name,label_zh:zh?f.label_zh:f.name}))};
@@ -24,9 +25,9 @@ export function HottestDesignPreview({node,graph,language,openNode}) {
   const output=entry.key==='baseline'?[baselineOutput]:entry.key==='rvol'?[c.focus]:entry.key==='candidates'?c.current:c.batch.rows;
   const inputFields=['asset_name','total_volume','market_cap','volume_to_market_cap','rvol_7d','abs_price_pct','rvol_7d_status'];
   return <section className="coingecko-design-preview" data-hottest-preview={entry.key}>
-    <label className="source-case-inspector-picker">{zh?'交易最热榜 · 贯通设计案例':'Trading heat · through-line design case'}
+    {node.kind!=='table' && <label className="source-case-inspector-picker">{zh?'交易最热榜 · 贯通设计案例':'Trading heat · through-line design case'}
       <select aria-label={zh?'最热榜设计案例':'Hottest design case'} value={key} onChange={e=>selectHottestCase(e.target.value)}>{hottestCases.map(([id,cn,en])=><option key={id} value={id}>{zh?cn:en}</option>)}</select>
-    </label>
+    </label>}
     <p className="card-detail-provenance">{zh?'纯虚构输入与演算 · 六个假设币，不是真实行情或已写入榜单。打开卡片不采集、不加分、不执行后台。':'Synthetic inputs and pure evaluation · six fictional assets, not observed markets or stored ranks. Opening the card does not collect, award or execute.'}</p>
     {['baseline','rvol'].includes(entry.key)?<>
       <p>{zh?'以下基线与RVOL示例聚焦假设币A；排名卡使用完整六币样本。':'Baseline and RVOL focus on Example A; ranking uses the full six-asset cohort.'}</p>
