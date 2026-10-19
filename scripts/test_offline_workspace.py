@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 import shutil
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -22,6 +23,9 @@ class OfflineWorkspaceTest(unittest.TestCase):
             (root / 'src').mkdir()
             shutil.copyfile(ROOT / 'src/layoutPolicy.json', root / 'src/layoutPolicy.json')
             (root / 'data').mkdir()
+            # Migrations require the existing workspace baseline; never write to it.
+            with sqlite3.connect(f'file:{ROOT / "data/logic.db"}?mode=ro', uri=True) as source, sqlite3.connect(root / 'data/logic.db') as target:
+                source.backup(target)
             (root / 'dist').symlink_to(ROOT / 'dist')
             binary = root / 'native-check'
             subprocess.run(['xcrun', 'swiftc', str(ROOT / 'desktop/OfflineWorkspace.swift'),
@@ -38,7 +42,9 @@ class OfflineWorkspaceTest(unittest.TestCase):
                         try:
                             urllib.request.urlopen(endpoint + '/api/desktop-health', timeout=1).close()
                             break
-                        except OSError: time.sleep(.1)
+                        except OSError:
+                            if process.poll() is not None: self.fail((root / 'server.log').read_text())
+                            time.sleep(.1)
                     subprocess.run([str(binary), endpoint, str(root), str(ROOT / 'dist'), 'online'], check=True, timeout=40)
                     process.terminate(); process.wait(timeout=10)
                     # Health responds, but the remote interface stalls: safely choose bundled UI.
@@ -49,7 +55,9 @@ class OfflineWorkspaceTest(unittest.TestCase):
                     for _ in range(150):
                         try:
                             urllib.request.urlopen(endpoint + '/api/desktop-health', timeout=1).close(); break
-                        except OSError: time.sleep(.1)
+                        except OSError:
+                            if process.poll() is not None: self.fail((root / 'server.log').read_text())
+                            time.sleep(.1)
                     subprocess.run([str(binary), endpoint, str(root), str(ROOT / 'dist'), 'offline'], check=True, timeout=40)
                     process.kill(); process.wait(timeout=10)
                     subprocess.run([str(binary), endpoint, str(root), str(ROOT / 'dist'), 'offline'], check=True, timeout=40)

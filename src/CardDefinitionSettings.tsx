@@ -25,7 +25,7 @@ export function CardDefinitionSettings({node,language,busy,mutate}: Props) {
   useEffect(()=>setProperties({name:node.name,definition:node.definition}),[node.id,node.name,node.definition]);
   if (!contract || !config) return null;
   const change = (key:string,value:unknown) => { const next={...config,[key]:value}; setConfig(next);setJsonText(JSON.stringify(next,null,2));setError(''); };
-  return <details className="processing-advanced card-definition-settings">
+  return <details data-workspace-editor="definition" className="processing-advanced card-definition-settings">
     <summary>{zh ? '其他设置 · 卡片定义与就绪检查' : 'Other settings · definition and readiness'}</summary>
     <p>{kindLabel(cardKind(node),language)} · {config.subtype}</p>
     <p>{zh ? '定义完整不代表已经实施、部署或产生数据。运行结果需单独回填证据。' : 'A complete definition does not establish implementation, deployment or observed data. Runtime evidence is reported separately.'}</p>

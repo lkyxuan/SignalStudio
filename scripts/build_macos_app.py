@@ -35,7 +35,7 @@ def build_shared(output, version, revision, updater_config=None):
         shutil.copyfile(sparkle / "LICENSE", resources / "SPARKLE-LICENSE")
         updater = updater_config or configuration()
         subprocess.run(["xcrun", "swiftc", "-O", "-target", "arm64-apple-macos14.0",
-                        str(ROOT / "desktop/SharedConnection.swift"), str(ROOT / "desktop/SharedClient.swift"), str(ROOT / "desktop/OfflineWorkspace.swift"), str(ROOT / "desktop/ClientUpdater.swift"),
+                        str(ROOT / "desktop/SharedConnection.swift"), str(ROOT / "desktop/SharedClient.swift"), str(ROOT / "desktop/QuitProtection.swift"), str(ROOT / "desktop/OfflineWorkspace.swift"), str(ROOT / "desktop/ClientUpdater.swift"),
                         "-F", str(frameworks), "-framework", "Sparkle", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks",
                         "-o", str(binary), "-framework", "Cocoa", "-framework", "WebKit"], check=True)
         with (contents / "Info.plist").open("wb") as file:

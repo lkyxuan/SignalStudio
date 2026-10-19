@@ -22,14 +22,14 @@ import WebKit
         var finishing = false
         let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             let expression = """
-            JSON.stringify({text:document.body.innerText, nodes:document.querySelectorAll('.react-flow__node').length,
+            JSON.stringify({text:document.body.innerText, nodes:document.querySelectorAll('.react-flow__node').length, tiles:document.querySelectorAll('.feature-tile').length,
              storage:window.signalstudioStorage ? 1 : 0})
             """
             view.evaluateJavaScript(expression) { value, error in
                 let text = value as? String ?? ""
                 let expected = args[4] == "online" ? "已连接主机" : (args[4] == "empty" ? "尚无可用快照" : "正在显示本地只读快照")
                 let parsed = text.data(using: .utf8).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-                if text.contains(expected) && (args[4] == "empty" ? (parsed?["nodes"] as? Int ?? -1) == 0 : (parsed?["nodes"] as? Int ?? 0) > 0) && !finishing {
+                if text.contains(expected) && (args[4] == "empty" ? (parsed?["nodes"] as? Int ?? -1) == 0 : ((parsed?["nodes"] as? Int ?? 0) > 0 || (parsed?["tiles"] as? Int ?? 0) > 0)) && !finishing {
                     print("native shell \(args[4]): nodes=\(parsed?["nodes"] ?? 0), snapshots=\(parsed?["storage"] ?? 0)"); passed = true; finishing = true;
                     if args[4] == "online" {
                         let check = """
@@ -37,11 +37,19 @@ import WebKit
                         if (!version || !version.innerText.includes('界面版本')) throw Error('Missing UI version');
                         const href = version.querySelector('a').href;
                         if (!/github.com\\/lkyxuan\\/SignalStudio\\/commit\\/[a-f0-9]{40}$/.test(href)) throw Error('Invalid commit link');
-                        document.querySelector('.view-switch button:last-child').click();
+                        [...document.querySelectorAll('.view-toolbar .view-switch button')].find(button => button.textContent.trim() === '表格').click();
                         await new Promise(resolve => setTimeout(resolve, 200));
                         document.querySelector('tbody tr').click();
                         await new Promise(resolve => setTimeout(resolve, 1200));
                         if (!document.querySelector('.inspector-title') || document.querySelector('.inspector [role=status]')) throw Error('On-demand details did not hydrate');
+                        const inspector = document.querySelector('.inspector');
+                        const picker = document.createElement('select');
+                        picker.innerHTML = '<option>a</option><option>b</option>';
+                        inspector.append(picker); picker.value = 'b';
+                        picker.dispatchEvent(new Event('change', {bubbles:true}));
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        if (window.signalstudioQuitState() !== 'safe') throw Error('Read-only picker marked dirty');
+                        picker.remove();
                         document.querySelector('.inspector-head button').click();
                         const original = window.fetch;
                         window.fetch = async (input, options) => {
@@ -84,7 +92,37 @@ import WebKit
                         panel.querySelector('.modal-header button').click();
                         await new Promise(resolve => setTimeout(resolve, 100));
                         if (input.value !== 'SS-59 unsaved draft') throw Error('Closing update panel discarded draft');
-                        return 'retry recovery, version panel and unsaved quit protection passed';
+                        document.querySelector('.modal-header button').click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        if (window.signalstudioQuitState() !== 'safe') throw Error('Cancelled modal left phantom edits');
+                        document.querySelector('.top-actions .button-primary').click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        document.querySelector('.modal-footer .button-primary').click();
+                        const until = async predicate => {
+                          for(let i=0;i<50;i++) { if(predicate()) return; await new Promise(r=>setTimeout(r,100)); }
+                          throw Error('Quit UI test did not settle: '+document.body.innerText.slice(-1800));
+                        };
+                        await until(() => !document.querySelector('.modal-backdrop') && document.querySelector('.inspector textarea[data-workspace-editor]'));
+                        const editor = document.querySelector('.inspector textarea[data-workspace-editor]');
+                        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(editor, 'SS125 persisted definition');
+                        editor.dispatchEvent(new Event('input',{bubbles:true}));
+                        editor.dispatchEvent(new Event('change',{bubbles:true}));
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        if(window.signalstudioQuitState() !== 'draft') throw Error('Real edit not protected');
+                        const settings = editor.closest('details'); settings.open = false;
+                        window.dispatchEvent(new Event('signalstudio-reveal-draft'));
+                        if(!settings.open || document.activeElement !== editor) throw Error('Draft was not revealed');
+                        document.querySelector('.inspector-footer .button-primary').click();
+                        await until(() => window.signalstudioQuitState() === 'safe');
+                        const graph = await (await fetch('/api/graph')).json();
+                        const saved = graph.nodes.find(node => node.name === 'SS-59 unsaved draft');
+                        if(saved?.decision_question !== 'SS125 persisted definition') throw Error('Saved purpose missing from backend');
+                        document.querySelector('.inspector-head button').click();
+                        await new Promise(resolve => setTimeout(resolve,100));
+                        [...document.querySelectorAll('tbody tr')].find(row => row.innerText.includes('SS-59 unsaved draft')).click();
+                        await until(() => document.querySelector('.inspector textarea[data-workspace-editor]')?.value === 'SS125 persisted definition');
+                        if(window.signalstudioQuitState() !== 'safe') throw Error('Reopened saved editor blocked quit');
+                        return 'read-only selection, modal cancel, dirty edit, reveal, save and reopen quit checks passed';
                         """
                         view.callAsyncJavaScript(check, arguments: [:], in: nil, in: .page) { result in
                             switch result {

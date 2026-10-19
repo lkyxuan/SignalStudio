@@ -6,7 +6,14 @@
 
 共享版默认自动检查、下载和校验更新，正常退出时安装；“检查更新…”在新版就绪后可请求安装并重启。已下载的更新等待正常退出，不以定时器主动退出工作台。用户可从原生菜单“自动更新设置…”或更新面板关闭自动更新。Sparkle 的检查周期默认一天；手动检查不要求等待周期。
 
-正常退出、关闭窗口以及 Sparkle 请求退出都通过 `applicationShouldTerminate` 检查当前工作台的 `signalstudioQuitState()`。未保存编辑、拖拽、排队/进行中的写入、未关闭的新节点/提议窗口和 busy 状态阻止退出，要求回工作台保存；明确识别为草稿且无写入进行时，可由用户选择“放弃草稿并退出”。未知状态或进行中的操作不提供放弃按钮。已加载界面无法提供草稿状态时也阻止退出。此保护不覆盖强制结束、崩溃或系统断电。
+正常退出、关闭窗口以及 Sparkle 请求退出都通过 `applicationShouldTerminate` 检查当前工作台。按 [SS-125](https://app.notion.com/p/3fe038a63d5a8155a5c6f8825c77cdb4) 的批准范围，退出检查分为：
+
+- `safe`：直接退出。
+- `draft`：说明当前编辑的保存入口，提供“返回并定位编辑”和“放弃草稿并退出”。返回会展开并定位最近编辑的控件；新节点与提议窗口优先。放弃前重新检查，避免在新写入进行时退出。
+- `busy`：说明拖动、排队/进行中的写入或操作仍在处理，提供返回与重新检查，不将其误报成需要另找保存按钮。
+- 缺失、异常、未知或超过4秒未回复：显示“无法确认工作台保存状态”，提供返回、重新检查及“仍然退出…”。后者重新检查后另行提示可能丢失未保存内容，用户再次确认才退出；页面恢复为草稿或写入中时重新按当前状态处理。旧页面只有 `signalstudioCanQuit()` 时兼容其布尔状态。
+
+页面只在实际编辑控件变更时标记草稿，阅读案例/记录选择器不标记；新节点和提议窗口通过打开状态保护，取消后不留下编辑标记。此保护不覆盖强制结束、崩溃或系统断电，也不能从未知状态证明内容已保存。共享工作台刷新仍只接受明确的 `safe` 状态。
 
 更新校验与安装由 Sparkle 执行，不在网页执行下载文件或 shell 命令。原生桥 `clientUpdater` 仅接受已配置工作台或该工作台专属备用界面的主框架请求，动作仅为 `status`、`check`、布尔值 `automatic`。其他来源/子框架/动作拒绝。安装前仍经过退出保护。
 
@@ -51,7 +58,7 @@ python3 scripts/package_macos_release.py --version X.Y.Z --output /tmp/release/d
 
 ```bash
 python3 -m unittest scripts.test_update_status scripts.test_dev_runtime server.test_desktop_server
-python3 -m unittest scripts.test_client_bridge scripts.test_client_update
+python3 -m unittest scripts.test_client_bridge scripts.test_client_update scripts.test_quit_protection
 SIGNALSTUDIO_TEST_APP=/tmp/release/SignalStudio.app python3 -m unittest scripts.test_shared_client
 python3 -m unittest scripts.test_offline_workspace
 npm run build

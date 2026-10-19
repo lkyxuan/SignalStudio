@@ -59,7 +59,7 @@ export function NodeIOOverview({ node, graph, openEdge, openNode, language, node
 function FieldEditor({ initial, onSave, onCancel, busy, language }) {
   const [draft, setDraft] = useState(initial);
   const t = text => translate(language, text);
-  return <div className="field-editor">
+  return <div data-workspace-editor="field" className="field-editor">
     <div className="field-editor-row"><label>{t('Field name')}<input aria-label={t('Field name')} autoFocus value={draft.name} placeholder={t('e.g. author_id')} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>{t('Data type')}<input aria-label={t('Data type')} value={language === 'zh-CN' && draft.data_type === initial.data_type ? t(draft.data_type) : draft.data_type} placeholder={t('Text / Integer / Timestamp')} onChange={e => setDraft({ ...draft, data_type: e.target.value })} /></label></div>
     <label>{t('Definition')}<textarea aria-label={t('Field definition')} rows="2" value={draft.definition} placeholder={t('What does this field mean?')} onChange={e => setDraft({ ...draft, definition: e.target.value })} /></label>
     <div className="field-contract-heading"><strong>{t('Output contract')}</strong><button type="button" onClick={() => setDraft({ ...draft, data_type: 'Decimal', unit: '%', min_value: 0, max_value: 100 })}>{t('Set as percentage (0–100)')}</button></div>
@@ -196,7 +196,7 @@ export function EdgeMappingPanel({ edge, sourceNode, targetNode, sourceFields, m
       </>}
       <div className="message-payload-fields"><strong>Headers · {messageHeaders.length}</strong>{messageHeaders.length ? messageHeaders.map((header, index) => <div key={header.name}><code>{String(index + 1).padStart(2, '0')} · {header.name}</code><span>{header.description}</span></div>) : <p>{language === 'zh-CN' ? '尚未定义 Headers' : 'No Headers defined yet'}</p>}</div>
     </section>}
-    {!isTableAccess && <details className="edge-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>
+    {!isTableAccess && <details data-workspace-editor="edge" className="edge-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>
       <div className="transport-editor">
         <label>{language === 'zh-CN' ? '分支名称' : 'Branch label'}<input value={edgeDraft.branch_label} placeholder={language === 'zh-CN' ? '例如：已匹配' : 'e.g. Matched'} onChange={e => setEdgeDraft({ ...edgeDraft, branch_label: e.target.value })} /></label>
         <label>{t('Transport method')}<select value={edgeDraft.transport_kind} onChange={e => setEdgeDraft({ ...edgeDraft, transport_kind: e.target.value })}><option value="unspecified">{t('Unspecified')}</option><option value="direct">{t('Direct')}</option><option value="redpanda">{t('Redpanda')}</option></select></label>

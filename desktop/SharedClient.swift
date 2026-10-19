@@ -221,18 +221,76 @@ final class SharedClient: NSObject, NSApplicationDelegate, WKNavigationDelegate,
     // Ask the current editor at termination time, rather than trusting an old dirty flag.
     private func approveQuit(_ reply: @escaping (Bool) -> Void) {
         guard loaded else { reply(true); return }
-        guard let url = webView.url, trustedWorkspace(url) else { reply(false); return }
-        webView.evaluateJavaScript("typeof window.signalstudioQuitState === 'function' ? window.signalstudioQuitState() : null") { value, error in
-            if error == nil && value as? String == "safe" { reply(true); return }
+        QuitProtection.check(evaluate: { callback in
+            guard let url = self.webView.url, self.trustedWorkspace(url) else { callback(nil, nil); return }
+            self.webView.evaluateJavaScript(QuitProtection.query, completionHandler: callback)
+        }) { state, hint in
+            if state == .safe { reply(true); return }
             let alert = NSAlert()
-            alert.messageText = "先保存工作台编辑"
-            alert.informativeText = "还有未保存编辑或正在进行的操作，或当前界面无法确认草稿状态。请保存后再退出或安装更新；更新可以稍后安装。"
-            alert.addButton(withTitle: "返回工作台")
-            let canDiscard = error == nil && value as? String == "draft"
-            if canDiscard { alert.addButton(withTitle: "放弃草稿并退出") }
-            alert.beginSheetModal(for: self.window) { response in reply(canDiscard && response == .alertSecondButtonReturn) }
+            switch state {
+            case .draft:
+                alert.messageText = "工作台有未保存的编辑"
+                alert.informativeText = hint.isEmpty ? "返回后请在当前编辑区域点击保存；新节点需点击“创建节点”，提议需确认应用。也可以放弃未保存内容并退出。" : hint
+                alert.addButton(withTitle: "返回并定位编辑")
+                alert.addButton(withTitle: "放弃草稿并退出")
+            case .busy:
+                alert.messageText = "工作台正在处理操作"
+                alert.informativeText = "正在拖动、保存或等待操作完成。请先结束拖动并等待结果，再重新检查；此时不需要另找保存按钮。"
+                alert.addButton(withTitle: "返回工作台")
+                alert.addButton(withTitle: "重新检查")
+            default:
+                alert.messageText = "无法确认工作台保存状态"
+                alert.informativeText = "当前页面没有响应或不支持状态检查，这不代表存在未保存编辑。可返回检查或重新检查；仍要退出时，未保存内容可能丢失，已保存到主机的数据不会被删除。"
+                alert.addButton(withTitle: "返回工作台")
+                alert.addButton(withTitle: "重新检查")
+                alert.addButton(withTitle: "仍然退出…")
+            }
+            alert.beginSheetModal(for: self.window) { response in
+                if state == .draft {
+                    if response == .alertSecondButtonReturn { self.confirmDiscard(reply); return }
+                    if let url = self.webView.url, self.trustedWorkspace(url) {
+                        self.webView.evaluateJavaScript("window.dispatchEvent(new Event('signalstudio-reveal-draft'));")
+                    }
+                } else if response == .alertSecondButtonReturn {
+                    // The sheet must close before presenting the next one.
+                    DispatchQueue.main.async { self.approveQuit(reply) }; return
+                } else if response == .alertThirdButtonReturn {
+                    self.confirmUnknownQuit(reply); return
+                }
+                reply(false)
+            }
         }
     }
+    private func confirmDiscard(_ reply: @escaping (Bool) -> Void) {
+        // Re-read: a write may have started while the user considered the sheet.
+        DispatchQueue.main.async {
+            QuitProtection.check(evaluate: { callback in
+                guard let url = self.webView.url, self.trustedWorkspace(url) else { callback(nil, nil); return }
+                self.webView.evaluateJavaScript(QuitProtection.query, completionHandler: callback)
+            }) { state, _ in
+                if state == .safe || state == .draft { reply(true) }
+                else { self.approveQuit(reply) }
+            }
+        }
+    }
+    private func confirmUnknownQuit(_ reply: @escaping (Bool) -> Void) {
+        DispatchQueue.main.async {
+            // If the page recovered, honor its current draft/write protection.
+            QuitProtection.check(evaluate: { callback in
+                guard let url = self.webView.url, self.trustedWorkspace(url) else { callback(nil, nil); return }
+                self.webView.evaluateJavaScript(QuitProtection.query, completionHandler: callback)
+            }) { state, _ in
+                guard state == .unknown else { self.approveQuit(reply); return }
+                let alert = NSAlert()
+                alert.messageText = "退出并承担未保存内容丢失的风险？"
+                alert.informativeText = "无法验证当前页面。退出可能丢失尚未保存的编辑；已保存在主机上的数据会保留。"
+                alert.addButton(withTitle: "返回工作台")
+                alert.addButton(withTitle: "退出，可能丢失未保存内容")
+                alert.beginSheetModal(for: self.window) { response in reply(response == .alertSecondButtonReturn) }
+            }
+        }
+    }
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         NSApp.terminate(nil); return false
     }
