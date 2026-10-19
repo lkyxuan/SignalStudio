@@ -11,7 +11,9 @@ fixed 300×160 geometry shell and persistent handles in every mode. Outside the 
 180 screen pixels, its complex content is unmounted, rather than merely CSS-hidden. Visible
 cards below zoom 0.45 mount a light reference/title summary without badges, icons or definitions;
 at zoom 0.45 and above they mount the standard detailed content. Node IDs, positions, dimensions
-and handle geometry do not change with the render mode. Search, keyboard selection, dragging,
+and handle geometry do not change with the render mode. Initial fit waits for the complete
+mounted geometry; later content updates do not reset the viewport. Pending complete-route
+navigation is also fitted after geometry initializes. Search, keyboard selection, dragging,
 fitView, long arcs and minimap still use the complete logical/display graph.
 
 This is content virtualization, not removal of every offscreen ReactFlow wrapper: lightweight

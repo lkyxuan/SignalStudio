@@ -538,7 +538,8 @@ function App() {
   };
   const canvasActions = useCanvasActions({
     nodesChange: onNodesChange, edgesChange: onEdgesChange,
-    init: instance => { setFlowInstance(instance); if (pendingRoute.current) { const route = traceRoute(towerView.nodes, towerView.edges, pendingRoute.current); pendingRoute.current = null; requestAnimationFrame(() => instance.fitView({ nodes: [...route.nodeIds].map(id => ({id})), padding: 0.2, maxZoom: 0.85, duration: 250 })); } },
+    init: instance => setFlowInstance(instance),
+    ready: instance => { if (pendingRoute.current) { const route = traceRoute(towerView.nodes, towerView.edges, pendingRoute.current); pendingRoute.current = null; instance.fitView({ nodes: [...route.nodeIds].map(id => ({id})), padding: 0.2, maxZoom: 0.85, duration: 250 }); } else instance.fitView({ padding: 0.16, maxZoom: 0.75 }); },
     nodeClick: (event, node) => { if (node.type === 'logic') cardClicks.current.single(() => openNode(node.id), event.detail); },
     nodeDoubleClick: (_, node) => { if (node.type === 'logic') showRoute(node.id); },
     edgeEnter: (_, edge) => { if (!movingCanvas.current) setHoveredEdgeId(logicalEdgeId(edge.id)); },
