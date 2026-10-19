@@ -59,7 +59,7 @@ export const FeatureWorkspace = memo(function FeatureWorkspace({graph, presentat
         <strong>{zh?item.zh:item.en}</strong><span>{count(item.nodes)} {word('张卡片','cards')}{typeFilter!=='All types'&&` · ${hits(item.nodes)} ${word('类型匹配','type matches')}`}</span>
         {'steps' in item && <small>{(item as Feature).steps.filter(s=>s.nodes.length).map(s=>zh?s.zh:s.en).join(' · ')}</small>}
       </button>)}</div>
-      {feature?.id==='webpage'&&!feature.nodes.some(n=>n.name==='Grokbot · 制作或更新资产网页')&&<p className="feature-note">{word('网页制作步骤尚未创建；当前资料流程结束于“组装生成资料”。','The webpage writer is not defined; preparation ends at material assembly.')}</p>}
+      {feature?.id==='webpage'&&!feature.steps.some(s=>s.id==='writer'&&s.nodes.length>0)&&<p className="feature-note">{word('本模块尚无网页制作卡片，需先补齐设计。','This module has no webpage writer cards; define the design first.')}</p>}
     </> : <>
       <div className="feature-scope-status" role="status">{word(`当前展开 ${ids.size} 张逻辑卡；其他功能的完整卡片未挂载。`,`Showing ${ids.size} logical cards; other feature cards are not mounted.`)}</div>
       {scoped.nodes.length ? <div className="feature-canvas" key={`${feature!.id}/${step.id}`}><GraphCanvas nodes={scoped.nodes} edges={scoped.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} labels={labels} actions={actions} miniMapColor={miniMapColor}/></div> : <p>{word('当前工作线下没有卡片，可切换总览查看。','No cards in this workflow path. Switch to Overview.')}</p>}
