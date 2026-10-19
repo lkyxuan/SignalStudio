@@ -28,7 +28,7 @@ import { nodeRef, edgeRef, usageRef, IDENTITY_REFS } from './graphRefs';
 import { createCardClickDispatcher } from './cardClicks';
 import { coinGeckoProductStages } from './coinGeckoProductLayout';
 import { LAYOUT_VERSION, autoLayout, layoutGroups, traceRoute, layoutStages } from './autoLayout';
-import { crawlerPresentation, displayPositionUpdate } from './crawlerPresentation';
+import { crawlerPresentation, displayPositionUpdate, currentPresentationEdges } from './crawlerPresentation';
 import { neighborLayout } from './neighborLayout';
 import { arcStyles, bezierRoute, bezierControls } from './edgeRouting';
 import { arcBounds } from './canvasViewport';
@@ -416,7 +416,7 @@ function App() {
   const occurrenceRoute = focusNodeId ? traceRoute(towerView.nodes, towerView.edges, routeStart) : null;
   const hasGraphFocus = emphasis.active && !highlightingType;
   const displayNodes = [...nodes.map(n => { const id = n.data.id; const related = occurrenceRoute ? occurrenceRoute.nodeIds.has(n.id) : relatedNodeIds.has(id); return { ...n, hidden: !filteredIds.has(id), className: highlightingType ? typeMatchIds.has(id) ? 'graph-type-match' : '' : id === focusNodeId ? 'graph-search-target graph-route-focus' : hasGraphFocus ? related ? 'graph-related' : 'graph-dimmed' : searchMatchIds.has(id) ? 'graph-search-target' : '' }; }), ...groupLabels];
-  const displayEdges = edges.map(e => {
+  const displayEdges = currentPresentationEdges(edges, visualEdges, edgeMeanings).map(e => {
     const meaning = edgeMeanings.get(logicalEdgeId(e.id));
     const color = ({ read: 'var(--ss-blue)', write: 'var(--ss-success)', trigger: 'var(--ss-purple)', error: 'var(--ss-error)', data: 'var(--ss-muted)' })[meaning.tone];
     return { ...e,

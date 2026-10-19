@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout, crawlerLayout, traceRoute, type LayoutNode } from './autoLayout';
-import { crawlerPresentation, displayPositionUpdate } from './crawlerPresentation';
+import { crawlerPresentation, displayPositionUpdate, currentPresentationEdges } from './crawlerPresentation';
 import { arcStyles } from './edgeRouting';
 
 const node = (id: string, kind = 'process', name = id): LayoutNode & { position_x: number; position_y: number; reference_number: number; definition: string } =>
@@ -176,4 +176,16 @@ test('CoinGecko product lines keep outputs nearby while preserving shared output
   assert.deepEqual(new Set(view.edges.map(e => e.logicalEdgeId)),new Set(edges.map(e => e.id)));
   assert.equal(view.nodes.filter(n => n.logicalId === 'hot' && n.id === 'hot').length,1);
   assert.equal(view.nodes.filter(n => n.logicalId === 'new-rank' && n.towerId === 'kaito').length,1);
+});
+
+
+test('a replaced graph drops stale ReactFlow edges until occurrence state catches up',()=>{
+ const retained={id:'retained'}, removed={id:'old-boundary'}, fresh={id:'new-boundary'};
+ const visuals=new Map([['retained',{logicalEdgeId:'retained-relation'}],['new-boundary',{logicalEdgeId:'new-relation'}]]);
+ const meanings=new Map([['retained-relation',{tone:'data'}],['new-relation',{tone:'write'}]]);
+ const oldLocal=[retained,removed];
+ assert.deepEqual(currentPresentationEdges(oldLocal,visuals,meanings),[retained]);
+ assert.deepEqual(oldLocal,[retained,removed]);
+ assert.deepEqual(currentPresentationEdges([retained,fresh],visuals,meanings),[retained,fresh]);
+ assert.deepEqual(currentPresentationEdges([fresh],visuals,new Map()),[]);
 });

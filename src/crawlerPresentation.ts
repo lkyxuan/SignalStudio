@@ -48,3 +48,14 @@ export function displayPositionUpdate<N extends PositionedNode & { logicalId: st
     id: n.id, position_x: n.position_x, position_y: n.position_y,
   })), position: { id, position_x: position.x, position_y: position.y } };
 }
+
+// ReactFlow's local edge state can lag one render behind a replaced graph.
+// Do not interpret a removed occurrence using the new graph's relationship map.
+export function currentPresentationEdges<E extends { id: string }>(
+  edges: E[], visualEdges: ReadonlyMap<string, { logicalEdgeId: string }>, meanings: ReadonlyMap<string, unknown>,
+) {
+  return edges.filter(edge => {
+    const current = visualEdges.get(edge.id);
+    return current !== undefined && meanings.has(current.logicalEdgeId);
+  });
+}
