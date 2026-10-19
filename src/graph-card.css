@@ -27,3 +27,21 @@
 .logic-node .shared-card-badge{display:inline-block;margin-left:6px;padding:0 4px;border:1px solid var(--ss-node-border);border-radius:4px;color:var(--ss-muted);font-size:9px;font-weight:500;line-height:16px;vertical-align:1px}
 .logic-node .node-name-text{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .logic-node .node-definition{height:32px;flex:none;line-height:16px;margin:0;overflow-wrap:anywhere}
+
+/* Fixed geometry and persistent handles keep saved positions and arc endpoints
+   unchanged as detailed content mounts/unmounts across viewport/zoom changes. */
+.logic-node[data-render-mode="overview"],
+.logic-node[data-render-mode="hidden"]{box-shadow:none;transition:none}
+.logic-node[data-render-mode="overview"]{background:var(--ss-raised)}
+.logic-node[data-render-mode="overview"].source,
+.logic-node[data-render-mode="overview"].identity,
+.logic-node[data-render-mode="overview"].state{background:var(--ss-blue-soft)}
+.logic-node[data-render-mode="overview"].derived,
+.logic-node[data-render-mode="overview"].topic{background:var(--ss-purple-soft)}
+.logic-node[data-render-mode="overview"].metric{background:var(--ss-success-soft)}
+.logic-node[data-render-mode="overview"].score{background:var(--ss-accent-soft)}
+.logic-node[data-render-mode="overview"].ranking,
+.logic-node[data-render-mode="overview"].cache{background:var(--ss-pink-soft)}
+.node-overview{padding:16px;display:flex;flex-direction:column;gap:8px;overflow:hidden;line-height:1.2}
+.node-overview>span{font-size:22px;color:var(--ss-muted)}
+.node-overview>strong{font-size:26px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}

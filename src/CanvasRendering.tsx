@@ -1,15 +1,23 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, useStore, useStoreApi, useReactFlow } from '@xyflow/react';
-import { inCanvasView, frameThrottle, type Rect } from './canvasViewport';
+import { canvasRenderMode, inCanvasView, frameThrottle, type Rect } from './canvasViewport';
+export function useCanvasNodeMode(id: string) {
+  return useStore(useCallback(s => {
+    const node = s.nodeLookup.get(id);
+    if (!node) return 'overview';
+    return canvasRenderMode({ ...node.internals.positionAbsolute,
+      width: node.measured?.width ?? 300, height: node.measured?.height ?? 160 }, s);
+  }, [id]));
+}
+export function useCanvasEdgeMode(rect: Rect) {
+  return useStore(useCallback(s => canvasRenderMode(rect, s), [rect.x, rect.y, rect.width, rect.height]));
+}
 export function useCanvasNodeVisible(id: string) {
   return useStore(useCallback(s => {
     const node = s.nodeLookup.get(id);
     if (!node?.measured.width || !node.measured.height || node.dragging || node.selected) return true;
     return inCanvasView({ ...node.internals.positionAbsolute, width: node.measured.width, height: node.measured.height }, s);
   }, [id]));
-}
-export function useCanvasEdgeVisible(rect: Rect) {
-  return useStore(useCallback(s => inCanvasView(rect, s), [rect.x, rect.y, rect.width, rect.height]));
 }
 const MapNode = memo(function MapNode({x,y,width,height,color}: Rect & {color:string}) {
   return <rect x={x} y={y} width={width} height={height} rx={5} fill={color} />;

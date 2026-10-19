@@ -6,15 +6,25 @@ The complete saved graph remains authoritative for search, relationships and per
 canvas mode it also supplies fitView and the minimap. Scoped canvases fit and map only their mounted
 entities. Viewport rendering never edits saved positions or relationships.
 
-Cards and group labels outside the viewport plus 180 screen pixels use CSS visibility rather than
-unmounting. Their measured dimensions and handles remain available to ReactFlow, preserving edge
-endpoints and initial measurement. Selected/dragging cards and unmeasured geometry remain visible.
-This reduces painting, not DOM size or every ReactFlow subscription. It intentionally avoids stock
-endpoint-only edge culling, which can omit a visible custom bow with both endpoints offscreen.
+The complete map is the default (SS-118 correction approved 2026-10-19). A card uses its
+fixed 300×160 geometry shell and persistent handles in every mode. Outside the viewport plus
+180 screen pixels, its complex content is unmounted, rather than merely CSS-hidden. Visible
+cards below zoom 0.45 mount a light reference/title summary without badges, icons or definitions;
+at zoom 0.45 and above they mount the standard detailed content. Node IDs, positions, dimensions
+and handle geometry do not change with the render mode. Search, keyboard selection, dragging,
+fitView, long arcs and minimap still use the complete logical/display graph.
+
+This is content virtualization, not removal of every offscreen ReactFlow wrapper: lightweight
+geometry shells, handles and group labels remain mounted for measurement and endpoint stability.
+Viewport store selectors return a primitive mode so detailed cards do not rerender on every pan
+notification while staying in the same mode. It intentionally avoids stock endpoint-only edge
+culling, which can omit a visible custom bow with both endpoints offscreen.
 
 Custom edge content outside a conservative cubic control-point bounding box is omitted. The bound
 includes label padding. Edges crossing the viewport remain eligible even with offscreen endpoints;
 uncertain geometry stays visible. Bounds may retain extra edges rather than risk missing a curve.
+Below zoom 0.45, visible edges keep their paths, hit areas and original click actions but omit
+labels and markers. Zooming in restores the original semantic labels, arrows and styles.
 
 Memoized card/edge components and the graph presentation batch reuse references across unrelated
 parent updates. During viewport movement, edge hover changes are suppressed and existing transient
@@ -42,7 +52,8 @@ build/update; this frontend delivery updates the online workspace without publis
 
 Approved 2026-10-19: [SS-118](https://app.notion.com/p/3fd038a63d5a812fa3b9f9ae8cc626f9).
 
-The default view is feature summaries → subfeature summaries → cards. Summary levels mount no
+The optional functional directory is feature summaries → subfeature summaries → cards.
+It was the default in 7205f46; the user clarified that the complete map should remain the default. Summary levels mount no
 ReactFlow canvas. A subfeature passes only its member display occurrences and internal edges to
 ReactFlow; it does not merely hide the other full cards. Initial memberships are declared in
 `src/featureTree.ts` by exact saved names, with six business features and a shared resource library.
@@ -72,3 +83,10 @@ Verification includes feature coverage, unknown-card fallback, immutable scoping
 search tests in `featureTree.test.ts`, plus the existing contract/layout/build checks. Use an isolated
 copy of current data for drag/save tests. DOM mount counts and Chromium main-thread diagnostics
 show reduced work, not universal smoothness or native WKWebView frame guarantees.
+
+For the corrected map, verify overview/detail/hidden transitions in `canvasViewport.test.ts` and
+browser-check that offscreen shells have no `.node-top`/`.node-body`, low zoom has no detailed
+edge labels and all modes retain 300×160 card bounds. Check pan-out/pan-back, zoom round-trips,
+long bows with offscreen endpoints, search/field relations, minimap navigation, draft typing and
+independent drag/save/refresh on isolated current data. Compare equivalent viewport paths on the
+same production graph. Native interaction checks and Chromium diagnostics must remain distinct.

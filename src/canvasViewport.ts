@@ -1,6 +1,14 @@
 import { bezierControls, type RouteLink } from './edgeRouting';
 export type Rect = { x: number; y: number; width: number; height: number };
 export type CanvasView = { transform: [number, number, number]; width: number; height: number };
+export const CARD_DETAIL_ZOOM = 0.45;
+export type CanvasRenderMode = 'hidden' | 'overview' | 'detail';
+// Keep geometry in ReactFlow, but mount expensive card/edge content only where
+// useful. A full-map fit must not mount every detailed card at once.
+export function canvasRenderMode(rect: Rect, view: CanvasView): CanvasRenderMode {
+  if (!inCanvasView(rect, view)) return 'hidden';
+  return view.width > 0 && view.height > 0 && view.transform[2] >= CARD_DETAIL_ZOOM ? 'detail' : 'overview';
+}
 // Screen-space overscan prevents flicker at the viewport boundary. Unknown geometry
 // stays visible so initial measurement and fitView retain the complete graph.
 export function inCanvasView(rect: Rect, view: CanvasView, padding = 180): boolean {

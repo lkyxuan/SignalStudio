@@ -1,8 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { arcBounds, frameThrottle, inCanvasView } from './canvasViewport';
+import { arcBounds, canvasRenderMode, CARD_DETAIL_ZOOM, frameThrottle, inCanvasView } from './canvasViewport';
 import { bezierControls, type RouteLink } from './edgeRouting';
 const view={transform:[0,0,1] as [number,number,number],width:800,height:600};
+test('full-map zoom mounts summaries; panning and zooming only detail visible cards without changing geometry',()=>{
+  const card={x:100,y:100,width:300,height:160};
+  const far={...card,x:5000};
+  const before=JSON.stringify([card,far]);
+  assert.equal(canvasRenderMode(card,{...view,transform:[0,0,.03]}),'overview');
+  assert.equal(canvasRenderMode(card,{...view,transform:[0,0,CARD_DETAIL_ZOOM-.001]}),'overview');
+  assert.equal(canvasRenderMode(card,{...view,transform:[0,0,CARD_DETAIL_ZOOM]}),'detail');
+  assert.equal(canvasRenderMode(far,view),'hidden');
+  assert.equal(canvasRenderMode(far,{...view,transform:[-5000,0,1]}),'detail');
+  assert.equal(canvasRenderMode(card,{...view,transform:[-5000,0,1]}),'hidden');
+  assert.equal(canvasRenderMode(far,{...view,width:0,height:0}),'overview');
+  assert.equal(JSON.stringify([card,far]),before);
+});
 test('viewport culling handles zoom, overscan, crossing rectangles and unknown first measurements',()=>{
   assert.equal(inCanvasView({x:900,y:100,width:50,height:50},view),true);
   assert.equal(inCanvasView({x:1200,y:100,width:50,height:50},view),false);
