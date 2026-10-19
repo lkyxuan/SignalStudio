@@ -1,152 +1,64 @@
-# 资产页 Agent 流程 v0.1：按时效分层的数据获取、缓存与刷新
+# 资产网页制作九卡契约草稿 v0.1
 
-> 草案 / 提议。定位：**研究页**——资料同时来自 FU 内部和外部网站。核心规则：把数据按时效分成两类，用不同方式获取和刷新：
-> - **(a) 时效资料**（新闻、近期事件、社交讨论、行情变动）：**每次刷新都重新抓**，每次结果都可能不同；
-> - **(b) 基础资料**（是什么、链/合约、官方链接、代币经济、团队、基础指标）：**抓一次、带 `retrieved_at` 缓存、之后复用**，按长周期重新核实。
->
-> 本文是对 `grokbot-prompt-skill-outline.md` 第 3 节流程的细化（以本文为准）。所有周期数值都是**占位值**，等用户确认。原型里的 MOCK 数据已按这个分类标注（见第 7 节）。
+配套机器定义：`asset-research-cards.draft.v0.json`。本文件描述本批修正后的设计要求，未安装、未绑定运行工具。批准范围及讨论见 [SS-123](https://app.notion.com/p/3fe038a63d5a8139b371d883df2fd1af)。原始假设与试跑结论仅作为 JSON 内原作者报告保存，不作为本版规则或验收证据。
 
-## 1. 两类数据的定义与版块映射
+## 1. 模块、入口与运行上下文
 
-| 类别 | 版块（section-catalog） | 典型内容 | 刷新规则 | 跨刷新复用？ |
-|---|---|---|---|---|
-| **基础资料** `foundational` | `overview`、`identity`、`tokenomics`、`links`（团队信息归入 `overview`） | 项目是什么、所在链、合约地址、CoinGecko id、官网/文档/浏览器/社交链接、总供应/最大供应/分配/解锁计划、团队、上线日期等基础指标 | 首次生成时抓取 → 写入证据缓存 → 之后**直接复用**；到 `verify_after` 时**重新核实**（只校验是否变化，不重写页面除非变了） | **是** |
-| **时效资料** `time_sensitive` | `market`、`heat`、`events`、`narrative` | 价格/成交/涨跌、榜单排名与热度、新闻、上所/升级/安全事件、X/社区讨论 | **每次刷新都重新获取**；上一次的结果不作为本次输入（只作审计留存和“变化对比”） | **否** |
-| **派生** | `risks` | 风险提示 | 每次刷新**重新推导**，输入 = 本次的时效资料 + 缓存的基础资料 | 不缓存结论 |
+模块中分别展示九张卡，可打开单卡检查职责、输入输出、分支、失败模式和证据。模块不是第十张执行卡；占位编号不代表独立服务。本目录不修改正式 #3045，也未配置模块视图。后续安装须明确其原身份、输入输出与连接迁移，避免整体卡和九步重复执行。
 
-规则：
-1. 一个来源只属于一个类别。混合型页面（例如官网某页既有介绍又有新闻）按**被引用的事实**拆成两个证据记录。
-2. 页面脚本 v2 的每个 `sources[]` 必须带 `freshness`（`foundational` / `time_sensitive`）和 `evidence_id`（原型 schema 已支持，可选字段；v0.1 的自检要求必填）。
-3. 页面上：基础资料显示“基础资料 · 缓存复用”，它的 `retrieved_at` 可以早于本次 `generated_at` 很多天；时效资料显示“时效资料 · 每次刷新”，它的 `retrieved_at` 必须在本次运行窗口内。
+#3029 的首次制作与到期更新分支进入身份卡；跳过和待核对不进入。适配器须核对实际分支和 action 枚举，将 first/due 分别映射为 generate/refresh，不能仅凭名称猜测。已有页的更新周期仍为空，不能在本流程自行判断其过期。
 
-## 2. 每个类别：内部 vs 外部来源
+所有卡显式接收并输出同一个 `run_context`，包含：
 
-优先级：**FU 内部优先**；内部缺失才去外部；身份类事实**只信 FU 内部**。
+| 字段 | 规则 |
+| --- | --- |
+| asset_id / run_id | 稳定实体 UUID 与本次运行 ID；全程保持一致，重试沿用 run_id |
+| action / reason / age_minutes | 上游动作与依据；未知年龄不能当成已到期 |
+| page_ref / expected_page_ref / expected_updated_at | 旧页及并发比较基线；首次完整确认缺行才允许基线为空 |
+| workflow_version | 本次采用的制作规范版本，不能伪造未接通版本 |
+| started_at | 本次运行开始时间，UTC |
+| policy | 已配置来源权限、调用预算、事实新鲜度及重验策略；缺失不推定有效 |
 
-| 子类 | 类别 | FU 内部来源（优先） | 外部来源（补充，需白名单 + 预算） | 外部能否覆盖内部 |
-|---|---|---|---|---|
-| 身份：链、合约、CoinGecko id、别名 | 基础 | `asset_core.assets` / `asset_identifiers` / `asset_relationships`、`market.coingecko_identity_decisions`（经 bundle `identity`） | —（不允许） | **否**；外部不一致 → 写入 unknowns 并提示身份复核 |
-| 是什么 / 简介 | 基础 | FU 已采集的项目资料（如有） | 官网、官方文档、CoinGecko 描述 | 可补充，不覆盖 |
-| 官方链接 | 基础 | asset_core 中登记的链接（如有，⚠ 当前未见字段） | 官网、CoinGecko links；核实规则：链接需与身份中的合约/域名互相印证 | 可补充；未核实不渲染 |
-| 代币经济（供应、分配、解锁） | 基础 | ⚠ FU 当前无数据源 | 官方文档 / tokenomics 页面、CoinGecko 供应字段 | 可补充（v1 默认关闭，待用户确认） |
-| 团队 | 基础 | ⚠ 无 | 官网 team 页、官方公告 | 可补充（v1 默认关闭） |
-| 基础指标（上线日期、总/最大供应） | 基础 | coingecko_market_v1 中的静态字段（⚠ 待确认） | CoinGecko | 可补充 |
-| 行情（价格、成交、涨跌、7 日走势） | 时效 | coingecko_market_v1 / Delta Lake 历史（⚠ 现按 symbol 查询） | CoinGecko API（需 key） | 内部缺失或过旧时补充，注明 `as_of` |
-| 榜单与热度 | 时效 | `app_hottest_board`（#1009）、`app_warming_board`（#1008） | — | 否（这是 FU 自有信号） |
-| 新闻 / 近期事件 | 时效 | `content.items`（⚠ 无 asset_id，只有 tokens jsonb） | 官方公告、可信新闻站 | 可补充 |
-| 社交讨论 | 时效 | FU 的信号流 / 已采集社交内容（如有） | X（只读）等 | 可补充 |
+每张卡声明完整 `input_fields`、`fields` 与 `output_fields`，累积资料显式透传。`revalidate_targets/revalidation_attempt` 与 `revision_issues/revision_attempt` 初始为空列表/0。反馈分支更新相应目标、错误及计数，最多执行一次；次数用尽转 needs_review。早期卡不得要求只有后期才产生的字段。
 
-## 3. 证据缓存（raw evidence cache）
+## 2. 九卡处理行为
 
-**缓存的是原始证据，不是页面文字。**页面每次都由 Grokbot 根据“缓存的基础证据 + 新抓的时效证据”重新组织；这样基础证据可复用，同时页面措辞仍能根据最新情况调整。
+1. **身份核验**：核实 FU 内部 UUID 与稳定外部标识的对应关系。外部证据用于交叉核查，不单独升级内部未确认实体，不修改全局资产身份。ticker、空 platforms 或供应量接近都不能单独证明身份。FU 未接入、缺映射或冲突时终止并保留旧页。
+2. **盘点 FU 已有资料**：核实身份、事实时间、来源、覆盖和质量。合格的本次内部观测可直接使用；不把历史时效缓存或刚读到的旧数据当成最新事实。缺失、失败、不完整和过期分别写入 gaps。
+3. **判定研究重点**：基于已取得证据产生初步 section_plan；尚未搜索的事件不作为已发现事实。后续核对可输出 revised_section_plan，制作优先采用修订计划。
+4. **寻找数据来源**：针对缺口拟定 source_plan，先检查合格内部资料，再选外部来源；不重复获取已有合格数据。工具能力、预算、权限和来源可达性均需实际核验，不因草稿写“免费无key”而默认可调用。
+5. **抓取并留存证据**：保留合格内部资料，追加外部证据与必要摘录/可读持久引用，输出 evidence_records 和 fetch_report。抓取失败记录原因；本卡只留存运行内材料，不写未实现的生产缓存表。
+6. **处理冲突、过期与未知**：先确认资产、口径、单位、时间和字段含义再比对。链上当前供应与历史最大供应不能直接裁决。关键冲突转 needs_review；非阻断未知可标 partial。必要重验返回抓取一次；ready 与 revalidate 互斥，不能一边重验一边组装。
+7. **组装页面**：从证据读取事实与数值，关联 evidence_id；派生值记录公式及输入。复用 FU 既有前端外壳与组件，不另建工程或部署。输出 page_artifact，含格式、schema_ref、workflow_version、generated_at。原 page script v2 是待核验格式；缺少真实前端契约时标 unconnected，不能声称兼容。
+8. **自检**：使用目标前端同版本校验器，记录版本、命令与结果，同时核查身份、证据、时效和覆盖。完整保留页面产物及上下文。只有结构和必要内容检查都通过才 pass；可修复格式问题返回制作一次，事实问题或未接入不能靠反复改文案转成通过。
+9. **保存并回写**：要求 identity_check=confirmed、check_status=pass、上下文和产物一致。只有同资产同运行的确认成功回执才能回写 #1039。未接入、失败、不确定或并发冲突保留旧成功页及时间。
 
-### 3.1 证据记录（提议表 `asset_pages.asset_evidence`，由后端实现）
+各卡终止结果返回调用方及原因，不额外创建第十张卡。终止卡不向后续制作/保存自动继续。具体输出与连接以配套 JSON 为准。
 
-| 字段 | 说明 |
-|---|---|
-| `evidence_id` | 主键，例如 `ev:<asset>:<source_id>:<date>` 或 UUID；页面 `sources[].evidence_id` 引用它 |
-| `asset_id` | canonical UUID |
-| `freshness` | `foundational` / `time_sensitive` |
-| `topic` | 子类：`identity` / `description` / `links` / `tokenomics` / `team` / `basic_metrics` / `market` / `heat` / `news` / `social` |
-| `origin` | `fu_internal` / `external` |
-| `source_kind` | 同 schema v2 `kind` |
-| `locator` | URL 或 FU 内部定位（表名 + 主键 / 快照 id） |
-| `retrieved_at` | 采集时间 |
-| `published_at` | 来源原始发布时间（可空） |
-| `content_sha256` | 原文 / 结构化数据的哈希，用于核实时判断是否变化 |
-| `payload` | 结构化提取结果 + 必要原文摘录（不存整页 HTML；注意版权与体积，建议 ≤ 32KB） |
-| `verify_after` | 仅基础资料：`retrieved_at + 核实周期` |
-| `status` | `valid` / `stale`（已过 verify_after）/ `superseded`（被新证据替代）/ `failed`（核实失败，来源不可达） |
-| `superseded_by` | 新证据 id |
+## 3. 证据与新鲜度
 
-### 3.2 写入与复用规则
+每条证据保留 evidence_id、asset_id、origin、locator、payload_or_durable_ref、content_sha256、hash_scope、retrieved_at、as_of、published_at、time_precision、freshness、verify_after、status。原文或结构化值必须可供后卡实际读取；仅有哈希和路径不能代表内容可用。证据 ID 区分同一天多次获取/不同内容版本。
 
-1. **谁写**：Grokbot 不直接写库。它在交付物里附上本次新抓或核实过的证据记录；**保存接口（C3）在保存页面的同一事务里写入证据**。保存失败 → 证据不入库，旧证据保持不变（与 #1039 的“失败不动旧记录”一致）。
-2. **基础资料复用**：refresh 时 bundle 返回该资产 `status=valid` 的基础证据；Grokbot 直接使用，**不重新抓**，页面 `sources[].retrieved_at` 保持旧时间。
-3. **基础资料核实**（到 `verify_after` 或 #3029 给出相关 reason 时）：重新抓同一 locator → 比较 `content_sha256`：
-   - 没变 → 新记录 `retrieved_at=now`，旧记录 `superseded`（或只刷新 `retrieved_at` 与 `verify_after`，二选一由后端定）；
-   - 变了 → 新记录替代旧记录，对应版块在本次重做，并在运行报告里记“基础资料变更”；
-   - 不可达 → 旧记录标 `failed` 但**继续使用**，页面版块降为 `partial` 并写原因（“官方链接最近一次核实失败”）。
-4. **时效资料**：每次刷新新建证据；旧的时效证据只用于审计和“与上次相比”的变化说明（例如“排名从 #9 升到 #6”），**不得当作本次事实引用**。保留期建议 30 天（占位）。
-5. **身份变化让缓存失效**：`asset_core` 标识变化（合并、拆分、合约迁移）→ 该资产所有基础证据标 `stale`，下一次运行按首次生成处理。
+- **基础事实**：只有重验期限有效、来源可靠且无相关事件失效时可复用；没有配置期限不能自动采用30/90天。过期且核实失败的资料保留审计记录，不作为当前有效事实；对应位置标缺口/partial，关键缺口停止。
+- **时效事实**：本次 FU 返回且经身份、事实时间、覆盖、新鲜度校验的观测可以使用；只补抓缺失或不合格部分。历史时效证据可作明确的前后比较，不能充当当前事实。
+- **混合响应**：按被引用的事实分类，不为分类而重复抓取整个响应。供应等会变化的指标按实际事实新鲜度处理，不能因为在 tokenomics 区块就永久缓存。
+- **时间**：generated_at 是制作时间，retrieved_at 是采集/读取时间，as_of/published_at 是来源事实/发布时间。时间未知保留未知；只有日/月精度时保留原值与精度，不伪造时间戳。整页最新采集时间不能证明每一项事实同样新鲜。
+- **冲突**：同口径未决冲突并列说明；来源优先级不是自动裁决，不用协议更新名称推断全部旧描述已失效。事件只触发相关事实的核查。
 
-### 3.3 周期（占位值，待用户确认）
+核查和自检采用相同新鲜度规则。哈希证明内容一致性，不证明事实正确；来源本身或原作者摘要不自动构成独立交叉验证。
 
-| 子类 | 核实周期（`verify_after`） | 说明 |
-|---|---|---|
-| identity | 每次运行都从 FU 读（它是内部真值，开销低） | 不走外部核实 |
-| description / team | 90 天 | |
-| links | 30 天 | 链接失效风险较高 |
-| tokenomics / basic_metrics | 30 天；有解锁计划的资产在解锁日前后强制核实 | |
-| market / heat / news / social | 不缓存（每次刷新） | 全页刷新周期本身仍**未定**（不替用户选 1 天或 3 天） |
+## 4. 保存边界
 
-## 4. 运行流程（替代 outline 第 3 节的 8 步，增加“分层”）
+真实保存适配器必须以 run_id 幂等，核实同资产、同运行的产物与回执，比较 expected_page_ref/expected_updated_at，拒绝旧完成覆盖新页。页面和关联证据需要一致提交；若分布式存储无法原子提交，须先定义可恢复的一致性协议，不能在本稿声称已实现事务。
 
-| 步 | generate（首次，无 page_ref） | refresh（已有 page_ref） |
-|---|---|---|
-| 1 身份闸门 | 读 bundle.identity；非 confirmed → `identity_blocked` | 同左；另检查身份标识自上次后是否变化，变了 → 走 generate 路径 |
-| 2 资料盘点 | 基础证据为空；时效资料来自 bundle | 基础证据 = bundle 返回的 `valid` 缓存；时效资料来自 bundle（最新） |
-| 3 缺口识别 | 按版块目录列出所有缺口（基础 + 时效） | 只列：①时效版块（总要重做）；② `verify_after` 已过的基础证据；③ #3029 `reason` 点名的版块；④ 上次标 `failed` 的基础证据 |
-| 4 获取 | 基础：内部优先，外部补充（预算内），写证据；时效：同左 | **只抓时效资料 + 待核实的基础资料**；其余基础资料不发起任何外部请求 |
-| 5 冲突处理 | 身份只信内部；行情以较新的 `as_of` 为准 | 同左；另外：基础资料核实结果与缓存不同 → 以新核实结果为准并记录变更 |
-| 6 组织制作 | 全部版块重新写 | 时效版块重写；基础版块用缓存证据重新组织（措辞可调，但事实与来源不变）；`risks` 重新推导 |
-| 7 自检 | outline §4 + 新增：每个 source 有 `freshness`/`evidence_id`；时效 source 的 `retrieved_at` 在本次运行窗口内；基础 source 的 `verify_after` 未过（或本次已核实） | 同左 |
-| 8 交付 | 脚本 + 运行报告 + 新证据记录 | 脚本 + 运行报告（含“复用了哪些基础证据 / 核实了哪些 / 新抓了哪些时效证据”）+ 新证据记录 |
+得到明确成功回执后映射：run_context.asset_id → #1039.asset_id，saved_page_ref → page_ref，saved_at → updated_at。保存超时但结果不明时，只能按同一 run_id 查询回执确认，不能因为读到“有网页”就认定本次成功。身份未确认页不进入此成功路径，不覆盖既有研究页。
 
-预期效果：refresh 的外部调用数 ≈ 时效资料数 + 到期核实数，**远少于首次生成**；基础版块不会因每次刷新出现无谓的措辞或事实漂移。
+#1039 仍是一资产一条当前网页成功记录，不存页面正文或证据内容，不恢复逐次网页历史。真实写入、幂等、并发与事务保护均未实现或验证。
 
-## 5. 对接口契约的影响（补充到 fu-asset-bundle-contract.md）
+## 5. 接入状态与后续边界
 
-- **C1 bundle 新增分区 `evidence`**：`{ foundational: [证据记录…（status ∈ valid|stale|failed）], last_time_sensitive: [上次运行的时效证据摘要，只供变化对比] }`。
-- **C2/C3**：新增表 `asset_evidence`（见 3.1）；`PUT …/page` 请求体增加 `evidence: [新证据记录…]`，与页面同事务写入。
-- **C4 投影**：不需要证据全文；页面脚本里的 `sources[]` 已带 `freshness`/`retrieved_at`/`evidence_id`，前端足够展示。
+FU 读取接口、证据存储、前端产物与解析器、保存/回执接口都未接入。原稿的 C1/C3/C6/C7 名称和建议 endpoint 不是已存在接口；所引用的 bundle 契约、section catalog、原型 schema、测试和截图没有随 PR 提供。对实际路径、权限、覆盖与固定代码版本仍须核验。
 
-## 6. 版本对比时怎么用这个分层
+原每小时N=2、队列优先级、租约、退避、30/90天重验和30天保留等不构成本版默认值。调度未计入九卡、未启动；整页更新周期与事实新鲜度策略是不同配置。
 
-- 新旧 workflow 版本对比时，**基础资料用同一批缓存证据**作输入（控制变量），只比较组织与表达质量；时效资料用同一时刻抓的快照，避免因时间不同产生差异。
-- 成本指标分开统计：首次生成成本 vs 单次刷新成本。
-
-## 7. 原型与试跑中的体现
-
-- schema（原型补丁）：`sources[].freshness`、`sources[].evidence_id`（`web/domain/token-page-script.ts`）；资料来源列表显示“基础资料 · 缓存复用 / 时效资料 · 每次刷新”标签。
-- MOCK fixture：SOL / BONK 的 `fu.asset_core`、`official.site` 标为基础资料，`retrieved_at = 2026-09-20`（表示首次生成时抓取、本次复用）；榜单、行情、资讯、社交标为时效资料，`retrieved_at` 在本次 2026-10-13 运行内。
-- 试跑分类表与 generate/refresh 决策日志见 [trial-plan-v0.1.md](trial-plan-v0.1.md)。
-
-## 8. 待用户确认
-
-1. 各子类核实周期（3.3 表全部是占位）。
-2. v1 是否开放外部补齐基础资料（tokenomics、team、links）——开放会增加首次生成成本，但刷新成本不变。
-3. 时效证据保留期（建议 30 天）以及是否要在页面显示“与上次相比”的变化说明。
-4. 证据 `payload` 允许保存多少原文摘录（版权 / 存储）。
-
-## 9. 调度 / 队列（用户提议，v0.1 草案）
-
-**做法**：每小时跑一次（cron 式），不做每日集中爆发。
-
-1. 每次运行先向 FU 拉取待办清单（#3029 的输出：`asset_id, action, reason, age_minutes, page_ref`）。
-2. 排序：
-   - 第一优先：新上榜资产（`action = generate`，无 page_ref）；
-   - 第二优先：`action = refresh`，按页面年龄 `age_minutes` 从老到新；
-   - 同优先级内用 asset_id 做稳定排序，保证可复现。
-3. 每次只处理 **N 个**（起步 N = 2/小时 ≈ 48/天上限；保守估计 20+/天有效产出，扣除失败/重试）。
-4. 没处理完的自动滚到下一小时；同一 asset 不并发（以 asset_id 加租约/锁，租约超时 = 占位）。
-5. 失败（来源不可用、自检不过、保存未确认）：保留旧 page_ref 不动，记录失败原因，下一轮重排（退避次数上限 = 占位）。
-6. **N 与过期间隔（refresh 周期）都保持占位**，由试跑的每 token 耗时/调用量来定。
-
-**真实试跑给出的测量值（2026-10-18，SOL + BONK，首次 generate）**：
-
-| 指标 | SOL | BONK | 说明 |
-|---|---|---|---|
-| 免费 HTTP 请求 | 9（1 次 451） | 9（1 次 451，1 次无效 HTML） | CoinGecko/DefiLlama/DEX Screener/Binance 镜像/Solana RPC/官网 |
-| 网络耗时合计 | ≈ 11.0 s（RPC getSupply 单次 7.9 s） | ≈ 3.4 s | 网络不是瓶颈 |
-| 搜索/抓取/X 工具调用 | 3 | 3 | WebSearch 1 + WebFetch 1 + X 1 |
-| 墙钟（含模型阅读、判断、组稿） | 两个 token 合计 ≈ 8.4 分钟，单个 ≈ 4 分钟 | | 主要时间花在模型上 |
-| 预计 refresh（复用 foundational） | ~5 HTTP + 2–3 工具 | ~4 HTTP + 2 工具 | 约少 40% 调用 |
-
-→ 推论（假设，待更多样本）：单 token generate ≈ 4–5 分钟、refresh 估计 2–3 分钟；N = 2/小时远在单 worker 能力之内，瓶颈会是**免费源限流**（CoinGecko 免费层约每分钟数十次、Solana 公共 RPC 部分方法每 10 秒 5 次）与**模型成本**，而不是时间。可以先用 N = 2 跑一周，按失败率与成本再调。
-
-**另外需要的事件触发规则（试跑发现）**：当 events 版块出现“协议级变更 / 安全事件 / 上下架”时，即使 foundational 未到重验期，也要对相关 foundational 证据强制重验（SOL：Alpenglow 让 CoinGecko 里的 PoH 描述过时；BONK：治理攻击改变了“治理/金库”的基础事实）。
-
-**这个例行任务需要 FU 提供两个接口**（加入 fu-asset-bundle-contract.md 的待建清单）：
-- `GET /internal/asset-pages/pending?limit=N`（契约 C7）：返回 #3029 的待办清单（含 action、reason、age_minutes、page_ref），只读；
-- `PUT /internal/assets/{asset_id}/page`（保存接口，即契约 C3）：写入页面 + evidence，只有返回“已确认保存”后才更新 #1039 的 `page_ref / updated_at`；失败保留旧记录。
+原作者报告的 SOL/BONK 试跑仍标记 author_report_unverified，完整来源位置保留在每卡 trial_evidence；无法访问的文件不伪造为证据。本次生成器检查只验证设计结构和生成一致性，不代表网页测试、事实核查或业务链路运行通过。
