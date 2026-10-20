@@ -36,6 +36,15 @@ export function CanvasMotion({nodes,edges}:{nodes:any[];edges:any[]}) {
   useEffect(()=>{
     const root=store.getState().domNode;
     if(!root||!canvas.current)return;
+    const htmlLayer=root.querySelector<HTMLElement>('.react-flow__renderer');
+    const idleOpacity=htmlLayer?.style.opacity??'';
+    // Opacity is not inherited. Updating the layer itself avoids invalidating
+    // every card/edge descendant when entering and leaving the GPU preview.
+    const showMotion=(show:boolean)=>{
+      if(htmlLayer)htmlLayer.style.opacity=show?'0':idleOpacity;
+      if(canvas.current)canvas.current.style.opacity=show?'1':'0';
+      if(show)root.dataset.motion='gpu';else delete root.dataset.motion;
+    };
     const draw=()=>{
       const s=store.getState();if(scene.current&&s.width&&s.height)scene.current.draw(s.transform,s.width,s.height);
     };
@@ -61,23 +70,23 @@ export function CanvasMotion({nodes,edges}:{nodes:any[];edges:any[]}) {
       const s=store.getState();
       // One final notification lets the frozen content selectors catch up.
       store.setState({transform:[...s.transform]});
-      settle.current=requestAnimationFrame(()=>{settle.current=requestAnimationFrame(()=>{if(token===generation.current)delete root.dataset.motion;});});
+      settle.current=requestAnimationFrame(()=>{settle.current=requestAnimationFrame(()=>{if(token===generation.current)showMotion(false);});});
     };
     const unsubscribe=store.subscribe((next,prev)=>{
       if(gate.active&&(next.transform!==prev.transform||next.width!==prev.width||next.height!==prev.height)) {
         if(!shown){
           if(!changed())return;
           if(!valid.current){gate.end();return;}
-          try{scene.current?.setOpacity(emphasis.current);draw();root.dataset.motion='gpu';shown=true;}
-          catch{gate.end();delete root.dataset.motion;}
+          try{scene.current?.setOpacity(emphasis.current);draw();showMotion(true);shown=true;}
+          catch{gate.end();showMotion(false);}
           return;
         }
         cancelAnimationFrame(frame.current);frame.current=requestAnimationFrame(draw);
       }
     });
-    const lost=(event:Event)=>{event.preventDefault();gate.end();scene.current?.dispose();scene.current=null;root.dataset.motionBackend='unavailable';};
+    const lost=(event:Event)=>{event.preventDefault();gate.end();showMotion(false);scene.current?.dispose();scene.current=null;root.dataset.motionBackend='unavailable';};
     canvas.current.addEventListener('webglcontextlost',lost);
-    return()=>{unsubscribe();canvas.current?.removeEventListener('webglcontextlost',lost);cancelAnimationFrame(frame.current);cancelAnimationFrame(settle.current);gate.active=false;gate.begin=()=>{};gate.end=()=>{};delete root.dataset.motion;};
+    return()=>{unsubscribe();canvas.current?.removeEventListener('webglcontextlost',lost);cancelAnimationFrame(frame.current);cancelAnimationFrame(settle.current);gate.active=false;gate.begin=()=>{};gate.end=()=>{};showMotion(false);};
   },[store,gate]);
   useEffect(()=>{
     let cancelled=false,timer:ReturnType<typeof setTimeout>;

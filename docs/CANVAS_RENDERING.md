@@ -72,6 +72,15 @@ Pressing without camera displacement only arms the gesture: idle HTML stays visi
 or texture-opacity update runs, and release skips the final content notification. The first real
 pan/zoom transform activates the cached scene. A fresh transform array with identical values does
 not count as movement. This avoids paying the renderer-switch cost for an ordinary press/release.
+The motion canvas stays mounted in a stable compositing layer. Enter/exit updates opacity directly
+on that canvas and the fixed-size HTML renderer layer; the diagnostic `data-motion` attribute does not select any
+descendant styles. Inherited `visibility` and a viewport-wide `*` rule must not be used for this
+switch: profiling found repeated whole-subtree style recalculation on both entry and restoration.
+The HTML layer uses paint containment matching the existing canvas clip, so far-away graph content
+does not enlarge its compositing surface. Promote this fixed-size layer, not the transformed world
+viewport; promoting the world viewport increased layer-building cost in the isolated comparison.
+The transparent canvas never intercepts pointers; HTML opacity is restored on end, context loss
+and unmount. Complete idle content and accessibility remain owned by ReactFlow.
 Search waits for complete initial geometry. This is a hybrid renderer, not a wholesale replacement
 of ReactFlow or an adoption of Figma's internal engine.
 

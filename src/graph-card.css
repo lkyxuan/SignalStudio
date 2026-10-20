@@ -47,7 +47,5 @@
 .node-overview>strong{font-size:26px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 
 /* The camera moves cached GPU textures; idle DOM remains the interaction owner. */
-.canvas-motion{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
-.react-flow[data-motion="gpu"] .canvas-motion{display:block}
-.react-flow[data-motion="gpu"] .react-flow__viewport{visibility:hidden}
-.react-flow[data-motion="gpu"] .react-flow__viewport *{visibility:hidden!important}
+.canvas-motion{display:block;opacity:0;will-change:opacity;position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+.react-flow__renderer{will-change:opacity;contain:paint}
