@@ -39,15 +39,25 @@ export function CanvasMotion({nodes,edges}:{nodes:any[];edges:any[]}) {
     const draw=()=>{
       const s=store.getState();if(scene.current&&s.width&&s.height)scene.current.draw(s.transform,s.width,s.height);
     };
+    let origin:number[]|null=null,shown=false;
+    const changed=()=>{
+      const s=store.getState();
+      return !!origin&&(s.transform.some((value,i)=>value!==origin![i])||s.width!==origin[3]||s.height!==origin[4]);
+    };
     gate.begin=()=>{
       ++generation.current;cancelAnimationFrame(settle.current);
       if(!scene.current||!valid.current||store.getState().nodes.some(n=>n.dragging))return;
-      try {scene.current.setOpacity(emphasis.current);draw();gate.active=true;root.dataset.motion='gpu';}catch{gate.active=false;delete root.dataset.motion;}
+      const s=store.getState();origin=[...s.transform,s.width,s.height];
+      // ReactFlow starts a pan gesture on press, before any camera displacement.
+      // Freeze selectors now, but keep idle HTML until the camera actually moves.
+      shown=root.dataset.motion==='gpu';gate.active=true;
     };
     gate.end=()=>{
       const token=++generation.current;
       if(!gate.active)return;
+      const needsRefresh=shown||changed();origin=null;shown=false;
       gate.active=false;
+      if(!needsRefresh)return;
       const s=store.getState();
       // One final notification lets the frozen content selectors catch up.
       store.setState({transform:[...s.transform]});
@@ -55,6 +65,13 @@ export function CanvasMotion({nodes,edges}:{nodes:any[];edges:any[]}) {
     };
     const unsubscribe=store.subscribe((next,prev)=>{
       if(gate.active&&(next.transform!==prev.transform||next.width!==prev.width||next.height!==prev.height)) {
+        if(!shown){
+          if(!changed())return;
+          if(!valid.current){gate.end();return;}
+          try{scene.current?.setOpacity(emphasis.current);draw();root.dataset.motion='gpu';shown=true;}
+          catch{gate.end();delete root.dataset.motion;}
+          return;
+        }
         cancelAnimationFrame(frame.current);frame.current=requestAnimationFrame(draw);
       }
     });

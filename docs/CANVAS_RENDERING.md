@@ -68,6 +68,10 @@ field count and summary; detailed badges/ports and precise HTML text are restore
 ReactFlow remains the interaction and geometry owner. It continues to provide idle selection,
 keyboard access, dragging, ports, edge actions and the original detail panels. At motion end one
 store notification refreshes visible content, then the overlay retires after two animation frames.
+Pressing without camera displacement only arms the gesture: idle HTML stays visible, no GPU draw
+or texture-opacity update runs, and release skips the final content notification. The first real
+pan/zoom transform activates the cached scene. A fresh transform array with identical values does
+not count as movement. This avoids paying the renderer-switch cost for an ordinary press/release.
 Search waits for complete initial geometry. This is a hybrid renderer, not a wholesale replacement
 of ReactFlow or an adoption of Figma's internal engine.
 
