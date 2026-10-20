@@ -1,0 +1,1690 @@
+{
+  "candidate_sources": [
+    {
+      "source": "leaderboard_hottest",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_warming",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "score",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    },
+    {
+      "source": "leaderboard_new_uuid",
+      "target": "候选代币筛选",
+      "fields": [
+        "asset_id",
+        "asset_kind",
+        "created_at",
+        "calculated_at",
+        "algorithm_version"
+      ],
+      "note_zh": "读取本榜合格候选；例子假设批次完整有效。"
+    }
+  ],
+  "example_rows": {
+    "候选代币筛选": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c"
+      }
+    ],
+    "刷新判断": [],
+    "asset_pages": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "page_ref": "https://example.invalid/pages/a.html",
+        "updated_at": "2026-10-18T08:00:00Z"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "page_ref": "https://example.invalid/pages/c.html",
+        "updated_at": null
+      }
+    ],
+    "asset_identifiers": [
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "source_namespace": "example",
+        "external_identifier": "example-entity"
+      }
+    ],
+    "leaderboard_hottest": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-762e-acca-7efff04125a7",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_warming": [
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ],
+    "leaderboard_new_uuid": [
+      {
+        "asset_id": "01a0ea76-0c00-78e6-aace-197b6a78bf7c",
+        "score": 10,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      },
+      {
+        "asset_id": "01a0ea76-0c00-7b58-9a5c-e5ae3a38e394",
+        "score": 9,
+        "calculated_at": "2026-10-18T10:00:00Z",
+        "algorithm_version": "example-only",
+        "created_at": "2026-10-18T09:00:00Z",
+        "asset_kind": "coin"
+      }
+    ]
+  },
+  "example_clock": "2026-10-18T10:00:00Z",
+  "page_refresh_interval_seconds": null,
+  "branches": [
+    {
+      "id": "first",
+      "label_zh": "首次制作",
+      "label_en": "First creation",
+      "condition": "成功完整查询确认没有当前网页。",
+      "terminal": false
+    },
+    {
+      "id": "due",
+      "label_zh": "到期更新",
+      "label_en": "Update due",
+      "condition": "网页最后成功更新时间达到已配置整页周期。",
+      "terminal": false
+    },
+    {
+      "id": "skip",
+      "label_zh": "跳过",
+      "label_en": "Skip",
+      "condition": "当前网页尚未到期。",
+      "terminal": true
+    },
+    {
+      "id": "blocked",
+      "label_zh": "待核对",
+      "label_en": "Needs review",
+      "condition": "读取失败/不完整、时间未知/无效，或已有网页但整页周期未配置。",
+      "terminal": true
+    }
+  ],
+  "version": "asset-webpage-board.v2",
+  "approval_date": "2026-10-20",
+  "rationale_url": "https://app.notion.com/p/3ff038a63d5a812888defb55266c9f3d",
+  "delivery_scope": "studio_design_only",
+  "reused_card": "Grokbot · 制作或更新资产网页",
+  "provenance_zh": "已确认的工作台设计；真实读取、调度、研究、前端保存和回写均未接入验证。示例是假设，原作者试跑仅是未复核报告。",
+  "provenance_en": "Studio design only. Readers, dispatch, research, page validation, saving and writeback are unverified. Examples are fictional; trial summaries are unverified author reports.",
+  "handoff": {
+    "owner_zh": "Few负责上游；Grokbot按三轮研究与写页，保留身份、证据、校验和成功保存边界。",
+    "input_fields": [
+      "asset_id",
+      "action",
+      "page_ref"
+    ],
+    "diagnostic_only": [
+      "reason",
+      "age_minutes"
+    ],
+    "technical_fields_zh": "run_id、领取凭据、并发基线、重试等由Few内部机制设计；不是新增的固定Grokbot业务输入。",
+    "scheduling_zh": "沿用已确认的候选/刷新检查定义；每小时、N=2、任务优先级未批准，不作为默认值。整页更新周期仍为空。",
+    "runtime": "unconnected",
+    "new_pages_zh": "新页面统一先倾听市场、再按问题取数据、最后围绕问题写页。已有页面是否按新流程重做须由用户另定，不自动排批重做。",
+    "new_pages_en": "All new pages use listen → question-led data → question-led writing. Reworking existing pages needs a separate user decision; do not automatically queue them."
+  },
+  "cards": [
+    {
+      "key": "candidates",
+      "name": "候选代币筛选",
+      "kind": "process",
+      "description_zh": "合并升温、最热、新发现UUID三榜有效结果；仅已确认代币进入内容维护。",
+      "algorithm_zh": "各榜先校验完整有效批次并过滤已确认代币，再按本榜排序取前20，按asset_id合并去重；新发现按created_at倒序，其他两榜按score降序。保留本榜引用，缺榜独立跳过，不回退旧total_heat。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "稳定内部资产ID"
+        },
+        {
+          "name": "calculated_at",
+          "type": "string",
+          "label_zh": "榜单计算时间"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "label_zh": "未舍入榜单分数"
+        },
+        {
+          "name": "algorithm_version",
+          "type": "string",
+          "label_zh": "榜单算法版本"
+        },
+        {
+          "name": "asset_kind",
+          "type": "string",
+          "label_zh": "只将coin交代币内容链"
+        },
+        {
+          "name": "created_at",
+          "type": "UTC timestamp",
+          "label_zh": "首次建档时间；新榜排序依据"
+        }
+      ],
+      "output_fields": [
+        "asset_id"
+      ],
+      "owner_zh": "Few Understand",
+      "input_fields": [
+        "asset_id",
+        "calculated_at",
+        "score",
+        "algorithm_version",
+        "asset_kind",
+        "created_at"
+      ],
+      "branches": [],
+      "internal_notes_zh": "Few负责上游筛选、刷新判断、任务派发及重试并发；复用既有任务机制，不要求按草稿新增固定技术字段。策略和真实接口仍待核验。 新页面统一先倾听市场、再按问题取数据、最后围绕问题写页。已有页面是否按新流程重做须由用户另定，不自动排批重做。",
+      "input_provenance_zh": "示例为假设，非生产观察；以Few实际代码、接口与记录核验。",
+      "algorithm_en": "Keep existing qualified candidate ordering, deduplication and complete-read refresh rules. The page interval remains unconfigured. All new pages use listen → question-led data → question-led writing. Reworking existing pages needs a separate user decision; do not automatically queue them."
+    },
+    {
+      "key": "decision",
+      "name": "刷新判断",
+      "kind": "decision",
+      "description_zh": "接收候选 UUID，查询 #1039 当前网页记录，判断首次制作或到期更新；一天/三天周期待定。",
+      "algorithm_zh": "按候选 asset_id 完整查询当前网页记录。无记录为首次制作；查询失败或不完整则待核对。有网页时，以网页最后成功更新时间判断年龄；未知、无效或未来时间不可猜测。有有效时间且达到已配置整页周期才更新，未到期跳过。当前周期未配置，不对已有网页作过期结论。只有首次制作或到期更新交给 Grokbot 整体制作。 reason和age_minutes保留为本卡内部诊断，不作为Grokbot必需输入；Few随后负责待办与派发，具体调度策略未定义。",
+      "trigger_zh": "三榜完整结果成功提交、启动时及每60秒补查；各榜前20个已确认代币，合并最多60个。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "候选资产 UUID"
+        },
+        {
+          "name": "page_ref",
+          "type": "TEXT",
+          "label_zh": "当前网页位置；无网页可空"
+        },
+        {
+          "name": "page_updated_at",
+          "type": "TEXT",
+          "label_zh": "#1039.updated_at，网页最后成功更新时间"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "首次制作 / 更新 / 跳过 / 待核对"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "label_zh": "本次判定原因；上游内部说明，不交接给Grokbot"
+        },
+        {
+          "name": "age_minutes",
+          "type": "number | null",
+          "label_zh": "网页自上次成功更新经过分钟；未知为空；上游内部说明，不交接给Grokbot"
+        }
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref"
+      ],
+      "owner_zh": "Few Understand",
+      "input_fields": [
+        "asset_id",
+        "page_ref",
+        "page_updated_at",
+        "action",
+        "reason",
+        "age_minutes"
+      ],
+      "branches": [
+        {
+          "id": "first",
+          "label_zh": "首次制作",
+          "label_en": "First creation",
+          "condition": "成功完整查询确认没有当前网页。",
+          "terminal": false
+        },
+        {
+          "id": "due",
+          "label_zh": "到期更新",
+          "label_en": "Update due",
+          "condition": "网页最后成功更新时间达到已配置整页周期。",
+          "terminal": false
+        },
+        {
+          "id": "skip",
+          "label_zh": "跳过",
+          "label_en": "Skip",
+          "condition": "当前网页尚未到期。",
+          "terminal": true
+        },
+        {
+          "id": "blocked",
+          "label_zh": "待核对",
+          "label_en": "Needs review",
+          "condition": "读取失败/不完整、时间未知/无效，或已有网页但整页周期未配置。",
+          "terminal": true
+        }
+      ],
+      "internal_notes_zh": "Few负责上游筛选、刷新判断、任务派发及重试并发；复用既有任务机制，不要求按草稿新增固定技术字段。策略和真实接口仍待核验。 新页面统一先倾听市场、再按问题取数据、最后围绕问题写页。已有页面是否按新流程重做须由用户另定，不自动排批重做。",
+      "input_provenance_zh": "示例为假设，非生产观察；以Few实际代码、接口与记录核验。",
+      "algorithm_en": "Keep existing qualified candidate ordering, deduplication and complete-read refresh rules. The page interval remains unconfigured. All new pages use listen → question-led data → question-led writing. Reworking existing pages needs a separate user decision; do not automatically queue them."
+    },
+    {
+      "key": "identity",
+      "description_zh": "核对输入资产 UUID 与 FU 稳定标识映射，外部证据用于交叉核查，不修改全局资产身份。",
+      "algorithm_zh": "只读核对同一asset_id与FU已有稳定标识；外部证据只作交叉核查，不升级或修改全局身份。映射缺失、未接入或冲突时停止并返回待核对，保留旧页；仅identity_check=confirmed继续。ticker、空platforms或近似供应量不能单独证明身份。",
+      "decision_rules_zh": [
+        "FU 映射已核实且外部核查无未决身份冲突才输出 identity_check=confirmed；它只表示本次网页任务核查，不写 #1001/#1002。",
+        "身份未确认、有歧义、接口未接入：终止，不组装占位页、不保存、不回写。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/bonk/raw/solana_rpc.supply.json",
+          "trial/bonk/raw/cg.coin.json",
+          "trial/sol/raw/cg.coin.json"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "BONK：CoinGecko platforms.solana 的 mint 经 RPC getTokenSupply 核对 87,994,323,898,030 ≈ CoinGecko 87,994,323,900,784，Blockworks 也写同一 mint；SOL：platforms 为空，确认为原生资产。两者 FU 映射均未核对（无数据访问）。"
+      },
+      "name": "Grokbot · 身份核验",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "source_namespace",
+          "type": "string",
+          "label_zh": "已有身份命名空间；只读查询"
+        },
+        {
+          "name": "external_identifier",
+          "type": "string",
+          "label_zh": "已有稳定标识；不以简称匹配"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [],
+      "algorithm_en": "Read-only verification of the supplied asset_id against Few stable identifiers, cross-checked with external evidence. Missing, conflicting or unconnected identity stops without placeholder pages, saving or global identity changes. Only confirmed continues."
+    },
+    {
+      "key": "inventory",
+      "description_zh": "读取同资产内部资料和历史证据，按事实时间、来源、覆盖和质量形成可用证据与缺口。",
+      "algorithm_zh": "本次 FU 返回的时效观测只要身份、as_of、覆盖和已配置新鲜度条件合格即可使用；不因来自内部就丢弃，也不因本次读取就视为最新。历史时效缓存不冒充当前观测。基础证据检查 verify_after 和事件失效；策略缺失、时间未知、核实失败时不判为有效，转入缺口。",
+      "decision_rules_zh": [
+        "字段定义不是已采集记录；失败、空结果与不完整读取分别记录。",
+        "只有核验有效的事实进入 evidence_records；缺失或不合格项进入 gaps，必要资料缺失则 needs_review。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/page-script.v2.json",
+          "trial/bonk/page-script.v2.json"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "试运行无 FU 数据访问：heat 版块 omitted，所有资料来自外部免费源；这正是该卡缺失时页面的真实样子。"
+      },
+      "name": "Grokbot · 盘点 FU 已有资料",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [],
+      "algorithm_en": "Inventory actual same-asset Few observations and historical evidence. Require valid fact times, coverage and configured freshness/invalidation rules. Reading now does not make cached facts current. Separate empty, incomplete and failed reads; schema declarations are not collected records. Preserve useful traceable evidence and explicit gaps."
+    },
+    {
+      "key": "relevance",
+      "description_zh": "从近约1–4周的真实讨论提炼3–5个具体问题，每题附证明讨论存在的原始链接。",
+      "algorithm_zh": "查看近约1–4周的X帖子搜索、新闻搜索、新闻网站、论坛、交易所公告和项目官网/文档/官方X/公告频道。先听市场再决定页面问题，产出3–5个交易者真实在问的具体问题或争议，逐题保存讨论来源链接、发布时间及搜索覆盖。过滤同名词的无关用法、纯喊单和推广；这些只能用于寻找原始来源，不能当事实。搜索摘要只是线索。请求克制、留足间隔；遇429按可用Retry-After退避，受限时记录缺口，不通过高频重试补足数量。找不到足够有来源的问题则needs_review，不虚构凑数。section_plan以问题为主线，不预先套通用模板。",
+      "decision_rules_zh": [
+        "版块顺序由证据决定；类型分类本身也应有出处。",
+        "事件内容和风险结论未经证据支持只能标待核查，不采用试跑摘要作为事实。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/decision-log.md",
+          "trial/bonk/decision-log.md"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "SOL（rank #7, L1）版块顺序：overview → market → 链生态 → tokenomics → events；BONK（rank #156, Meme）发现 2026-07 BonkDAO 治理攻击 + Upbit 下架 → events、risks 放在 market 之前，narrative 只放说明。"
+      },
+      "name": "Grokbot · 第一轮：倾听市场",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "identity_check"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "questions",
+        "research_record"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "内部问题→答案区块计划，不套通用模板"
+        },
+        {
+          "name": "questions",
+          "type": "object[]",
+          "label_zh": "真实问题与讨论来源链接",
+          "label_en": "Sourced trader questions"
+        },
+        {
+          "name": "research_record",
+          "type": "object",
+          "label_zh": "每币独立研究记录；非页面JSON字段",
+          "label_en": "Independent per-token research record; outside page JSON"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [],
+      "algorithm_en": "Search roughly the last 1–4 weeks of X posts and news, news sites, forums, exchange notices and official project sites, docs, X and announcement channels. Produce 3–5 specific questions traders actually ask, each with original discussion links, publication times and coverage. Exclude unrelated names, shilling and promotional posts as evidence; use them only to locate originals. Search snippets are leads. Space requests; on 429 back off using Retry-After when available and record gaps. Insufficient sourced questions means needs_review, never invented questions. Plan around questions, without a fixed template."
+    },
+    {
+      "key": "discovery",
+      "description_zh": "逐题确定能回答问题的数据、口径、免费无密钥来源及第二核对来源。",
+      "algorithm_zh": "先为每个问题写出所需指标、事实口径、时间范围、来源与第二核对来源，再交取数卡执行。只用免费且无需密钥或付费访问的官方文档、区块浏览器、链官方RPC、CoinGecko免账号接口、data-api.binance.vision、DEX Screener、DefiLlama等公开接口及交易所公告。可复用符合身份/时点/覆盖要求且来源可追溯的FU资料，不重复抓取；内部资料不绕过公开来源可核查要求。不可访问、验证拦截、限流或平台不公开的数据记为无法核实及原因，不估算、不编造，不自动申请权限或付费。",
+      "decision_rules_zh": [
+        "不重复抓取已经合格的当前内部观测。",
+        "不自动配置权限、付费访问或部署；来源不可达不伪造成已获取。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/requests.log"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "WebSearch 2 次均给出近 7 天带发布时间的新闻；SOL 用 WebFetch 官方 Alpenglow 页一手确认日期，BONK 用 WebFetch Blockworks 汇编获取分配/治理/攻击时间线。"
+      },
+      "name": "Grokbot · 第二轮：按问题找数据",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "questions",
+        "research_record"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "内部问题→答案区块计划，不套通用模板"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "source_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部补充来源计划"
+        },
+        {
+          "name": "questions",
+          "type": "object[]",
+          "label_zh": "真实问题与讨论来源链接",
+          "label_en": "Sourced trader questions"
+        },
+        {
+          "name": "research_record",
+          "type": "object",
+          "label_zh": "每币独立研究记录；非页面JSON字段",
+          "label_en": "Independent per-token research record; outside page JSON"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [],
+      "algorithm_en": "For each question specify metrics, definitions, period, a free keyless source and a second verification source before fetching. Use official docs, explorers, official chain RPC, keyless CoinGecko, data-api.binance.vision, DEX Screener, DefiLlama and public exchange notices. Reuse traceable Few observations only when identity, time and coverage qualify. Internal data must still have verifiable provenance. Record inaccessible, challenged, rate-limited or unpublished data as currently unverifiable with reasons; do not estimate, invent, buy access or request new permissions."
+    },
+    {
+      "key": "fetch",
+      "description_zh": "按问题取数并留存证据和运行日志，每币维护贯穿三轮的独立研究记录。",
+      "algorithm_zh": "输出 evidence_records 列表，保留合格内部证据并追加本次原始数据/必要摘录、出处、事实时间和内容哈希。混合响应按被引用的事实分类，避免为了分类重复请求。已过期基础资料核实失败时保留旧审计记录但不作为当前有效输入；记录缺口。此卡留存运行内证据，尚不写生产证据表。 按source_plan逐题取数，数字必须找到第二来源供交叉核对。保留请求结果、429等状态和退避记录、事实时点、采集时间、原始链接及必要原始响应；日志去除连接参数和密钥。每个代币一份独立research_record，持续记录问题、讨论来源链接、选用数据和来源、核对结果、无法核实项与原因、删掉内容及原因；第三轮补全最终取舍，自检确认完整。研究记录独立于严格页面JSON，不写入#1039；实际持久化位置由接入实现核验，不伪称已保存。",
+      "decision_rules_zh": [
+        "evidence_id 在同一资产/来源/内容版本下唯一，不能只用日期防重。",
+        "retrieved_at 不替代 as_of/published_at；来源日期仅有日/月时保留原值及精度，不伪造精确时间。",
+        "revalidate 最多返回一次；再次无法解决转 needs_review，旧成功页不变。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/raw/evidence.jsonl",
+          "trial/bonk/raw/evidence.jsonl",
+          "trial/fetch.py"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "18 次免费 HTTP（16 成功、2 次 451）+ 6 次工具调用，全部写入 raw/evidence.jsonl；SOL 基础 3 条 / 时效 11 条，BONK 基础 5 条 / 时效 8 条。"
+      },
+      "name": "Grokbot · 取数、留证与研究记录",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "questions",
+        "research_record"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "内部问题→答案区块计划，不套通用模板"
+        },
+        {
+          "name": "source_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部补充来源计划"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "questions",
+          "type": "object[]",
+          "label_zh": "真实问题与讨论来源链接",
+          "label_en": "Sourced trader questions"
+        },
+        {
+          "name": "research_record",
+          "type": "object",
+          "label_zh": "每币独立研究记录；非页面JSON字段",
+          "label_en": "Independent per-token research record; outside page JSON"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [],
+      "algorithm_en": "Fetch by question and retain qualified evidence, original links, required raw responses, fact times, retrieval times and content versions. Seek a second source for every displayed number. Log request outcomes and rate-limit/backoff results without connection parameters or secrets. Keep one independent research_record per token across all three rounds: questions, discussion links, selected data and sources, cross-checks, unknowns and reasons, omissions and reasons. Writing finalizes it and self-check verifies completeness. Keep it outside strict page JSON and #1039; actual persistence is unconnected, not a claimed save."
+    },
+    {
+      "key": "reconcile",
+      "description_zh": "对同一事实与口径的证据进行核对，产出可用事实、冲突、未知与必要的计划修订。",
+      "algorithm_zh": "先核对资产、时点、单位、链与字段含义，再判断差异。链上当前供应和历史最大供应等不同口径不能直接比大小。未决冲突并列注明，阻碍身份或关键事实时 needs_review；可补抓的基础事实输出 revalidate_targets；非阻断未知可用 partial 标注继续。 第二轮逐项交叉核对所有拟展示数字与第二来源；对不上先核对时点、单位、链和指标口径，注明差异及更可靠来源的选择理由。缺少第二来源或无法验证的数字不展示；问题保留“目前无法核实”及具体原因。不可用估算或推测填补。非阻断未知可披露后继续；身份或关键事实未决仍停止。",
+      "decision_rules_zh": [
+        "事件可触发相关基础事实重验，但不能仅凭协议更新名称断言旧描述全部失效。",
+        "revalidate 与 ready 互斥，先重验再组装；超过一次转 needs_review。",
+        "有新证据时输出 revised_section_plan，否则沿用初步计划。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/sol/decision-log.md",
+          "trial/bonk/decision-log.md"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "价格三源差 <0.2%；供应链上与 CoinGecko 一致；BONK 最大供应冲突（CoinGecko 87,995,282,867,000 vs Blockworks 所引 88.87T）并列展示；SOL 的 CoinGecko 描述以 PoH 为核心、被 Alpenglow 打成即将过期，页面已标注。"
+      },
+      "name": "Grokbot · 处理冲突、过期与未知",
+      "owner_zh": "Grokbot",
+      "kind": "decision",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "section_plan",
+        "conflicts",
+        "unknowns",
+        "questions",
+        "research_record"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "gaps",
+          "type": "object[]",
+          "label_zh": "内部资料缺口及原因"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "内部问题→答案区块计划，不套通用模板"
+        },
+        {
+          "name": "source_plan",
+          "type": "object[]",
+          "label_zh": "Grokbot内部补充来源计划"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "conflicts",
+          "type": "object[]",
+          "label_zh": "内部未决冲突"
+        },
+        {
+          "name": "unknowns",
+          "type": "object[]",
+          "label_zh": "内部已知缺失"
+        },
+        {
+          "name": "questions",
+          "type": "object[]",
+          "label_zh": "真实问题与讨论来源链接",
+          "label_en": "Sourced trader questions"
+        },
+        {
+          "name": "research_record",
+          "type": "object",
+          "label_zh": "每币独立研究记录；非页面JSON字段",
+          "label_en": "Independent per-token research record; outside page JSON"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [
+        {
+          "id": "ready",
+          "label_zh": "可制作",
+          "label_en": "Ready",
+          "condition": "身份及必要资料核查通过，未决未知可明确说明。",
+          "terminal": false
+        },
+        {
+          "id": "revalidate",
+          "label_zh": "补核资料",
+          "label_en": "Revalidate",
+          "condition": "存在可补核的相关基础事实；同一任务内部最多补核一次，不独立调度。",
+          "terminal": false
+        },
+        {
+          "id": "blocked",
+          "label_zh": "待核对",
+          "label_en": "Needs review",
+          "condition": "身份或关键事实冲突、资料不可用或补核仍失败，结束并保留旧页。",
+          "terminal": true
+        }
+      ],
+      "algorithm_en": "Close round two by checking each intended number against a second source, matching asset, time, units, chain and metric. Explain discrepancies and why the adopted source is more reliable. Do not display unverifiable or single-source numbers. Keep the question with “Currently unverifiable” and a specific reason. Do not fill gaps with estimates. Disclosed non-blocking unknowns may proceed; unresolved identity or critical fact conflicts stop. Revalidation remains bounded to one internal attempt."
+    },
+    {
+      "key": "compose",
+      "description_zh": "使用核实证据按问题→答案写v1页面，删除不服务于问题的数据并补全研究记录。",
+      "algorithm_zh": "逐题组织页面：建议以“交易者在问什么”列出问题，接3–4项简短当前stats，再每题一个最适合的允许区块，标题就是问题，正文/caption给答案、数据、来源和局限；有明确日期才加接下来要看的日期，末尾风险与来源。顺序仅作参考，不套headline→stats→发生了什么等固定模板。不服务于问题的排名、FDV和长历史等删除，并在research_record记理由；十种区块表达不了的内容舍弃并记原因。只输出规范卡规定的严格v1 JSON，所有展示文字中英双语，assetKey为给定asset_id且展示文字无内部id。generatedAt使用制作当下精确到秒的带时区时间；每项事实保留自身时点和来源。完成research_record最终取舍；它不属于页面JSON字段。目标前端契约/校验器不可访问时标unconnected，不能声称可发布。",
+      "decision_rules_zh": [
+        "每项事实保留自己的 as_of，不用最新采集时间代表整页全部事实的新鲜度。",
+        "制作时间 generated_at、采集时间 retrieved_at、源事实时间 as_of/published_at 分开。",
+        "不为每个币另建工程或部署；现有前端目标 surface 和路由仍待接入核验。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/build_scripts.py",
+          "trial/sol/page-script.v2.json",
+          "trial/bonk/page-script.v2.json"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "两页各 12 块；SOL 13 个来源、BONK 11 个来源；generated_at 首版写成了预估时间，复核时改为真实制作时间 2026-10-18T19:37:07Z。"
+      },
+      "name": "Grokbot · 第三轮：围绕问题写页面",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "section_plan",
+        "conflicts",
+        "unknowns",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "evidence",
+        "page_artifact",
+        "questions",
+        "research_record"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "section_plan",
+          "type": "object[]",
+          "label_zh": "内部问题→答案区块计划，不套通用模板"
+        },
+        {
+          "name": "conflicts",
+          "type": "object[]",
+          "label_zh": "内部未决冲突"
+        },
+        {
+          "name": "unknowns",
+          "type": "object[]",
+          "label_zh": "内部已知缺失"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "page_artifact",
+          "type": "object",
+          "label_zh": "严格v1页面JSON；目标适配未接入验证"
+        },
+        {
+          "name": "questions",
+          "type": "object[]",
+          "label_zh": "真实问题与讨论来源链接",
+          "label_en": "Sourced trader questions"
+        },
+        {
+          "name": "research_record",
+          "type": "object",
+          "label_zh": "每币独立研究记录；非页面JSON字段",
+          "label_en": "Independent per-token research record; outside page JSON"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [],
+      "algorithm_en": "Write question → answer sections from verified evidence. Suggested order: what traders ask, 3–4 current stats, one suitable allowed block per question with the question as title and answer/data/sources/limits in body or caption, relevant upcoming dates if known, risks and sources. Order is guidance, not a universal template. Remove unrelated rankings, FDV and long histories. Log omissions, including content unsupported by the ten allowed blocks. Produce only strict v1 JSON with bilingual display text; assetKey equals the supplied asset_id, never shown in display text. generatedAt is the actual current time to seconds with a timezone; individual facts retain their own times. Finalize the independent research_record without adding it to page JSON. Missing target contract/validator means unconnected, not publishable."
+    },
+    {
+      "key": "selfcheck",
+      "description_zh": "检查身份、证据、内容与目标前端兼容性；保留页面产物和运行上下文交给保存。",
+      "algorithm_zh": "必须使用目标web/domain/token-page-script.ts中的同版本zod校验，检查v1顶层字段、有限数字、256KB、十种区块及各自上限、最多40块、最多12个实际使用来源、双语与assetKey同资产。检查每题讨论证据、数字第二来源、未知原因、无关数据删除和独立研究记录完整；结构通过不代表事实正确。校验器不可访问标unconnected，事实问题needs_review，不保存。校验与保存必须在同一条命令，校验失败立即终止命令且不调用保存；不得仅依赖此前自检报告或修改后旧报告。仅格式问题可内部返回compose修复一次，仍失败则停止。记录实际校验版本、命令和结果，日志不含连接参数/密钥。",
+      "decision_rules_zh": [
+        "结构通过不等于事实正确；报告实际检查范围与未核实项。",
+        "试跑252项测试是原作者报告，不继承为本批通过。",
+        "检查失败不进入 save；超过一次格式修复仍失败则终止。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "fu-local/web/tests/unit/trial-fixture.test.ts",
+          "trial/screenshots/sol-desktop-full.png",
+          "trial/screenshots/bonk-desktop-full.png"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "自检真实抓出 1 个问题：callout tone=warn 不在枚举里导致每页跳过 1 块；修正后 36 个测试文件 / 252 个测试全部通过，渲染出 12/12 块。"
+      },
+      "name": "Grokbot · 自检",
+      "owner_zh": "Grokbot",
+      "kind": "decision",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "page_artifact",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "output_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "page_artifact",
+        "check_report",
+        "questions",
+        "research_record"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "evidence",
+          "type": "object[]",
+          "label_zh": "Grokbot内部可用证据；结构与存储待核验"
+        },
+        {
+          "name": "page_artifact",
+          "type": "object",
+          "label_zh": "严格v1页面JSON；目标适配未接入验证"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "check_report",
+          "type": "object",
+          "label_zh": "内部自检报告，未接入不能标通过"
+        },
+        {
+          "name": "questions",
+          "type": "object[]",
+          "label_zh": "真实问题与讨论来源链接",
+          "label_en": "Sourced trader questions"
+        },
+        {
+          "name": "research_record",
+          "type": "object",
+          "label_zh": "每币独立研究记录；非页面JSON字段",
+          "label_en": "Independent per-token research record; outside page JSON"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [
+        {
+          "id": "pass",
+          "label_zh": "自检通过",
+          "label_en": "Pass",
+          "condition": "前端同版本解析与必要事实检查实际通过。",
+          "terminal": false
+        },
+        {
+          "id": "revise",
+          "label_zh": "格式修复",
+          "label_en": "Revise",
+          "condition": "仅有可修复格式问题；同一任务内最多修复一次，不独立调度。",
+          "terminal": false
+        },
+        {
+          "id": "blocked",
+          "label_zh": "停止保存",
+          "label_en": "Stop",
+          "condition": "事实错误、缺解析器/未接入或修复失败，不进入保存。",
+          "terminal": true
+        }
+      ],
+      "algorithm_en": "Use the target web/domain/token-page-script.ts zod validator at the same version. Check strict v1 fields, finite numbers, 256KB, ten block types and their limits, at most 40 blocks, at most 12 actually used sources, bilingual display text and same-asset assetKey. Verify discussion evidence, second-source numbers, reasons for unknowns, omissions and a complete independent research record. Structural validity does not prove facts. Missing validator is unconnected; fact errors need review. Validate and save in the same command, aborting before the save call on validation failure; earlier or stale checks are insufficient. Allow one internal format repair. Record validator version, command and actual outcome without secrets."
+    },
+    {
+      "key": "save",
+      "description_zh": "确认同一资产页面成功保存后更新 #1039 当前成功记录，失败保留旧记录。",
+      "algorithm_zh": "仅在同资产身份核查和自检通过后请求保存；确认同一任务已成功保存，才将saved_page_ref/saved_at写入#1039。未接入、失败、结果不确定或旧结果均保留旧页与旧成功时间。幂等、并发和回执由Few现有任务/保存机制实现，不在此预设run_id等具体字段名；实际适配与保护尚未接入验证。 执行同一命令中的目标zod校验与保存，校验不通过不请求保存。仅HTTP 200/201算发布成功；409不重试；422修完全部问题后再发；404/401/503停止；413缩短后重新校验；502稍后重发前重新校验。重试仍受Few现有策略约束，不增设自动循环；任一非成功码或不确定回执不得回写成功。连接参数和密钥只从服务器环境文件加载，不打印、记录或写入页面/卡片/研究记录。实际保存接口与适配仍未接入验证。",
+      "decision_rules_zh": [
+        "同资产、身份及自检通过、明确成功保存后才回写。",
+        "失败、未接入和保存不确定不修改旧成功记录。",
+        "防重复和旧完成覆盖是实现要求，技术字段由Few复用现有机制确定。"
+      ],
+      "trial_evidence": {
+        "files": [
+          "trial/fixtures-trial.patch"
+        ],
+        "verification_status": "author_report_unverified",
+        "original_root": "/workspace/asset-page-research/",
+        "artifacts_in_this_pr": false,
+        "limitation_zh": "原作者报告；引用文件未随 PR 提供，本批未复核请求、事实、页面、耗时或测试。不能作为已接通或已通过验收的证明。 旧九步/v2草稿历史报告，不是三轮v1流程的验收结果。",
+        "reported_summary_zh": "试运行没有真实保存：只写入本地 fixture（fu-local 本地提交，未 push），status 视为 unconnected。"
+      },
+      "name": "Grokbot · 保存并回写",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "trigger_zh": "由前一步合格结果在同一制作任务内交接；本卡不独立调度，打开详情不执行。",
+      "input_fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "page_artifact",
+        "check_report",
+        "questions",
+        "research_record"
+      ],
+      "output_fields": [
+        "asset_id",
+        "status",
+        "saved_page_ref",
+        "saved_at",
+        "workflow_version",
+        "error"
+      ],
+      "fields": [
+        {
+          "name": "asset_id",
+          "type": "string",
+          "label_zh": "同一资产UUID；业务交接必需"
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "label_zh": "generate首次制作 / refresh更新；由Few上游判定"
+        },
+        {
+          "name": "page_ref",
+          "type": "string | null",
+          "label_zh": "旧网页引用；首次制作可空"
+        },
+        {
+          "name": "identity_check",
+          "type": "string",
+          "label_zh": "本次身份核查结果，非全局身份修改"
+        },
+        {
+          "name": "page_artifact",
+          "type": "object",
+          "label_zh": "严格v1页面JSON；目标适配未接入验证"
+        },
+        {
+          "name": "check_report",
+          "type": "object",
+          "label_zh": "内部自检报告，未接入不能标通过"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "label_zh": "success / failed / unconnected / needs_review"
+        },
+        {
+          "name": "saved_page_ref",
+          "type": "string | null",
+          "label_zh": "已确认保存的同资产网页引用"
+        },
+        {
+          "name": "saved_at",
+          "type": "UTC timestamp | null",
+          "label_zh": "已确认保存完成时间"
+        },
+        {
+          "name": "workflow_version",
+          "type": "string | null",
+          "label_zh": "实际制作规范版本；未确定留空，不作上游必需输入"
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "label_zh": "失败或未接入原因"
+        },
+        {
+          "name": "questions",
+          "type": "object[]",
+          "label_zh": "真实问题与讨论来源链接",
+          "label_en": "Sourced trader questions"
+        },
+        {
+          "name": "research_record",
+          "type": "object",
+          "label_zh": "每币独立研究记录；非页面JSON字段",
+          "label_en": "Independent per-token research record; outside page JSON"
+        }
+      ],
+      "internal_notes_zh": "输入输出中的资料容器用于解释Grokbot内部步骤，不是要求Few逐项传入的新接口；原始证据在同一制作任务内共享，格式和存储需接入时核验。Few只交接asset_id、action、page_ref。",
+      "input_provenance_zh": "设计字段与职责，无已验证业务输入。",
+      "branches": [],
+      "algorithm_en": "Run target zod validation and saving in the same command, never calling save on validation failure. Only HTTP 200/201 confirms publication: 409 never retry; 422 fix all problems before resubmission; 404/401/503 stop; 413 shorten and revalidate; 502 resend later after revalidation. Respect Few retry/concurrency controls without a new automatic loop. Non-success or uncertain replies never update #1039. Only a confirmed same-asset save after identity and checks may map saved_page_ref/saved_at to the current successful row; preserve older success on failure. Load connection parameters and secrets only from server environment files, never print or store them in logs, pages, cards or research records. The actual adapter is unconnected."
+    },
+    {
+      "key": "rules",
+      "name": "Grokbot · 页面制作规范与问题示例",
+      "owner_zh": "Grokbot",
+      "kind": "process",
+      "description_zh": "三轮研究与v1页面规范；只供引用，不触发制作或调度。",
+      "algorithm_zh": "执行第一轮→第二轮→第三轮，并遵守下方全部规范及问题示例。此卡只供引用，打开详情不运行；真实研究/保存接入仍待核验。",
+      "algorithm_en": "Follow listen → question-led data → question-led writing and all rules/examples below. This is a non-executing reference, not a job or scheduler. Real research and saving remain unconnected.",
+      "trigger_zh": "仅规范参考；不独立调度、不触发执行，打开详情不运行。",
+      "input_fields": [],
+      "output_fields": [],
+      "fields": [],
+      "branches": [],
+      "internal_notes_zh": "规范引用不增加Few业务输入；研究记录独立于页面JSON及当前网页成功记录。",
+      "input_provenance_zh": "已批准要求，非运行事实。"
+    }
+  ],
+  "connections": [
+    {
+      "source": "Grokbot · 身份核验",
+      "target": "Grokbot · 盘点 FU 已有资料",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。",
+      "guard": {
+        "identity_check": "confirmed"
+      }
+    },
+    {
+      "source": "Grokbot · 盘点 FU 已有资料",
+      "target": "Grokbot · 第一轮：倾听市场",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "identity_check"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 第一轮：倾听市场",
+      "target": "Grokbot · 第二轮：按问题找数据",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 第二轮：按问题找数据",
+      "target": "Grokbot · 取数、留证与研究记录",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 取数、留证与研究记录",
+      "target": "Grokbot · 处理冲突、过期与未知",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "gaps",
+        "section_plan",
+        "source_plan",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 处理冲突、过期与未知",
+      "target": "Grokbot · 第三轮：围绕问题写页面",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "section_plan",
+        "conflicts",
+        "unknowns",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "kind": "control",
+      "branch": "ready",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 第三轮：围绕问题写页面",
+      "target": "Grokbot · 自检",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "evidence",
+        "page_artifact",
+        "identity_check",
+        "questions",
+        "research_record"
+      ],
+      "kind": "data",
+      "branch": "",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 自检",
+      "target": "Grokbot · 保存并回写",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref",
+        "identity_check",
+        "page_artifact",
+        "check_report",
+        "questions",
+        "research_record"
+      ],
+      "kind": "control",
+      "branch": "pass",
+      "note_zh": "同一资产、同一Grokbot制作任务的内部交接；无独立调度。"
+    },
+    {
+      "source": "Grokbot · 处理冲突、过期与未知",
+      "target": "Grokbot · 取数、留证与研究记录",
+      "fields": [
+        "asset_id"
+      ],
+      "kind": "reference",
+      "branch": "revalidate",
+      "note_zh": "同一制作任务内最多一次的补核/修复参考路径；不构成图上的即时循环或独立任务。",
+      "internal_retry_limit": 1
+    },
+    {
+      "source": "Grokbot · 自检",
+      "target": "Grokbot · 第三轮：围绕问题写页面",
+      "fields": [
+        "asset_id"
+      ],
+      "kind": "reference",
+      "branch": "revise",
+      "note_zh": "同一制作任务内最多一次的补核/修复参考路径；不构成图上的即时循环或独立任务。",
+      "internal_retry_limit": 1
+    },
+    {
+      "source": "候选代币筛选",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id"
+      ],
+      "note_zh": "候选资产 UUID 交给刷新判断。",
+      "branch": ""
+    },
+    {
+      "source": "asset_pages",
+      "target": "刷新判断",
+      "fields": [
+        "asset_id",
+        "page_ref",
+        "updated_at"
+      ],
+      "mapping": {
+        "updated_at": "page_updated_at"
+      },
+      "note_zh": "按候选 UUID 查询当前网页位置及最后成功更新时间。",
+      "branch": ""
+    },
+    {
+      "source": "刷新判断",
+      "target": "Grokbot · 身份核验",
+      "fields": [
+        "asset_id",
+        "action",
+        "page_ref"
+      ],
+      "note_zh": "Few上游完成首次制作/更新判断与任务派发后交接同一资产、动作和旧网页引用。reason和age_minutes仅用于上游解释/诊断，不传给Grokbot。",
+      "branch": "",
+      "branches": [
+        "first",
+        "due"
+      ]
+    },
+    {
+      "source": "asset_identifiers",
+      "target": "Grokbot · 身份核验",
+      "fields": [
+        "asset_id",
+        "source_namespace",
+        "external_identifier"
+      ],
+      "note_zh": "按 asset_id 读取外部身份映射供 Grokbot 使用；读取不触发制作，真实读取工具尚未接入。",
+      "branch": ""
+    },
+    {
+      "source": "Grokbot · 保存并回写",
+      "target": "asset_pages",
+      "fields": [
+        "asset_id",
+        "saved_page_ref",
+        "saved_at"
+      ],
+      "mapping": {
+        "saved_page_ref": "page_ref",
+        "saved_at": "updated_at"
+      },
+      "note_zh": "仅同资产身份与自检通过且确认保存成功后回写；失败保留旧成功行。",
+      "kind": "write",
+      "config": {
+        "trigger": "none",
+        "completion": "success",
+        "role": "confirmed_asset_page_save",
+        "write_guard": {
+          "status": "success",
+          "require_same_asset": true,
+          "required_nonempty": [
+            "saved_page_ref",
+            "saved_at"
+          ],
+          "reject_stale_completion": true,
+          "identity_check": "confirmed",
+          "selfcheck": "passed"
+        }
+      }
+    },
+    {
+      "source": "Grokbot · 页面制作规范与问题示例",
+      "target": "Grokbot · 第一轮：倾听市场",
+      "fields": [],
+      "kind": "reference",
+      "branch": "",
+      "note_zh": "共享规范与问题示例，仅参考，不触发执行。"
+    },
+    {
+      "source": "Grokbot · 页面制作规范与问题示例",
+      "target": "Grokbot · 第二轮：按问题找数据",
+      "fields": [],
+      "kind": "reference",
+      "branch": "",
+      "note_zh": "共享规范与问题示例，仅参考，不触发执行。"
+    },
+    {
+      "source": "Grokbot · 页面制作规范与问题示例",
+      "target": "Grokbot · 取数、留证与研究记录",
+      "fields": [],
+      "kind": "reference",
+      "branch": "",
+      "note_zh": "共享规范与问题示例，仅参考，不触发执行。"
+    },
+    {
+      "source": "Grokbot · 页面制作规范与问题示例",
+      "target": "Grokbot · 处理冲突、过期与未知",
+      "fields": [],
+      "kind": "reference",
+      "branch": "",
+      "note_zh": "共享规范与问题示例，仅参考，不触发执行。"
+    },
+    {
+      "source": "Grokbot · 页面制作规范与问题示例",
+      "target": "Grokbot · 第三轮：围绕问题写页面",
+      "fields": [],
+      "kind": "reference",
+      "branch": "",
+      "note_zh": "共享规范与问题示例，仅参考，不触发执行。"
+    },
+    {
+      "source": "Grokbot · 页面制作规范与问题示例",
+      "target": "Grokbot · 自检",
+      "fields": [],
+      "kind": "reference",
+      "branch": "",
+      "note_zh": "共享规范与问题示例，仅参考，不触发执行。"
+    },
+    {
+      "source": "Grokbot · 页面制作规范与问题示例",
+      "target": "Grokbot · 保存并回写",
+      "fields": [],
+      "kind": "reference",
+      "branch": "",
+      "note_zh": "共享规范与问题示例，仅参考，不触发执行。"
+    }
+  ],
+  "page_rules": [
+    {
+      "title_zh": "严格v1 JSON",
+      "text_zh": "顶层仅version=1、symbol、assetKey（必须等于给定资产id）、title和headline（中英双语）、generatedAt（当前时间，精确到秒，带时区）、isSample=false、sources、blocks；不允许多余字段，所有数字有限，整份≤256KB。内部id不得出现在展示文字。",
+      "title_en": "Strict v1 JSON",
+      "text_en": "Only version=1, symbol, assetKey (the supplied asset id), bilingual title/headline, generatedAt (actual current time, seconds and timezone), isSample=false, sources and blocks. No extra fields; finite numbers; total ≤256KB. Never display internal ids."
+    },
+    {
+      "title_zh": "允许的区块",
+      "text_zh": "仅text、stats、line_chart、bar_chart、table、timeline、comparison、quotes、callout、links。不能自创新块；表达不了就舍弃并记入研究记录。一般6–12块，最多40块。",
+      "title_en": "Allowed blocks",
+      "text_en": "Only text, stats, line_chart, bar_chart, table, timeline, comparison, quotes, callout and links. Do not invent block types. Omit unsupported content with a reason in the research record. Usually 6–12 blocks, at most 40."
+    },
+    {
+      "title_zh": "逐块上限",
+      "text_zh": "text 1–8段；stats 1–8项且value≤160字符；line_chart 2–120点、1–4条线；bar_chart 1–24柱；table 1–6列、1–30行；timeline 1–12事件；comparison 2–4列、每列1–8项；quotes 1–8条；callout items最多8项；links 1–10条。",
+      "title_en": "Per-block limits",
+      "text_en": "text: 1–8 paragraphs; stats: 1–8 items, value ≤160 characters; line_chart: 2–120 points, 1–4 series; bar_chart: 1–24 bars; table: 1–6 columns, 1–30 rows; timeline: 1–12 events; comparison: 2–4 columns, 1–8 items each; quotes: 1–8; callout: ≤8 items; links: 1–10."
+    },
+    {
+      "title_zh": "来源与表达",
+      "text_zh": "sources最多12条，只放实际使用的http(s)链接。所有展示文字中英双语，每条事实附来源链接；无法核实的数字不写，问题说明“目前无法核实”及原因。不编造、不夸大、不喊单、不给买卖建议。",
+      "title_en": "Sources and wording",
+      "text_en": "At most 12 actually used http(s) sources. All display text is bilingual; every fact links to its evidence. Omit unverifiable numbers and explain why the question is currently unverifiable. No fabrication, exaggeration, shilling or buy/sell advice."
+    },
+    {
+      "title_zh": "研究与免费访问",
+      "text_zh": "第一轮近约1–4周真实讨论，3–5个具体问题逐题附原始讨论链接；同名噪音、喊单和推广只作查源线索。X帖子/新闻搜索留足间隔，429退避并记缺口。第二轮逐题确定数据，只用免费且无需密钥的官方文档、浏览器、官方RPC、CoinGecko免账号接口、data-api.binance.vision、DEX Screener、DefiLlama及公开公告。数字必须第二来源核对，差异注明并说明可靠来源取舍。",
+      "title_en": "Research and free access",
+      "text_en": "Round one: roughly 1–4 weeks, 3–5 concrete questions with original discussion links; unrelated names and promotional posts are leads only. Space X post/news searches and back off on 429, recording gaps. Round two chooses data per question using only free keyless official docs, explorers, official RPC, keyless CoinGecko, data-api.binance.vision, DEX Screener, DefiLlama and public notices. Cross-check numbers against a second source; explain discrepancies and source selection."
+    },
+    {
+      "title_zh": "研究记录",
+      "text_zh": "每币单独记录问题、讨论链接、选用数据及来源、核对结果、无法核实项及原因、删掉内容及原因（含十种区块无法表达的内容）。贯穿三轮并保留运行日志，独立于页面JSON与#1039。实际存储位置待接入核验。",
+      "title_en": "Research record",
+      "text_en": "One record per token: questions, discussion links, selected data/sources, cross-checks, unknowns/reasons and omissions/reasons, including unsupported content. Maintain it across all three rounds with runtime logs, outside page JSON and #1039. Actual storage remains unconnected."
+    },
+    {
+      "title_zh": "校验与发布",
+      "text_zh": "必须用web/domain/token-page-script.ts的zod校验；校验与保存同一命令，失败不保存。仅200/201成功；409不重试；422全部修完再发；404/401/503停止；413缩短；502稍后重发。修改或重发前重新校验；只有确认成功才回写当前网页记录，失败保留旧页。",
+      "title_en": "Validation and publication",
+      "text_en": "Use zod from web/domain/token-page-script.ts. Validate and save in one command; failed validation prevents saving. Only 200/201 succeeds; 409 no retry; 422 fix all; 404/401/503 stop; 413 shorten; 502 resend later. Revalidate changed or resubmitted artifacts. Only confirmed success updates the current page row; preserve old success on failure."
+    },
+    {
+      "title_zh": "密钥与调度边界",
+      "text_zh": "连接参数和密钥仅从服务器环境文件加载，绝不打印、记录或写入页面、卡片、研究记录。新页面一律三轮；已有页面重做等用户另定。保持原筛选、去重、成功回写、并发与旧结果保护；本规范仅引用，不启动执行。",
+      "title_en": "Secrets and scheduling",
+      "text_en": "Load connection parameters and secrets only from server environment files; never print or store them in logs, pages, cards or research records. All new pages use three rounds; reworking existing pages awaits a separate user decision. Preserve selection, deduplication, confirmed writes, concurrency and stale-result protection. This card is a non-executing reference."
+    }
+  ],
+  "question_examples": [
+    {
+      "question_zh": "项目网站关闭后代币还有什么用？",
+      "answer_zh": "官方公告原文；comparison列“停止的/继续的”。",
+      "question_en": "What remains useful after the project website closes?",
+      "answer_en": "Original official notice; comparison of discontinued and continuing functions."
+    },
+    {
+      "question_zh": "交易所会不会下架？",
+      "answer_zh": "各交易所公告的理由/决定日期，加CoinGecko tickers计算所涉交易所占公开全网成交额比例，说明快照时点、覆盖和计算口径；table。",
+      "question_en": "Will exchanges delist it?",
+      "answer_en": "Exchange notices with reasons/dates, plus CoinGecko tickers to calculate affected venues’ share of reported global turnover. Explain snapshot, coverage and denominator; table."
+    },
+    {
+      "question_zh": "借贷产品里的贷款怎么办？",
+      "answer_zh": "DefiLlama该借贷协议TVL变化用line_chart；查不到未还贷款笔数就直说，TVL不能代替贷款笔数。",
+      "question_en": "What happens to loans in the lending product?",
+      "answer_en": "Use a line_chart of protocol TVL from DefiLlama. State when outstanding loan counts are unavailable; TVL is not a count of loans."
+    },
+    {
+      "question_zh": "手续费开关值多少钱？",
+      "answer_zh": "DefiLlama手续费与协议收入；text，解释口径和局限，不以费用直接冒充代币持有人收益。",
+      "question_en": "What is the fee switch worth?",
+      "answer_en": "DefiLlama fees and protocol revenue; text with definitions and limits. Fees do not automatically accrue to token holders."
+    },
+    {
+      "question_zh": "暴跌后抛压减弱了吗？",
+      "answer_zh": "data-api.binance.vision日K线成交额；bar_chart，注明“成交缩小不等于见底”。",
+      "question_en": "Has selling pressure eased after the crash?",
+      "answer_en": "Daily kline turnover from data-api.binance.vision; bar_chart, with “lower volume does not mean a bottom”."
+    },
+    {
+      "question_zh": "销毁是真的吗？",
+      "answer_zh": "链官方RPC读取销毁地址balanceOf，对照官方公布数字；stats，保留合约、地址和时点证据。",
+      "question_en": "Is the burn real?",
+      "answer_en": "Read burn-address balanceOf through official chain RPC, compare with the official figure; stats with contract, address and time evidence."
+    },
+    {
+      "question_zh": "和同类项目的市值差距？",
+      "answer_zh": "CoinGecko两币市值；bar_chart，注明差距本身不说明谁被低估。",
+      "question_en": "How does its market cap compare with peers?",
+      "answer_en": "CoinGecko market caps for both tokens; bar_chart, noting the gap alone does not show undervaluation."
+    },
+    {
+      "question_zh": "流动性能不能被撤走？",
+      "answer_zh": "官方锁定文档加DEX Screener主池流动性与成交；table，区分文档声明与链上已核实事实。",
+      "question_en": "Can liquidity be withdrawn?",
+      "answer_en": "Official locking documentation plus DEX Screener primary-pool liquidity and turnover; table, distinguishing documented claims from verified on-chain facts."
+    },
+    {
+      "question_zh": "大户是不是在出货？",
+      "answer_zh": "拿不到持有人排名则写“目前无法核实”和原因，只给可确认数据及局限。",
+      "question_en": "Are large holders selling?",
+      "answer_en": "If holder rankings are unavailable, say “Currently unverifiable” and why; present only confirmed data with its limits."
+    }
+  ]
+}

@@ -56,6 +56,7 @@ from asset_pages import ensure_asset_pages
 from asset_webpage_flow import ensure_asset_webpage_flow
 from asset_grokbot_flow import ensure_asset_grokbot_flow
 from asset_webpage_board import ensure_asset_webpage_board
+from asset_webpage_rounds import ensure_asset_webpage_rounds
 from stocks_design import ensure_stocks_design
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -111,6 +112,7 @@ ensure_asset_pages(service)
 ensure_asset_webpage_flow(service)
 ensure_asset_grokbot_flow(service)
 ensure_asset_webpage_board(service)
+ensure_asset_webpage_rounds(service)
 ensure_stocks_design(service)
 ensure_board_display_limit(service)
 

@@ -13,7 +13,7 @@ import indicatorSignals from '../catalog/coingecko-indicator-signals.v1.json';
 import sync from '../catalog/supabase-score-sync.v1.json';
 import sources from '../catalog/source-contracts.v1.json';
 import rollup from '../catalog/score-rollup.v1.json';
-import webpageFlow from '../catalog/asset-webpage-board.v1.json';
+import webpageFlow from '../catalog/asset-webpage-board.v2.json';
 
 const currentWebpageStep = node => node.card_contract?.config.resource?.asset_webpage_flow && webpageFlow.cards.find(card => card.name === node.name);
 
@@ -37,7 +37,7 @@ function acceptedCopy(node) {
 export function cardExplanation(node, language) {
   const zh = language === 'zh-CN';
   const webpageStep = currentWebpageStep(node);
-  if (webpageStep) return webpageStep.algorithm_zh;
+  if (webpageStep) return zh ? webpageStep.algorithm_zh : webpageStep.algorithm_en;
   const warmingCard=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);
   if (warmingCard) return zh?warmingCard.algorithm_zh:warmingCard.algorithm_en;
   const heatCard=hottest.cards.find(c=>c.key===node.card_contract?.config.resource?.hottest_key);

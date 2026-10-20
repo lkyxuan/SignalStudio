@@ -1,4 +1,4 @@
-import spec from '../catalog/asset-webpage-board.v1.json';
+import spec from '../catalog/asset-webpage-board.v2.json';
 import pages from '../catalog/asset-pages.v1.json';
 import {BusinessTableRows} from './BusinessTableRows';
 import {ProcessingCardFrame} from './ProcessingCardFrame';
@@ -24,11 +24,11 @@ export function AssetWebpageFlowCard({node,graph,openNode,language}:{node:GraphN
   const outputs=spec.connections.filter(e=>e.source===node.name);
   const provenance=<p className="processing-io-case-caption">{zh?spec.provenance_zh:spec.provenance_en}</p>;
   const settings=<details className="processing-advanced"><summary>{zh?'其他设置 · 字段与契约':'Other settings · fields and contract'}</summary>
-    <p><code>catalog/asset-webpage-board.v1.json</code></p>
+    <p><code>catalog/asset-webpage-board.v2.json</code></p>
     <dl className="source-case-inspector-fields">{card.fields.map(f=><div key={f.name}><dt><code>{f.name}</code></dt><dd>{f.label_zh} · {f.type}</dd></div>)}</dl>
   </details>;
-  return <ProcessingCardFrame node={node} graph={graph} openNode={openNode} language={language} algorithm={card.algorithm_zh}>
-    <div className="source-case-inspector processing-io-case">
+  return <ProcessingCardFrame node={node} graph={graph} openNode={openNode} language={language} algorithm={zh?card.algorithm_zh:card.algorithm_en}>
+    {card.key!=='rules' && <div className="source-case-inspector processing-io-case">
       <section className="source-case-inspector-section"><h3>{zh?'输入 · 本步骤需要的资料':'Input · data used by this step'}</h3>
         {inputs.map(e=><div className="processing-input-source" key={e.source}><div className="processing-input-source-heading">{link(e.source)}</div>
           <p>{e.note_zh}</p>{rows(e.fields,sourceRows(e.source))}</div>)}
@@ -39,12 +39,23 @@ export function AssetWebpageFlowCard({node,graph,openNode,language}:{node:GraphN
         {card.key==='decision'&&<p>{zh?'示例假设网页查询完整成功：无网页的资产进入首次制作；已有网页因更新周期未定而待配置；时间未知的不猜测过期。一天或三天尚未选定。':'The example assumes complete successful reads: missing pages proceed, existing pages wait for an interval, and unknown times need review. Daily versus three-day timing is undecided.'}</p>}
 
       </section>
-    </div>{provenance}
+    </div>}{provenance}
     <section className="source-case-inspector-section"><h3>{zh?'职责与交接边界':'Responsibility and handoff'}</h3>
       <p>{card.owner_zh} · {spec.handoff.owner_zh}</p>
       <p>{card.internal_notes_zh}</p>
       <p>{spec.handoff.technical_fields_zh}</p><p>{spec.handoff.scheduling_zh}</p>
     </section>
+    {card.key==='rules' && <>
+      <section className="source-case-inspector-section" aria-label={zh?'页面制作规范':'Page production rules'}>
+        <h3>{zh?'页面制作规范 · 三轮流程':'Page production rules · three rounds'}</h3>
+        {spec.page_rules.map(rule=><div key={rule.title_en}><h4>{zh?rule.title_zh:rule.title_en}</h4><p>{zh?rule.text_zh:rule.text_en}</p></div>)}
+      </section>
+      <section className="source-case-inspector-section" aria-label={zh?'问题与数据示例':'Question and data examples'}>
+        <h3>{zh?'问题 → 数据 → 区块示例':'Question → data → block examples'}</h3>
+        {spec.question_examples.map(example=><div key={example.question_en}><h4>{zh?example.question_zh:example.question_en}</h4><p>{zh?example.answer_zh:example.answer_en}</p></div>)}
+      </section>
+    </>}
+    <p>{zh?spec.handoff.new_pages_zh:spec.handoff.new_pages_en}</p>
     {'trial_evidence' in card && card.trial_evidence && <details className="processing-advanced"><summary>{zh?'原作者试跑报告 · 未复核':'Author trial report · unverified'}</summary><p>{String(card.trial_evidence.reported_summary_zh)}</p><p>{String(card.trial_evidence.limitation_zh)}</p></details>}
     <section className="execution-trigger"><h3>{zh?'何时处理':'When to process'}</h3><p>{card.trigger_zh}</p></section>{settings}
   </ProcessingCardFrame>;

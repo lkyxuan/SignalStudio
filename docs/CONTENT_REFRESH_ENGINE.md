@@ -1,7 +1,7 @@
 # Asset webpage board and Few/Grokbot boundary
 
-Current design: [SS-124](https://app.notion.com/p/3fe038a63d5a8135be54e95ca97366db), approved 2026-10-19.
-`catalog/asset-webpage-board.v1.json` is the current board definition. Read the board or its
+Current design: [SS-135](https://app.notion.com/p/3ff038a63d5a812888defb55266c9f3d), approved 2026-10-20.
+`catalog/asset-webpage-board.v2.json` is the current board definition. Read the board or its
 `GET /api/graph/package` export, including definition references, before implementing in Few.
 Studio is a design workspace, not the business-data service or job runner.
 
@@ -9,8 +9,9 @@ Studio is a design workspace, not the business-data service or job runner.
 
 Few Understand owns candidate selection, page-refresh decisions, and the task dispatch,
 retry/concurrency and result-tracking mechanisms that implement the upstream boundary.
-Grokbot owns the nine internal research/production steps shown in the webpage writer module.
-The module is navigation, not a tenth executable card. It does not start a scheduler.
+Grokbot owns three-round research/writing through nine internal steps, plus one non-executing
+production-rules reference card shown in the webpage writer module.
+The module is navigation; the rules card and its reference edges never start work. It does not start a scheduler.
 
 The business handoff contains only:
 
@@ -50,33 +51,82 @@ retry/concurrency state separate from successful page records, and prevent late/
 overwriting newer success. The exact storage, APIs, credentials, retry policy and dispatch strategy
 remain unbound. Every-hour, batch size two, and generate-always-first are not approved defaults.
 
-## Nine independent writer cards
+## Three rounds and preserved checks
 
-1. Identity verification: reuse #3045's identity, reference number and saved display positions.
-   It remains a process card with a confirmed-output guard; an unresolved identity stops without
-   composing/saving a placeholder page or modifying global identity records.
-2. Inventory existing Few materials: distinguish actual usable observations, missing inputs,
-   failed reads and unknown coverage; declarations do not establish collected records.
-3. Determine research focus: make an initial evidence-based section plan.
-4. Find sources: supplement gaps, respecting actual tools, permissions and budget.
-5. Fetch and retain evidence: carry readable evidence and provenance in the same production task.
-6. Resolve conflicts/staleness/unknowns: compare the same asset, metric, units and time horizon;
-   use new evidence to revise the section plan where necessary.
-7. Compose page: reuse Few's frontend framework, not a separate app/deployment per asset.
-8. Self-check: require the actual target frontend contract/parser and necessary content checks.
-9. Save and write back: only a confirmed successful save may update #1039.
+The nine existing identities, reference numbers and saved positions remain. No old card is
+merged or deleted. One rules reference is added; only its reference edges are new.
 
-Internal evidence is shared within the same production task. The evidence and page containers
-are design descriptions, not deployed storage or a fixed new API. Verified usable current Few
-observations can be used directly. Historical evidence does not become current merely because it
-was read now. Foundational facts may be reused only when valid under an explicit freshness policy
-and not invalidated by new evidence. Failed revalidation preserves audit evidence but does not
-turn it into a verified current fact. Unknown source times remain unknown.
+1. #3045 Identity verification: confirmed same-asset mapping is required before continuing;
+   unresolved identity stops without placeholders or changes to global identity records.
+2. #3061 Inventory actual Few materials: reuse qualified, traceable observations; distinguish
+   missing, failed, incomplete, stale and unknown reads from usable evidence.
+3. #3062 **Round one: listen to the market**. Search roughly the last 1–4 weeks of X posts/news,
+   news sites, forums, exchange notices and official project channels. Produce 3–5 specific
+   questions traders actually ask, each with original discussion links and publication times.
+   Unrelated names, shilling and promotional posts are leads only. Space requests and back off
+   on 429 (honoring Retry-After when available); record coverage gaps. Insufficient sourced
+   questions need review, never invented padding.
+4. #3063 **Round two: question-led data**. First decide the data, definitions, period, free
+   keyless source and second verification source needed to answer each question.
+5. #3064 Fetch, retain evidence and maintain one independent research record per token across
+   all rounds: questions, discussion links, selected data/sources, cross-checks, unknowns/reasons,
+   omissions/reasons, including content unsupported by the ten blocks. Retain sanitized request
+   outcomes, raw evidence and runtime logs. Writing finalizes the record; self-check verifies it.
+   It is outside strict page JSON and #1039; actual persistence is unconnected.
+6. #4005 Close round two: cross-check each intended number with a second source using the same
+   asset, time, units, chain and metric. Explain discrepancies and why the adopted source is
+   more reliable. Unverifiable or single-source numbers are omitted; retain the question with
+   “Currently unverifiable” and its reason. Non-blocking unknowns may be disclosed; critical
+   fact or identity conflicts stop. Never fill gaps with estimates.
+7. #3065 **Round three: question-led writing**. Suggested structure: trader questions, 3–4
+   current stats, one suitable block per question (question title, answer/data/source/limits),
+   relevant upcoming dates if known, risks and sources. Order is guidance, not a fixed template.
+   Remove unrelated ranks, FDV and long history; record the reasons. Use strict v1 JSON.
+8. #4006 Self-check: use zod from the actual target `web/domain/token-page-script.ts`, plus
+   evidence, identity, bilingual content and research-record checks. Missing validator means
+   unconnected; structural validity does not prove facts. Record actual validator version and
+   outcome. Earlier or stale checks never authorize saving changed content.
+9. #3066 Save and write back: validation and saving must be in the **same command**, with a
+   validation failure aborting before any save call. Only HTTP 200/201 confirms publication;
+   409 no retry; 422 fix all issues before resubmission; 404/401/503 stop; 413 shorten; 502 resend
+   later. Revalidate before a changed/resubmitted artifact is sent. Respect Few's existing retry,
+   concurrency and stale-result controls; do not add an automatic retry loop.
 
-Conflict revalidation and formatting repair are each limited to one internal attempt; the board
-shows non-triggering reference paths, not immediate graph execution loops or separate jobs.
-Blocking identity/fact conflicts, unavailable validators or failed repairs terminate with the old
-successful page intact. The same freshness rules apply in self-check. Runtime enforcement is unbound.
+The new **Page production rules and question examples** card is a reference, not a tenth job.
+Its `page_rules` and `question_examples` in the current catalog contain the complete bilingual
+limits and nine question→data→block examples. Reference connections have `trigger=none`.
+
+New pages all use the three rounds. **Whether to rework existing pages remains a separate user
+decision**; no automatic rebuild batch or new page interval is authorized. Existing selection,
+deduplication and dispatch requirements remain as above.
+
+### Strict page contract and evidence access
+
+Top-level fields only: `version=1`, `symbol`, `assetKey` (the supplied `asset_id`), bilingual
+`title` and `headline`, `generatedAt` (actual current time, seconds and timezone), `isSample=false`,
+`sources`, `blocks`. No extra fields; finite numbers; total size ≤256KB. No internal IDs in
+rendered text. Keep the internal research record/evidence containers outside this page object.
+
+Only `text`, `stats`, `line_chart`, `bar_chart`, `table`, `timeline`, `comparison`, `quotes`,
+`callout`, `links` are allowed. Usually 6–12 blocks, at most 40. Limits: text 1–8 paragraphs;
+stats 1–8 items and value ≤160 characters; line_chart 2–120 points/1–4 series; bar_chart 1–24 bars;
+table 1–6 columns/1–30 rows; timeline 1–12 events; comparison 2–4 columns/1–8 items each;
+quotes 1–8; callout ≤8 items; links 1–10. Unsupported content is omitted with a recorded reason.
+At most 12 actually used http(s) sources. Every displayed fact links to evidence. All display
+text is bilingual. No fabrication, exaggeration, shilling or buy/sell advice.
+
+Use only free sources that require neither keys nor paid access: official project docs,
+explorers, official chain RPC, keyless CoinGecko, `data-api.binance.vision`, DEX Screener,
+DefiLlama and public exchange notices. Access challenges, rate limits and unpublished metrics
+remain explicit gaps. Qualified traceable Few observations can be reused without duplicate
+requests but do not bypass evidence/freshness checks. Internal reads are not proof of collection.
+Load connection parameters and secrets only from server environment files; never print or store
+them in logs, cards, page objects or research records.
+
+Each fact retains its own time and precision. Retrieval and generation times do not make old
+facts current. Conflict revalidation and format repair retain their existing single internal
+attempt limits and non-triggering reference paths. Failed repairs terminate with the old page
+intact. Runtime enforcement and research-record persistence remain unbound.
 
 ## Current webpage record and saving
 
@@ -94,14 +144,20 @@ No Few readers, jobs, Grokbot tools, production evidence storage, page renderer/
 writeback adapter are connected or verified by that migration. The old draft page-script v2 and
 C1/C3/C6/C7 paths are not established production interfaces.
 
-The nine cards retain original trial summaries as unverified author reports. Their original
-logs, screenshots, artifacts and reported 252 tests are not available in this delivery; they are
+The nine steps retain original trial summaries as unverified historical author reports.
+These old nine-step/v2 reports do not establish acceptance of the current three-round/v1 design.
+The user reports BLUR/TORCH were published with the new approach; that report has not been
+independently verified here and does not establish a connected Studio runtime. The original
+SOL/BONK logs, screenshots, artifacts and reported 252 tests are not available in this delivery; they are
 not runtime evidence. UI examples are fictional, not business records.
 
-`asset-grokbot-flow.v1.json` is now a historical installation input, like the retired
+`asset-webpage-board.v1.json` (SS-124) and `asset-grokbot-flow.v1.json` are historical
+installation inputs, like the retired
 `asset-webpage-flow.v1.json`, `content-refresh.v1.json` and `search-preparation.v1.json`.
 The PR #2 drafts remain research history, not a competing current execution contract.
-SS-124 transactionally adds eight cards, reuses #3045 and replaces its boundary connections.
+SS-124 originally added eight cards and reused #3045. SS-135 runs after that migration,
+transactionally updates the same nine identities, adds the rules reference and question/record
+field mappings, and preserves existing edge/field IDs, positions and historical reports.
 Unexpected user edits/connections or requirements stop migration for review;
 version-pinned historical reports remain unchanged and become stale for changed definitions;
 failures roll back. Other card identities and positions remain intact. Startup does not reset layout.
@@ -109,7 +165,7 @@ failures roll back. Other card identities and positions remain intact. Startup d
 ## Verification
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_asset_webpage_board server.test_asset_grokbot_flow server.test_asset_webpage_flow server.test_asset_pages server.test_asset_page_refresh_link server.test_card_model
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_asset_webpage_rounds server.test_asset_webpage_board server.test_asset_grokbot_flow server.test_asset_webpage_flow server.test_asset_pages server.test_asset_page_refresh_link server.test_card_model
 npx tsx --test src/assetWebpageDesign.test.ts src/featureTree.test.ts src/cardDetailModel.test.ts
 npm run build
 node scripts/check_card_details.mjs /absolute/path/to/graph.json

@@ -271,7 +271,7 @@ export const FEATURE_SPECS: Spec[] = [
           "组装生成资料"
         ]
       }
-      , {"id":"writer","zh":"制作或更新网页","en":"Create or update the webpage","names":["Grokbot · 身份核验", "Grokbot · 盘点 FU 已有资料", "Grokbot · 判定研究重点", "Grokbot · 寻找数据来源", "Grokbot · 抓取并留存证据", "Grokbot · 处理冲突、过期与未知", "Grokbot · 组装页面", "Grokbot · 自检", "Grokbot · 保存并回写"]}
+      , {"id":"writer","zh":"制作或更新网页","en":"Create or update the webpage","names":["Grokbot · 身份核验", "Grokbot · 盘点 FU 已有资料", "Grokbot · 第一轮：倾听市场", "Grokbot · 第二轮：按问题找数据", "Grokbot · 取数、留证与研究记录", "Grokbot · 处理冲突、过期与未知", "Grokbot · 第三轮：围绕问题写页面", "Grokbot · 自检", "Grokbot · 保存并回写", "Grokbot · 页面制作规范与问题示例"]}
     ]
   },
   {
