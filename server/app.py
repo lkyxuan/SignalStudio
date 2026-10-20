@@ -174,7 +174,7 @@ class Handler(BaseHTTPRequestHandler):
         method = self.command
         if method != 'GET' and len(parts) >= 3:
             editable_nodes = []
-            if parts[:2] == ['api','nodes'] and parts[2] != 'layout' and not (method == 'DELETE' and len(parts)==3) and not (len(parts)==4 and parts[3]=='display-position'):
+            if parts[:2] == ['api','nodes'] and parts[2] != 'layout' and not (method == 'DELETE' and len(parts)==3) and not (len(parts)==4 and parts[3] in ('display-position', 'local-references')):
                 editable_nodes = [parts[2]]
             elif parts[:2] == ['api','fields']:
                 editable_nodes = [service.get_field(parts[2])['node_id']]
@@ -304,6 +304,8 @@ class Handler(BaseHTTPRequestHandler):
             return service.update_layout(self.body())
         if len(parts) == 4 and parts[:2] == ["api", "nodes"] and parts[3] == "display-position" and method == "POST":
             return service.update_display_position(parts[2], self.body())
+        if len(parts) == 4 and parts[:2] == ["api", "nodes"] and parts[3] == "local-references" and method == "POST":
+            return service.update_local_references(parts[2], self.body())
         if parts == ["api", "search-description"] and method == "GET":
             return service.search_by_description(query.get("q", [""])[0])
         if len(parts) == 3 and parts[:2] == ["api", "nodes"]:

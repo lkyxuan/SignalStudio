@@ -1119,9 +1119,88 @@ class GraphService:
         self.db.commit()
         return after
 
+    def _display_node_id(self, display_id, depth=0):
+        from urllib.parse import unquote
+        if not isinstance(display_id, str) or depth > 24:
+            raise GraphError("Invalid display identity")
+        for prefix in ('local-reference:', 'occurrence:'):
+            if display_id.startswith(prefix):
+                try:
+                    pair = json.loads(unquote(display_id[len(prefix):]))
+                    if not isinstance(pair, list) or len(pair) != 2 or not all(isinstance(v, str) for v in pair):
+                        raise ValueError()
+                    anchor, logical = pair
+                    self.get_node(logical)
+                    if prefix == 'local-reference:':
+                        parent = self._display_node_id(anchor, depth + 1)
+                        if logical == parent or not self.db.execute(
+                            'SELECT 1 FROM edges WHERE (upstream_id=? AND downstream_id=?) OR '
+                            '(upstream_id=? AND downstream_id=?)', (logical, parent, parent, logical)).fetchone():
+                            raise ValueError()
+                    elif anchor != 'shared-area':
+                        self.get_node(anchor)
+                    return logical
+                except (ValueError, TypeError):
+                    raise GraphError("Display does not belong to a saved relationship")
+        return self.get_node(display_id)['id']
+
+    def update_local_references(self, node_id, data, actor="user"):
+        if not isinstance(data, dict) or data.get('layout_version') != LAYOUT_VERSION:
+            raise GraphError("Layout rules changed; refresh the client")
+        anchor = data.get('anchor_display_id')
+        if self._display_node_id(anchor) != node_id:
+            raise GraphError("Invalid reference anchor")
+        if data.get('mode') == 'collapse':
+            from urllib.parse import unquote
+            removed, parents = [], {anchor}
+            rows = list(self.db.execute('SELECT occurrence_id FROM node_display_positions'))
+            changed = True
+            while changed:
+                changed = False
+                for row in rows:
+                    identity = row['occurrence_id']
+                    if not identity.startswith('local-reference:') or identity in parents:
+                        continue
+                    try:
+                        parent, _ = json.loads(unquote(identity[len('local-reference:'):]))
+                        if parent in parents:
+                            parents.add(identity)
+                            removed.append((identity,))
+                            changed = True
+                    except (ValueError, TypeError):
+                        continue
+            with self.db:
+                self.db.executemany('DELETE FROM node_display_positions WHERE occurrence_id=?', removed)
+                self._event(actor, 'collapse_references', 'node', node_id, None, {'anchor':anchor, 'removed':len(removed)})
+            return {'removed':len(removed)}
+        if data.get('mode', 'expand') != 'expand':
+            raise GraphError("Invalid reference action")
+        items = data.get('references', [])
+        if not isinstance(items, list) or len(items) > 1000:
+            raise GraphError("Invalid local references")
+        positions = []
+        from urllib.parse import unquote
+        for item in items:
+            try:
+                display_id = item['id']
+                logical = self._display_node_id(display_id)
+                pair = json.loads(unquote(display_id[len('local-reference:'):]))
+                if not display_id.startswith('local-reference:') or pair != [anchor, item['node_id']] or logical != item['node_id']:
+                    raise ValueError()
+                x, y = float(item['position_x']), float(item['position_y'])
+                if not math.isfinite(x) or not math.isfinite(y):
+                    raise ValueError()
+                positions.append((logical, display_id, x, y))
+            except (KeyError, ValueError, TypeError):
+                raise GraphError("Invalid local reference")
+        with self.db:
+            # Repeated expansion never resets a display moved by another client.
+            self.db.executemany('INSERT OR IGNORE INTO node_display_positions VALUES (?,?,?,?)', positions)
+            self._event(actor, 'expand_references', 'node', node_id, None, {'anchor':anchor, 'references':items})
+        return {'updated':len(positions)}
+
     def update_display_position(self, node_id, data, actor="user"):
         # Presentation coordinates never mutate a logical card's execution contract.
-        from urllib.parse import unquote
         self.get_node(node_id)
         if not isinstance(data, dict) or data.get("layout_version") != LAYOUT_VERSION:
             raise GraphError("Layout rules changed; refresh the client")
@@ -1133,17 +1212,8 @@ class GraphService:
             if not isinstance(item, dict):
                 raise GraphError("Invalid display position")
             occurrence = item.get("id")
-            if occurrence != node_id:
-                try:
-                    if not isinstance(occurrence, str) or not occurrence.startswith("occurrence:"):
-                        raise ValueError()
-                    tower, logical = json.loads(unquote(occurrence[len("occurrence:"):]))
-                    if logical != node_id or not isinstance(tower, str):
-                        raise ValueError()
-                    if tower != 'shared-area':
-                        self.get_node(tower)
-                except (ValueError, TypeError):
-                    raise GraphError("Display does not belong to this node")
+            if self._display_node_id(occurrence) != node_id:
+                raise GraphError("Display does not belong to this node")
             try:
                 x, y = float(item["position_x"]), float(item["position_y"])
             except (KeyError, ValueError, TypeError):

@@ -419,8 +419,16 @@ export function graphSearchIndex(nodes: GraphNode[], fields: {node_id:string; na
   return new Map([...index].map(([id, text]) => [id, text.toLowerCase()]));
 }
 
-export function scopeGraph<N extends {data?: {id?:string}; id:string}, E extends {id:string; source?:string; target?:string}>(nodes:N[], edges:E[], ids:Set<string>) {
-  const members = nodes.filter(n => ids.has(n.data?.id || n.id));
+export function scopeGraph<N extends {data?: {id?:string;referenceAnchor?:string}; id:string}, E extends {id:string; source?:string; target?:string}>(nodes:N[], edges:E[], ids:Set<string>) {
+  const included = new Set(nodes.filter(n=>ids.has(n.data?.id || n.id) && !n.data?.referenceAnchor).map(n=>n.id));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const node of nodes) if (node.data?.referenceAnchor && included.has(node.data.referenceAnchor) && !included.has(node.id)) {
+      included.add(node.id); changed = true;
+    }
+  }
+  const members = nodes.filter(n => included.has(n.id));
   const renderedIds = new Set(members.map(n => n.id));
   const internal = edges.filter(e => renderedIds.has(e.source!) && renderedIds.has(e.target!));
   const connected = new Set(internal.flatMap(e => [e.source!, e.target!]));

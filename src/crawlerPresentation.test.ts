@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout, crawlerLayout, traceRoute, type LayoutNode } from './autoLayout';
-import { crawlerPresentation, displayPositionUpdate, currentPresentationEdges } from './crawlerPresentation';
+import { crawlerPresentation as fullPresentation, displayPositionUpdate, currentPresentationEdges } from './crawlerPresentation';
 import { arcStyles } from './edgeRouting';
+
+// Tower-specific compatibility checks; local references have their own integration suite.
+const crawlerPresentation: typeof fullPresentation = (nodes, saved, display = saved) => fullPresentation(nodes, saved, display, {automaticReferences:false});
 
 const node = (id: string, kind = 'process', name = id): LayoutNode & { position_x: number; position_y: number; reference_number: number; definition: string } =>
   ({ id, name, kind, type: kind === 'source' ? 'Source' : 'Metric', position_x: 0, position_y: 0, reference_number: 1000 + id.length, definition: `Definition ${id}` });

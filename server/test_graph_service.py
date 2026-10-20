@@ -70,6 +70,64 @@ class GraphServiceTest(unittest.TestCase):
                                     'reset_display_positions': True})
         self.assertTrue(all(n['display_positions'] == {} for n in self.service.graph()['nodes']))
 
+    def test_local_reference_expansion_drag_collapse_and_reopen_preserve_semantics(self):
+        from urllib.parse import quote
+        from live_state import snapshot
+        a = self.service.create_node({'name':'Use A','type':'Metric'})
+        b = self.service.create_node({'name':'Use B','type':'Metric'})
+        shared = self.service.create_node({'name':'Public module','type':'Metric'})
+        self.service.create_edge({'upstream_id':shared['id'],'downstream_id':a['id']})
+        self.service.create_edge({'upstream_id':shared['id'],'downstream_id':b['id']})
+        def identity(anchor, logical):
+            return 'local-reference:' + quote(json.dumps([anchor,logical],separators=(',', ':')),safe='')
+        ref = identity(a['id'],shared['id'])
+        nested = identity(ref,b['id'])
+        item = {'id':ref,'node_id':shared['id'],'position_x':400,'position_y':500}
+        body = {'layout_version':LAYOUT_VERSION,'anchor_display_id':a['id'],'references':[item]}
+        before = snapshot(self.service)
+        self.service.update_local_references(a['id'],body)
+        self.service.update_display_position(shared['id'],{
+            'layout_version':LAYOUT_VERSION,'initial_positions':[],
+            'position':{'id':ref,'position_x':450,'position_y':550}})
+        self.service.update_local_references(a['id'],body)
+        self.assertEqual(next(n for n in self.service.graph()['nodes'] if n['id']==shared['id'])['display_positions'][ref],{'position_x':450,'position_y':550})
+        self.service.update_local_references(shared['id'],{
+            'layout_version':LAYOUT_VERSION,'anchor_display_id':ref,'references':[
+                {'id':nested,'node_id':b['id'],'position_x':700,'position_y':800}]})
+        after = snapshot(self.service)
+        self.assertEqual(before['semantic_revision'],after['semantic_revision'])
+        self.assertNotEqual(before['presentation_revision'],after['presentation_revision'])
+        self.assertEqual(len(after['nodes']),3)
+        self.assertEqual(len(after['edges']),2)
+        self.service.db.close()
+        self.service = GraphService(self.path)
+        saved = next(n for n in self.service.graph()['nodes'] if n['id']==shared['id'])
+        self.assertEqual(saved['display_positions'][ref],{'position_x':450,'position_y':550})
+        self.service.update_local_references(a['id'],{'layout_version':LAYOUT_VERSION,'anchor_display_id':a['id'],'mode':'collapse'})
+        self.assertTrue(all(not n['display_positions'] for n in self.service.graph()['nodes']))
+        self.assertEqual(snapshot(self.service)['semantic_revision'],before['semantic_revision'])
+
+    def test_local_references_validate_entire_batch_before_writing(self):
+        from urllib.parse import quote
+        a = self.service.create_node({'name':'Anchor','type':'Metric'})
+        b = self.service.create_node({'name':'Neighbor','type':'Metric'})
+        c = self.service.create_node({'name':'Unrelated','type':'Metric'})
+        self.service.create_edge({'upstream_id':a['id'],'downstream_id':b['id']})
+        def item(node, x=1):
+            identity = 'local-reference:' + quote(json.dumps([a['id'],node['id']],separators=(',', ':')),safe='')
+            return {'id':identity,'node_id':node['id'],'position_x':x,'position_y':2}
+        body = {'layout_version':LAYOUT_VERSION,'anchor_display_id':a['id'],'references':[item(b)]}
+        for invalid in [{**body,'references':[item(b),item(c)]},
+                        {**body,'references':[item(b,float('nan'))]},
+                        {**body,'references':[item(b,float('inf'))]},
+                        {**body,'layout_version':'obsolete'},
+                        {**body,'anchor_display_id':b['id']},
+                        {**body,'mode':'unknown'},
+                        {**body,'references':[{'id':'local-reference:[]'}]}]:
+            with self.assertRaises(GraphError):
+                self.service.update_local_references(a['id'],invalid)
+            self.assertEqual(self.service.db.execute('SELECT COUNT(*) FROM node_display_positions').fetchone()[0],0)
+
     def test_new_database_has_no_demo_graph(self):
         graph = self.service.graph()
         self.assertEqual((len(graph["nodes"]), len(graph["edges"]), len(graph["fields"])), (0, 0, 0))

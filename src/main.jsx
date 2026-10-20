@@ -34,6 +34,8 @@ import { coinGeckoProductStages } from './coinGeckoProductLayout';
 import { LAYOUT_VERSION, autoLayout, layoutGroups, traceRoute, layoutStages } from './autoLayout';
 import { crawlerPresentation, displayPositionUpdate, currentPresentationEdges } from './crawlerPresentation';
 import { neighborLayout } from './neighborLayout';
+import { localReferencePlan } from './localReferences';
+import { SharedReferenceUsage } from './SharedReferenceUsage';
 import { arcStyles, bezierRoute, bezierControls } from './edgeRouting';
 import { arcBounds } from './canvasViewport';
 import { useCanvasNodeVisible, useCanvasNodeMode, useCanvasEdgeMode } from './CanvasRendering';
@@ -132,7 +134,7 @@ const LogicNode = React.memo(function LogicNode({ id, data, selected }) {
     {renderPorts(data.inputPorts || [], 'target')}
     {mode === 'detail' ? <>
     <div className="node-top">
-      <span className="node-ref">{nodeRef(data)}{data.card_contract?.config.resource?.parent_module && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '所属Polars模块' : 'Owning Polars module'}>{data.card_contract.config.resource.parent_module.reference_number}</span>}{data.shared && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '同编号共用同一份内容与配置；点击可同时高亮各处。显示副本的位置由整理规则安排。' : 'Same reference, shared content and settings. Select to highlight all occurrences. Mirrors are positioned by Arrange.'}>{data.language === 'zh-CN' ? '共用' : 'Shared'}</span>}</span>
+      <span className="node-ref">{nodeRef(data)}{data.card_contract?.config.resource?.parent_module && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '所属Polars模块' : 'Owning Polars module'}>{data.card_contract.config.resource.parent_module.reference_number}</span>}{data.shared && <span className="shared-card-badge" title={data.language === 'zh-CN' ? '公共引用：同编号共享内容与配置，修改后各处同步；每处可独立拖动，点击查看此处用法。' : 'Shared reference: edits apply to all locations. Drag independently; select to inspect this use.'}>{data.language === 'zh-CN' ? '公共引用' : 'Shared'}</span>}</span>
       <div className="node-labels">
         <span className="node-glyph">{kind === 'product' ? <LayoutGrid size={15} /> : kind === 'source' || kind === 'state' || kind === 'topic' || kind === 'cache' ? <Database size={15} /> : kind === 'score' ? <Activity size={15} /> : kind === 'identity' || kind === 'relationship' ? <Network size={15} /> : <GitBranch size={15} />}</span>
         <span className="node-kind" title={kindLabel(cardKind(data), data.language)}>{kindLabel(cardKind(data), data.language)}</span>
@@ -200,6 +202,7 @@ function App() {
   const [focusNodeId, setFocusNodeId] = useState(null);
   const [routeOccurrenceId, setRouteOccurrenceId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedDisplayId, setSelectedDisplayId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [focusedEdgeId, setFocusedEdgeId] = useState(null);
   const [flowFocusId, setFlowFocusId] = useState(null);
@@ -233,6 +236,16 @@ function App() {
   const [flowReady, setFlowReady] = useState(false);
   const [canvasSize, setCanvasSize] = useState([0, 0]);
   const pendingRoute = useRef(null);
+  const pendingReferenceView = useRef(null);
+  useEffect(() => {
+    const ids = pendingReferenceView.current;
+    if (!ids || !flowInstance || !flowReady || graphDisplayMode !== 'full' || ids.some(id => !nodes.some(n => n.id === id))) return;
+    const frame = requestAnimationFrame(() => {
+      flowInstance.fitView({nodes:ids.map(id=>({id})),padding:0.25,maxZoom:0.85,duration:300});
+      pendingReferenceView.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [nodes, flowInstance, flowReady, graphDisplayMode]);
   useEffect(() => {
     document.documentElement.lang = language;
     document.title = language === 'zh-CN' ? 'SignalStudio · 数据逻辑设计工作台' : 'SignalStudio';
@@ -307,6 +320,7 @@ function App() {
   }, [graph, towerView, language, catalogEntityInfo, setNodes, setEdges]);
 
   const selected = graph.nodes.find(n => n.id === selectedId);
+  const selectedDisplay = (visualNodes.get(selectedDisplayId)?.logicalId === selectedId ? visualNodes.get(selectedDisplayId) : null) || visualNodes.get(selectedId);
   const isSignal = selected && SIGNAL_TYPES.has(selected.type) && selected.name !== scoreRollup.node.name;
   const selectedEdge = graph.edges.find(e => e.id === selectedEdgeId);
   const detailIds = selected ? [...new Set([selected.id, ...graph.edges.flatMap(edge => edge.upstream_id === selected.id ? [edge.downstream_id] : edge.downstream_id === selected.id ? [edge.upstream_id] : [])])]
@@ -505,7 +519,33 @@ function App() {
     catch (error) { flash(error.message, true); } finally { setBusy(false); } };
   const applyProposal = async () => { const result = await mutate('/proposals/apply', 'POST', proposal, 'Proposed changes applied');
     if (result) { setSelectedId(result.id); setProposal(null); setPrompt(''); setShowPrompt(false); setTimeout(() => flowInstance?.setCenter(result.position_x, result.position_y, { zoom: 0.85, duration: 450 }), 80); } };
-  const openNode = id => { cardClicks.current.cancel(); setSelectedId(logicalNodeId(id)); setSelectedEdgeId(null); setFocusedEdgeId(null); setFocusNodeId(null); };
+  const openNode = id => { cardClicks.current.cancel(); setSelectedDisplayId(id); setSelectedId(logicalNodeId(id)); setSelectedEdgeId(null); setFocusedEdgeId(null); setFocusNodeId(null); };
+  const expandReferences = async () => {
+    if (!selectedDisplay || busy) return;
+    const references = localReferencePlan(towerView.nodes, graph.edges, selectedDisplay.id);
+    if (!references.length) { flash(language === 'zh-CN' ? '当前输入输出已展开，或没有更多已连接的卡片' : 'Inputs and outputs are already expanded, or no further cards are connected'); return; }
+    pendingReferenceView.current = [selectedDisplay.id,...references.map(n=>n.id)];
+    const result = await mutate(`/nodes/${selectedDisplay.logicalId}/local-references`, 'POST', {
+      layout_version: LAYOUT_VERSION, anchor_display_id: selectedDisplay.id, references,
+    }, language === 'zh-CN' ? '已在此展开公共引用，内容与原卡片共享' : 'Local references expanded with shared content');
+    if (result) {
+      if (graphDisplayMode !== 'full') { setGraphDisplayMode('full'); pendingRoute.current = selectedDisplay.id; }
+    } else pendingReferenceView.current = null;
+  };
+  const collapseReferences = async () => {
+    if (!selectedDisplay || busy) return;
+    await mutate(`/nodes/${selectedDisplay.logicalId}/local-references`, 'POST', {
+      layout_version: LAYOUT_VERSION, anchor_display_id: selectedDisplay.id, mode: 'collapse',
+    }, language === 'zh-CN' ? '已收起手动展开，大地图自动引用继续保留' : 'Manual expansion collapsed; automatic map references remain');
+  };
+  const locateOriginal = () => {
+    if (!selected) return;
+    pendingReferenceView.current = [selected.id];
+    setView('graph'); setGraphDisplayMode('full');
+    setSelectedDisplayId(selected.id);
+    flowInstance?.setCenter((visualNodes.get(selected.id)?.position_x ?? selected.position_x)+150,
+      (visualNodes.get(selected.id)?.position_y ?? selected.position_y)+80,{zoom:0.85,duration:300});
+  };
   const fitRoute = id => {
     const route = traceRoute(towerView.nodes, towerView.edges, id);
     flowInstance?.fitView({ nodes: [...route.nodeIds].map(nodeId => ({ id: nodeId })), padding: 0.2, maxZoom: 0.85, duration: 350 });
@@ -630,7 +670,7 @@ function App() {
 
     {(selected || selectedEdge) && <aside key={live.editorEpoch} onChangeCapture={trackEdit} className={`inspector ${selected && BUSINESS_TABLE_NAMES.has(selected.name) ? 'business-table-inspector' : ''}`}><div className="inspector-head"><span>{t('INSPECTOR')}</span><IconButton title={t('Close inspector')} onClick={() => { setSelectedId(null); setSelectedEdgeId(null); }}><X size={17} /></IconButton></div>
       {!detailReady && <div className="inspector-scroll" role="status"><p>{detailError || (language === 'zh-CN' ? '正在加载卡片详情…' : 'Loading card details…')}</p>{detailError && <button onClick={() => setDetailAttempt(value => value + 1)}>{language === 'zh-CN' ? '重新加载详情' : 'Retry details'}</button>}</div>}
-      {detailReady && selected && draft && <><div className="inspector-title"><span className={`inspector-icon ${kindStyle(selected)}`}><GitBranch size={20} /></span><div><span className="small-label">{isReferenceResource(selected.name) ? language === 'zh-CN' ? 'MCP 参考资源' : 'MCP RESOURCE' : contractSourceName(selected.name) ? language === 'zh-CN' ? '本产品上游操作' : 'UPSTREAM OPERATION' : kindLabel(cardKind(selected),language)}</span><h2><span className="inspector-node-ref">{nodeRef(selected)}</span>{displayName(selected.name)}</h2><button className="inspector-focus-relations" onClick={focusSelectedRelations} disabled={busy} title={language === 'zh-CN' ? '在完整画布中拉近直接上下游卡片，并保存新位置' : 'Move direct upstream and downstream cards closer on the full canvas and save their positions'}><GitBranch size={14} />{language === 'zh-CN' ? '拉近上下游' : 'Bring neighbors closer'}</button></div></div><div className="inspector-scroll" key={selected.id}>{detailKind(selected) !== 'table' && <CardProgressNote progress={graph.card_progress?.[selected.id]} language={language}/>}<MemoCardDetails key={selected.id} node={selected} graph={graph} openNode={canvasActions.openNode} language={language} mutate={canvasActions.mutate} busy={busy} nodeLabel={canvasActions.nodeLabel} purpose={selected.definition} onOpenSource={canvasActions.openSource}/>{['process','decision'].includes(detailKind(selected)) && ![3006,3009].includes(selected.reference_number) && !selected.card_contract?.config.read_only ? selected.type === 'Asset Resolution' ? <>
+      {detailReady && selected && draft && <><div className="inspector-title"><span className={`inspector-icon ${kindStyle(selected)}`}><GitBranch size={20} /></span><div><span className="small-label">{isReferenceResource(selected.name) ? language === 'zh-CN' ? 'MCP 参考资源' : 'MCP RESOURCE' : contractSourceName(selected.name) ? language === 'zh-CN' ? '本产品上游操作' : 'UPSTREAM OPERATION' : kindLabel(cardKind(selected),language)}</span><h2><span className="inspector-node-ref">{nodeRef(selected)}</span>{displayName(selected.name)}</h2><button className="inspector-focus-relations" onClick={focusSelectedRelations} disabled={busy} title={language === 'zh-CN' ? '在完整画布中拉近直接上下游卡片，并保存新位置' : 'Move direct upstream and downstream cards closer on the full canvas and save their positions'}><GitBranch size={14} />{language === 'zh-CN' ? '拉近上下游' : 'Bring neighbors closer'}</button></div></div><div className="inspector-scroll" key={selected.id}>{selectedDisplay && <SharedReferenceUsage graph={graph} presentation={presentation} display={selectedDisplay} displays={towerView.nodes} edges={towerView.edges} language={language} label={displayName} busy={busy} onExpand={expandReferences} onCollapse={collapseReferences} onOriginal={locateOriginal} onOpenEdge={openEdge}/>} {detailKind(selected) !== 'table' && <CardProgressNote progress={graph.card_progress?.[selected.id]} language={language}/>}<MemoCardDetails key={selected.id} node={selected} graph={graph} openNode={canvasActions.openNode} language={language} mutate={canvasActions.mutate} busy={busy} nodeLabel={canvasActions.nodeLabel} purpose={selected.definition} onOpenSource={canvasActions.openSource}/>{['process','decision'].includes(detailKind(selected)) && ![3006,3009].includes(selected.reference_number) && !selected.card_contract?.config.read_only ? selected.type === 'Asset Resolution' ? <>
         <details className="processing-advanced"><summary>{language === 'zh-CN' ? '其他设置' : 'Other settings'}</summary>
           <label>{language === 'zh-CN' ? '这张节点卡做什么（编辑）' : 'What this node does (edit)'}<DraftControl multiline field="definition" value={draft.definition} reset={draft} edit={editDraft} commit={commitDraft} rows={3} /></label>
           <details className="processing-technical"><summary>{language === 'zh-CN' ? '节点设置' : 'Node settings'}</summary>

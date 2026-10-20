@@ -1,0 +1,8 @@
+.shared-reference-usage { margin: 0 0 18px; padding: 12px; border: 1px solid var(--ss-border); border-radius: 9px; background: var(--ss-surface); }
+.shared-reference-usage > strong { display: flex; gap: 10px; justify-content: space-between; font-size: 12px; }
+.shared-reference-usage > strong span, .shared-reference-usage p { color: var(--ss-muted); font-size: 11px; line-height: 1.6; }
+.reference-connection { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 9px 0; width: 100%; border: 0; border-bottom: 1px solid var(--ss-border); background: transparent; color: var(--ss-text); cursor: pointer; overflow-wrap: anywhere; }
+.reference-connection small { color: var(--ss-muted); font-size: 10px; }
+.reference-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.reference-actions button { border: 1px solid var(--ss-border); border-radius: 5px; padding: 6px 8px; background: var(--ss-raised); color: var(--ss-text); font-size: 11px; cursor: pointer; }
+.reference-actions button:hover, .reference-connection:hover { color: var(--ss-accent); }

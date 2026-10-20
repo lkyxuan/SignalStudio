@@ -7,7 +7,7 @@
     "desktop:build": "python3 scripts/build_macos_app.py",
     "dev": "concurrently -k \"python3 server/app.py\" \"vite\"",
     "build": "npm run typecheck && vite build",
-    "test:layout": "tsx --test src/autoLayout.test.ts src/crawlerPresentation.test.ts src/edgeRouting.test.ts src/graphEmphasis.test.ts src/edgePresentation.test.ts src/processFlows.test.ts",
+    "test:layout": "tsx --test src/localReferences.test.ts src/autoLayout.test.ts src/crawlerPresentation.test.ts src/edgeRouting.test.ts src/graphEmphasis.test.ts src/edgePresentation.test.ts src/processFlows.test.ts",
     "preview": "python3 server/app.py",
     "typecheck": "tsc --noEmit",
     "test:contracts": "tsx --test src/tableDetailsModel.test.ts src/cardProgressModel.test.ts src/contracts.test.ts src/api.test.ts src/cardDetailModel.test.ts src/liveGraph.test.ts src/liveGraphSession.test.ts src/refreshQueue.test.ts src/graphRecovery.test.ts src/canvasViewport.test.ts src/refreshWorkspace.test.ts src/cardClicks.test.ts src/graphTransport.test.ts src/applicationInterface.test.tsx src/cardTypeFilters.test.ts src/featureTree.test.ts src/editorDraft.test.ts src/motionScene.test.ts",
