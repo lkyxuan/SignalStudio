@@ -150,7 +150,7 @@ test('CoinGecko product lines keep outputs nearby while preserving shared output
     node('alert', 'process', 'CoinGecko · 24 小时大涨'), node('signal', 'channel', 'Few Understand · signal.data'),
     node('discover', 'process', 'CoinGecko · 核实并建档'), node('new-rank', 'process', '生成最新UUID榜'), node('new', 'table', 'leaderboard_new_uuid'),
     node('legacy', 'process', '量价评分 · 生成贡献'), node('warm-candidate', 'state', 'CoinGecko · 升温候选快照'),
-    node('warm-baseline', 'process', 'CoinGecko · 计算升温日冻结基准'), node('warm-rank', 'process', '生成基础升温榜'),
+    node('warm-baseline', 'process', 'CoinGecko · 计算升温小时基准'), node('warm-rank', 'process', '生成基础升温榜'),
     node('warming', 'table', 'leaderboard_warming'), node('content', 'process', '候选代币筛选')];
   const edges = [edge('markets','snapshot'), edge('snapshot','metrics'), edge('metrics','indicator'), edge('indicator','candidate'),
     edge('candidate','rank'), edge('rank','hot'), edge('indicator','alert'), edge('alert','signal'), edge('snapshot','discover'),

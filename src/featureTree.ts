@@ -55,7 +55,7 @@ export const FEATURE_SPECS: Spec[] = [
         "en": "Warming board",
         "names": [
           "CoinGecko · 升温候选快照",
-          "CoinGecko · 计算升温日冻结基准",
+          "CoinGecko · 计算升温小时基准",
           "生成基础升温榜",
           "leaderboard_warming"
         ]

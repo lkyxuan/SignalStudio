@@ -18,7 +18,7 @@ def ensure_coingecko_warming(service):
         return
     if not db.execute("SELECT 1 FROM schema_meta WHERE key='hottest_rvol_warmup_ss101_v1'").fetchone():
         return
-    spec = json.loads((ROOT / PATH).read_text())
+    spec = json.loads((ROOT / 'server/migration_snapshots/warming-before-v3.json').read_text())['spec']
     previous = json.loads((ROOT / 'server/migration_snapshots/warming-before-ss102.json').read_text())
     cards = {c['key']: c for c in spec['cards']}
     model = CardModel(service)
@@ -85,7 +85,7 @@ def ensure_coingecko_warming(service):
     def configure(key):
         n, entry = nodes[key], cards[key]
         cfg = copy.deepcopy(model.contract(n['id'])['config'])
-        cfg['definition_refs'] = [{'path': PATH, 'revision': hashlib.sha256((ROOT / PATH).read_bytes()).hexdigest(), 'selector': {'key': key}}]
+        cfg['definition_refs'] = [{'path': PATH, 'revision': json.loads((ROOT / 'server/migration_snapshots/warming-before-v3.json').read_text())['digest'], 'selector': {'key': key}}]
         cfg['resource'] = {'warming_key': key, 'delivery': 'studio_design_only', 'observed_rows': [], 'physical_binding': None,
                            'algorithm_version': spec['version'], 'primary_key': ['asset_id'], 'hottest_overlap': True,
                            'owner_node_id': nodes['rank']['id'], 'accepted_metric_versions': [spec['metric_version']]}
@@ -206,6 +206,136 @@ def ensure_coingecko_warming(service):
             raise ValueError('SS-102 invalid graph')
         service._event(ACTOR, 'install_design', 'graph', MARKER, after={'new_nodes': [nodes[k]['id'] for k in ('baseline', 'candidates')]})
         db.execute('INSERT INTO schema_meta VALUES (?,?)', (MARKER, spec['version']))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+V3_MARKER = 'coingecko_warming_growth_ss102_v3'
+
+
+def ensure_warming_v3(service):
+    """Upgrade only the owned warming definitions; preserve identities and user edits."""
+    db = service.db
+    if db.execute('SELECT 1 FROM schema_meta WHERE key=?', (V3_MARKER,)).fetchone():
+        return
+    if not db.execute("SELECT 1 FROM schema_meta WHERE key='board_display_top50_ss131_v1'").fetchone():
+        return
+    saved = json.loads((ROOT / 'server/migration_snapshots/warming-before-v3.json').read_text())
+    spec = json.loads((ROOT / PATH).read_text())
+    digest = hashlib.sha256((ROOT / PATH).read_bytes()).hexdigest()
+    model = CardModel(service)
+    nodes = {}
+    db.execute('BEGIN IMMEDIATE')
+    try:
+        for old, new in zip(saved['spec']['cards'], spec['cards']):
+            if old['key'] != new['key']:
+                raise ValueError('SS-102 v3 card identity mismatch')
+            node = service.find_name(old['name'])
+            if not node or new['name'] != old['name'] and service.find_name(new['name']):
+                raise ValueError('SS-102 v3 missing card or name conflict')
+            nodes[new['key']] = node
+            cfg = copy.deepcopy(model.contract(node['id'])['config'])
+            if cfg.get('read_only') or cfg['action']['implementation'] not in ('unknown', 'planned') or cfg['resource'].get('warming_key') != new['key']:
+                raise ValueError('SS-102 v3 protected contract')
+            for field, source in [('definition','description_zh'), ('formula','algorithm_zh'), ('trigger_rule','trigger_zh')]:
+                if node[field] != old[source]:
+                    raise ValueError('SS-102 v3 edited definition ' + old['key'] + '/' + field)
+            refs = cfg.get('definition_refs', [])
+            owned = [r for r in refs if r.get('path') == PATH]
+            if len(owned) != 1 or owned[0].get('revision') != saved['digest']:
+                raise ValueError('SS-102 v3 unknown definition revision')
+            owned[0]['revision'] = digest
+            known = {f['name']: f for f in service.get_fields(node['id'])}
+            for col in old['fields']:
+                field = known.get(col['name'])
+                if not field or (field['data_type'], field['definition']) != (col['data_type'], col['label_zh']):
+                    raise ValueError('SS-102 v3 edited field ' + col['name'])
+            old_names = {col['name'] for col in old['fields']}
+            if any(col['name'] in known and col['name'] not in old_names for col in new['fields']):
+                raise ValueError('SS-102 v3 new field name conflict')
+            system_state = node['is_system_state']
+            if system_state:
+                db.execute('UPDATE nodes SET is_system_state=0 WHERE id=?', (node['id'],))
+            for col in new['fields']:
+                if col['name'] in known:
+                    db.execute('UPDATE node_fields SET data_type=?,definition=? WHERE id=?',
+                               (col['data_type'], col['label_zh'], known[col['name']]['id']))
+                else:
+                    service.create_field(node['id'], {'name': col['name'], 'data_type': col['data_type'], 'definition': col['label_zh']}, actor=ACTOR, commit=False)
+            if system_state:
+                db.execute('UPDATE nodes SET is_system_state=? WHERE id=?', (system_state,node['id']))
+            resource = cfg['resource']
+            resource['algorithm_version'] = spec['version']
+            if new['key'] == 'baseline':
+                for key in ('daily_cache_key', 'freeze_missing_results'):
+                    resource.pop(key, None)
+                resource.update(execution_scope='inside_warming_program', recompute='each_request',
+                                recovery='Retain published snapshot references; recompute later requests from available hourly history; no daily cache writes')
+            if new['key'] == 'candidates':
+                resource['metadata_enrichment'] = 'Read asset_core.assets.created_at by resolved asset_id as asset_created_at; Studio does not bind a live reader'
+            model.validate_config(cfg, new['kind'])
+            db.execute('UPDATE node_contracts SET config=?,revision=revision+1 WHERE node_id=?', (encoded(cfg), node['id']))
+            db.execute('UPDATE nodes SET name=?,definition=?,formula=?,trigger_rule=?,updated_at=? WHERE id=?',
+                       (new['name'],new['description_zh'],new['algorithm_zh'],new['trigger_zh'],now(),node['id']))
+            service._event(ACTOR, 'update', 'node', node['id'], before=node, after=service.get_node(node['id']))
+        # Extend owned producer/consumer mappings without changing existing edges or positions.
+        for source, target, names in [('baseline','rank',['baseline_hours']),
+                                      ('candidates','baseline',['asset_created_at']),
+                                      ('candidates','rank',['asset_created_at']),
+                                      ('rank','result',['baseline_hours','asset_created_at','is_new_asset','is_new'])]:
+            edge = db.execute('SELECT id FROM edges WHERE upstream_id=? AND downstream_id=?', (nodes[source]['id'],nodes[target]['id'])).fetchone()
+            if not edge:
+                raise ValueError('SS-102 v3 missing dependency')
+            sf = {f['name']:f['id'] for f in service.get_fields(nodes[source]['id'])}
+            tf = {f['name']:f['id'] for f in service.get_fields(nodes[target]['id'])}
+            for name in names:
+                service.create_field_usage(edge['id'], {'source_field_id':sf[name], 'target_field_id':tf[name],
+                    'usage_note':'SS-102 v3 hourly baseline and asset registration metadata; no ranking bonus'}, actor=ACTOR, commit=False)
+        home_path = 'catalog/homepage-layout.v1.json'
+        home = json.loads((ROOT / home_path).read_text())
+        home_digest = hashlib.sha256((ROOT / home_path).read_bytes()).hexdigest()
+        old_home = saved['homepage']
+        for row in db.execute('SELECT node_id,config FROM node_contracts').fetchall():
+            cfg = json.loads(row['config'])
+            changed = False
+            def refresh(obj):
+                nonlocal changed
+                if isinstance(obj, dict):
+                    if obj.get('path') == home_path and 'revision' in obj:
+                        if obj['revision'] not in (old_home['digest'], home_digest):
+                            raise ValueError('SS-102 v3 unknown homepage revision')
+                        if obj['revision'] != home_digest:
+                            obj['revision'] = home_digest
+                            changed = True
+                    for value in obj.values():
+                        refresh(value)
+                elif isinstance(obj, list):
+                    for value in obj:
+                        refresh(value)
+            refresh(cfg)
+            if cfg.get('interface', {}).get('name') == home['interface']['name']:
+                for key in ('display_zh', 'display_en'):
+                    replacements = dict(zip(old_home['spec']['interface'][key],home['interface'][key]))
+                    values = cfg['interface'].get(key, [])
+                    updated = [replacements.get(value,value) for value in values]
+                    if values != updated:
+                        cfg['interface'][key] = updated
+                        changed = True
+            if changed:
+                if cfg.get('read_only'):
+                    raise ValueError('SS-102 v3 protected homepage reference')
+                db.execute('UPDATE node_contracts SET config=?,revision=revision+1 WHERE node_id=?', (encoded(cfg),row['node_id']))
+        # Rename obsolete daily roles on the same dependency bindings.
+        for row in db.execute('SELECT id,config FROM edge_bindings').fetchall():
+            cfg = json.loads(row['config'])
+            roles = {'daily_baseline_context':'hourly_baseline_context', 'daily_historical_targets':'hourly_historical_targets', 'frozen_daily_baseline':'request_hourly_baseline'}
+            if cfg.get('role') in roles:
+                cfg['role'] = roles[cfg['role']]
+                db.execute('UPDATE edge_bindings SET config=? WHERE id=?', (encoded(cfg),row['id']))
+        if db.execute('PRAGMA foreign_key_check').fetchall() or model.cycles():
+            raise ValueError('SS-102 v3 invalid graph')
+        db.execute('INSERT INTO schema_meta VALUES (?,?)', (V3_MARKER,spec['version']))
         db.commit()
     except Exception:
         db.rollback()

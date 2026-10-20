@@ -73,13 +73,13 @@
     "display_zh": [
       "按行从左到右编号：1左上升温、2中上信号、3右上最热、4左下新发现、5中下信号、6右下第四榜待绑定。",
       "四榜的具体格位目前是Studio结构占位，不代表已核验/app对应关系；第四榜来源与信号分组不猜测。",
-      "最热看当前交易活跃水平；升温看滚动24h成交额的近期增长，日冻结7日常态另作比较，两榜允许重叠。",
+      "最热看当前交易活跃水平；升温看滚动24h成交额的近期增长，最近7天可用小时样本均值另作比较，两榜允许重叠。",
       "榜单/信号来源引用不代表已接通查询API或网站同步；#1009网站同步由用户另补卡。"
     ],
     "display_en": [
       "Row-major positions: 1 top-left Warming, 2 top-center signal, 3 top-right Hottest, 4 bottom-left Newly discovered, 5 bottom-center signal, 6 bottom-right fourth board unbound.",
       "Board positions are Studio placeholders; their /app mapping is unverified. Fourth-board source and signal groups remain unbound.",
-      "Hottest shows trading activity level; Warming ranks recent growth in rolling-24h volume above a frozen daily baseline. Both boards may overlap.",
+      "Hottest shows trading activity level; Warming ranks recent growth in rolling-24h volume above an available hourly-sample baseline over the last seven days. Both boards may overlap.",
       "Source references do not establish read APIs or website synchronization. The user owns the separate #1009 sync card."
     ],
     "actions_zh": [

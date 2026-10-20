@@ -1,5 +1,5 @@
 {
-  "version": "coingecko_warming_growth_v1",
+  "version": "coingecko_warming_growth_v3",
   "rationale_url": "https://app.notion.com/p/3f9038a63d5a819eac83dde1100f58dc",
   "delivery": "studio_design_only",
   "metric_version": "market_indicators_v2",
@@ -24,7 +24,10 @@
     "top_n": 50,
     "minimum_multiple_exclusive": 1,
     "minimum_growth_exclusive": 0,
-    "growth_change_epsilon_pp": 1e-09
+    "growth_change_epsilon_pp": 1e-09,
+    "baseline_exclusion_seconds": 4500,
+    "baseline_min_samples": 1,
+    "baseline_full_week_hours": 167
   },
   "hottest_overlap": true,
   "observed_rows": [],
@@ -32,12 +35,12 @@
   "cards": [
     {
       "key": "baseline",
-      "name": "CoinGecko · 计算升温日冻结基准",
+      "name": "CoinGecko · 计算升温小时基准",
       "kind": "process",
-      "description_zh": "独立升温7日常态；每日更新，日内固定。",
-      "algorithm_zh": "每天UTC00:00（上海08:00）固定基准版本；取前1—7个UTC日界各一条同源同资产USD同覆盖、当时已收到且不晚于目标最多30分钟旧的有效滚动24h观测，算均值。7条完整且均值>0才可用；不补零、不用迟到数据改写旧基准；日内复用，不修改最热7日RVOL。",
-      "algorithm_en": "Freeze seven prior UTC-midnight rolling-24h observations each day; do not reuse hottest RVOL as this baseline.",
-      "trigger_zh": "所属升温程序在新UTC日界首次完整批次选择并冻结新基准，日内复用；不另启动基准爬虫。",
+      "description_zh": "最近7天小时样本均值；有多少数据用多少，每次请求重新计算。",
+      "algorithm_zh": "B：从 floor_hour(请求时间−75分钟) 往回至请求时间−7天，每个整点取此前30分钟内最新一条同来源、同资产、USD、同覆盖的健康观测，成交量有限且非负，且请求时已收到。至少1条，B为实际样本成交量算术平均且必须>0；满一周按167条及以上算。记录baseline_hours，显示「基准 N 小时 / N 天」。不冻结、不按天缓存；迟到数据可影响后续计算，不改已发布快照。Few旧日缓存表保留但不再写入。",
+      "algorithm_en": "Recompute B per request from hourly targets between request minus 7 days and floor_hour(request minus 75 minutes). Select the latest healthy same-context nonnegative finite volume within 30 minutes before each target, received by the request. Use all available samples, at least one, with positive mean. Record baseline_hours; 167+ means a full week. Late data may affect later calculations, never published snapshots. No daily cache writes.",
+      "trigger_zh": "所属升温程序每次请求重新计算；不新增爬虫或独立小时定时器。",
       "fields": [
         {
           "name": "observation_id",
@@ -142,27 +145,37 @@
         {
           "name": "warming_baseline_mean_7d",
           "data_type": "number | null",
-          "label_zh": "升温日冻结7日成交额均值，不是最热随观测更新基线"
+          "label_zh": "最近7天可用小时样本成交量算术平均，至少1条且均值>0"
         },
         {
           "name": "warming_baseline_days",
-          "data_type": "integer",
-          "label_zh": "匹配到的历史日目标数，完整要求7"
+          "data_type": "number",
+          "label_zh": "基准样本折合天数：baseline_hours/24；167条及以上显示满7天"
         },
         {
           "name": "warming_baseline_refs_json",
           "data_type": "json",
-          "label_zh": "七个UTC日界目标及实际历史观测引用"
+          "label_zh": "实际使用的小时目标及观测引用；保留目标和实际时间"
         },
         {
           "name": "warming_baseline_at",
           "data_type": "datetime",
-          "label_zh": "本轮基准日界UTC00:00，上海08:00"
+          "label_zh": "本次基准计算请求时间；不是日界缓存键"
         },
         {
           "name": "warming_baseline_status",
           "data_type": "string",
           "label_zh": "完整/缺历史/零基准/冲突状态"
+        },
+        {
+          "name": "asset_created_at",
+          "data_type": "datetime | null",
+          "label_zh": "asset_core.assets.created_at；建档时间，不是发行时间"
+        },
+        {
+          "name": "baseline_hours",
+          "data_type": "integer",
+          "label_zh": "本快照实际使用的小时样本数；至少1条，167及以上按满一周显示"
         }
       ],
       "input_fields": [
@@ -185,7 +198,8 @@
         "price_change_percentage_24h",
         "metric_id",
         "metric_version",
-        "snapshot_ref"
+        "snapshot_ref",
+        "asset_created_at"
       ],
       "output_fields": [
         "warming_baseline_mean_7d",
@@ -194,7 +208,9 @@
         "warming_baseline_at",
         "warming_baseline_status",
         "observation_id",
-        "asset_id"
+        "asset_id",
+        "asset_created_at",
+        "baseline_hours"
       ]
     },
     {
@@ -202,7 +218,7 @@
       "name": "CoinGecko · 升温候选快照",
       "kind": "state",
       "description_zh": "冻结每轮各资产最新指标及覆盖，不回退旧合格值。",
-      "algorithm_zh": "由#3017所属升温程序从indicator.data更新最新当前观测并冻结完整批次；历史与日基准引用保留供恢复，物理存储绑定待Few核验。",
+      "algorithm_zh": "由#3017所属升温程序从indicator.data更新最新当前观测并冻结完整批次；历史与小时基准引用保留供恢复，物理存储绑定待Few核验。",
       "algorithm_en": "The owning warming program freezes latest raw metrics per complete round; physical storage and recovery are unverified.",
       "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
       "fields": [
@@ -305,6 +321,11 @@
           "name": "snapshot_ref",
           "data_type": "string",
           "label_zh": "来源响应引用"
+        },
+        {
+          "name": "asset_created_at",
+          "data_type": "datetime | null",
+          "label_zh": "asset_core.assets.created_at；建档时间，不是发行时间"
         }
       ],
       "input_fields": [
@@ -327,7 +348,8 @@
         "price_change_percentage_24h",
         "metric_id",
         "metric_version",
-        "snapshot_ref"
+        "snapshot_ref",
+        "asset_created_at"
       ],
       "output_fields": [
         "observation_id",
@@ -349,7 +371,8 @@
         "price_change_percentage_24h",
         "metric_id",
         "metric_version",
-        "snapshot_ref"
+        "snapshot_ref",
+        "asset_created_at"
       ]
     },
     {
@@ -357,8 +380,8 @@
       "name": "生成基础升温榜",
       "kind": "process",
       "description_zh": "近期增长速度排序，双榜允许重叠，增长是否加快另作解释。",
-      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多50。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
-      "algorithm_en": "Rank positive 1h growth above the daily seven-day baseline. Allow hottest overlap; acceleration is explanatory, never a ranking weight.",
+      "algorithm_zh": "当前量V、小时样本均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多50。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。 资产档案asset_core.assets.created_at距请求时间不足7天标记is_new_asset，快照is_new同值；照常排名、不单排、不加分，显示「新币」。记录baseline_hours并显示基准时长，167小时及以上按满7天显示。",
+      "algorithm_en": "Rank positive 1h growth above the daily seven-day baseline. Allow hottest overlap; acceleration is explanatory, never a ranking weight. Assets registered less than 7 days before the request are tagged is_new_asset (snapshot is_new), without ranking bonuses or separate ranking. Display baseline_hours and the new-asset tag.",
       "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
       "fields": [
         {
@@ -464,22 +487,22 @@
         {
           "name": "warming_baseline_mean_7d",
           "data_type": "number | null",
-          "label_zh": "升温日冻结7日成交额均值，不是最热随观测更新基线"
+          "label_zh": "最近7天可用小时样本成交量算术平均，至少1条且均值>0"
         },
         {
           "name": "warming_baseline_days",
-          "data_type": "integer",
-          "label_zh": "匹配到的历史日目标数，完整要求7"
+          "data_type": "number",
+          "label_zh": "基准样本折合天数：baseline_hours/24；167条及以上显示满7天"
         },
         {
           "name": "warming_baseline_refs_json",
           "data_type": "json",
-          "label_zh": "七个UTC日界目标及实际历史观测引用"
+          "label_zh": "实际使用的小时目标及观测引用；保留目标和实际时间"
         },
         {
           "name": "warming_baseline_at",
           "data_type": "datetime",
-          "label_zh": "本轮基准日界UTC00:00，上海08:00"
+          "label_zh": "本次基准计算请求时间；不是日界缓存键"
         },
         {
           "name": "warming_baseline_status",
@@ -489,7 +512,7 @@
         {
           "name": "warming_multiple",
           "data_type": "number | null",
-          "label_zh": "当前滚动24h成交额／升温日冻结基准"
+          "label_zh": "当前滚动24h成交额／小时样本基准B"
         },
         {
           "name": "history_1h_volume",
@@ -554,7 +577,7 @@
         {
           "name": "algorithm_version",
           "data_type": "string",
-          "label_zh": "coingecko_warming_growth_v1"
+          "label_zh": "coingecko_warming_growth_v3"
         },
         {
           "name": "calculation_status",
@@ -635,6 +658,26 @@
           "name": "window_end",
           "data_type": "UTC timestamp | null",
           "label_zh": "来源未给出滚动统计止点则null"
+        },
+        {
+          "name": "asset_created_at",
+          "data_type": "datetime | null",
+          "label_zh": "asset_core.assets.created_at；建档时间，不是发行时间"
+        },
+        {
+          "name": "baseline_hours",
+          "data_type": "integer",
+          "label_zh": "本快照实际使用的小时样本数；至少1条，167及以上按满一周显示"
+        },
+        {
+          "name": "is_new_asset",
+          "data_type": "boolean",
+          "label_zh": "相对请求时间，资产档案建档不足7天；不改变排名"
+        },
+        {
+          "name": "is_new",
+          "data_type": "boolean",
+          "label_zh": "快照新币标记，与is_new_asset相同；页面显示新币"
         }
       ],
       "input_fields": [
@@ -657,7 +700,8 @@
         "price_change_percentage_24h",
         "metric_id",
         "metric_version",
-        "snapshot_ref"
+        "snapshot_ref",
+        "asset_created_at"
       ],
       "output_fields": [
         "observation_id",
@@ -714,7 +758,11 @@
         "run_id",
         "window_label",
         "window_start",
-        "window_end"
+        "window_end",
+        "asset_created_at",
+        "baseline_hours",
+        "is_new_asset",
+        "is_new"
       ]
     },
     {
@@ -722,8 +770,8 @@
       "name": "leaderboard_warming",
       "kind": "table",
       "description_zh": "原子升温快照：增长率、常态倍数、是否加快及完整追溯。",
-      "algorithm_zh": "当前量V、日冻结均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多50。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。",
-      "algorithm_en": "Atomic warming rows ordered by growth, baseline multiple, then asset ID; no score ledger or hottest exclusion.",
+      "algorithm_zh": "当前量V、小时样本均值B、1h前量H：R=V/B，G=V/H−1；R>1且G>0入选，按G降序、R降序、asset_id升序取最多50。不排除最热榜资产，不读旧累计评分。2h历史可用时比较前段H/H2−1，变化=(G−前段)×100百分点，仅作加快/稳定/放缓解释，不参与排序；2h缺失不剔除。 资产档案asset_core.assets.created_at距请求时间不足7天标记is_new_asset，快照is_new同值；照常排名、不单排、不加分，显示「新币」。记录baseline_hours并显示基准时长，167小时及以上按满7天显示。",
+      "algorithm_en": "Atomic warming rows ordered by growth, baseline multiple, then asset ID; no score ledger or hottest exclusion. Assets registered less than 7 days before the request are tagged is_new_asset (snapshot is_new), without ranking bonuses or separate ranking. Display baseline_hours and the new-asset tag.",
       "trigger_zh": "每收齐一轮有效行情指标后按冻结cutoff演算；测试12分钟/正式3分钟为用户报告的采集节奏，不增加小时定时器。",
       "fields": [
         {
@@ -829,22 +877,22 @@
         {
           "name": "warming_baseline_mean_7d",
           "data_type": "number | null",
-          "label_zh": "升温日冻结7日成交额均值，不是最热随观测更新基线"
+          "label_zh": "最近7天可用小时样本成交量算术平均，至少1条且均值>0"
         },
         {
           "name": "warming_baseline_days",
-          "data_type": "integer",
-          "label_zh": "匹配到的历史日目标数，完整要求7"
+          "data_type": "number",
+          "label_zh": "基准样本折合天数：baseline_hours/24；167条及以上显示满7天"
         },
         {
           "name": "warming_baseline_refs_json",
           "data_type": "json",
-          "label_zh": "七个UTC日界目标及实际历史观测引用"
+          "label_zh": "实际使用的小时目标及观测引用；保留目标和实际时间"
         },
         {
           "name": "warming_baseline_at",
           "data_type": "datetime",
-          "label_zh": "本轮基准日界UTC00:00，上海08:00"
+          "label_zh": "本次基准计算请求时间；不是日界缓存键"
         },
         {
           "name": "warming_baseline_status",
@@ -854,7 +902,7 @@
         {
           "name": "warming_multiple",
           "data_type": "number | null",
-          "label_zh": "当前滚动24h成交额／升温日冻结基准"
+          "label_zh": "当前滚动24h成交额／小时样本基准B"
         },
         {
           "name": "history_1h_volume",
@@ -919,7 +967,7 @@
         {
           "name": "algorithm_version",
           "data_type": "string",
-          "label_zh": "coingecko_warming_growth_v1"
+          "label_zh": "coingecko_warming_growth_v3"
         },
         {
           "name": "calculation_status",
@@ -1000,6 +1048,26 @@
           "name": "window_end",
           "data_type": "UTC timestamp | null",
           "label_zh": "来源未给出滚动统计止点则null"
+        },
+        {
+          "name": "asset_created_at",
+          "data_type": "datetime | null",
+          "label_zh": "asset_core.assets.created_at；建档时间，不是发行时间"
+        },
+        {
+          "name": "baseline_hours",
+          "data_type": "integer",
+          "label_zh": "本快照实际使用的小时样本数；至少1条，167及以上按满一周显示"
+        },
+        {
+          "name": "is_new_asset",
+          "data_type": "boolean",
+          "label_zh": "相对请求时间，资产档案建档不足7天；不改变排名"
+        },
+        {
+          "name": "is_new",
+          "data_type": "boolean",
+          "label_zh": "快照新币标记，与is_new_asset相同；页面显示新币"
         }
       ],
       "input_fields": [
@@ -1057,7 +1125,11 @@
         "run_id",
         "window_label",
         "window_start",
-        "window_end"
+        "window_end",
+        "asset_created_at",
+        "baseline_hours",
+        "is_new_asset",
+        "is_new"
       ],
       "output_fields": [
         "observation_id",
@@ -1114,7 +1186,11 @@
         "run_id",
         "window_label",
         "window_start",
-        "window_end"
+        "window_end",
+        "asset_created_at",
+        "baseline_hours",
+        "is_new_asset",
+        "is_new"
       ]
     }
   ],

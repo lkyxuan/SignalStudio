@@ -11,7 +11,7 @@ const specs = [
   { key: 'hottest', title: '交易最热 · 候选、排序与榜单', titleEn: 'Trading heat · candidates, ranking and board', names: ['CoinGecko · 最热榜候选快照', '生成基础最热榜', 'leaderboard_hottest'] },
   { key: 'alerts', title: '异动提醒 · 条件触发的信号', titleEn: 'Market alerts · condition-triggered signals', names: ['市场交易活跃候选', 'CoinGecko · 24 小时大涨', 'CoinGecko · 24 小时大跌', 'CoinGecko · 成交量市值比偏高', 'CoinGecko · 接近历史高点', 'CoinGecko · 较历史高点深度回撤', 'Few Understand · signal.data'] },
   { key: 'discovery', title: '新资产发现 · 多渠道共用榜', titleEn: 'Asset discovery · shared across sources', names: ['CoinGecko · 筛选无UUID资产', 'CoinGecko · 核实并建档', 'CoinGecko · 首次收录新资产', '确定资产起始评分', '生成最新UUID榜', 'leaderboard_new_uuid'] },
-  { key: 'warming', title: '交易升温 · 历史基准、增长与榜单', titleEn: 'Warming · daily baseline, growth and board', names: ['CoinGecko · 升温候选快照', 'CoinGecko · 计算升温日冻结基准', '生成基础升温榜', 'leaderboard_warming'] },
+  { key: 'warming', title: '交易升温 · 历史基准、增长与榜单', titleEn: 'Warming · hourly baseline, growth and board', names: ['CoinGecko · 升温候选快照', 'CoinGecko · 计算升温小时基准', '生成基础升温榜', 'leaderboard_warming'] },
   { key: 'support', title: '共用支撑 · 评分、身份与覆盖', titleEn: 'Shared scoring, identity and coverage', names: [] as string[] },
 ];
 const supportNames = new Set(['assets', 'asset_identifiers', 'leaderboard_coverage', 'asset_initial_score_sources']);

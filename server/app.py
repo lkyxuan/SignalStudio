@@ -45,7 +45,7 @@ from search_preparation import ensure_search_preparation
 from coingecko_hottest import ensure_coingecko_hottest
 from hottest_warmup import ensure_hottest_warmup
 from hottest_round_trigger import ensure_hottest_round_trigger
-from coingecko_warming import ensure_coingecko_warming
+from coingecko_warming import ensure_coingecko_warming, ensure_warming_v3
 from board_display_limit import ensure_board_display_limit
 from card_corrections import ensure_card_corrections
 from worth_reading_translation import ensure_worth_reading_translation
@@ -115,6 +115,7 @@ ensure_asset_webpage_board(service)
 ensure_asset_webpage_rounds(service)
 ensure_stocks_design(service)
 ensure_board_display_limit(service)
+ensure_warming_v3(service)
 
 
 class Handler(BaseHTTPRequestHandler):

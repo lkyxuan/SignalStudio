@@ -61,7 +61,8 @@ class BoardDisplayLimitTest(unittest.TestCase):
             n = self.s.find_name(name)
             self.assertIn('50', n['definition'] + n['formula'])
         for path in json.loads((ROOT / SNAPSHOT).read_text()):
-            expected = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+            expected = (json.loads((ROOT / 'server/migration_snapshots/warming-before-v3.json').read_text())['digest']
+                        if path == 'catalog/coingecko-warming.v1.json' else hashlib.sha256((ROOT / path).read_bytes()).hexdigest())
             for row in self.s.db.execute('SELECT config FROM node_contracts'):
                 for ref in json.loads(row[0]).get('definition_refs', []):
                     if ref['path'] == path: self.assertEqual(expected, ref['revision'])

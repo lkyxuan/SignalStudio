@@ -624,7 +624,7 @@
       "catalog/coingecko-warming.v1.json"
     ]
   },
-  "CoinGecko · 计算升温日冻结基准": {
+  "CoinGecko · 计算升温小时基准": {
     "kind": "process",
     "subtype": "metric",
     "origin": "coingecko",

@@ -6,7 +6,7 @@ Scoring and eligibility are unchanged. Content refresh still selects at most 20 
 This is the Studio definition and reference evaluator; Few runtime delivery remains unverified.
 
 Approved 2026-10-14 in [SS-102](https://app.notion.com/p/3f9038a63d5a819eac83dde1100f58dc).
-Algorithm `coingecko_warming_growth_v1`. This repository implements Studio contracts,
+Algorithm `coingecko_warming_growth_v3`. This repository implements Studio contracts,
 guarded migrations and independent synthetic evaluators, not Few consumers or a live
 business page. This contract overrides legacy warming score-increment definitions;
 the existing score ledger, hottest algorithm and alerts retain their semantics.
@@ -24,19 +24,28 @@ no new size or stablecoin exclusions. The recorded dev collector range is market
 cap > USD10m; smaller-coin coverage and the reported 3-minute production/12-minute
 test cadences remain separately unverified.
 
-Let `V` be current rolling-24h USD volume. At the UTC midnight preceding the current
-request (08:00 Shanghai), form a **warming-only daily baseline** `B`: for midnight
-minus 1 through 7 days, select the latest same-context historical observation not
-after the target and at most 30 minutes old, received by that target. Require seven
-distinct healthy finite nonnegative volumes and positive arithmetic mean. Record
-targets, actual times and IDs. These are rolling-24h observations at daily anchors,
-not exact calendar-day trading totals. Freeze the first daily result, including
-missing/zero results, in a durable versioned cache; reuse it for that UTC day.
-Late arrivals/corrections must not rewrite a published baseline or past decision.
-Recovery must retain the same frozen input set. This storage is a required Few
-binding, not established by a Studio state card. The pure functions accept an
-optional frozen result to model that requirement. New days receive new versions.
-The hottest rolling seven-day RVOL baseline is not changed or reused as `B`.
+Revision approved 2026-10-20 by the owner in SS-102: “新币很重要，基准甚至不是按天算的，有多少数据用多少数据”. Few FEW-113 (PR #293, dev `e609d24`) is reported by the user as running on the test network; this delivery only changes SignalStudio and does not independently verify Few deployment.
+
+Let `V` be current rolling-24h USD volume. Recompute the warming baseline `B` on
+every request. Walk hourly targets backwards from `floor_hour(request_time - 75 minutes)`
+through `request_time - 7 days` inclusive. At each target select the latest healthy
+same-source, same-asset, USD, same-coverage observation within the preceding 30 minutes,
+with finite nonnegative volume, valid source/request timestamps and received by the
+current request. The most recent 75 minutes never enter B, avoiding H1 overlap.
+Use every available sample, at least one; B is their positive arithmetic mean.
+Record actual sample count `baseline_hours`, target times, sample times and IDs.
+Display “基准 N 小时 / N 天”; 167 or more samples count as a full seven days.
+`warming_baseline_days` retains sample-count/24 for lineage; it is no longer a daily-target count.
+Do not freeze or cache B by day. Late arrivals may change later calculations,
+never previously published snapshots. Few's legacy daily baseline cache table is
+retained but no longer written; this repository does not alter Few storage.
+The hottest rolling seven-day RVOL baseline remains unchanged and separate.
+
+Use `asset_core.assets.created_at` as `asset_created_at`, the asset registration time,
+not issue time. Set `is_new_asset` when registration age relative to request time is
+nonnegative and less than seven days; snapshot `is_new` carries the same value.
+Missing/invalid/future registration time is not labeled new. New coins participate
+normally, with no separate ordering or bonus; display “新币”.
 
 At request minus 60 minutes, take the latest healthy same-context historical volume
 `H1`, received by that target, not after it and at most 15 minutes old; require positive
@@ -64,13 +73,13 @@ positive eligible growth is successful empty; healthy genuinely empty input is a
 successful empty. All-invalid current inputs or failed/partial/unknown coverage are
 unavailable. A successful snapshot expires at age >= 900 seconds; old results cannot
 masquerade as current. Freeze parameters, references, rank and exclusion diagnostics
-per snapshot and reject conflicting replay. Top-ten truncation does not change cohort
+per snapshot and reject conflicting replay. Top-50 truncation does not change cohort
 diagnostics. Display percentages and multiples rounded; sort unrounded numbers.
 
 ## Cards and delivery
 
 - New state: CoinGecko warming candidate snapshot, owned by the #3017 program.
-- New process: warming daily baseline, inside that same program; no new collector,
+- New process: warming hourly baseline, inside that same program; no new collector,
   message version or independent scheduled job.
 - Restore #3017 with the new calculation, preserving logical ID/number/position.
 - Reuse #1008 and its content-refresh/interface references, preserving identity.
@@ -78,7 +87,7 @@ diagnostics. Display percentages and multiples rounded; sort unrounded numbers.
 The historical #6002 no longer exists in the current graph; allocate a new candidate
 state instead of resurrecting/reassigning that number. New numbers are installation
 specific. Channels-to-state edges are intended references, not evidence of a running
-writer. The daily process has an explicit durable-cache recovery requirement. All
+writer. The hourly process recomputes B while published snapshot references remain immutable. All
 four cards use the shared details template, synthetic input/output cases, collapsible
 lineage and bilingual explanation. Opening details performs no business execution.
 Old scoring-input edges and managed legacy warming fields are retired only on this
@@ -101,7 +110,7 @@ npm run build
 ```
 
 Synthetic checks cover allowed overlap, steady high growth, increasing/slowing growth,
-plateaus/falls, daily anchoring/freezing/rollover, missing B/H1/H2, zero denominators,
+plateaus/falls, hour boundaries, 75-minute exclusion, partial history, per-request recomputation, new-asset age, missing B/H1/H2, zero denominators,
 late/conflicting histories, latest-invalid observations, source/coverage conflicts,
 3/12-minute target skew and valid empty vs unavailable states. Python independently
 compares baselines, exact history references, metrics and rankings.
@@ -110,7 +119,7 @@ Rolling volume differences equal new entering flow minus old exiting flow only u
 a consistent ideal window; they cannot reconstruct true new 1h/4h volume. Coverage
 changes, revisions and wash trading may produce misleading increases. Aggregates do
 not identify single trades, whales or insider activity. No claimed external hit rate
-is reproduced here. Real history, cache persistence, observation/message adaptation,
+is reproduced here. Real history, snapshot persistence, observation/message adaptation,
 long-tail coverage, predictive quality and business deployment remain unverified.
 Continuous membership is one state; reentry debounce, event diffusion and notifications
 remain out of this delivery.

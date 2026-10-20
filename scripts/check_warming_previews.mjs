@@ -18,11 +18,17 @@ try {
       for(const row of rows)for(const f of entry.fields){assert.notEqual(row[f.name],undefined,`${key}/${entry.key}/${f.name}`);fields++;}
       for(const language of ['zh-CN','en']){
         const html=renderToStaticMarkup(createElement(CardDetails,{node,graph,language,openNode:()=>{},mutate:()=>{throw Error('No write');},busy:false}));
+        if(node.kind==='table'){
+          assert.ok(html.includes('设计字段')||html.includes('Designed fields'));
+          for(const field of ['baseline_hours','is_new','is_new_asset'])assert.ok(html.includes(field));
+          continue;
+        }
         assert.ok(html.includes('data-warming-preview'));assert.ok(!html.includes('设计缺口'));
         if(language==='zh-CN'){
           assert.ok(html.includes('虚构'));assert.ok(!html.includes('60分钟评分正增量'));
           assert.ok(!html.includes('半衰期 30'));
-          if(entry.key==='rank')assert.ok(html.includes('何时运行'));
+          if(entry.key==='rank'){assert.ok(html.includes('何时运行'));assert.ok(html.includes('新币'));assert.ok(html.includes('基准'));}
+          if(entry.key==='baseline'){assert.ok(html.includes('75分钟'));assert.ok(!html.includes('日冻结'));}
           if(['rank','result'].includes(entry.key))assert.ok(html.includes('假设已在最热榜'));
           if(node.kind!=='table'&&c.batch.warming_warmup&&['rank','result'].includes(entry.key))assert.ok(html.includes('升温预热'));
         }

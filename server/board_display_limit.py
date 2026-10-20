@@ -23,7 +23,11 @@ def ensure_board_display_limit(service):
     for path, saved in previous.items():
         raw = (ROOT / path).read_bytes()
         spec, old = json.loads(raw), saved['spec']
-        revisions[path] = (saved['digest'], hashlib.sha256(raw).hexdigest())
+        if path == 'catalog/coingecko-warming.v1.json':
+            frozen = json.loads((ROOT / 'server/migration_snapshots/warming-before-v3.json').read_text())
+            spec = frozen['spec']
+            raw = None
+        revisions[path] = (saved['digest'], hashlib.sha256(raw).hexdigest() if raw is not None else frozen['digest'])
         if 'cards' in spec:
             old_cards = {c['key']: c for c in old['cards']}
             for card in spec['cards']:

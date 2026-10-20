@@ -2,7 +2,7 @@
 
 2026-10-13 SS-95已批准的[首版交易最热榜](HOTTEST_BOARD.md)优先覆盖本文件的最热榜旧活动分排序：#3018恢复，按四项对数稳健Z快照排序；#3048/#3049加入7日基线/RVOL，#6007保存候选。#3041/#5007显式升级v2且旧消费者按版本兼容。旧评分和提醒规则保留；升温随后由下述SS-102契约覆盖。本次不证明Few真实后台或业务页已运行。
 
-2026-10-14 [SS-102升温契约](WARMING_BOARD.md)优先覆盖本文升温旧评分增量路径：恢复#3017，使用滚动24h成交额的1h目标增长率和日冻结7日基准，允许与最热榜重叠；增长是否加快只作解释。新增升温候选/日基准卡，复用#1008，不修改旧评分或最热算法。下文旧升温门槛与评分历史输入仅保留为历史迁移说明。
+2026-10-14 [SS-102升温契约](WARMING_BOARD.md)优先覆盖本文升温旧评分增量路径：恢复#3017，使用滚动24h成交额的1h目标增长率和最近7天可用小时样本基准（跳过最近75分钟，至少1条，逐请求重算），允许与最热榜重叠；增长是否加快只作解释。新增升温候选/小时基准卡，复用#1008，不修改旧评分或最热算法。下文旧升温门槛与评分历史输入仅保留为历史迁移说明。
 
 2026-10-20 [SS-131](https://app.notion.com/p/3fe038a63d5a81beb4b5fbc40efb9c42)统一现行最热、升温与新资产榜为最多50名，支持滚动，不足不凑榜。内容维护仍每榜最多20个、去重最多60个；下文旧评分榜的20名仅为历史说明。
 
@@ -164,3 +164,5 @@ SS-72 迁移保护其他卡片、保留存续ID与布局，拒绝定义/字段/�
 指标产出与提醒不继承三榜的市值/成交额准入、五分钟贡献去重或加分门槛。通用身份、来源、USD报价、时间及质量校验仍适用。某项数值缺失/非有限只令对应指标为null并跳过对应条件，不抑制其他可用指标；缺少历史基线只令放量倍数为null。24h涨跌幅和ATH百分比保留CoinGecko来源口径，不能用本地14天高点代替全历史ATH。#3035负责整理这些来源指标，不重新计算来源全历史值。
 
 现行提醒契约为 `catalog/coingecko-indicator-signals.v1.json`；`catalog/coingecko-implemented-signals.v1.json`保留为旧代码证据和历史升级输入，不是已迁移五卡的现行设计。其他身份候选/发现链保持原状。本仓库只交付工作台定义、迁移、展示和纯函数参考，不启动Redpanda消费者；Few适配、部署、实际消息与历史覆盖均未核验。
+
+2026-10-20 SS-102 accepted contract revision: warming uses `coingecko_warming_growth_v3`, recomputing B per request from hourly targets in the last seven days, excluding the latest 75 minutes. Use at least one healthy sample and a positive mean; record `baseline_hours` (167+ counts as a full week). Registration age from `asset_core.assets.created_at` below seven days sets `is_new_asset` / snapshot `is_new`, displayed as 新币 with no ranking change. H1, R>1, G>0, G ordering and up to 50 rows remain unchanged. See [WARMING_BOARD.md](WARMING_BOARD.md) for exact sampling and snapshot requirements.

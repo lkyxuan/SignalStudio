@@ -1,9 +1,9 @@
 """SS-102 pure reference. No business writes, schedulers or alerts."""
-import copy
 import math
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta, timezone
 
-VERSION = 'coingecko_warming_growth_v1'
+VERSION = 'coingecko_warming_growth_v3'
 CONTEXT = ('source_id', 'source_object_id', 'quote_currency', 'coverage_key')
 
 
@@ -19,6 +19,10 @@ def iso(d):
     return d.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
 
+def fixed(value):
+    return str(Decimal.from_float(float(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+
+
 def finite(x, positive=False):
     return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) and (x > 0 if positive else x >= 0)
 
@@ -27,13 +31,13 @@ def match(a, b):
     return all(a.get(k) == b.get(k) for k in CONTEXT)
 
 
-def historical(current, history, target, minutes):
+def historical(current, history, target, minutes, available_at=None):
     valid, signatures = [], {}
     for r in history:
         requested, received, observed = [time(r.get(k)) for k in ('requested_at', 'collected_at', 'observed_at')]
         if not (match(current, r) and r.get('observation_id') and r.get('quality_status') == 'healthy'
                 and finite(r.get('total_volume')) and requested and received and observed
-                and observed <= received and requested <= received <= target
+                and observed <= target and observed <= received and requested <= received <= (available_at or target)
                 and target - timedelta(minutes=minutes) <= requested <= target
                 and observed >= target - timedelta(minutes=minutes)):
             continue
@@ -49,45 +53,38 @@ def historical(current, history, target, minutes):
     return 'complete', {'target_at': iso(target), **{k: r[k] for k in ('observation_id', 'requested_at', 'collected_at', 'observed_at', 'total_volume')}}
 
 
-def daily_baseline(current, history, frozen=None):
+def hourly_baseline(current, history):
     anchor = time(current.get('requested_at'))
-    at = anchor.replace(hour=0, minute=0, second=0, microsecond=0) if anchor else None
-    result = dict(warming_baseline_mean_7d=None, warming_baseline_days=0, warming_baseline_refs_json=[],
-                  warming_baseline_at=iso(at) if at else None, warming_baseline_status='invalid_context')
-    if not at or current.get('quote_currency') != 'usd' or not all(current.get(k) for k in CONTEXT):
+    result = dict(warming_baseline_mean_7d=None, warming_baseline_days=0, baseline_hours=0,
+                  warming_baseline_refs_json=[], warming_baseline_at=iso(anchor) if anchor else None,
+                  warming_baseline_status='invalid_context')
+    if not anchor or current.get('quote_currency') != 'usd' or not all(current.get(k) for k in CONTEXT):
         return result
-    if frozen is not None:
-        refs = frozen.get('warming_baseline_refs_json')
-        complete = frozen.get('warming_baseline_status') == 'complete'
-        if (not match(current, frozen) or frozen.get('warming_baseline_at') != iso(at)
-                or not all(k in frozen for k in result) or not isinstance(refs, list)
-                or complete and (not finite(frozen.get('warming_baseline_mean_7d'), True)
-                    or frozen.get('warming_baseline_days') != 7 or len(refs) != 7
-                    or len({r.get('observation_id') for r in refs}) != 7 or not all(finite(r.get('total_volume')) for r in refs))):
-            return {**result, 'warming_baseline_status': 'invalid_frozen_baseline'}
-        return {k: copy.deepcopy(frozen.get(k)) for k in result}
-    used = set()
-    for day in range(1, 8):
-        status, ref = historical(current, history, at - timedelta(days=day), 30)
+    target = (anchor - timedelta(minutes=75)).replace(minute=0, second=0, microsecond=0)
+    while target >= anchor - timedelta(days=7):
+        status, ref = historical(current, history, target, 30, available_at=anchor)
         if status == 'conflicting_history':
-            result['warming_baseline_status'] = status
-            return result
-        if ref and ref['observation_id'] not in used:
-            used.add(ref['observation_id'])
-            result['warming_baseline_refs_json'].append({'day': day, **ref})
-    result['warming_baseline_days'] = len(used)
-    if len(used) != 7:
-        result['warming_baseline_status'] = 'missing_history'
-        return result
-    mean = sum(r['total_volume'] / 7 for r in result['warming_baseline_refs_json'])
+            return {**result, 'warming_baseline_status': status}
+        if ref:
+            result['warming_baseline_refs_json'].append(ref)
+        target -= timedelta(hours=1)
+    count = len(result['warming_baseline_refs_json'])
+    result.update(baseline_hours=count, warming_baseline_days=count / 24)
+    if not count:
+        return {**result, 'warming_baseline_status': 'missing_history'}
+    mean = sum(r['total_volume'] / count for r in result['warming_baseline_refs_json'])
     if not finite(mean, True):
-        result['warming_baseline_status'] = 'zero_or_nonfinite_baseline'
-        return result
+        return {**result, 'warming_baseline_status': 'zero_or_nonfinite_baseline'}
     return {**result, 'warming_baseline_mean_7d': mean, 'warming_baseline_status': 'complete'}
 
 
-def metrics(current, history, frozen=None):
-    r = {**daily_baseline(current, history, frozen), 'warming_multiple': None, 'history_1h_volume': None,
+def new_asset(current):
+    created, requested = time(current.get('asset_created_at')), time(current.get('requested_at'))
+    return bool(created and requested and timedelta(0) <= requested - created < timedelta(days=7))
+
+
+def metrics(current, history):
+    r = {**hourly_baseline(current, history), 'is_new_asset': new_asset(current), 'is_new': new_asset(current), 'warming_multiple': None, 'history_1h_volume': None,
          'history_1h_ref_json': None, 'history_2h_volume': None, 'history_2h_ref_json': None, 'growth_1h': None,
          'previous_growth_1h': None, 'growth_change_pp': None, 'growth_change_status': 'unknown',
          'warming_status': 'invalid_current_volume'}
@@ -117,7 +114,7 @@ def metrics(current, history, frozen=None):
     return {**r, 'warming_status': 'complete'}
 
 
-def board(rows, history, calculated_at, coverage='healthy', frozen_baselines=None):
+def board(rows, history, calculated_at, coverage='healthy'):
     now = time(calculated_at)
     result = dict(algorithm_version=VERSION, calculated_at=calculated_at, status='unavailable', reason=None,
                   rows=[], candidates=[], excluded=[], sample_count=0, excluded_count=0, warming_warmup=False)
@@ -168,7 +165,7 @@ def board(rows, history, calculated_at, coverage='healthy', frozen_baselines=Non
             continue
         result['sample_count'] += 1
         scopes.add((row['source_id'], row['quote_currency'], row['coverage_key']))
-        candidate = {**row, **metrics(row, history, (frozen_baselines or {}).get(row['source_object_id']))}
+        candidate = {**row, **metrics(row, history)}
         result['candidates'].append(candidate)
         if candidate['warming_status'] != 'complete':
             reason = candidate['warming_status']
@@ -199,7 +196,7 @@ def board(rows, history, calculated_at, coverage='healthy', frozen_baselines=Non
             'snapshot_id': r['coverage_key']+'/'+calculated_at+'/'+VERSION, 'calculated_at': calculated_at,
             'source_as_of': calculated_at, 'sample_count': result['sample_count'], 'excluded_count': result['excluded_count'],
             'excluded_reasons_json': result['excluded'], 'warming_warmup': False,
-            'reason': f"1h growth {r['growth_1h']*100:.2f}%; baseline {r['warming_multiple']:.2f}x",
+            'reason': f"1h growth {fixed(r['growth_1h']*100)}%; baseline {fixed(r['warming_multiple'])}x",
             'trend_status': 'warming', 'price_direction': 'unknown' if not isinstance(move, (int, float)) else 'up' if move > 0 else 'down' if move < 0 else 'flat',
             'observation_refs_json': [r['observation_id']]+[x['observation_id'] for x in r['warming_baseline_refs_json']]
                 +[r['history_1h_ref_json']['observation_id']]+([r['history_2h_ref_json']['observation_id']] if r['history_2h_ref_json'] else []),

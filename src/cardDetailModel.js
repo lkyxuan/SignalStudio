@@ -63,7 +63,7 @@ export function executionSummary(node, language) {
   const webpageStep = currentWebpageStep(node);
   if (webpageStep) return webpageStep.trigger_zh;
   const entry=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);
-  if(entry) return zh?entry.trigger_zh:'Inside the warming program: one healthy complete round, frozen daily baseline; no independent hourly scheduler.';
+  if(entry) return zh?entry.trigger_zh:'Inside the warming program: one healthy complete round, hourly baseline recomputed per request; no independent hourly scheduler.';
   const stage = refresh.stages.find(item => item.name === node.name);
   if (stage) return stage.trigger_zh;
   const preparation = searchPreparation.nodes.find(item => item.name === node.name);
