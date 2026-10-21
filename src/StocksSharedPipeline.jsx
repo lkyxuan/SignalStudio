@@ -12,7 +12,9 @@ export function StocksSharedPipeline({ node, graph, language, openNode }) {
   const input = ['source_object_id', 'current_price', 'total_volume', 'market_cap', 'price_change_percentage_24h'];
   const output = ['price_change_percentage_24h', 'volume_to_market_cap'];
   const fields = (keys) => <ol className="stocks-pipeline-fields">{keys.map(key => <li key={key}><code>{key}</code><strong>{String(example[key])}</strong></li>)}</ol>;
-  return <section className="stocks-shared-pipeline" aria-label={text('Stocks 共用链路', 'Stocks shared pipeline')}>
+  return <details className="processing-advanced stocks-pipeline-supplement">
+    <summary>{text('Stocks 共用链路说明', 'Stocks shared pipeline guide')}</summary>
+    <section className="stocks-shared-pipeline" aria-label={text('Stocks 共用链路', 'Stocks shared pipeline')}>
     <h3>{text('Stocks 如何接入现有系统', 'How Stocks joins the existing system')}</h3>
     <p className="card-detail-provenance">{text('设计展示 · 以下共用卡片是同一逻辑对象；没有新增运行程序。', 'Design only · shared cards retain one logical identity; no new runtime program.')}</p>
     <ol className="stocks-pipeline-steps">{spec.steps.map((step, index) => {
@@ -40,5 +42,5 @@ export function StocksSharedPipeline({ node, graph, language, openNode }) {
     </>}
     <p className="card-detail-provenance">{spec[zh ? 'limits_zh' : 'limits_en']}</p>
     <details><summary>{text('设计依据', 'Design reference')}</summary><a href={spec.rationale_url} target="_blank" rel="noreferrer">SS-138</a></details>
-  </section>;
+  </section></details>;
 }

@@ -14,6 +14,8 @@ Approved on 2026-10-21 in [SS-138](https://app.notion.com/p/400038a63d5a81a5a140
 
 The card reading aid distinguishes raw observations from computed indicators, includes a labeled hypothetical turnover calculation, and links the same logical cards. Raw Header values are existing code references, not current deployment evidence. Exact indicator Header registration, membership storage, coverage adaptation and Few runtime remain unverified. Sharing a Topic or processor does not establish a shared ranking cohort. The broader SS-127 RWA/history designs remain separate from this minimal coins/markets path.
 
+The source-card correction approved on 2026-10-22 in SS-138 applies the shared source inspector layout to all ten Stocks sources: request parameters and response fields appear first in two numbered columns (stacked on narrow screens), followed by the source purpose, observed-call status and destination explanation. Response records use field rows rather than a database-style horizontal table. Failed requests retain their HTTP status and distinguish documented fields from observed values. The pipeline reading aid is a collapsed supplement after each card's standard content, including Topic and processing cards. No saved card identity, layout, business contract or collection schedule changes.
+
 Verify with `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_stocks_shared_pipeline server.test_stocks_design`, the contract/layout checks, `npm run build`, the render-only card check and a browser inspection of #2051 → #5004 → #3035 → #3041 → #5007 → #3011.
 
 ## Required collection behavior for the future collector
