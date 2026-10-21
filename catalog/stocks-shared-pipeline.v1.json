@@ -1,0 +1,78 @@
+{
+  "version": "stocks-shared-pipeline.v1",
+  "rationale_url": "https://app.notion.com/p/400038a63d5a81a5a140dbfc5d84a8a9",
+  "delivery": "studio_design_only",
+  "runtime_enabled": false,
+  "steps": [
+    {
+      "name": "coingecko.stocks.token_markets",
+      "label_zh": "Stocks 行情爬虫",
+      "label_en": "Stocks market collector",
+      "role_zh": "独立采集 tokenized-stock 全分页；复用行情结构，不设价格/市值门槛。",
+      "role_en": "Separate tokenized-stock pagination using the same market structure, without a price or cap floor."
+    },
+    {
+      "name": "Few Understand · market.snapshot",
+      "label_zh": "共用原始行情 Topic",
+      "label_en": "Shared raw-market Topic",
+      "role_zh": "传递单代币原始行情；此时还不是计算后的指标。",
+      "role_en": "Carries raw per-token observations, before indicator calculation."
+    },
+    {
+      "name": "Polars · 计算 CoinGecko 量价指标",
+      "label_zh": "共用 Polars 计算",
+      "label_en": "Shared Polars calculation",
+      "role_zh": "复用同一程序与指标函数；按稳定 coin ID、来源、报价和覆盖语义匹配历史。",
+      "role_en": "Reuse the same program and metric functions; match history by stable coin ID, source, currency and coverage semantics."
+    },
+    {
+      "name": "Polars · 汇总指标并发布",
+      "label_zh": "同一 Polars 程序内汇总",
+      "label_en": "Assembly inside the same Polars program",
+      "role_zh": "汇总子指标后发布，缺失指标保留缺失；不是额外的爬虫或计算服务。",
+      "role_en": "Assemble metric results and preserve missing values; this is not a separate collector or compute service."
+    },
+    {
+      "name": "Few Understand · indicator.data",
+      "label_zh": "共用指标 Topic",
+      "label_en": "Shared indicator Topic",
+      "role_zh": "只接收计算后的指标；沿用消费者要求的指标版本，不能任意混用 v1/v2。",
+      "role_en": "Carries computed indicators in the version required by each consumer; v1 and v2 are not interchangeable."
+    },
+    {
+      "name": "CoinGecko · 24 小时大涨",
+      "label_zh": "共用策略 · 24 小时大涨",
+      "label_en": "Shared strategy · 24h price rise",
+      "role_zh": "示例：24h涨幅达到10%触发关注。Stocks 是否单独展示由成员范围决定，不靠另建 Topic。",
+      "role_en": "Example: a 24h rise of at least 10% triggers attention. Stocks display membership does not require a separate Topic."
+    }
+  ],
+  "headers": {
+    "raw_reference": {
+      "source": "coingecko",
+      "type": "market",
+      "category": "spot"
+    },
+    "raw_status": "code_reference_not_deployment_verified",
+    "indicator_registry": "unknown_not_verified"
+  },
+  "example": {
+    "status": "synthetic_not_observed",
+    "source_object_id": "example-stock-token",
+    "current_price": 112,
+    "price_change_percentage_24h": 12,
+    "total_volume": 3000000,
+    "market_cap": 10000000,
+    "volume_to_market_cap": 0.3,
+    "threshold_percentage": 10
+  },
+  "limits_zh": "仅为 Studio 设计展示；未运行采集、创建 Topic 或启动消费者。股票代币行情不等于原生美股。Few 实际 Header 注册、Stocks 成员存储与覆盖适配仍待核验。",
+  "limits_en": "Studio design only: no collection, Topic creation or consumers. Tokenized markets are not native stock markets. Few Header registration, Stocks membership storage and coverage adaptation remain unverified.",
+  "round_design": {
+    "status": "proposal_not_runtime_configuration",
+    "rule_zh": "推荐由同一调度轮次启动 Crypto 与 Stocks 两个采集任务，关联同一个轮次编号和比较截止时间；它们仍分别分页、记录请求/接收时间与上游更新时间，并确认各自完整覆盖。共同排名等待两边本轮数据齐备且新鲜后再冻结计算；缺页、限流或超时明确标记不完整，不把上一轮数据冒充本轮。单市场榜可按自己的完整轮次计算。",
+    "rule_en": "Recommend starting Crypto and Stocks tasks in one scheduled round with a shared round reference and comparison cutoff. Each still paginates and records request, receive and source times with its own coverage. Freeze a combined ranking only when both current-round inputs are complete and fresh. Missing pages, rate limits or timeouts remain incomplete; never substitute a previous round as current. A single-market board may use its own complete round.",
+    "cadence_zh": "测试环境当前12分钟一次为用户回报，未独立复核；生产频率沿用实际配置。未来可把共同调度周期从12分钟缩至3分钟，但须先核验全分页耗时、全局限流/额度及两边本轮完成情况。3分钟调度不保证上游同步更新，也不保证每轮3分钟内完成。本批只做卡片，不改频率或调度器。",
+    "cadence_en": "The user reports a current 12-minute test cadence; deployment is not independently verified. Production follows actual configuration. A shared cadence may later move from 12 to 3 minutes after checking pagination duration, global limits/budget and completion. A 3-minute schedule does not guarantee synchronized upstream timestamps or completion within 3 minutes. This batch changes cards only, not scheduling."
+  }
+}

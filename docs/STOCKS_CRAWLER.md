@@ -8,6 +8,14 @@ This batch implements 18 Studio design cards: ten endpoint sources, four process
 
 The additive installer `server/stocks_design.py` adds one independent Stocks area, references the existing `assets` and `asset_identifiers`, preserves existing definitions, positions and bindings, and adds only new display occurrences for those shared tables. The one-time marker is `coingecko_stocks_design_ss127_v1`. Name collisions or transaction failures abort installation; restarts preserve subsequent edits. Future definition changes require a separately reviewed migration rather than resetting the marker.
 
+## Shared pipeline card display (SS-138)
+
+Approved on 2026-10-21 in [SS-138](https://app.notion.com/p/400038a63d5a81a5a140dbfc5d84a8a9) for Studio display only. `catalog/stocks-shared-pipeline.v1.json` defines the reading path from the existing token-market source through `market.snapshot`, the shared Polars entry and assembly, `indicator.data`, and the existing 24h price-rise strategy. `server/stocks_shared_pipeline.py` adds one non-triggering design reference from Stocks to the raw Topic and five nested local displays of existing cards. It creates no logical nodes, Topics, consumers, business stores or collection jobs, and does not change Crypto eligibility or ranking. Existing downstream bindings and saved positions remain intact. Missing prerequisite links fail the atomic migration; the marker `stocks_shared_pipeline_ss138_v1` makes restart a no-op.
+
+The card reading aid distinguishes raw observations from computed indicators, includes a labeled hypothetical turnover calculation, and links the same logical cards. Raw Header values are existing code references, not current deployment evidence. Exact indicator Header registration, membership storage, coverage adaptation and Few runtime remain unverified. Sharing a Topic or processor does not establish a shared ranking cohort. The broader SS-127 RWA/history designs remain separate from this minimal coins/markets path.
+
+Verify with `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_stocks_shared_pipeline server.test_stocks_design`, the contract/layout checks, `npm run build`, the render-only card check and a browser inspection of #2051 → #5004 → #3035 → #3041 → #5007 → #3011.
+
 ## Required collection behavior for the future collector
 
 - Discover the full `/rwas/list?asset_type=stock` directory and all `/coins/markets?category=tokenized-stock` pages. These are different entity levels, not interchangeable lists. Do not apply the Crypto collector's USD10m market-cap floor. ETF and commodity types are separate. Stock type alone does not establish US listing status, public listing, completeness or tradability.
