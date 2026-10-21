@@ -11,9 +11,9 @@
 .stocks-shared-pipeline p,.stocks-shared-pipeline code { overflow-wrap: anywhere; }
 .stocks-pipeline-steps { padding-left: 22px; }
 .stocks-pipeline-steps li { padding: 6px 4px; }
-.stocks-pipeline-steps li[aria-current="step"] { background: var(--surface-alt, #f3f3ee); border-radius: 6px; }
+.stocks-pipeline-steps li[aria-current="step"] { background: rgba(128,128,128,.14); border-radius: 6px; }
 .stocks-pipeline-steps p { margin: 6px 0; }
-.stocks-pipeline-steps button { max-width: 100%; text-align: left; overflow-wrap: anywhere; }
+.stocks-pipeline-steps button { max-width: 100%; text-align: left; overflow-wrap: anywhere; color: inherit; background: transparent; border: 1px solid var(--border, #777); border-radius: 5px; padding: 6px 8px; }
 .stocks-pipeline-io { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .stocks-pipeline-io section { min-width: 0; }
 .stocks-pipeline-fields { padding-left: 20px; font-size: 12px; }
