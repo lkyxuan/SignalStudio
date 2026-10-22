@@ -8,7 +8,7 @@ const specs = [
     'Polars · 计算成交额市值比', 'Polars · 计算绝对24h涨跌幅', 'Polars · 计算相对昨日放量倍数',
     'Polars · 计算7日成交额基线', 'Polars · 计算7日相对放量RVOL', 'Polars · 汇总指标并发布', 'Few Understand · indicator.data',
   ] },
-  { key: 'hottest', title: '交易最热 · 候选、排序与榜单', titleEn: 'Trading heat · candidates, ranking and board', names: ['CoinGecko · 最热榜候选快照', '生成基础最热榜', 'leaderboard_hottest'] },
+  { key: 'hottest', title: '交易最热 · 候选、排序与榜单', titleEn: 'Trading heat · candidates, ranking and board', names: ['CoinGecko · 最热榜候选快照', '生成基础最热榜', 'leaderboard_hottest', '最热榜 · 结果数据通道', '最热榜 · 更新当前榜单', '统一归档 · 最热榜结果', 'leaderboard_hottest_history', '最热榜 · 查询历史与进榜时间'] },
   { key: 'alerts', title: '异动提醒 · 条件触发的信号', titleEn: 'Market alerts · condition-triggered signals', names: ['市场交易活跃候选', 'CoinGecko · 24 小时大涨', 'CoinGecko · 24 小时大跌', 'CoinGecko · 成交量市值比偏高', 'CoinGecko · 接近历史高点', 'CoinGecko · 较历史高点深度回撤', 'Few Understand · signal.data'] },
   { key: 'discovery', title: '新资产发现 · 多渠道共用榜', titleEn: 'Asset discovery · shared across sources', names: ['CoinGecko · 筛选无UUID资产', 'CoinGecko · 核实并建档', 'CoinGecko · 首次收录新资产', '确定资产起始评分', '生成最新UUID榜', 'leaderboard_new_uuid'] },
   { key: 'warming', title: '交易升温 · 历史基准、增长与榜单', titleEn: 'Warming · hourly baseline, growth and board', names: ['CoinGecko · 升温候选快照', 'CoinGecko · 计算升温小时基准', '生成基础升温榜', 'leaderboard_warming'] },

@@ -1,3 +1,4 @@
+import heatHistory from '../catalog/hottest-history.v1.json';
 import { cardKind, cardKinds, kindLabel } from './cardModel';
 import definitions from './cardPresentationData.json';
 import sources from '../catalog/source-contracts.v1.json';
@@ -14,6 +15,7 @@ const purposes: Record<string,[string,string]> = {
   'source/kaito-resource':['Kaito 参考目录','Kaito reference lists'], 'source/binance':['Binance 数据','Binance data'],
   'source/dexscreener':['DexScreener 数据','DexScreener data'], 'source/rss':['RSS 新闻','RSS news'],
   'source/telegram':['Telegram 消息','Telegram messages'], 'source/taoli':['Taoli 页面数据','Taoli page data'],
+  'table/board-history':['榜单历史结果','Leaderboard result history'], 'process/board-history':['榜单消费与历史查询','Board delivery and history queries'], 'channel/board-history':['榜单结果消息','Leaderboard result messages'],
   'table/base':['公共基础资料表','Shared core tables'], 'table/config':['公共规则配置表','Shared configuration tables'],
   'table/coingecko-history':['CoinGecko 行情历史表','CoinGecko market history'], 'table/history':['评分历史流水表','Score history tables'],
   'table/current':['当前评分结果表','Current score tables'], 'table/board':['榜单结果表','Leaderboard tables'],
@@ -37,6 +39,8 @@ const providers: Record<string,string>={'binance-futures':'binance',coingecko:'c
 // Navigation only: explicit module identity, never numbering or transitive graph inference.
 export function cardTypeKey(node: Node): string {
   const kind=cardKind(node);
+  if (heatHistory.cards.some(card => card.name === node.name && card.kind === kind) &&
+      node.card_contract?.config.definition_refs?.some(ref => ref.path === 'catalog/hottest-history.v1.json')) return `${kind}/board-history`;
   if (stocks.cards.some(card => card.name === node.name && card.kind === kind) &&
       node.card_contract?.config.definition_refs?.some(ref => ref.path === 'catalog/coingecko-stocks.v1.json')) return `${kind}/stocks`;
   if (kind==='source') {

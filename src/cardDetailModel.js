@@ -1,3 +1,4 @@
+import heatHistory from '../catalog/hottest-history.v1.json';
 import hottest from '../catalog/coingecko-hottest.v1.json';
 import warming from '../catalog/coingecko-warming.v1.json';
 import searchPreparation from '../catalog/search-preparation.v1.json';
@@ -36,6 +37,8 @@ function acceptedCopy(node) {
 }
 export function cardExplanation(node, language) {
   const zh = language === 'zh-CN';
+  const historyStep = node.card_contract?.config.resource?.hottest_history_key && heatHistory.cards.find(c => c.name === node.name);
+  if (historyStep) return zh ? historyStep.algorithm_zh : historyStep.algorithm_en;
   const webpageStep = currentWebpageStep(node);
   if (webpageStep) return zh ? webpageStep.algorithm_zh : webpageStep.algorithm_en;
   const warmingCard=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);
@@ -60,6 +63,8 @@ export function cardExplanation(node, language) {
 }
 export function executionSummary(node, language) {
   const zh = language === 'zh-CN';
+  const historyStep = node.card_contract?.config.resource?.hottest_history_key && heatHistory.cards.find(c => c.name === node.name);
+  if (historyStep) return zh ? historyStep.trigger_zh : 'On complete round arrival, or a read-only website request; no independent scheduled job.';
   const webpageStep = currentWebpageStep(node);
   if (webpageStep) return webpageStep.trigger_zh;
   const entry=warming.cards.find(c=>c.key===node.card_contract?.config.resource?.warming_key);

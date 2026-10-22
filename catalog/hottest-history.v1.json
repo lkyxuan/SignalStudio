@@ -1,0 +1,897 @@
+{
+  "version": "hottest_history_delivery_v1",
+  "approval": "https://app.notion.com/p/401038a63d5a81c288aee7c1c6b1e8f3",
+  "delivery": "studio_design_only",
+  "cards": [
+    {
+      "key": "channel",
+      "name": "最热榜 · 结果数据通道",
+      "kind": "channel",
+      "description_zh": "每轮最终榜单结果；当前榜与历史归档各自完整消费。",
+      "description_en": "Final heat rounds for independent current and archive consumers.",
+      "algorithm_zh": "复用Few通道与消息注册机制，发送完整冻结轮次：全体合格候选最终分和排名、前50标记及原始指标；不改变原评分和前50筛选。每轮是完整消息或经清单/校验和确认的完整组，空成功也发rows=[]；失败发unavailable，不用空数组冒充。两个独立消费者组各收全部消息。Topic/Headers/物理分块由Few按现有注册约定绑定，未指定新Topic名字。",
+      "algorithm_en": "Use the existing registry and transport. Publish a complete frozen scored cohort with top-50 membership, including valid empty success; unavailable is not empty. Independent consumer groups each receive every round. Physical topic and chunking remain Few bindings.",
+      "trigger_zh": "每收齐一轮行情并完成计算，可靠发布一次；同snapshot_id重试只允许相同内容。",
+      "fields": [
+        {
+          "name": "snapshot_id",
+          "data_type": "string",
+          "label_zh": "整轮唯一ID；相同ID内容必须一致",
+          "label_en": "Immutable round ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "datetime",
+          "label_zh": "本轮计算时间UTC，非归档时间",
+          "label_en": "UTC calculation time"
+        },
+        {
+          "name": "source_as_of",
+          "data_type": "datetime",
+          "label_zh": "本轮来源截止时间",
+          "label_en": "Source cutoff"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "原最热算法版本，不因归档改变",
+          "label_en": "Unchanged heat algorithm version"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "可比较的采集范围版本",
+          "label_en": "Coverage version"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "success/unavailable；失败不是空榜",
+          "label_en": "success/unavailable"
+        },
+        {
+          "name": "sample_count",
+          "data_type": "integer",
+          "label_zh": "归一化所用合格候选数，不是50",
+          "label_en": "Qualified cohort count"
+        },
+        {
+          "name": "rows_json",
+          "data_type": "json",
+          "label_zh": "全体合格候选的最终分、完整排名和原始指标；前50为展示榜",
+          "label_en": "All scored candidates; top 50 form the displayed board"
+        },
+        {
+          "name": "normalization_json",
+          "data_type": "json",
+          "label_zh": "本轮各分项统计，不能用今日值回填历史",
+          "label_en": "Frozen per-component statistics"
+        },
+        {
+          "name": "rvol_warmup",
+          "data_type": "boolean",
+          "label_zh": "本轮是否全部缺RVOL、暂按三项排序",
+          "label_en": "All RVOL missing flag"
+        },
+        {
+          "name": "history_epoch",
+          "data_type": "string",
+          "label_zh": "历史连续性分段；起始、覆盖/算法改变或中断须可辨认",
+          "label_en": "Continuity segment; gaps and context changes are explicit"
+        },
+        {
+          "name": "failure_reason",
+          "data_type": "string | null",
+          "label_zh": "不可用轮次原因；成功时null",
+          "label_en": "Unavailable reason; null on success"
+        }
+      ]
+    },
+    {
+      "key": "current",
+      "name": "最热榜 · 更新当前榜单",
+      "kind": "process",
+      "description_zh": "业务消费组原子更新#1009，保留现有下游。",
+      "description_en": "Business group atomically updates the existing current board.",
+      "algorithm_zh": "独立业务消费组读取完整成功轮次，选in_top50=true且rank为1至50的行，按rank原子替换#1009，不逐行留下半榜。空成功清空；失败保留失败状态、旧榜不冒充当前。按source_as_of和轮次顺序防止迟到重试覆盖新榜，同ID异内容拒绝；写成功才提交本组offset。15分钟过期规则保持。",
+      "algorithm_en": "Consume complete successful rounds in an independent group. Atomically replace the existing board with top-50 rows, including empty success; failed rounds do not become empty. Reject conflicts and stale overwrites; commit offsets after durable writes. Existing 15-minute expiry applies.",
+      "trigger_zh": "收到完整结果消息后；不是独立定时器。",
+      "fields": [
+        {
+          "name": "snapshot_id",
+          "data_type": "string",
+          "label_zh": "整轮唯一ID；相同ID内容必须一致",
+          "label_en": "Immutable round ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "datetime",
+          "label_zh": "本轮计算时间UTC，非归档时间",
+          "label_en": "UTC calculation time"
+        },
+        {
+          "name": "source_as_of",
+          "data_type": "datetime",
+          "label_zh": "本轮来源截止时间",
+          "label_en": "Source cutoff"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "原最热算法版本，不因归档改变",
+          "label_en": "Unchanged heat algorithm version"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "可比较的采集范围版本",
+          "label_en": "Coverage version"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "success/unavailable；失败不是空榜",
+          "label_en": "success/unavailable"
+        },
+        {
+          "name": "sample_count",
+          "data_type": "integer",
+          "label_zh": "归一化所用合格候选数，不是50",
+          "label_en": "Qualified cohort count"
+        },
+        {
+          "name": "rows_json",
+          "data_type": "json",
+          "label_zh": "全体合格候选的最终分、完整排名和原始指标；前50为展示榜",
+          "label_en": "All scored candidates; top 50 form the displayed board"
+        },
+        {
+          "name": "normalization_json",
+          "data_type": "json",
+          "label_zh": "本轮各分项统计，不能用今日值回填历史",
+          "label_en": "Frozen per-component statistics"
+        },
+        {
+          "name": "rvol_warmup",
+          "data_type": "boolean",
+          "label_zh": "本轮是否全部缺RVOL、暂按三项排序",
+          "label_en": "All RVOL missing flag"
+        },
+        {
+          "name": "history_epoch",
+          "data_type": "string",
+          "label_zh": "历史连续性分段；起始、覆盖/算法改变或中断须可辨认",
+          "label_en": "Continuity segment; gaps and context changes are explicit"
+        },
+        {
+          "name": "failure_reason",
+          "data_type": "string | null",
+          "label_zh": "不可用轮次原因；成功时null",
+          "label_en": "Unavailable reason; null on success"
+        }
+      ]
+    },
+    {
+      "key": "archive",
+      "name": "统一归档 · 最热榜结果",
+      "kind": "process",
+      "description_zh": "统一归档writer的最热结果路由，不另起重复存储服务。",
+      "description_en": "Heat-result route in the shared archive writer, not another service.",
+      "algorithm_zh": "归档消费组独立于业务组，复用现有统一归档writer的注册路由，逐轮持久保存不可变envelope和全部rows。以snapshot_id幂等；同ID异内容隔离报错，写成功才提交本组offset。保存原calculated_at/source_as_of，不以归档时间改写。归档失败重试不阻塞业务组；通道保留须覆盖最大归档延迟和约定重放期，不按资产压缩掉历史。物理分区/保留期由Few明确绑定并验证，不能声称已运行。 归档writer同时维护可追溯的首次观测/确认进榜元数据或索引；裁剪历史前保留已知首次及其证据引用。查询只读，不在网站请求时写历史。",
+      "algorithm_en": "An independent archival group routes each immutable envelope and full cohort through the existing shared writer. Deduplicate identical snapshot IDs, reject conflicting content, and commit only after durable writes. Preserve original timestamps; retain transport history through archival lag and agreed replay horizon. Few must bind retention and storage. The archive writer maintains durable first-observation/entry metadata and evidence references before pruning. Website queries remain read-only.",
+      "trigger_zh": "结果消息到达；独立消费进度，沿用统一writer。",
+      "fields": [
+        {
+          "name": "snapshot_id",
+          "data_type": "string",
+          "label_zh": "整轮唯一ID；相同ID内容必须一致",
+          "label_en": "Immutable round ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "datetime",
+          "label_zh": "本轮计算时间UTC，非归档时间",
+          "label_en": "UTC calculation time"
+        },
+        {
+          "name": "source_as_of",
+          "data_type": "datetime",
+          "label_zh": "本轮来源截止时间",
+          "label_en": "Source cutoff"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "原最热算法版本，不因归档改变",
+          "label_en": "Unchanged heat algorithm version"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "可比较的采集范围版本",
+          "label_en": "Coverage version"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "success/unavailable；失败不是空榜",
+          "label_en": "success/unavailable"
+        },
+        {
+          "name": "sample_count",
+          "data_type": "integer",
+          "label_zh": "归一化所用合格候选数，不是50",
+          "label_en": "Qualified cohort count"
+        },
+        {
+          "name": "rows_json",
+          "data_type": "json",
+          "label_zh": "全体合格候选的最终分、完整排名和原始指标；前50为展示榜",
+          "label_en": "All scored candidates; top 50 form the displayed board"
+        },
+        {
+          "name": "normalization_json",
+          "data_type": "json",
+          "label_zh": "本轮各分项统计，不能用今日值回填历史",
+          "label_en": "Frozen per-component statistics"
+        },
+        {
+          "name": "rvol_warmup",
+          "data_type": "boolean",
+          "label_zh": "本轮是否全部缺RVOL、暂按三项排序",
+          "label_en": "All RVOL missing flag"
+        },
+        {
+          "name": "history_epoch",
+          "data_type": "string",
+          "label_zh": "历史连续性分段；起始、覆盖/算法改变或中断须可辨认",
+          "label_en": "Continuity segment; gaps and context changes are explicit"
+        },
+        {
+          "name": "failure_reason",
+          "data_type": "string | null",
+          "label_zh": "不可用轮次原因；成功时null",
+          "label_en": "Unavailable reason; null on success"
+        }
+      ]
+    },
+    {
+      "key": "history",
+      "name": "leaderboard_hottest_history",
+      "kind": "table",
+      "description_zh": "每轮最热结果的逻辑历史数据集；不是最新榜缓存。",
+      "description_en": "Logical immutable history of heat-result rounds.",
+      "algorithm_zh": "逻辑主键snapshot_id，每行完整envelope，rows_json按asset_id唯一；可物理拆为批次表与(snapshot_id,asset_id)明细，但须原子确认整轮完整。全候选记录支持离榜后仍有分数；候选无效/未覆盖时是缺失，不补0。保留原始指标、归一化统计、算法/覆盖版本和原时间；Delta/Parquet等复用已有归档能力，物理表绑定和保留期由Few确认。",
+      "algorithm_en": "Key by snapshot_id with unique asset rows. A header/detail physical split must retain atomic round completeness. Full-cohort rows preserve scores outside the top 50. Missing candidates remain missing, not zero. Preserve metrics, statistics, versions and timestamps. Physical archive binding and retention are Few responsibilities.",
+      "trigger_zh": "归档writer持久写入成功后可读。",
+      "fields": [
+        {
+          "name": "snapshot_id",
+          "data_type": "string",
+          "label_zh": "整轮唯一ID；相同ID内容必须一致",
+          "label_en": "Immutable round ID"
+        },
+        {
+          "name": "calculated_at",
+          "data_type": "datetime",
+          "label_zh": "本轮计算时间UTC，非归档时间",
+          "label_en": "UTC calculation time"
+        },
+        {
+          "name": "source_as_of",
+          "data_type": "datetime",
+          "label_zh": "本轮来源截止时间",
+          "label_en": "Source cutoff"
+        },
+        {
+          "name": "algorithm_version",
+          "data_type": "string",
+          "label_zh": "原最热算法版本，不因归档改变",
+          "label_en": "Unchanged heat algorithm version"
+        },
+        {
+          "name": "coverage_key",
+          "data_type": "string",
+          "label_zh": "可比较的采集范围版本",
+          "label_en": "Coverage version"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "label_zh": "success/unavailable；失败不是空榜",
+          "label_en": "success/unavailable"
+        },
+        {
+          "name": "sample_count",
+          "data_type": "integer",
+          "label_zh": "归一化所用合格候选数，不是50",
+          "label_en": "Qualified cohort count"
+        },
+        {
+          "name": "rows_json",
+          "data_type": "json",
+          "label_zh": "全体合格候选的最终分、完整排名和原始指标；前50为展示榜",
+          "label_en": "All scored candidates; top 50 form the displayed board"
+        },
+        {
+          "name": "normalization_json",
+          "data_type": "json",
+          "label_zh": "本轮各分项统计，不能用今日值回填历史",
+          "label_en": "Frozen per-component statistics"
+        },
+        {
+          "name": "rvol_warmup",
+          "data_type": "boolean",
+          "label_zh": "本轮是否全部缺RVOL、暂按三项排序",
+          "label_en": "All RVOL missing flag"
+        },
+        {
+          "name": "history_epoch",
+          "data_type": "string",
+          "label_zh": "历史连续性分段；起始、覆盖/算法改变或中断须可辨认",
+          "label_en": "Continuity segment; gaps and context changes are explicit"
+        },
+        {
+          "name": "failure_reason",
+          "data_type": "string | null",
+          "label_zh": "不可用轮次原因；成功时null",
+          "label_en": "Unavailable reason; null on success"
+        }
+      ]
+    },
+    {
+      "key": "query",
+      "name": "最热榜 · 查询历史与进榜时间",
+      "kind": "process",
+      "description_zh": "供网站按币、时间范围读取热度曲线与进榜依据。",
+      "description_en": "Website-facing heat history and membership query contract.",
+      "algorithm_zh": "按asset_id、[from_at,to_at)、resolution和cursor查询归档或可重建索引。返回points_json、membership_json、归档水位与实际覆盖；接口地址由Few提供，不把Studio图API当业务API。round保留每轮；day按Asia/Shanghai取当日最后有效观测，保留实际采样时间和缺口/失败标记。首次观测在榜不等于历史首次进榜：起始已在榜标initial_unknown；只有前一完整可比轮明确榜外→本轮榜内才标confirmed_entry。退出重进保留first_observed_top50_at，另记本次段起点；跨缺口/算法/覆盖变化连续性未知。首次信息要从查询范围之前的历史计算，不能把窗口首条当首次。归档裁剪后只可说保留范围首次，已知首次元数据须持久保存而非随裁剪丢失。分数与排名分开，市场均线未定，不自行加线。",
+      "algorithm_en": "Query by asset and bounded UTC interval with round/day resolution and stable pagination. Return points, membership evidence, archive watermark and completeness. Shanghai daily points preserve actual sample times and gaps. Initial membership is unknown, not a confirmed first entry; confirm only comparable complete outside-to-inside transitions. Preserve first observation on reentry and mark continuity unknown across gaps/context changes. Compute membership using pre-range history and preserve known metadata across retention pruning. No unapproved market baseline.",
+      "trigger_zh": "网站请求时只读；不重新计算或回写过去分数。",
+      "fields": [
+        {
+          "name": "asset_id",
+          "data_type": "uuid",
+          "label_zh": "查询对象稳定UUID",
+          "label_en": "Stable asset UUID"
+        },
+        {
+          "name": "from_at",
+          "data_type": "datetime",
+          "label_zh": "起始UTC时间（包含）",
+          "label_en": "Inclusive UTC start"
+        },
+        {
+          "name": "to_at",
+          "data_type": "datetime",
+          "label_zh": "截止UTC时间（不含）",
+          "label_en": "Exclusive UTC end"
+        },
+        {
+          "name": "resolution",
+          "data_type": "string",
+          "label_zh": "round/day；按轮或北京时间日末观测",
+          "label_en": "round/day; Shanghai day-end observation"
+        },
+        {
+          "name": "cursor",
+          "data_type": "string | null",
+          "label_zh": "有界分页游标；绑定查询和读取水位",
+          "label_en": "Bounded pagination cursor"
+        },
+        {
+          "name": "points_json",
+          "data_type": "json",
+          "label_zh": "按时间升序的分数、排名、榜内状态、原始指标、版本与缺失标记",
+          "label_en": "Ascending history points with state and provenance"
+        },
+        {
+          "name": "membership_json",
+          "data_type": "json",
+          "label_zh": "首次观测/确定进榜、本次连续段与证据；未知不猜",
+          "label_en": "First observation, confirmed entry and current segment"
+        },
+        {
+          "name": "read_status",
+          "data_type": "string",
+          "label_zh": "complete/partial/unavailable；含归档水位与覆盖范围",
+          "label_en": "Completeness and archive watermark"
+        }
+      ]
+    }
+  ],
+  "row_fields": [
+    {
+      "name": "asset_id",
+      "data_type": "uuid",
+      "label_zh": "稳定资产UUID",
+      "label_en": "Stable UUID"
+    },
+    {
+      "name": "score",
+      "data_type": "number",
+      "label_zh": "最终四项加权稳健Z，−3至+3",
+      "label_en": "Weighted robust Z, −3 to +3"
+    },
+    {
+      "name": "rank_all",
+      "data_type": "integer",
+      "label_zh": "全体合格候选排序，完整精度",
+      "label_en": "Full-cohort rank"
+    },
+    {
+      "name": "rank",
+      "data_type": "integer | null",
+      "label_zh": "前50名次；榜外null",
+      "label_en": "Top-50 rank; null outside"
+    },
+    {
+      "name": "in_top50",
+      "data_type": "boolean",
+      "label_zh": "是否属于本轮展示榜",
+      "label_en": "Displayed board membership"
+    },
+    {
+      "name": "current_price",
+      "data_type": "number",
+      "label_zh": "本轮USD价格，不是归档时价格",
+      "label_en": "USD price at calculation"
+    },
+    {
+      "name": "total_volume",
+      "data_type": "number",
+      "label_zh": "滚动24h美元成交额",
+      "label_en": "Rolling 24h USD volume"
+    },
+    {
+      "name": "volume_to_market_cap",
+      "data_type": "number",
+      "label_zh": "换手比值",
+      "label_en": "Volume/cap ratio"
+    },
+    {
+      "name": "abs_price_pct",
+      "data_type": "number",
+      "label_zh": "绝对24h价格变化百分数点",
+      "label_en": "Absolute 24h price change in pp"
+    },
+    {
+      "name": "rvol_7d",
+      "data_type": "number | null",
+      "label_zh": "相对放量倍数，缺失不补0",
+      "label_en": "Relative volume; missing stays null"
+    },
+    {
+      "name": "rvol_7d_status",
+      "data_type": "string",
+      "label_zh": "RVOL完整性与缺失原因",
+      "label_en": "RVOL availability"
+    },
+    {
+      "name": "observation_id",
+      "data_type": "string",
+      "label_zh": "当前指标依据ID",
+      "label_en": "Indicator evidence ID"
+    },
+    {
+      "name": "identity_status",
+      "data_type": "string",
+      "label_zh": "resolved/source_only/lookup_error/conflict",
+      "label_en": "identity_status"
+    },
+    {
+      "name": "source_id",
+      "data_type": "string",
+      "label_zh": "来源范围",
+      "label_en": "source_id"
+    },
+    {
+      "name": "source_object_id",
+      "data_type": "string",
+      "label_zh": "稳定CoinGecko coin ID",
+      "label_en": "source_object_id"
+    },
+    {
+      "name": "quote_currency",
+      "data_type": "string",
+      "label_zh": "固定usd",
+      "label_en": "quote_currency"
+    },
+    {
+      "name": "requested_at",
+      "data_type": "datetime",
+      "label_zh": "请求时间；历史锚点",
+      "label_en": "requested_at"
+    },
+    {
+      "name": "collected_at",
+      "data_type": "datetime",
+      "label_zh": "实际接收时间",
+      "label_en": "collected_at"
+    },
+    {
+      "name": "observed_at",
+      "data_type": "datetime",
+      "label_zh": "来源观测时间",
+      "label_en": "observed_at"
+    },
+    {
+      "name": "quality_status",
+      "data_type": "string",
+      "label_zh": "来源质量状态",
+      "label_en": "quality_status"
+    },
+    {
+      "name": "asset_name",
+      "data_type": "string | null",
+      "label_zh": "展示名，不参与身份匹配",
+      "label_en": "asset_name"
+    },
+    {
+      "name": "object_kind",
+      "data_type": "string",
+      "label_zh": "最热候选须coin；旧asset/token标签须显式适配",
+      "label_en": "object_kind"
+    },
+    {
+      "name": "metric_id",
+      "data_type": "string",
+      "label_zh": "版本化冻结指标ID",
+      "label_en": "metric_id"
+    },
+    {
+      "name": "metric_version",
+      "data_type": "string",
+      "label_zh": "market_indicators_v2",
+      "label_en": "metric_version"
+    },
+    {
+      "name": "snapshot_ref",
+      "data_type": "string",
+      "label_zh": "来源响应引用",
+      "label_en": "snapshot_ref"
+    },
+    {
+      "name": "market_cap",
+      "data_type": "number",
+      "label_zh": "USD市值，有限且>0",
+      "label_en": "market_cap"
+    },
+    {
+      "name": "price_change_percentage_24h",
+      "data_type": "number",
+      "label_zh": "来源有符号24h涨跌幅",
+      "label_en": "price_change_percentage_24h"
+    },
+    {
+      "name": "baseline_mean_volume_7d",
+      "data_type": "number | null",
+      "label_zh": "7个日目标成交额算术均值，USD；必须7日完整且均值>0",
+      "label_en": "baseline_mean_volume_7d"
+    },
+    {
+      "name": "baseline_days_7d",
+      "data_type": "integer",
+      "label_zh": "已选有效日目标数0—7",
+      "label_en": "baseline_days_7d"
+    },
+    {
+      "name": "baseline_refs_7d_json",
+      "data_type": "json",
+      "label_zh": "每日目标、实际请求/接收时间、观测ID与成交额",
+      "label_en": "baseline_refs_7d_json"
+    },
+    {
+      "name": "object_key",
+      "data_type": "string",
+      "label_zh": "asset/<asset_id>，兼容候选筛选",
+      "label_en": "object_key"
+    },
+    {
+      "name": "calculation_status",
+      "data_type": "string",
+      "label_zh": "success/unavailable；失败不冒充当前",
+      "label_en": "calculation_status"
+    },
+    {
+      "name": "excluded_count",
+      "data_type": "integer",
+      "label_zh": "剔除数量",
+      "label_en": "excluded_count"
+    },
+    {
+      "name": "excluded_reasons_json",
+      "data_type": "json",
+      "label_zh": "按原因汇总，未知覆盖不作空榜",
+      "label_en": "excluded_reasons_json"
+    },
+    {
+      "name": "score_components_json",
+      "data_type": "json",
+      "label_zh": "各项原值、log1p、原始Z、截断Z、权重及贡献",
+      "label_en": "score_components_json"
+    },
+    {
+      "name": "direction",
+      "data_type": "string",
+      "label_zh": "up/down/flat，不推断事件原因",
+      "label_en": "direction"
+    },
+    {
+      "name": "reason",
+      "data_type": "string | null",
+      "label_zh": "具体指标说明或不可用原因",
+      "label_en": "reason"
+    },
+    {
+      "name": "observation_refs_json",
+      "data_type": "json",
+      "label_zh": "本币当前观测与7日历史引用",
+      "label_en": "observation_refs_json"
+    },
+    {
+      "name": "trend_status",
+      "data_type": "string",
+      "label_zh": "交易活动标签，非概率",
+      "label_en": "trend_status"
+    },
+    {
+      "name": "run_id",
+      "data_type": "string",
+      "label_zh": "采集运行标识；与统计窗口、来源记录时间分开",
+      "label_en": "run_id"
+    },
+    {
+      "name": "window_label",
+      "data_type": "string | null",
+      "label_zh": "实际请求统计窗口，例如24h；不代表采集频率",
+      "label_en": "window_label"
+    },
+    {
+      "name": "window_start",
+      "data_type": "UTC timestamp | null",
+      "label_zh": "来源明确给出的统计起点；未知不倒推",
+      "label_en": "window_start"
+    },
+    {
+      "name": "window_end",
+      "data_type": "UTC timestamp | null",
+      "label_zh": "来源明确给出的统计止点；未知不倒推",
+      "label_en": "window_end"
+    }
+  ],
+  "cohort_policy": "Export the already scored qualified cohort before display truncation; do not change scoring or top-50 membership.",
+  "limitations_zh": "仅Studio契约与虚构案例；没有创建Few Topic、消费者、归档表或业务API。原始行情已归档不等于最终榜单已归档。实际消息注册、存储位置、归档水位、保留期、查询性能及端到端运行由Few实现并核验。市场参考线口径未定。",
+  "limitations_en": "Studio contract and synthetic cases only. No Few topic, consumer, archive table or business API is created. Raw market archives do not prove final-board history. Few must bind and verify registry, storage, watermark, retention, query performance and end-to-end delivery. Market baseline remains undefined.",
+  "connections": [
+    {
+      "source": "生成基础最热榜",
+      "target": "最热榜 · 结果数据通道",
+      "kind": "publish",
+      "fields": [
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "algorithm_version",
+        "coverage_key",
+        "status",
+        "sample_count",
+        "rows_json",
+        "normalization_json",
+        "rvol_warmup",
+        "history_epoch",
+        "failure_reason"
+      ]
+    },
+    {
+      "source": "最热榜 · 结果数据通道",
+      "target": "最热榜 · 更新当前榜单",
+      "kind": "consume",
+      "fields": [
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "algorithm_version",
+        "coverage_key",
+        "status",
+        "sample_count",
+        "rows_json",
+        "normalization_json",
+        "rvol_warmup",
+        "history_epoch",
+        "failure_reason"
+      ]
+    },
+    {
+      "source": "最热榜 · 结果数据通道",
+      "target": "统一归档 · 最热榜结果",
+      "kind": "consume",
+      "fields": [
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "algorithm_version",
+        "coverage_key",
+        "status",
+        "sample_count",
+        "rows_json",
+        "normalization_json",
+        "rvol_warmup",
+        "history_epoch",
+        "failure_reason"
+      ]
+    },
+    {
+      "source": "最热榜 · 更新当前榜单",
+      "target": "leaderboard_hottest",
+      "kind": "write",
+      "fields": []
+    },
+    {
+      "source": "统一归档 · 最热榜结果",
+      "target": "leaderboard_hottest_history",
+      "kind": "write",
+      "fields": [
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "algorithm_version",
+        "coverage_key",
+        "status",
+        "sample_count",
+        "rows_json",
+        "normalization_json",
+        "rvol_warmup",
+        "history_epoch",
+        "failure_reason"
+      ]
+    },
+    {
+      "source": "leaderboard_hottest_history",
+      "target": "最热榜 · 查询历史与进榜时间",
+      "kind": "read",
+      "fields": [
+        "snapshot_id",
+        "calculated_at",
+        "source_as_of",
+        "algorithm_version",
+        "coverage_key",
+        "status",
+        "sample_count",
+        "rows_json",
+        "normalization_json",
+        "rvol_warmup",
+        "history_epoch",
+        "failure_reason"
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "at": "2026-10-20T01:00:00Z",
+      "score": 0.4,
+      "rank": 35,
+      "in_top50": true,
+      "note_zh": "开始记录时已在榜；更早进榜时间未知",
+      "note_en": "Already present at observation start; earlier entry unknown"
+    },
+    {
+      "at": "2026-10-20T02:00:00Z",
+      "score": 0.8,
+      "rank": 12,
+      "in_top50": true,
+      "note_zh": "持续在榜，不刷新首次观测时间",
+      "note_en": "Continuous membership; first observation unchanged"
+    },
+    {
+      "at": "2026-10-21T01:00:00Z",
+      "score": 0.2,
+      "rank": null,
+      "in_top50": false,
+      "note_zh": "完整轮次中rank_all=63，离榜仍保留分数",
+      "note_en": "Full-cohort rank 63; score retained outside top 50"
+    },
+    {
+      "at": "2026-10-22T01:00:00Z",
+      "score": 0.7,
+      "rank": 18,
+      "in_top50": true,
+      "note_zh": "再次进入，本次起点更新，首次观测保留",
+      "note_en": "Reentry starts a new segment; first observation retained"
+    },
+    {
+      "at": "2026-10-22T02:00:00Z",
+      "score": null,
+      "rank": null,
+      "in_top50": null,
+      "note_zh": "本轮不可用，显示缺口，不认定离榜",
+      "note_en": "Unavailable round; gap, not exit"
+    }
+  ],
+  "query_contract": {
+    "endpoint": null,
+    "binding_owner": "Few Understand agent; provide actual URL after implementation",
+    "request": {
+      "asset_id": "uuid",
+      "from_at": "inclusive ISO8601 UTC",
+      "to_at": "exclusive ISO8601 UTC",
+      "resolution": [
+        "round",
+        "day"
+      ],
+      "cursor": "opaque nullable; server-bounded page size"
+    },
+    "response": {
+      "asset_id": "uuid",
+      "points": [
+        {
+          "snapshot_id": "immutable ID",
+          "calculated_at": "UTC timestamp",
+          "score": "number|null",
+          "rank_all": "integer|null",
+          "rank": "1..50|null",
+          "in_top50": "boolean|null",
+          "point_status": "valid|missing|unavailable",
+          "algorithm_version": "string",
+          "coverage_key": "string",
+          "history_epoch": "string",
+          "metrics": "original per-row metrics; nulls preserved"
+        }
+      ],
+      "membership": {
+        "first_observed_top50_at": "UTC|null; preserved on reentry",
+        "first_entry_at": "UTC|null; only confirmed outside-to-inside transition, never substitute first observation",
+        "first_entry_status": "confirmed|initial_unknown|gap_unknown|not_observed",
+        "current_segment_started_at": "UTC|null",
+        "continuity": "confirmed|unknown",
+        "history_available_from": "UTC|null"
+      },
+      "read_status": "complete|partial|unavailable",
+      "archive_watermark": "last contiguous durably archived source cutoff, UTC|null",
+      "coverage_from": "UTC|null",
+      "coverage_to": "UTC|null",
+      "gaps": "explicit missing/unavailable intervals, even in daily resolution",
+      "next_cursor": "opaque|null"
+    },
+    "rules": [
+      "Sort (calculated_at,snapshot_id) ascending; bind pagination to filters and a fixed read watermark.",
+      "Do not silently join different coverage or algorithm epochs; split/annotate series.",
+      "Data predating available history is unknown; absent archive is not not_observed.",
+      "Day view retains the actual observation timestamp and explicit within-day gaps; an absent day is not zero.",
+      "Current-segment start requires continuous comparable valid rounds; a post-gap in-board observation is not a confirmed reentry.",
+      "The archive writer maintains durable first-observation/entry metadata or a rebuildable index backed by retained evidence. Query is read-only. Preserve known firsts before pruning source history.",
+      "first_entry_at only confirms the boundary of the first observed membership. If that initial boundary is unknown, keep it null; do not substitute a later confirmed reentry. Later entries belong to the current segment."
+    ]
+  },
+  "message_contract": {
+    "schema": "leaderboard.hottest_round.v1",
+    "registry_binding": null,
+    "topic": null,
+    "source": "Few producer binding required",
+    "key": "snapshot_id; partition/order strategy bound in Few",
+    "publication": "Atomic complete envelope or manifest-validated complete chunk set; reliable retries from frozen result, no recomputation on replay",
+    "independent_consumer_groups": [
+      "current-board projection",
+      "shared archive route"
+    ],
+    "ordering": "Immutable comparable source cutoff + deterministic round order; quarantine conflicting same-cutoff rounds, never replace newer current with older",
+    "success_empty": "status=success, sample_count=0, rows_json=[]",
+    "failure": "status=unavailable, explicit reason/coverage; cannot infer exits or empty market",
+    "nested_rows": "all qualified scored candidates before top-50 truncation; identical scoring and display selection",
+    "validation": "On success, sample_count equals rows length; asset IDs unique; ranks contiguous and consistent with unchanged full-precision score ordering; rank is rank_all only for 1..50, else null. Required finite metrics/IDs match the frozen round. Reject before both projections on mismatch."
+  },
+  "existing_cards": [
+    {
+      "key": "rank",
+      "name": "生成基础最热榜",
+      "delivery_action_version": 2,
+      "output_schema": "leaderboard.hottest_round.v1",
+      "rule_zh": "评分和前50筛选保持；从冻结结果可靠发布完整轮次到结果通道，不再直接写#1009。"
+    },
+    {
+      "key": "result",
+      "name": "leaderboard_hottest",
+      "rule_zh": "字段、逻辑ID及下游保留；由独立业务消费组原子更新。"
+    }
+  ]
+}

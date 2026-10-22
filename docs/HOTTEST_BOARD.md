@@ -81,6 +81,10 @@ accumulation, old `activity_score`, initial score, social/search +10 or decay en
 ranking. Existing score events and alerts retain their prior semantics. SS-102 separately
 supersedes legacy warming behavior; see [WARMING_BOARD.md](WARMING_BOARD.md).
 
+## Result delivery and history
+
+[SS-140](HOTTEST_HISTORY.md), approved 2026-10-22, defines a final-round result channel with independent current-board and shared-archive consumers. It supersedes the direct #3018 → #1009 write in the Studio graph; #1009 and existing downstream identities stay unchanged. Export the already-scored qualified cohort before top-50 truncation for history, while displaying the same top 50. Registry, storage and website API bindings remain Few implementation requirements, not deployed behavior.
+
 ## Cards and version compatibility
 
 - New module process: seven-day baseline (#3048 in the shared graph).

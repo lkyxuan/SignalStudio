@@ -1,3 +1,4 @@
+import hottest from '../catalog/coingecko-hottest.v1.json';
 import business from '../catalog/business-tables.v1.json';
 import pages from '../catalog/asset-pages.v1.json';
 import weights from '../catalog/dynamic-weights.v1.json';
@@ -5,7 +6,10 @@ import weights from '../catalog/dynamic-weights.v1.json';
 // Use the same canonical business schemas as the previous table cards. Other
 // tables use saved graph fields, never example rows or a crawler's raw response.
 export function tableDefinition(node, graph) {
-  const declared = node.name === pages.table.name ? pages.table
+  const hottestResult = node.card_contract?.config.resource?.hottest_history_key === 'result'
+    ? hottest.cards.find(c => c.key === 'result') : null;
+  const declared = hottestResult ? {primary_key:['asset_id'], columns:hottestResult.fields.map(f => ({...f, type:f.data_type}))}
+    : node.name === pages.table.name ? pages.table
     : weights.tables[node.name] || business.tables[node.name];
   const fields = (graph.fields || []).filter(f => f.node_id === node.id).sort((a, b) => a.ordinal - b.ordinal);
   const columns = declared?.columns || fields.map(f => ({
@@ -65,7 +69,11 @@ export function tableTechnology(node, zh) {
   const snapshot = node.name === 'asset_scores_current';
   return {
     storage: storage || (snapshot ? 'PostgreSQL' : zh ? '待确定' : 'To be determined'),
-    note: snapshot
+    note: resource.hottest_history_key === 'result'
+      ? zh ? '由独立业务消费组原子更新最新成功的前50名；历史保存于leaderboard_hottest_history，不在本表冒充实时历史。实际接入仍待Few核验。' : 'An independent business consumer atomically updates the latest successful top 50. History lives in leaderboard_hottest_history; Few runtime binding remains unverified.'
+      : resource.hottest_history_key === 'history'
+      ? zh ? node.formula : 'Immutable complete rounds from the shared archive writer; physical binding and retention must be verified by Few. Full-cohort rows preserve scores outside the top 50; missing rounds are gaps, never zero.'
+      : snapshot
       ? zh ? '已有测试网 PostgreSQL 结果快照；这里读取保存的快照，尚未接入实时查询。' : 'A saved testnet PostgreSQL snapshot is available; live queries are not connected.'
       : storage ? zh ? '这是当前设计或代码记录的存储方案，实际接入情况见“真实数据”。' : 'Storage from the current design or code records; see Actual data for connection status.'
         : zh ? '尚未确定具体数据库或存储方案。' : 'A database or storage choice has not been specified.',

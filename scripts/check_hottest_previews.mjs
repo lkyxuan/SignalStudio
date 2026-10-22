@@ -22,6 +22,14 @@ try {
  selectHottestCase(key);
  for(const node of nodes)for(const language of ['zh-CN','en']){
   const html=renderToStaticMarkup(createElement(CardDetails,{node,graph,language,openNode:()=>{},mutate:()=>{throw new Error('No write');},busy:false}));
+  // SS-130 routes tables through the canonical schema/actual-data template.
+  // Mathematical example coverage above still checks all five catalog cards.
+  if(node.kind==='table'){
+   assert.ok(html.includes(`data-card-detail-kind="table"`));
+   assert.ok(!html.includes('data-hottest-preview'));
+   assert.ok(html.includes('rvol_7d'));
+   continue;
+  }
   assert.match(html,/data-hottest-preview/);assert.ok(!html.includes('设计缺口'));assert.ok(html.includes('rvol_7d'));
   if(language==='zh-CN'){assert.ok(html.includes('虚构'));if(node.kind==='process')assert.ok(html.includes('何时运行'));}
   if(node.reference_number===3018){
