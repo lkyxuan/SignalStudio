@@ -38,7 +38,12 @@ class HottestHistoryTest(unittest.TestCase):
             self.assertIsNotNone(edge)
             self.assertTrue(self.s.get_field_usages(edge['id']))
         self.assertIsNone(self.s.db.execute('SELECT id FROM edges WHERE upstream_id=? AND downstream_id=?',(nodes['生成基础最热榜']['id'],nodes['leaderboard_hottest']['id'])).fetchone())
-        self.assertIn(PATH,model.package()['definitions'])
+        package=model.package()
+        self.assertIn(PATH,package['definitions'])
+        registry={a['id']:a for a in package['action_registry']}
+        self.assertEqual(registry['hottest.rank']['version'],3)
+        for key in ('current','archive','query'):
+            self.assertIn('hottest_history.'+key,registry)
         self.assertFalse(model.cycles())
         self.assertFalse(self.s.db.execute('PRAGMA foreign_key_check').fetchall())
         n=nodes[spec['cards'][0]['name']]
@@ -68,5 +73,28 @@ class HottestHistoryTest(unittest.TestCase):
         before=self.dump()
         with self.assertRaisesRegex(ValueError,'unknown definition revision'):ensure_hottest_history(self.s)
         self.assertEqual(before,self.dump())
+
+    def test_known_delivery_correction_refreshes_pins_without_reinstalling_cards(self):
+        import hashlib
+        from hottest_history import MARKER
+        ensure_hottest_history(self.s)
+        spec=json.loads((ROOT/PATH).read_text())
+        spec['existing_cards'][0]['delivery_action_version']=2
+        previous=hashlib.sha256((json.dumps(spec,ensure_ascii=False,indent=2)+'\n').encode()).hexdigest()
+        for row in self.s.db.execute('SELECT node_id,config FROM node_contracts').fetchall():
+            cfg=json.loads(row['config'])
+            for ref in cfg['definition_refs']:
+                if ref['path']==PATH:ref['revision']=previous
+            self.s.db.execute('UPDATE node_contracts SET config=? WHERE node_id=?',(encoded(cfg),row['node_id']))
+        self.s.db.execute('UPDATE schema_meta SET value=? WHERE key=?',(previous,MARKER));self.s.db.commit()
+        nodes=copy.deepcopy(self.s.graph()['nodes'])
+        ensure_hottest_history(self.s)
+        for n in nodes:
+            for key in ('name','position_x','position_y','formula','definition'):
+                self.assertEqual(n[key],self.s.get_node(n['id'])[key])
+        revision=hashlib.sha256((ROOT/PATH).read_bytes()).hexdigest()
+        for n in self.s.graph()['nodes']:
+            for ref in n['card_contract']['config']['definition_refs']:
+                if ref['path']==PATH:self.assertEqual(ref['revision'],revision)
 
 if __name__=='__main__':unittest.main()

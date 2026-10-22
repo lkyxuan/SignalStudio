@@ -411,6 +411,15 @@ class CardModel:
         if self.db.execute("SELECT 1 FROM schema_meta WHERE key='coingecko_warming_growth_ss102_v1'").fetchone():
             registry += [{'id': 'warming.'+key, 'version': 1, 'definition_paths': ['catalog/coingecko-warming.v1.json'],
                           'implementation': 'planned'} for key in ('baseline', 'rank')]
+        if self.db.execute("SELECT 1 FROM schema_meta WHERE key='hottest_history_ss140_v1'").fetchone():
+            history_path = 'catalog/hottest-history.v1.json'
+            registry += [{'id': 'hottest_history.' + key, 'version': 1,
+                          'definition_paths': [history_path], 'implementation': 'planned'}
+                         for key in ('current', 'archive', 'query')]
+            for entry in registry:
+                if entry['id'] == 'hottest.rank':
+                    entry['version'] = 3
+                    entry['definition_paths'] = [history_path] + entry['definition_paths']
         return [entry for entry in registry if entry['id'] in active]
 
     def bindings(self):

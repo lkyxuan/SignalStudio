@@ -884,7 +884,7 @@
     {
       "key": "rank",
       "name": "生成基础最热榜",
-      "delivery_action_version": 2,
+      "delivery_action_version": 3,
       "output_schema": "leaderboard.hottest_round.v1",
       "rule_zh": "评分和前50筛选保持；从冻结结果可靠发布完整轮次到结果通道，不再直接写#1009。"
     },

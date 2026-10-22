@@ -14,7 +14,34 @@ ACTOR = 'ss140-hottest-history'
 
 def ensure_hottest_history(service):
     db = service.db
-    if db.execute('SELECT 1 FROM schema_meta WHERE key=?', (MARKER,)).fetchone():
+    installed = db.execute('SELECT value FROM schema_meta WHERE key=?', (MARKER,)).fetchone()
+    current_revision = hashlib.sha256((ROOT / PATH).read_bytes()).hexdigest()
+    if installed:
+        if installed['value'] == current_revision:
+            return
+        # Delivery correction: update only this catalog's known pinned revision.
+        if installed['value'] != '1392d660a8e0bc6bedfa2c9fc46330183687b94843ccaf4b4598763569c0d696':
+            raise ValueError('SS-140 unknown installed history definition')
+        model = CardModel(service)
+        db.execute('BEGIN IMMEDIATE')
+        try:
+            for row in db.execute('SELECT node_id,kind,config FROM node_contracts').fetchall():
+                cfg = json.loads(row['config'])
+                refs = [r for r in cfg['definition_refs'] if r['path'] == PATH]
+                if not refs:
+                    continue
+                if cfg.get('read_only') or any(r['revision'] != installed['value'] for r in refs):
+                    raise ValueError('SS-140 edited history definition pin')
+                for ref in refs:
+                    ref['revision'] = current_revision
+                model.validate_config(cfg, row['kind'])
+                db.execute('UPDATE node_contracts SET config=?,revision=revision+1 WHERE node_id=?', (encoded(cfg), row['node_id']))
+            db.execute('UPDATE schema_meta SET value=? WHERE key=?', (current_revision, MARKER))
+            service._event(ACTOR, 'update_definition_pin', 'graph', MARKER, after={'revision': current_revision})
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
         return
     if not db.execute("SELECT 1 FROM schema_meta WHERE key='board_display_top50_ss131_v1'").fetchone():
         return
@@ -77,7 +104,7 @@ def ensure_hottest_history(service):
             cfg['definition_refs'].append({'path': PATH, 'revision': revision, 'selector': {'key': key}})
             cfg['resource'].update(hottest_history_key=key, delivery='studio_design_only', physical_binding=None)
             if key == 'rank':
-                cfg['action']['version'] += 1
+                cfg['action']['version'] = 3
                 cfg['resource']['result_message_schema'] = spec['message_contract']['schema']
             if key not in ('rank', 'result'):
                 cfg['action'] = {'id': 'hottest_history.' + key if kind == 'process' else '',
