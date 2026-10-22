@@ -59,6 +59,7 @@ from asset_webpage_board import ensure_asset_webpage_board
 from asset_webpage_rounds import ensure_asset_webpage_rounds
 from stocks_design import ensure_stocks_design
 from stocks_shared_pipeline import ensure_stocks_shared_pipeline
+from market_collector_routing import ensure_market_collector_routing
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -118,6 +119,7 @@ ensure_stocks_design(service)
 ensure_board_display_limit(service)
 ensure_warming_v3(service)
 ensure_stocks_shared_pipeline(service)
+ensure_market_collector_routing(service)
 
 
 class Handler(BaseHTTPRequestHandler):

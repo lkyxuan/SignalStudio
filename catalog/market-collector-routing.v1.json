@@ -1,0 +1,485 @@
+{
+  "version": "market-collector-routing.v1",
+  "rationale_url": "https://app.notion.com/p/401038a63d5a81c085c4db0f7f4c8008",
+  "status": "approved_design_not_runtime_verified",
+  "supersedes": "Additive producer provenance overlay for market-channel.v1; operation_id retains canonical coins/markets semantics. Existing formulas, consumer groups, topic and root-record shape remain unchanged.",
+  "topic": "market.snapshot",
+  "payload_schema": "market.snapshot.v1",
+  "message_key": "id",
+  "headers": {
+    "source": "coingecko",
+    "type": "market",
+    "category": "spot"
+  },
+  "headers_status": "required_compatible_route_registration_unverified",
+  "producers": [
+    {
+      "reference": 2010,
+      "name": "coingecko.coins_markets",
+      "scope": "default_market",
+      "coverage_key": "coingecko.default_market.v1",
+      "run_id": "b3d58c74-52b7-45d9-81c3-f2e7df6d86ee",
+      "request": {
+        "vs_currency": "usd",
+        "per_page": 250,
+        "page": 1
+      },
+      "note_zh": "沿用现有采集范围；本批不改变市值门槛，也不将它改成排除股票的Crypto专用任务。",
+      "note_en": "Keep the existing scope and cap threshold; this is not a new stock-excluding Crypto collector."
+    },
+    {
+      "reference": 2051,
+      "name": "coingecko.stocks.token_markets",
+      "scope": "tokenized_stocks",
+      "coverage_key": "coingecko.tokenized_stocks.v1",
+      "run_id": "8a855c68-08de-4476-8a0b-1ab6559fbaf3",
+      "request": {
+        "vs_currency": "usd",
+        "category": "tokenized-stock",
+        "per_page": 250,
+        "page": 1
+      },
+      "note_zh": "完整分页发现tokenized-stock成员，不设价格/市值门槛；采集保留不代表达到榜单资格。",
+      "note_en": "Discover all tokenized-stock pages without a price/cap floor; retention does not imply board eligibility."
+    }
+  ],
+  "fields": [
+    {
+      "path": "id",
+      "type": "string",
+      "owner": "upstream",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "CoinGecko稳定coin ID；不能用symbol代替。",
+      "rule_en": "Stable CoinGecko coin ID; never substitute symbol.",
+      "normalized": "source_object_id"
+    },
+    {
+      "path": "symbol",
+      "type": "string",
+      "owner": "upstream",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "原样保留，不用于身份合并。",
+      "rule_en": "Preserve; not an identity key.",
+      "normalized": "symbol"
+    },
+    {
+      "path": "name",
+      "type": "string",
+      "owner": "upstream",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "上游名称，不用于身份合并。",
+      "rule_en": "Upstream name; not an identity key.",
+      "normalized": "source_name"
+    },
+    {
+      "path": "current_price",
+      "type": "number",
+      "owner": "upstream",
+      "required": true,
+      "nullable": true,
+      "rule_zh": "USD价格；缺失保持null，非正数不可进入现有榜单。",
+      "rule_en": "USD price; preserve null. Existing boards require positive values.",
+      "normalized": "current_price"
+    },
+    {
+      "path": "market_cap",
+      "type": "number",
+      "owner": "upstream",
+      "required": true,
+      "nullable": true,
+      "rule_zh": "代币市值，非公司市值；采集不以正市值为过滤条件。",
+      "rule_en": "Token capitalization, not company capitalization; no positive-cap collection filter.",
+      "normalized": "market_cap"
+    },
+    {
+      "path": "total_volume",
+      "type": "number",
+      "owner": "upstream",
+      "required": true,
+      "nullable": true,
+      "rule_zh": "滚动24小时USD成交额；不能累加快照当增量。",
+      "rule_en": "Rolling-24h USD volume; never sum snapshots as incremental turnover.",
+      "normalized": "total_volume"
+    },
+    {
+      "path": "price_change_percentage_24h",
+      "type": "number",
+      "owner": "upstream",
+      "required": true,
+      "nullable": true,
+      "rule_zh": "百分点：12表示12%；缺失保持null。",
+      "rule_en": "Percentage points: 12 means 12%; preserve null.",
+      "normalized": "price_change_percentage_24h"
+    },
+    {
+      "path": "last_updated",
+      "type": "timestamp",
+      "owner": "upstream",
+      "required": true,
+      "nullable": true,
+      "rule_zh": "上游更新时间；不能用采集时间补齐，缺失明确无效。",
+      "rule_en": "Source update time; never fill with collection time. Null is explicitly invalid.",
+      "normalized": "observed_at"
+    },
+    {
+      "path": "collected_at",
+      "type": "timestamp",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "兼容既有顶层字段，必须等于meta.collected_at。",
+      "rule_en": "Legacy root field; must equal meta.collected_at.",
+      "normalized": "collected_at"
+    },
+    {
+      "path": "meta.operation_id",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "两路固定coingecko.coins_markets：同一接口语义，不是采集任务名。",
+      "rule_en": "Both use coingecko.coins_markets for the same API semantics, not the collector identity.",
+      "normalized": "source_id"
+    },
+    {
+      "path": "meta.collector_id",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "2010=coingecko.coins_markets；2051=coingecko.stocks.token_markets。",
+      "rule_en": "2010=coingecko.coins_markets; 2051=coingecko.stocks.token_markets.",
+      "normalized": "collector_id"
+    },
+    {
+      "path": "meta.collection_scope",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "2010=default_market；2051=tokenized_stocks。描述任务范围，不是全局资产类别。",
+      "rule_en": "2010=default_market; 2051=tokenized_stocks. A collection scope, not a global asset class.",
+      "normalized": "collection_scope"
+    },
+    {
+      "path": "meta.source_run_id",
+      "type": "uuid",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "每个任务每轮一个不同UUID；所有分页及重试沿用。",
+      "rule_en": "Distinct UUID per collector execution; reuse across pages and retries.",
+      "normalized": "run_id"
+    },
+    {
+      "path": "meta.round_id",
+      "type": "uuid",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "共同调度生成；两路同轮共用；迟到数据仍属于原轮次。",
+      "rule_en": "Scheduler-owned shared round UUID; late data retains its original round.",
+      "normalized": "round_id"
+    },
+    {
+      "path": "meta.source_observation_id",
+      "type": "uuid",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "UUIDv5(namespace=source_run_id,name=coin ID)；相同ID不同内容拒绝覆盖。",
+      "rule_en": "UUIDv5(namespace=source_run_id,name=coin ID); reject differing content under one ID.",
+      "normalized": "observation_id"
+    },
+    {
+      "path": "meta.scheduled_at",
+      "type": "timestamp",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "共同轮次计划启动UTC时间，不是已完成截止时间。",
+      "rule_en": "Shared scheduled UTC start, not a completed comparison cutoff.",
+      "normalized": "scheduled_at"
+    },
+    {
+      "path": "meta.requested_at",
+      "type": "timestamp",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "本条所在分页的实际请求UTC时间；重试发布不改写。",
+      "rule_en": "Actual UTC request time for this record page; publication retries preserve it.",
+      "normalized": "requested_at"
+    },
+    {
+      "path": "meta.collected_at",
+      "type": "timestamp",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "该原始响应首次接收UTC时间；等于顶层collected_at。",
+      "rule_en": "First receipt time of the original response; equal to root collected_at.",
+      "normalized": "collected_at"
+    },
+    {
+      "path": "meta.quote_currency",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "本合同固定usd；不同报价不可共用历史。",
+      "rule_en": "Fixed usd; different currencies cannot share a history series.",
+      "normalized": "quote_currency"
+    },
+    {
+      "path": "meta.coverage_key",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "2010=coingecko.default_market.v1；2051=coingecko.tokenized_stocks.v1。成员资格规则变更换版本，不按轮次换。",
+      "rule_en": "2010=coingecko.default_market.v1; 2051=coingecko.tokenized_stocks.v1. Version membership rules, not rounds.",
+      "normalized": "coverage_key"
+    },
+    {
+      "path": "meta.snapshot_ref",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "可回查完整请求、分页响应及行位置的持久引用；示例fixture引用不是真实存储。",
+      "rule_en": "Durable full-request/page-response/row reference; fixture examples are not real storage.",
+      "normalized": "snapshot_ref"
+    },
+    {
+      "path": "meta.quality_status",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "healthy/missing/invalid/conflict；只说明单条质量，不能证明本轮完整。",
+      "rule_en": "healthy/missing/invalid/conflict: record quality does not establish round completeness.",
+      "normalized": "quality_status"
+    },
+    {
+      "path": "meta.coverage_ref",
+      "type": "string",
+      "owner": "collector",
+      "required": true,
+      "nullable": false,
+      "rule_zh": "指向本任务本轮完成报告；发布时报告可仍pending，消费时必须回查完成态。",
+      "rule_en": "Reference the collector-run coverage report; may be pending at publication, must be resolved by consumers.",
+      "normalized": "coverage_ref"
+    }
+  ],
+  "examples": [
+    {
+      "reference": 2010,
+      "message": {
+        "id": "example-stock-token",
+        "symbol": "EXST",
+        "name": "Example stock token",
+        "current_price": 112,
+        "market_cap": 20000000,
+        "total_volume": 3000000,
+        "price_change_percentage_24h": 12,
+        "last_updated": "2026-10-22T00:00:00Z",
+        "collected_at": "2026-10-22T00:00:20Z",
+        "meta": {
+          "operation_id": "coingecko.coins_markets",
+          "collector_id": "coingecko.coins_markets",
+          "collection_scope": "default_market",
+          "source_run_id": "b3d58c74-52b7-45d9-81c3-f2e7df6d86ee",
+          "round_id": "6c9659e1-9a2f-47bd-b011-725aaef55823",
+          "source_observation_id": "c3808585-6bde-58e8-98fd-f70adf6d6d96",
+          "scheduled_at": "2026-10-22T00:00:00Z",
+          "requested_at": "2026-10-22T00:00:15Z",
+          "collected_at": "2026-10-22T00:00:20Z",
+          "quote_currency": "usd",
+          "coverage_key": "coingecko.default_market.v1",
+          "snapshot_ref": "fixture://ss139/2010/page1/row0",
+          "quality_status": "healthy",
+          "coverage_ref": "fixture://ss139/coverage/b3d58c74-52b7-45d9-81c3-f2e7df6d86ee"
+        }
+      }
+    },
+    {
+      "reference": 2051,
+      "message": {
+        "id": "example-stock-token",
+        "symbol": "EXST",
+        "name": "Example stock token",
+        "current_price": 112,
+        "market_cap": 20000000,
+        "total_volume": 3000000,
+        "price_change_percentage_24h": 12,
+        "last_updated": "2026-10-22T00:00:00Z",
+        "collected_at": "2026-10-22T00:00:20Z",
+        "meta": {
+          "operation_id": "coingecko.coins_markets",
+          "collector_id": "coingecko.stocks.token_markets",
+          "collection_scope": "tokenized_stocks",
+          "source_run_id": "8a855c68-08de-4476-8a0b-1ab6559fbaf3",
+          "round_id": "6c9659e1-9a2f-47bd-b011-725aaef55823",
+          "source_observation_id": "79bd91fe-3d96-501f-a3c5-7b9fdc72eefc",
+          "scheduled_at": "2026-10-22T00:00:00Z",
+          "requested_at": "2026-10-22T00:00:15Z",
+          "collected_at": "2026-10-22T00:00:20Z",
+          "quote_currency": "usd",
+          "coverage_key": "coingecko.tokenized_stocks.v1",
+          "snapshot_ref": "fixture://ss139/2051/page1/row0",
+          "quality_status": "healthy",
+          "coverage_ref": "fixture://ss139/coverage/8a855c68-08de-4476-8a0b-1ab6559fbaf3"
+        }
+      }
+    }
+  ],
+  "coverage_fields": [
+    {
+      "path": "source_id",
+      "type": "string",
+      "rule_zh": "固定coingecko.coins_markets；接口语义，采集任务另由collector_id标识。",
+      "rule_en": "Fixed canonical API operation coingecko.coins_markets; collector_id identifies the task."
+    },
+    {
+      "path": "run_id",
+      "type": "uuid",
+      "rule_zh": "独立采集运行，与消息source_run_id一致。",
+      "rule_en": "Collector execution ID, equal to message source_run_id."
+    },
+    {
+      "path": "round_id",
+      "type": "uuid",
+      "rule_zh": "共同调度轮次。",
+      "rule_en": "Shared scheduled round."
+    },
+    {
+      "path": "collector_id",
+      "type": "string",
+      "rule_zh": "来自哪个采集任务。",
+      "rule_en": "Collector identity."
+    },
+    {
+      "path": "coverage_key",
+      "type": "string",
+      "rule_zh": "本任务范围规则版本。",
+      "rule_en": "Collector scope-rule version."
+    },
+    {
+      "path": "status",
+      "type": "healthy | missing | partial | unknown",
+      "rule_zh": "保留现有采集质量状态枚举；健康完整报告用healthy，不能用complete替代旧状态值。",
+      "rule_en": "Retain the existing quality enum; healthy complete reports use healthy, not complete."
+    },
+    {
+      "path": "page_count",
+      "type": "integer",
+      "rule_zh": "实际成功分页数；不能据第一页面推断全量。",
+      "rule_en": "Actual successful page count; first page is not proof of coverage."
+    },
+    {
+      "path": "record_count",
+      "type": "integer | null",
+      "rule_zh": "完整采集按coin ID去重后的数量；失败/未知为null而不是0。",
+      "rule_en": "Unique coin count for complete collection; failure/unknown is null, not zero."
+    },
+    {
+      "path": "snapshot_ref",
+      "type": "string | null",
+      "rule_zh": "完整分页清单、终止依据、重复/冲突和错误明细的持久引用。",
+      "rule_en": "Durable page manifest, termination evidence, duplicates/conflicts and error details."
+    },
+    {
+      "path": "completed_at",
+      "type": "timestamp|null",
+      "rule_zh": "实际完成时间；pending为null。",
+      "rule_en": "Actual completion time; null when pending."
+    },
+    {
+      "path": "reason",
+      "type": "string|null",
+      "rule_zh": "失败、缺口与冲突原因；不得伪造成功。",
+      "rule_en": "Failure, gaps and conflicts; do not fabricate success."
+    },
+    {
+      "path": "round_status",
+      "type": "pending | complete | partial | failed",
+      "rule_zh": "新增独立完成状态；缺页、429未恢复、超时不可complete。只有round_status=complete且status=healthy才是健康完整轮次。",
+      "rule_en": "Separate completion state; gaps, unrecovered 429 and timeout cannot be complete. Require round_status=complete AND status=healthy."
+    },
+    {
+      "path": "requested_at",
+      "type": "timestamp",
+      "rule_zh": "本任务本轮第一次实际请求UTC时间。",
+      "rule_en": "UTC time of the first actual request in this collector run."
+    },
+    {
+      "path": "baseline_status",
+      "type": "baseline | tracking | unknown",
+      "rule_zh": "沿用原首次完整导入/跟踪规则，不因新增Stocks重置默认行情基线。",
+      "rule_en": "Retain existing first-import/tracking semantics; adding Stocks does not reset default-market baseline."
+    }
+  ],
+  "rules_zh": [
+    "Header只识别共用CoinGecko行情语义；不使用卡号作运行身份，不增加市场分类Header。meta.collector_id+source_run_id区分任务和执行；operation_id归一接口语义。任务、范围和coverage_key必须与固定注册项成组匹配，未知或不匹配消息隔离。",
+    "两路消息都保留原始单coin行情在Value根层；采集器meta不是CoinGecko接口原生返回。顶层collected_at与meta.collected_at一致。其他上游字段沿用原transform，不在本批重定义；缺失可选字段保持null或缺失，不能填零。",
+    "UTC时间要求scheduled_at<=requested_at<=collected_at；可解析的last_updated<=collected_at。当前15分钟新鲜度和指标数值资格沿用各消费者合同。缺失元数据不可套默认2010或健康状态，也不得用接收时间伪造上游时间。",
+    "重试同一source_observation_id保留消息内容、时间和原始引用；不同内容构成冲突，隔离而不覆盖。不同任务有不同run/observation ID，但共用coingecko_coin_id命名空间，不重复建档。",
+    "历史匹配仍要求相同operation_id/source_id、稳定coin ID、USD与coverage_key；仅任务名不同不改接口语义，同任务范围改变需新coverage版本。不得混合两路coverage历史或用2010历史静默补2051的RVOL。只有独立批准的历史兼容/重建方案才能跨范围复用。",
+    "同一资产由两任务发现：保留两份采集出处；同一策略和rule_version对同一operation_id+coin ID+报价+last_updated至多接受一个事件。相同上游时间但价格/成交额等不一致标为conflict，不任选一条计分。不同上游时间是不同真实观测。缺失上游时间不可生成该业务去重键。",
+    "原Crypto榜继续使用default_market候选池；股票任务不自动加入该榜。Stocks独立榜选tokenized_stocks。未来混合榜按共同round_id和两份完整coverage报告冻结round_cutoff=max(completed_at)，对每个coin选截止前最新有效观测：observed_at降序、collected_at降序、observation_id升序，前提是重叠报价无冲突；每资产只一条，不直接比较不同cohort算出的相对分数。",
+    "覆盖报告由现有#1014覆盖职责承载的逻辑设计，不新建业务Topic/表。每条quality_status=healthy不表示全轮complete；pending/partial/failed不可发布完整榜单或移除旧成员。新鲜度过期则本轮不可发布；不回退上一轮充数。 原status=healthy/missing/partial/unknown不变，新增round_status区分完成态；只有status=healthy且round_status=complete并有完整分页证据才可认定健康完整。",
+    "#3035同一程序消费两路，按任务/范围分组检查并只查询已有身份；source_only仍可计算，缺历史保留null和原因。#3041按observation_id汇总并核对来源、轮次、范围及身份快照，collector_id/round_id/collection_scope/coverage_ref随指标保留到#5007。指标版本/空身份/历史不足处理沿用现有合同。",
+    "生产/测试周期沿用实际配置。本设计不保证同时启动等于同时返回；3分钟配置不代表3分钟可完整采完。Few实际注册、消息、完成报告存储/通知、调度、消费与幂等落地均未验证。"
+  ],
+  "rules_en": [
+    "Headers route shared CoinGecko market semantics. collector_id plus source_run_id identify the collector execution; operation_id identifies canonical API semantics. Reject unknown or mismatched collector/scope/coverage tuples.",
+    "Preserve the per-coin raw record at the Value root. Collector-owned meta is not native CoinGecko output; root and meta collected_at must agree. Existing transforms and optional-field rules remain unchanged.",
+    "Require scheduled_at <= requested_at <= collected_at and parseable source time <= collected_at. Preserve existing 15-minute freshness and numeric eligibility. Never default missing provenance to collector 2010 or invent source time.",
+    "Retries reuse the observation ID and frozen content/times/references; differing content is a conflict. Different collectors have separate run/observation IDs but reuse the coingecko_coin_id identity namespace.",
+    "History still matches canonical source, stable coin ID, USD and coverage_key. Do not silently use default-market history to fill Stocks RVOL; cross-coverage reuse needs separately approved compatibility/rebuild rules.",
+    "Preserve both collection origins. Accept at most one event per rule/version and canonical source+coin+currency+source timestamp; conflicting quote values at that timestamp are quarantined. Different source times are distinct observations.",
+    "Existing Crypto boards retain default_market. Stocks boards use tokenized_stocks. Any future mixed board freezes a shared round only after both complete reports; cutoff=max(completed_at). Keep one latest valid row per coin, sort source time descending, receipt time descending, observation ID ascending, and reject quote conflicts before selection. Do not merge cohort-relative scores.",
+    "The logical report belongs to existing #1014 coverage responsibilities; physical storage is unverified. A healthy row is not a complete round. Pending/partial/failed/stale rounds cannot publish a complete ranking or remove old members; never substitute previous rounds. Preserve existing status enum; add round_status. Require status=healthy and round_status=complete with a complete page manifest.",
+    "The shared Polars program validates and groups by provenance, only looks up identity, and preserves missing history. Assembly joins by observation_id and checks provenance/identity consistency; carry collector_id/round_id/collection_scope/coverage_ref to indicator.data without changing metric versions.",
+    "Actual environment cadence remains unchanged. Scheduling every 3 minutes does not prove pagination finishes in 3 minutes. Few registry, publishing, reports, scheduling, consumers and durable idempotency remain unverified."
+  ],
+  "identity": {
+    "namespace": "coingecko_coin_id",
+    "canonical_operation_id": "coingecko.coins_markets",
+    "collector_field": "meta.collector_id",
+    "round_field": "meta.round_id",
+    "execution_field": "meta.source_run_id",
+    "observation_id": "UUIDv5(namespace=source_run_id,name=id)"
+  },
+  "history_match": [
+    "meta.operation_id",
+    "id",
+    "meta.quote_currency",
+    "meta.coverage_key"
+  ],
+  "semantic_event_key": [
+    "coingecko_quote_rule_v1",
+    "meta.operation_id",
+    "id",
+    "meta.quote_currency",
+    "canonical_UTC(last_updated)",
+    "rule_id",
+    "rule_version"
+  ],
+  "quote_conflict_fields": [
+    "current_price",
+    "market_cap",
+    "total_volume",
+    "price_change_percentage_24h"
+  ],
+  "overlap_rules_zh": "业务重复键相同但共享报价字段不同即冲突；可选未请求字段不参与报价冲突比较。消息重试则仍要求整个原始消息冻结一致。",
+  "coverage_completion_predicate": {
+    "round_status": "complete",
+    "status": "healthy",
+    "manifest_complete": true
+  }
+}

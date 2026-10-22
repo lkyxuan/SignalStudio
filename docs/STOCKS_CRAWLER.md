@@ -18,6 +18,10 @@ The source-card correction approved on 2026-10-22 in SS-138 applies the shared s
 
 Verify with `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=server python3 -m unittest server.test_stocks_shared_pipeline server.test_stocks_design`, the contract/layout checks, `npm run build`, the render-only card check and a browser inspection of #2051 → #5004 → #3035 → #3041 → #5007 → #3011.
 
+## Collector provenance and shared processing (SS-139)
+
+The #2051 → #5004 wire fields, collector/run/round identity, coverage reports and shared Polars rules are now defined by the approved [collector routing overlay](MARKET_COLLECTOR_ROUTING.md) and `catalog/market-collector-routing.v1.json`. This supersedes the earlier presentation-only gap; actual Few publishing and consumption remain unverified. Header values route CoinGecko market semantics, while `meta.collector_id` distinguishes #2010/#2051.
+
 ## Required collection behavior for the future collector
 
 - Discover the full `/rwas/list?asset_type=stock` directory and all `/coins/markets?category=tokenized-stock` pages. These are different entity levels, not interchangeable lists. Do not apply the Crypto collector's USD10m market-cap floor. ETF and commodity types are separate. Stock type alone does not establish US listing status, public listing, completeness or tradability.
