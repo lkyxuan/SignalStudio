@@ -59,6 +59,8 @@ The neutral refinement was checked again on the graph, #4001 details, #1002 raw 
 
 ## Card UI standard
 
+Channel history and cards that read past data follow the [shared archive and dataset reuse rule](CARD_MODEL.md#通道历史归档与引用). Reuse the corresponding history dataset card and declare the reader’s fields/time window; a new reader does not create another archive or storage service. This is required behavior, not evidence of runtime coverage.
+
 [SS-127](https://app.notion.com/p/3fe038a63d5a8141981fc9f89c1f079c) adds an independent CoinGecko Stocks design area with ten endpoint sources and eight processing/table cards. Full discovery includes stock RWAs and tokenized-stock members without the Crypto market-cap floor; underlying and token identities remain separate. Existing shared asset cards are referenced, not copied. All connections are design references, and no Stocks collector, business app or ranking runtime is delivered. See [Stocks collection requirements and evidence](STOCKS_CRAWLER.md).
 
 [SS-118](https://app.notion.com/p/3fd038a63d5a812fa3b9f9ae8cc626f9), corrected with user approval on 2026-10-19, keeps the complete map as the default. Card detail content mounts only within the viewport buffer at useful zoom; zoomed-out cards and edges use lightweight summaries. Stable geometry/handles preserve layout and long arcs. The functional directory remains optional. Full graph identities, editing, saved positions and contracts remain authoritative; see [canvas rendering](CANVAS_RENDERING.md) for rendering and input-update requirements.
