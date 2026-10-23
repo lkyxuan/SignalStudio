@@ -2,6 +2,7 @@ import type { Language } from './contracts';
 // Compact product descriptions for upstream cards and the graph table.
 // These describe intended use, not observed crawler records or validated signals.
 export const SOURCE_CARD_SUMMARIES: Record<string, readonly [string, string]> = {
+  'xpro-feed.tweets': ['从 X Pro 读取新推文、作者与当时的互动快照；不持续更新互动数。', 'Read new X Pro posts, authors and engagement snapshots; no continuous metric updates.'],
   'binance.usdm.exchangeInfo': ['列出可交易合约，确定后续行情和持仓要跟踪的交易对。', 'List tradable contracts to choose pairs for price and position tracking.'],
   'binance.usdm.globalLongShortAccountRatio': ['查看多空账户比例，与价格和持仓变化对照。', 'Compare long and short account ratios with price and open interest.'],
   'binance.usdm.klines': ['提供价格和成交量 K 线，用于计算涨跌、放量和波动。', 'Use price and volume candles to measure returns, activity, and volatility.'],

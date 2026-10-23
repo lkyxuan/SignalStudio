@@ -30,3 +30,7 @@
 @media(max-width:1050px){.inspector .source-case-inspector{grid-template-columns:1fr}.inspector .source-case-inspector-section{max-height:none;overflow:visible}}
 
 .inspector .websocket-source-inspector { display: block; }
+.inspector .xpro-source-inspector { display: block; }
+.inspector .xpro-source-inspector .source-case-inspector-section { max-height: none; overflow: visible; }
+.xpro-source-inspector details { margin: 10px 0; }
+.xpro-source-inspector summary { cursor: pointer; margin-bottom: 8px; font-size: 12px; font-weight: 700; }

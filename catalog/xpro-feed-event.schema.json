@@ -1,0 +1,422 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lkyxuan/xpro-feed/schema/event.schema.json",
+  "title": "xpro-feed event",
+  "description": "xpro-feed 输出的每一条事件。按 type 区分 data 的内容。",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "type",
+    "emitted_at",
+    "data"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "type": {
+      "enum": [
+        "tweet",
+        "gap",
+        "heartbeat",
+        "status"
+      ]
+    },
+    "emitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "account_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "采集用的 X 账号 id"
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "tweet"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/tweet"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "gap"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/gap"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "heartbeat"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/heartbeat"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "status"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/status"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "column": {
+      "type": "object",
+      "required": [
+        "key",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "X Pro 服务器上的列 id"
+        },
+        "key": {
+          "type": "string",
+          "description": "稳定标识：list:<id> / search:<词> / user:<小写用户名> / home"
+        },
+        "kind": {
+          "enum": [
+            "list",
+            "search",
+            "user",
+            "home",
+            "other"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "列表名、@用户名等"
+        },
+        "pathname": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "tweet": {
+      "type": "object",
+      "required": [
+        "id",
+        "url",
+        "text",
+        "user",
+        "column",
+        "captured_at",
+        "backfilled"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "X 原始格式，如 Thu Oct 22 10:00:00 +0000 2026"
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "长推文为全文"
+        },
+        "lang": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "screen_name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "followers": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "verified": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "likes": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "retweets": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "replies": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "quotes": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "views": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_retweet": {
+          "type": "boolean"
+        },
+        "retweeted_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quoted_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "in_reply_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "column": {
+          "$ref": "#/$defs/column"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "backfilled": {
+          "type": "boolean",
+          "description": "true 表示是检测到漏抓后补回来的"
+        }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "required": [
+        "column",
+        "pages",
+        "recovered",
+        "complete"
+      ],
+      "properties": {
+        "column": {
+          "$ref": "#/$defs/column"
+        },
+        "pages": {
+          "type": "integer"
+        },
+        "recovered": {
+          "type": "integer"
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "false 表示翻到上限仍没接上，可能还有遗漏"
+        }
+      }
+    },
+    "heartbeat": {
+      "type": "object",
+      "required": [
+        "logged_in",
+        "uptime_s",
+        "columns"
+      ],
+      "properties": {
+        "logged_in": {
+          "type": "boolean"
+        },
+        "uptime_s": {
+          "type": "integer"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/column"
+              }
+            ],
+            "properties": {
+              "polls": {
+                "type": "integer"
+              },
+              "new_tweets": {
+                "type": "integer"
+              },
+              "avg_interval_s": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "min_interval_s": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "max_interval_s": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "last_poll_age_s": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "距上次刷新的秒数；持续变大说明这列不工作了"
+              }
+            }
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "required": [
+        "event"
+      ],
+      "properties": {
+        "event": {
+          "enum": [
+            "started",
+            "columns_changed",
+            "reloaded",
+            "auth_lost",
+            "auth_restored"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/column"
+          }
+        },
+        "stalled_columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

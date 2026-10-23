@@ -61,6 +61,7 @@ from stocks_design import ensure_stocks_design
 from stocks_shared_pipeline import ensure_stocks_shared_pipeline
 from market_collector_routing import ensure_market_collector_routing
 from hottest_history import ensure_hottest_history
+from xpro_source import ensure_xpro_source
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_REVISION = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((ROOT / "catalog").rglob("*.json")))).hexdigest()
@@ -122,6 +123,7 @@ ensure_warming_v3(service)
 ensure_stocks_shared_pipeline(service)
 ensure_market_collector_routing(service)
 ensure_hottest_history(service)
+ensure_xpro_source(service)
 
 
 class Handler(BaseHTTPRequestHandler):

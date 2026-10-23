@@ -1,0 +1,443 @@
+{
+  "version": "xpro-feed-source.v1",
+  "name": "xpro-feed.tweets",
+  "label_zh": "X Pro · 推文采集",
+  "label_en": "X Pro · Tweet collector",
+  "rationale_url": "https://app.notion.com/p/402038a63d5a81e68be1ed819da57747",
+  "upstream": {
+    "repository": "lkyxuan/xpro-feed",
+    "commit": "f627dbea40ce1d584b0c191a3b2328cc79d441c0",
+    "schema_blob": "31b716455e0acdbda807f2f84ce4e673368a174b",
+    "schema_path": "schema/event.schema.json",
+    "url": "https://github.com/lkyxuan/xpro-feed/tree/f627dbea40ce1d584b0c191a3b2328cc79d441c0"
+  },
+  "purpose_zh": "监听已登录 X Pro 页面的新推文，读取正文、作者、关系、媒体地址及当时返回的互动计数。",
+  "purpose_en": "Listen for new posts in a signed-in X Pro page, including text, author, relationships, media URLs and engagement counts at capture time.",
+  "evidence_zh": "字段依据固定版本的 schema 与解析代码；上游报告真实账号页面验证过 76 条推文（含正文、作者、时间、点赞与浏览量），本工作台未接入真实采集样本。Python 长期运行及 Docker 构建仍未验证。",
+  "evidence_en": "Fields follow the pinned schema and parser. Upstream reports page-level verification of 76 real posts including text, author, time, likes and views. Studio has no imported collector samples; long-running Python collection and Docker builds remain unverified.",
+  "inputs": [
+    {
+      "path": "deck / columns",
+      "label_zh": "监控面板与来源列",
+      "label_en": "Deck and columns",
+      "description_zh": "已登录账号有权访问的列表、用户、搜索或首页列；other 列不采集。",
+      "description_en": "Accessible list, user, search or home columns; other columns are not collected."
+    },
+    {
+      "path": "--user / --keyword",
+      "label_zh": "可选本地过滤",
+      "label_en": "Optional local filters",
+      "description_zh": "只保留指定作者或正文包含关键词的推文，不扩大上游覆盖。",
+      "description_en": "Filter returned posts by author or text keywords; does not expand upstream coverage."
+    },
+    {
+      "path": "--only-new / --backfill-pages 0",
+      "label_zh": "只收新内容",
+      "label_en": "New posts only",
+      "description_zh": "忽略进程启动前发布的推文并关闭主动补抓；运行中新加账号的独立生效时间尚未实现。",
+      "description_en": "Skip posts published before process startup and disable active backfill. Per-account admission time is not implemented."
+    },
+    {
+      "path": "browser / profile",
+      "label_zh": "浏览器与登录配置",
+      "label_en": "Browser and login profile",
+      "description_zh": "需要有 X Pro 权限的登录账号；支持 Linux Chromium。登录配置属运行资源，不在卡片保存密码或 cookie。",
+      "description_en": "Requires an account with X Pro access; Linux Chromium is supported by the code. Credentials belong in runtime resources, never in this card."
+    }
+  ],
+  "groups": [
+    {
+      "id": "content",
+      "label_zh": "推文内容",
+      "label_en": "Post content"
+    },
+    {
+      "id": "author",
+      "label_zh": "作者信息",
+      "label_en": "Author"
+    },
+    {
+      "id": "relations",
+      "label_zh": "推文关系",
+      "label_en": "Relationships"
+    },
+    {
+      "id": "media",
+      "label_zh": "媒体地址",
+      "label_en": "Media"
+    },
+    {
+      "id": "metrics",
+      "label_zh": "当时的互动快照",
+      "label_en": "Engagement at capture time"
+    },
+    {
+      "id": "capture",
+      "label_zh": "采集与来源",
+      "label_en": "Capture and provenance"
+    },
+    {
+      "id": "envelope",
+      "label_zh": "事件元数据",
+      "label_en": "Event metadata"
+    }
+  ],
+  "limits": [
+    {
+      "zh": "页面响应缺失的字段保留缺失/null，不能当作 0；字段声明不保证每条推文都返回。",
+      "en": "Missing response fields stay missing/null, never zero. A declared field is not a coverage guarantee."
+    },
+    {
+      "zh": "同推文按 ID 与来源列去重；不同列可重复出现。SQLite 按推文 ID 只保存首份，不连续更新互动数。",
+      "en": "Deduplicates by post ID and column key; posts can appear in multiple columns. SQLite retains the first post record and does not continuously update metrics."
+    },
+    {
+      "zh": "正文优先长推文文本，但不保证文章、外链全文、完整线程、被引用或转发原文；媒体不含视频文件。",
+      "en": "Prefers long-post text; does not guarantee articles, external pages, complete threads, quoted/reposted text or video files."
+    },
+    {
+      "zh": "不提供浏览者、点赞者或转发者名单；浏览量不代表独立读者、读完人数或阅读时长。",
+      "en": "No viewer, liker or reposter lists. View counts are not unique readers, completed reads or reading time."
+    },
+    {
+      "zh": "更新节奏由 X Pro 列轮询决定，不是逐条互动事件流；不保证秒级实时或无遗漏。",
+      "en": "Updates follow X Pro column polling, not individual engagement events; no second-level latency or completeness guarantee."
+    },
+    {
+      "zh": "本模块只有数据定义，尚未部署。未连接下游；不执行内容价值判断或互动跟踪。",
+      "en": "This module defines data only and is not deployed. No downstream connections, value filtering or engagement tracking run."
+    }
+  ],
+  "fields": [
+    {
+      "path": "data.id",
+      "type": "string",
+      "label_zh": "推文 ID",
+      "label_en": "Tweet ID",
+      "description_zh": "按字符串保存，避免大整数精度丢失。",
+      "description_en": "Keep as a string to preserve precision.",
+      "group": "content",
+      "nullable": false
+    },
+    {
+      "path": "data.url",
+      "type": "string",
+      "label_zh": "原文链接",
+      "label_en": "Post URL",
+      "description_zh": "由作者账号和推文 ID 拼接；账号缺失时链接可能无效。",
+      "description_en": "Built from handle and post ID; may be invalid if the handle is missing.",
+      "group": "content",
+      "nullable": false
+    },
+    {
+      "path": "data.text",
+      "type": "string | null",
+      "label_zh": "正文",
+      "label_en": "Text",
+      "description_zh": "优先取长推文 note_tweet 文本，否则取 full_text；只包含响应实际返回的文本。",
+      "description_en": "Prefer note_tweet text, then full_text; limited to what the response contains.",
+      "group": "content",
+      "nullable": true
+    },
+    {
+      "path": "data.lang",
+      "type": "string | null",
+      "label_zh": "语言",
+      "label_en": "Language",
+      "description_zh": "X 返回的语言标记，可缺失。",
+      "description_en": "Language code returned by X; may be missing.",
+      "group": "content",
+      "nullable": true
+    },
+    {
+      "path": "data.created_at",
+      "type": "string | null",
+      "label_zh": "发布时间",
+      "label_en": "Published at",
+      "description_zh": "X 原始时间字符串，区别于采集时间。",
+      "description_en": "Original X timestamp string, distinct from capture time.",
+      "group": "content",
+      "nullable": true
+    },
+    {
+      "path": "data.user.id",
+      "type": "string | null",
+      "label_zh": "作者 ID",
+      "label_en": "Author ID",
+      "description_zh": "推文作者的稳定 ID，不是采集账号。",
+      "description_en": "Author ID, not the collector account.",
+      "group": "author",
+      "nullable": true
+    },
+    {
+      "path": "data.user.screen_name",
+      "type": "string | null",
+      "label_zh": "作者账号",
+      "label_en": "Author handle",
+      "description_zh": "作者用户名，可变化或缺失。",
+      "description_en": "Author handle; can change or be missing.",
+      "group": "author",
+      "nullable": true
+    },
+    {
+      "path": "data.user.name",
+      "type": "string | null",
+      "label_zh": "作者名称",
+      "label_en": "Author name",
+      "description_zh": "作者当时的显示名。",
+      "description_en": "Display name at observation time.",
+      "group": "author",
+      "nullable": true
+    },
+    {
+      "path": "data.user.followers",
+      "type": "integer | null",
+      "label_zh": "粉丝数",
+      "label_en": "Follower count",
+      "description_zh": "响应中的当时粉丝数，不是粉丝变化历史。",
+      "description_en": "Count at observation time, not follower history.",
+      "group": "author",
+      "nullable": true
+    },
+    {
+      "path": "data.user.verified",
+      "type": "boolean | null",
+      "label_zh": "蓝标状态",
+      "label_en": "Blue verification",
+      "description_zh": "读取 is_blue_verified；不是身份真实性或内容可信度判断。",
+      "description_en": "Reads is_blue_verified, not an identity or content trust assessment.",
+      "group": "author",
+      "nullable": true
+    },
+    {
+      "path": "data.metrics.views",
+      "type": "string | null",
+      "label_zh": "浏览量",
+      "label_en": "View count",
+      "description_zh": "采集当时返回的浏览/展示计数；原生为字符串，不代表独立读者、读完人数或阅读时长。",
+      "description_en": "View/impression count as a string at capture time; not unique readers, completions or reading time.",
+      "group": "metrics",
+      "nullable": true
+    },
+    {
+      "path": "data.metrics.likes",
+      "type": "integer | null",
+      "label_zh": "点赞数",
+      "label_en": "Likes",
+      "description_zh": "当时的点赞计数；不会持续更新。",
+      "description_en": "Count at capture time; not continuously updated.",
+      "group": "metrics",
+      "nullable": true
+    },
+    {
+      "path": "data.metrics.retweets",
+      "type": "integer | null",
+      "label_zh": "转发数",
+      "label_en": "Reposts",
+      "description_zh": "当时的转发计数；不包含转发者名单。",
+      "description_en": "Count at capture time; no reposter list.",
+      "group": "metrics",
+      "nullable": true
+    },
+    {
+      "path": "data.metrics.replies",
+      "type": "integer | null",
+      "label_zh": "回复数",
+      "label_en": "Replies",
+      "description_zh": "当时的回复计数；不包含完整回复内容。",
+      "description_en": "Count at capture time; not the full replies.",
+      "group": "metrics",
+      "nullable": true
+    },
+    {
+      "path": "data.metrics.quotes",
+      "type": "integer | null",
+      "label_zh": "引用数",
+      "label_en": "Quotes",
+      "description_zh": "当时的引用计数；不包含引用者名单。",
+      "description_en": "Count at capture time; no list of quoting users.",
+      "group": "metrics",
+      "nullable": true
+    },
+    {
+      "path": "data.media",
+      "type": "array<string>",
+      "label_zh": "媒体图片地址",
+      "label_en": "Media image URLs",
+      "description_zh": "media_url_https 数组；不是视频文件、视频播放地址、OCR 或转写内容。",
+      "description_en": "media_url_https array; not video files, playback URLs, OCR or transcripts.",
+      "group": "media",
+      "nullable": false
+    },
+    {
+      "path": "data.is_retweet",
+      "type": "boolean",
+      "label_zh": "是否转发",
+      "label_en": "Is a repost",
+      "description_zh": "是否解析出被转发的推文对象。",
+      "description_en": "Whether a nested reposted tweet was parsed.",
+      "group": "relations",
+      "nullable": false
+    },
+    {
+      "path": "data.retweeted_id",
+      "type": "string | null",
+      "label_zh": "被转发推文 ID",
+      "label_en": "Reposted tweet ID",
+      "description_zh": "只提供关系 ID，不保证原帖全文。",
+      "description_en": "Relationship ID; original text is not guaranteed.",
+      "group": "relations",
+      "nullable": true
+    },
+    {
+      "path": "data.quoted_id",
+      "type": "string | null",
+      "label_zh": "被引用推文 ID",
+      "label_en": "Quoted tweet ID",
+      "description_zh": "只提供关系 ID，不保证被引用正文。",
+      "description_en": "Relationship ID; quoted text is not guaranteed.",
+      "group": "relations",
+      "nullable": true
+    },
+    {
+      "path": "data.in_reply_to",
+      "type": "string | null",
+      "label_zh": "回复目标推文 ID",
+      "label_en": "Reply target ID",
+      "description_zh": "回复对象 ID，不保证完整线程。",
+      "description_en": "Reply target ID; not a complete thread.",
+      "group": "relations",
+      "nullable": true
+    },
+    {
+      "path": "data.captured_at",
+      "type": "string",
+      "label_zh": "采集时间",
+      "label_en": "Captured at",
+      "description_zh": "程序解析并保存这条推文时的 UTC 时间。",
+      "description_en": "UTC time when the collector parsed and saved the post.",
+      "group": "capture",
+      "nullable": false
+    },
+    {
+      "path": "data.backfilled",
+      "type": "boolean",
+      "label_zh": "是否补抓",
+      "label_en": "Backfilled",
+      "description_zh": "程序是否主动补抓得到；本需求关闭主动补抓。",
+      "description_en": "Whether active backfill produced the post; active backfill is disabled for this use.",
+      "group": "capture",
+      "nullable": false
+    },
+    {
+      "path": "data.column.id",
+      "type": "string | null",
+      "label_zh": "列 ID",
+      "label_en": "Column ID",
+      "description_zh": "X Pro 内部列 ID；删列重建会变化。",
+      "description_en": "Internal X Pro column ID; changes when recreated.",
+      "group": "capture",
+      "nullable": true
+    },
+    {
+      "path": "data.column.key",
+      "type": "string",
+      "label_zh": "稳定来源标识",
+      "label_en": "Stable column key",
+      "description_zh": "list:<id> / search:<词> / user:<账号> / home；与推文 ID 共同组成原生去重键。",
+      "description_en": "list:<id>, search:<query>, user:<handle> or home; paired with post ID for deduplication.",
+      "group": "capture",
+      "nullable": false
+    },
+    {
+      "path": "data.column.kind",
+      "label_zh": "列类型",
+      "label_en": "Column kind",
+      "description_zh": "list、search、user、home、other；不认识的 other 列不采集。",
+      "description_en": "list, search, user, home or other; unknown other columns are not collected.",
+      "group": "capture",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "path": "data.column.value",
+      "type": "string | null",
+      "label_zh": "列配置值",
+      "label_en": "Column value",
+      "description_zh": "列表 ID、搜索词或用户名等。",
+      "description_en": "List ID, query, handle or other configured value.",
+      "group": "capture",
+      "nullable": true
+    },
+    {
+      "path": "data.column.name",
+      "type": "string | null",
+      "label_zh": "列名称",
+      "label_en": "Column name",
+      "description_zh": "列表名或列显示名。",
+      "description_en": "List or column display name.",
+      "group": "capture",
+      "nullable": true
+    },
+    {
+      "path": "data.column.pathname",
+      "type": "string",
+      "label_zh": "列页面路径",
+      "label_en": "Column pathname",
+      "description_zh": "对应的 X Pro 栏目路径。",
+      "description_en": "X Pro path for the column.",
+      "group": "capture",
+      "nullable": false
+    },
+    {
+      "path": "data.column.user_id",
+      "type": "string | null",
+      "label_zh": "用户列账号 ID",
+      "label_en": "User column ID",
+      "description_zh": "用户列匹配用的账号 ID；解析不到时无法采该列。",
+      "description_en": "ID used to match a user column; unresolved IDs prevent collection.",
+      "group": "capture",
+      "nullable": true
+    },
+    {
+      "path": "schema_version",
+      "type": "integer",
+      "label_zh": "事件结构版本",
+      "label_en": "Schema version",
+      "description_zh": "当前事件信封版本为 1。",
+      "description_en": "Event envelope version 1.",
+      "group": "envelope",
+      "nullable": false
+    },
+    {
+      "path": "type",
+      "type": "string",
+      "label_zh": "事件类型",
+      "label_en": "Event type",
+      "description_zh": "tweet 是推文；gap、heartbeat、status 是运行事件，不是推文内容。",
+      "description_en": "tweet is a post; gap, heartbeat and status are operational events.",
+      "group": "envelope",
+      "nullable": false
+    },
+    {
+      "path": "emitted_at",
+      "type": "string",
+      "label_zh": "事件发出时间",
+      "label_en": "Emitted at",
+      "description_zh": "事件发出时间，区别于发布时间和采集时间。",
+      "description_en": "Event emission time, separate from publication and capture.",
+      "group": "envelope",
+      "nullable": false
+    },
+    {
+      "path": "account_id",
+      "type": "string | null",
+      "label_zh": "采集账号 ID",
+      "label_en": "Collector account ID",
+      "description_zh": "运行元数据；不是作者 ID，不含凭据。",
+      "description_en": "Operational metadata; not the author ID or a credential.",
+      "group": "envelope",
+      "nullable": true
+    }
+  ]
+}

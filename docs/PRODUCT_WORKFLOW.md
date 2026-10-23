@@ -59,6 +59,22 @@ The neutral refinement was checked again on the graph, #4001 details, #1002 raw 
 
 ## Card UI standard
 
+[SS-144](https://app.notion.com/p/402038a63d5a81e68be1ed819da57747) defines one standalone
+`xpro-feed.tweets` source module. It adds no channels, datasets, processing cards,
+connections or crawler execution. Its input scope, 33 output fields, native types,
+nullable values and limits are versioned in `catalog/xpro-feed-source.v1.json`,
+against the pinned upstream schema in `catalog/xpro-feed-event.schema.json`.
+`XproSourceCard` renders that definition inside the shared source detail template;
+`server/xpro_source.py` installs it transactionally once without moving existing
+cards. Missing upstream values remain missing/null. Engagement values are observations
+at capture time, not a continuously updated series; views are not unique readers
+or completed reads. Full text is limited to the page response. The upstream report
+of real-account page tests is attributed separately from unverified Python runtime,
+Linux deployment and actual collector samples in Studio. Validate the additive,
+idempotent migration, rollback, schema coverage and type fidelity with
+`PYTHONPATH=server python3 -m unittest server.test_xpro_source`; also run the shared
+contract/layout checks, build and `check:details` against an isolated graph.
+
 Channel history and cards that read past data follow the [shared archive and dataset reuse rule](CARD_MODEL.md#通道历史归档与引用). Reuse the corresponding history dataset card and declare the reader’s fields/time window; a new reader does not create another archive or storage service. This is required behavior, not evidence of runtime coverage.
 
 [SS-127](https://app.notion.com/p/3fe038a63d5a8141981fc9f89c1f079c) adds an independent CoinGecko Stocks design area with ten endpoint sources and eight processing/table cards. Full discovery includes stock RWAs and tokenized-stock members without the Crypto market-cap floor; underlying and token identities remain separate. Existing shared asset cards are referenced, not copied. All connections are design references, and no Stocks collector, business app or ranking runtime is delivered. See [Stocks collection requirements and evidence](STOCKS_CRAWLER.md).

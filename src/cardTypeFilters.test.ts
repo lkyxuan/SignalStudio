@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import {cardTypeGroups,cardTypeKey,matchesCardType} from './cardTypeFilters';
 
 const module=(id:string,name:string,kind:string,path:string)=>({id,name,kind,type:'Metric',card_contract:{config:{definition_refs:[{path}]}}});
+test('standalone X Pro collector is discoverable without becoming a flow',()=>{
+ const node=module('xpro','xpro-feed.tweets','source','catalog/xpro-feed-source.v1.json');
+ assert.equal(cardTypeKey(node),'source/xpro');
+ assert.equal(cardTypeGroups([node],'zh-CN')[0]!.children[0]!.label,'X Pro 推文采集');
+ assert.equal(cardTypeKey({...node,card_contract:null}),'source/unknown');
+});
 test('sidebar subtypes partition source providers and separate CoinGecko processing from shared processing',()=>{
  const nodes=[{id:'cg',name:'coingecko.coins_markets',kind:'source',type:'Source'}, {id:'k',name:'kaito.resource.tokens',kind:'source',type:'Source'},
  module('metric','Polars · 计算 CoinGecko 量价指标','process','catalog/polars-indicator-current.v1.json'),

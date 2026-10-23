@@ -13,6 +13,7 @@ import { OtherSourceCaseInspector } from './OtherSourceCaseInspector';
 import { SourceCollectionSettings } from './SourceCollectionSettings';
 import { SourceUsageGuide, sourcePurpose } from './SourceUsageGuide';
 import { FieldCatalog } from './FieldPanels';
+import { XproSourceCard, xproSourceCard } from './XproSourceCard';
 import { nodeRef } from './graphRefs';
 import { displayNodeName } from './i18n';
 import scoreRollup from '../catalog/score-rollup.v1.json';
@@ -95,6 +96,7 @@ function SourceDetails(props) {
   const resource=node.name.startsWith('kaito.resource.') || node.card_contract?.config.subtype === 'resource';
   const catalog=isCatalogSource(node.name);
   const fields=graph.fields.filter(field=>field.node_id===node.id);
+  if (xproSourceCard(node)) return <><XproSourceCard {...props}/><CardConnections {...props}/></>;
   return <>
     {!warmingCard(node) && hasCoinGeckoPreview(node) && <CoinGeckoDesignPreview {...props}/>}
     {resource ? <ReferenceSource {...props}/> : catalog ? node.name === 'kaito.mcp.kaito_advanced_search'

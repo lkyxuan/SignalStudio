@@ -347,6 +347,7 @@ const zh: Record<string, string> = {
 };
 
 export function displayNodeName(language: Language, name: string = '') {
+  if (name === 'xpro-feed.tweets') return language === 'zh-CN' ? 'X Pro · 推文采集' : 'X Pro · Tweet collector';
   const stockCard = stocks.cards.find(card => card.name === name);
   if (stockCard) return (language === 'zh-CN' ? stockCard.label_zh : stockCard.label_en).replace(/^Stocks · Stocks /, 'Stocks · ');
   const translatedCard = translationSpec.cards.find(card => card.name === name);

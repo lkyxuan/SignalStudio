@@ -8,6 +8,7 @@ type Node = { id: string; name: string; type: string; kind?: string; reference_n
 type Choice = {id:string;label:string;count:number;tone:string};
 export type CardTypeGroup = Choice & {style:string;children:Choice[]};
 const purposes: Record<string,[string,string]> = {
+  'source/xpro':['X Pro 推文采集','X Pro tweet collector'],
   'source/stocks':['CoinGecko 股票数据','CoinGecko Stocks data'],
   'table/stocks':['Stocks 目录、历史与覆盖','Stocks directory, history and coverage'],
   'process/stocks':['Stocks 采集与适配','Stocks collection and adapters'],
@@ -44,6 +45,7 @@ export function cardTypeKey(node: Node): string {
   if (stocks.cards.some(card => card.name === node.name && card.kind === kind) &&
       node.card_contract?.config.definition_refs?.some(ref => ref.path === 'catalog/coingecko-stocks.v1.json')) return `${kind}/stocks`;
   if (kind==='source') {
+    if (node.name === 'xpro-feed.tweets' && node.card_contract?.config.definition_refs?.some(ref=>ref.path==='catalog/xpro-feed-source.v1.json')) return 'source/xpro';
     const source=sources.operations.find(item=>item.id===node.name) || sources.resources.find(item=>item.id===node.name);
     const provider=source && providers[source.source_id];
     return `source/${provider==='kaito' ? node.name.startsWith('kaito.resource.') ? 'kaito-resource' : 'kaito-mcp' : provider || 'unknown'}`;
